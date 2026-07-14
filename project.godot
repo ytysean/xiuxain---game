@@ -1,14 +1,16 @@
-; 引擎配置（Godot 4.7）。每天第1步教程的工程。
-config_version=5
-
+; 修仙掌门 MVP · 里程碑1（Godot 4.7）
 [application]
 
-config/name="xiuxian-game（Dodge the Creeps 教程）"
+config/name="修仙掌门MVP"
+config/features=PackedStringArray("4.6")
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.svg"
 
 [display]
 
 window/size/viewport_width=480
-window/size/viewport_height=720
+window/size/viewport_height=854
+window/handheld/orientation="portrait"
+
+[autoload]
+
+Game="*res://game_state.gd"
