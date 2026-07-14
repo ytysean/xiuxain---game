@@ -3,6 +3,10 @@
 # 对应策划案：M1 框架 + 奇遇/物品系统（无上下限仅概率、极品交宗或自留、低阶携宝越阶）
 extends Node
 
+const Disciple = preload("res://disciple.gd")
+const Item = preload("res://item.gd")
+const Beast = preload("res://beast.gd")
+
 var 灵石 := 1000
 var 贡献点 := 0
 var 弟子列表: Array[Disciple] = []   # 强类型数组（需 disciple.gd 已注册 class_name）
@@ -109,9 +113,9 @@ func 绑定灵兽给首只合格(灵兽: Beast) -> String:
 func 交宗(条目: Dictionary):
 	var 弟子: Disciple = 条目["弟子"]
 	var 物品: Item = 条目["物品"]
+	var 贡献: int = {"fan_jie": 10, "ling_jie": 20, "bao_jie": 40, "wang_jie": 80, "sheng_jie": 150, "xian_jie": 300, "dao_jie": 600}.get(物品.品阶, 10)
 	if 弟子.物品.has(物品):
 		弟子.物品.erase(物品)
-		var 贡献: int = {"fan_jie": 10, "ling_jie": 20, "bao_jie": 40, "wang_jie": 80, "sheng_jie": 150, "xian_jie": 300, "dujie_jie": 600}.get(物品.品阶, 10)
 		贡献点 += 贡献
 	移除待抉择(条目)
 	弟子变动.emit()
