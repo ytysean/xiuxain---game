@@ -1,0 +1,24 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://HUD.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://Mob.tscn" id="4_mob"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+mob_scene = ExtResource("4_mob")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+[node name="StartTimer" type="Timer" parent="."]
+wait_time = 2.0
+one_shot = true
+
+[node name="MobTimer" type="Timer" parent="."]
+wait_time = 0.6
+
+[node name="ScoreTimer" type="Timer" parent="."]
+wait_time = 1.0

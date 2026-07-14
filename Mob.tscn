@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://mob.gd" id="1_mob"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_mob"]
+radius = 16.0
+
+[node name="Mob" type="RigidBody2D"]
+script = ExtResource("1_mob")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_mob")
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-16, 16, 0, -18, 16, 16)
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
+rect = Rect2(-24, -24, 48, 48)
