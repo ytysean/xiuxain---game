@@ -1,16 +1,25 @@
-; 修仙掌门 MVP · 里程碑1（Godot 4.7）
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
 [application]
 
 config/name="修仙掌门MVP"
-config/features=PackedStringArray("4.6")
 run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+
+[autoload]
+
+Game="*res://game_state.gd"
 
 [display]
 
 window/size/viewport_width=480
 window/size/viewport_height=854
 window/handheld/orientation="portrait"
-
-[autoload]
-
-Game="*res://game_state.gd"

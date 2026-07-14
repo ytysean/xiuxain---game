@@ -3,6 +3,10 @@
 # 新建 Control 节点作为根 -> 挂本脚本 -> 设为启动场景即可运行
 extends Control
 
+const Disciple = preload("res://disciple.gd")
+const Item = preload("res://item.gd")
+const Beast = preload("res://beast.gd")
+
 var 灵石标签: Label
 var 列表: VBoxContainer
 var 抉择区: VBoxContainer
