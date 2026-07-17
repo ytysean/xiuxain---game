@@ -483,6 +483,25 @@ const TABLE_RULES := {
             "fragment_total": {"type": "int", "min": 0, "tip": "所需碎片数不能为负（仅信物本体有意义，碎片填0）"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false（剧情信物恒为 false）"}
         }
+    },
+    # ---------- 成就系统（v2.67 新增，对应 GDD §17 成就系统）----------
+    # 本批次为 [PL] 框架：reward_id 仅做格式（string）校验，跨表存在性校验
+    # （ID 必须存在全局道具/称号/外观/功能库）留待奖励 ID 回填时启用（见 GDD §17.8 缺口清单）。
+    "achievement_config": {
+        "required_fields": ["achievement_id","ach_name","category","grade","condition_desc","condition_param","reward_type","reward_id","reward_num","point_num","unlock_tip"],
+        "primary_key": "achievement_id",
+        "field_rules": {
+            "category": {"type": "enum", "values": ["成长","经营","战斗","探索","社交"], "tip": "成就分类非法"},
+            "grade": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "成就等级非法"},
+            "point_num": {"type": "enum", "values": [10,30,100], "tip": "成就点数必须为10/30/100"},
+            "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "奖励类型非法"},
+            # reward_num 原拟 int；实测 ach_grow_021 为 1.5（永久增益 fang_yu 倍率）。
+            # 依据本仓库「CSV 为唯一真相源」原则（见文件头 B2/B3 裁决）改为 float，min 0。
+            # 整数数量（如灵石 50000）与小数倍率（如 1.5）均合法。
+            "reward_num": {"type": "float", "min": 0, "tip": "奖励数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
+            "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数不能为负"},
+            "reward_id": {"type": "string", "tip": "意图指向全局道具/称号/外观/功能ID；本批次[PL]不做跨表存在性校验，缺口见GDD §17.8"}
+        }
     }
 }
 
