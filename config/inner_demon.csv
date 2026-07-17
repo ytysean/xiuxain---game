@@ -1,0 +1,5 @@
+demon_id,demon_name,match_personality,trigger_prob,opt1_desc,opt1_success_rate,opt1_success_reward,opt1_fail_punish,opt2_desc,opt2_success_rate,opt2_success_reward,opt2_fail_punish
+dm_001,执念心魔,急躁,0.6,凝神定念,0.6,道心+5,心魔+10,强行镇压,0.4,暂稳心魔-5,走火入魔风险+8
+dm_002,贪欲心魔,好胜,0.45,散财济世,0.7,贪欲-8,损失灵石100,以战养战,0.5,修为+30,仇家+1
+dm_003,嗔怒心魔,慵懒,0.35,吐纳静心,0.65,心境+3,无,借酒浇愁,0.3,无,道心-5
+dm_004,生死心魔,沉稳,0.3,感悟生死,0.75,道心+8,无,避世不出,0.55,平安渡劫,进度延缓

@@ -1,0 +1,11 @@
+interact_id,interact_name,interact_type,trigger_prob,relation_min,relation_max,reward_type,reward_value_a,reward_value_b,punish_type,punish_value,cooldown_hour,is_relation_grow
+di_001,论道切磋,切磋,0.3,0,100,好感,5,0,无,0,12,true
+di_002,共参功法,论道,0.25,10,100,好感,8,0,无,0,24,true
+di_003,赠以灵丹,赠礼,0.2,0,80,好感,10,0,灵石,30,48,true
+di_004,联手御兽,协作,0.3,0,100,修为,20,0,无,0,24,true
+di_005,争执口角,争执,0.15,0,50,好感,0,0,好感,5,12,false
+di_006,同门互助,协作,0.35,0,100,好感,6,0,无,0,12,true
+di_007,比武论英雄,切磋,0.2,20,100,修为,15,0,好感,3,24,false
+di_008,馈赠法宝,赠礼,0.1,0,60,好感,15,0,灵石,100,72,true
+di_009,共探秘境,协作,0.25,10,100,修为,30,0,无,0,48,true
+di_010,道心辩难,论道,0.2,30,100,道心,5,0,无,0,24,true

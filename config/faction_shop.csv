@@ -1,0 +1,11 @@
+shop_id,faction_id,item_id,item_name,item_grade,price_lingjing,price_token,limit_daily,limit_weekly,unlock_reputation
+shop_zd_001,fz_zhengdao,item_zd_001,正道制式飞剑,灵品,300,20,3,10,1000
+shop_zd_002,fz_zhengdao,item_zd_002,镇派心法,宝品,1200,50,1,4,3000
+shop_zl_001,fz_zhongli,item_zl_001,散修药典,灵品,280,15,5,15,1000
+shop_zl_002,fz_zhongli,item_zl_002,流浪者护符,宝品,1000,40,2,8,3000
+shop_mo_001,fz_mo,item_mo_001,魔血丹,灵品,350,25,2,8,1000
+shop_mo_002,fz_mo,item_mo_002,噬魂幡,王品,5000,120,1,3,8000
+shop_yz_001,fz_yaozu,item_yz_001,妖兽精血,灵品,320,18,4,12,1000
+shop_yz_002,fz_yaozu,item_yz_002,古妖遗骨,宝品,1500,60,1,5,3000
+shop_dq_001,fz_danqi,item_dq_001,炼丹秘术,宝品,1300,55,2,6,3000
+shop_dq_002,fz_danqi,item_dq_002,器道图谱,王品,4800,110,1,3,8000
