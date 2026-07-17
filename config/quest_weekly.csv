@@ -1,0 +1,11 @@
+quest_id,quest_name,quest_type,unlock_sect_level,difficulty,target_desc,target_num,reward_lingjing,reward_lingqi,reward_pool_id,reward_chest_id,weekly_active_point,weekly_limit,is_auto_complete
+weekly_001,境界突破升华,深度养成,2,难度Ⅱ,将任意1名弟子境界提升1小层,1,400,200,pool_weekly_1,chest_weekly,5,1,true
+weekly_002,弟子技能精进,深度养成,2,难度Ⅱ,升级任意3名弟子技能各1级,3,350,180,pool_weekly_1,chest_weekly,5,1,true
+weekly_003,同阶套装收集,深度养成,3,难度Ⅲ,集齐1套同品阶装备,1,500,250,pool_weekly_2,chest_weekly,5,1,true
+weekly_004,精英历练连战,高阶玩法,2,难度Ⅱ,通关5次精英历练,5,500,200,pool_weekly_1,chest_weekly,5,1,true
+weekly_005,秘境深入,高阶玩法,3,难度Ⅲ,通关2次完整秘境,2,600,300,pool_weekly_2,chest_weekly,5,1,true
+weekly_006,宗门战争支援,高阶玩法,4,难度Ⅳ,参与1次宗门战争或防御战,1,800,400,pool_weekly_3,chest_weekly,5,1,true
+weekly_007,强敌讨伐,高阶玩法,4,难度Ⅳ,累计击败10个精英以上敌人,10,900,350,pool_weekly_3,chest_weekly,5,1,true
+weekly_008,产业扩张,宗门经营,2,难度Ⅱ,产业建筑累计升阶2次,2,450,220,pool_weekly_1,chest_weekly,5,1,true
+weekly_009,丹道大成,宗门经营,3,难度Ⅲ,炼制10炉对应品阶丹药,10,550,280,pool_weekly_2,chest_weekly,5,1,true
+weekly_010,宗门兴业,宗门经营,3,难度Ⅲ,累计收取20次资源产出,20,480,240,pool_weekly_2,chest_weekly,5,1,true

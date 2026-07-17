@@ -1,0 +1,9 @@
+quest_id,quest_name,quest_type,trigger_type,trigger_prob,valid_time,unlock_sect_level,difficulty,reward_pool_id,reward_lingjing,reward_lingqi,quest_npc_id,is_auto_complete
+random_001,云游修士委托,访客委托,登录,0.15,24,1,难度Ⅰ,pool_random_visit,30,15,npc_visit_01,false
+random_002,妖兽悬赏,访客委托,历练归来,0.1,24,2,难度Ⅱ,pool_random_visit,80,30,npc_visit_02,false
+random_003,弟子纠纷调解,宗门琐事,事件触发,0.2,24,1,难度Ⅰ,pool_random_chore,25,10,npc_chore_01,false
+random_004,库房清点,宗门琐事,登录,0.15,24,2,难度Ⅱ,pool_random_chore,60,25,npc_chore_02,false
+random_005,秘境残卷,奇遇机遇,随机,0.05,24,3,难度Ⅲ,pool_random_omens,150,60,npc_omen_01,false
+random_006,高人论道,奇遇机遇,弟子突破,0.04,24,3,难度Ⅲ,pool_random_omens,180,80,npc_omen_02,false
+random_007,妖兽袭扰预警,紧急事件,事件触发,0.08,24,4,难度Ⅳ,pool_random_urgent,250,100,npc_urgent_01,false
+random_008,邪修窥探,紧急事件,事件触发,0.06,24,4,难度Ⅳ,pool_random_urgent,300,120,npc_urgent_02,false
