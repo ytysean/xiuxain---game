@@ -449,6 +449,31 @@ const TABLE_RULES := {
             "decay_rate_day": {"type": "float", "min": 0, "max": 1, "tip": "每日衰减率须∈[0,1]"},
             "increase_daily_base": {"type": "int", "min": 0, "tip": "每日增长基数不能为负"}
         }
+    },
+    "map_config": {
+        "required_fields": ["map_id","map_name","unlock_realm","main_attr","stamina_normal","stamina_elite","monster_config","normal_drop_pool","elite_drop_pool","event_pool","clear_condition"],
+        "primary_key": "map_id",
+        "field_rules": {
+            "main_attr": {"type": "enum", "values": ["金","木","水","火","土"], "tip": "主五行须∈金木水火土"},
+            "stamina_normal": {"type": "int", "min": 1, "tip": "普通历练体力消耗须>0"},
+            "stamina_elite": {"type": "int", "min": 1, "tip": "精英历练体力消耗须>0"}
+        }
+    },
+    "secret_config": {
+        "required_fields": ["secret_id","secret_name","unlock_cond","main_attr","stamina_cost","layers","boss_info","core_drop_pool","exclusive_event","clear_reward"],
+        "primary_key": "secret_id",
+        "field_rules": {
+            "main_attr": {"type": "enum", "values": ["金","木","水","火","土","全","雷"], "tip": "主五行须∈金木水火土/全/雷(雷劫秘境)"},
+            "stamina_cost": {"type": "int", "min": 1, "tip": "秘境体力消耗须>0"},
+            "layers": {"type": "int", "min": 1, "tip": "秘境层数须≥1"}
+        }
+    },
+    "npc_config": {
+        "required_fields": ["npc_id","npc_name","faction_id","identity","core_function","rep_unlock_note"],
+        "primary_key": "npc_id",
+        "field_rules": {
+            "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi","fz_yuan","neutral"], "tip": "阵营ID须∈§11.26阵营集/neutral"}
+        }
     }
 }
 
@@ -467,6 +492,17 @@ const TABLE_RULES := {
 #      negative_event.base_prob 须∈[0,1]（单行 float 规则已含；此处仅声明口径）。
 # 注：tribulation_config.csv（§11.16 既有 19 列）绝不覆盖；本层新增 inner_demon/tribulation_item
 #     为独立新表（§11.26.6 硬裁决②）。fz_yuan（远古遗泽）按 TODO-③ 暂缓，未入 faction_base 枚举。
+
+# ---------- 内容厚度扩充系统关系校验（v2.63 新增，对应 GDD §11.27）----------
+# TABLE_RULES 已含 §11.27 三净新表：map_config / secret_config / npc_config。
+# 本层仅补：历练/秘境地图（净新，含体力系统闸门）、阵营 NPC 人设（对齐 §11.26 阵营 taxonomy）。
+# 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
+#   1. check_map_attr：map_config.main_attr ∈ {金,木,水,火,土}（单行 enum 规则已含）。
+#   2. check_secret_layers：secret_config.layers>0 且 boss_info 非空（单行规则已含）。
+#   3. check_npc_faction：npc_config.faction_id ∈ {fz_zhengdao,fz_zhongli,fz_mo,fz_yaozu,fz_danqi,fz_yuan,neutral}
+#      （单行 enum 规则已含）；丹器师公会=fz_danqi 第6阵营、远古遗泽=fz_yuan 保留（TODO-③）。
+# 注：五内容品类（丹药/功法/装备/灵兽/傀儡）引用现有 item_pill/skill/equip_main/spirit_pet/puppet，
+#     不建并行表；其 attr 倍率偏差由 §4.7 基准校验、消耗闭环由 §11.24 sink_cost 校验拦截。
 
 # ---------- 经济系统关系校验（v2.59 新增，对应 GDD §11.24）----------
 # 本文件仅定义单行 schema 规则（TABLE_RULES 已含 drop_common/resource_base/output_daily/sink_cost）。
