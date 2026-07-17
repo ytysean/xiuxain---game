@@ -1,0 +1,7 @@
+tribulation_id,tribulation_name,target_realm,thunder_count,base_total_damage,damage_grow_rate,self_resist_base,array_resist_max,item_resist_max,guard_resist_max,perfect_threshold,success_threshold,death_threshold,fail_realm_drop,injury_days,reputation_bonus,perfect_buff_id,link_event_id,event_chance
+t001,小天劫,4,3,300,1.1,0.2,0.25,0.2,0.15,0.9,0.6,0.3,1,10,15,buff_001,event_evil_001,0.2
+t002,中天劫,5,6,800,1.15,0.25,0.3,0.25,0.2,0.95,0.55,0.25,2,20,30,buff_002,event_beast_002,0.3
+t003,大天劫,6,9,2000,1.2,0.3,0.35,0.3,0.25,1.0,0.5,0.2,2,30,50,buff_003,event_demon_001,0.35
+t004,四九天劫,7,36,5000,1.2,0.35,0.4,0.35,0.3,1.1,0.45,0.15,3,45,80,buff_004,event_demon_002,0.4
+t005,六九天劫,8,54,12000,1.25,0.4,0.45,0.4,0.35,1.2,0.4,0.1,3,60,120,buff_005,event_chaos_001,0.45
+t006,九九重劫,9,81,30000,1.3,0.45,0.5,0.45,0.4,1.3,0.35,0.08,4,90,200,buff_006,event_spirit_realm,0.5

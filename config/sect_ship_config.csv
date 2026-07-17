@@ -1,0 +1,5 @@
+ship_id,ship_name,ship_type,unlock_condition,base_carry,speed_bonus,risk_reduce,max_durability,per_trip_durability,max_passenger,war_power,build_cost,monthly_maintain,max_stack
+ss01,下品御风灵舟,trade,sect_level=6,500,0.5,0.2,1000,20,20,100,20000,500,1
+ss02,中品跨域灵舟,trade,sect_level=8,1200,0.7,0.3,2500,50,50,300,80000,2000,1
+ss03,上品玄甲战舰,war,sect_level=9,800,0.6,0.45,3000,80,80,800,200000,5000,1
+ss04,极品紫府仙舟,flagship,sect_level=10,2500,0.9,0.5,6000,100,120,1500,500000,12000,1

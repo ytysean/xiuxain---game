@@ -1,0 +1,7 @@
+post_id,post_name,min_realm,max_count,main_attr,price_bonus_per_attr,carry_capacity,speed_bonus,risk_reduce,extra_salary_rate,loyalty_cost
+p001,商队掌柜,2,1,wisdom,0.002,0,0.02,0.01,0.5,2
+p002,护卫弟子,1,10,power,0.0,2,0.01,0.008,0.2,1
+p003,脚夫弟子,1,20,body,0.0,5,0.005,0.002,0.1,0.5
+p004,账房执事,3,1,wisdom,0.001,0,0.0,0.02,0.3,1.5
+p005,护商武师,3,3,power,0.0,3,0.015,0.015,0.4,1.5
+p006,大商队主事,4,1,wisdom,0.003,0,0.03,0.02,0.8,3
