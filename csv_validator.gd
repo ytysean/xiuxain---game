@@ -254,6 +254,62 @@ const TABLE_RULES := {
         "field_rules": {
             "daily_consumption": {"type": "int", "min": 0, "tip": "日均消耗不能为负"}
         }
+    },
+    "quest_daily": {
+        "required_fields": ["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","active_point","daily_limit","is_auto_complete"],
+        "primary_key": "quest_id",
+        "field_rules": {
+            "quest_type": {"type": "enum", "values": ["经营","养成","探索","互动"], "tip": "日常任务类型非法"},
+            "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法（应对四阶段成长节奏）"},
+            "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
+            "target_num": {"type": "int", "min": 1, "tip": "目标数量必须大于0"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "active_point": {"type": "int", "min": 0, "tip": "活跃度不能为负"},
+            "daily_limit": {"type": "int", "min": 0, "tip": "每日次数不能为负"},
+            "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
+        }
+    },
+    "quest_weekly": {
+        "required_fields": ["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","reward_chest_id","weekly_active_point","weekly_limit","is_auto_complete"],
+        "primary_key": "quest_id",
+        "field_rules": {
+            "quest_type": {"type": "enum", "values": ["深度养成","高阶玩法","宗门经营"], "tip": "周常任务类型非法"},
+            "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法"},
+            "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
+            "target_num": {"type": "int", "min": 1, "tip": "目标数量必须大于0"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "weekly_active_point": {"type": "int", "min": 0, "tip": "周活跃度不能为负"},
+            "weekly_limit": {"type": "int", "min": 0, "tip": "每周次数不能为负"},
+            "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
+        }
+    },
+    "quest_random": {
+        "required_fields": ["quest_id","quest_name","quest_type","trigger_type","trigger_prob","valid_time","unlock_sect_level","difficulty","reward_pool_id","reward_lingjing","reward_lingqi","quest_npc_id","is_auto_complete"],
+        "primary_key": "quest_id",
+        "field_rules": {
+            "quest_type": {"type": "enum", "values": ["访客委托","宗门琐事","奇遇机遇","紧急事件"], "tip": "随机任务类型非法"},
+            "trigger_type": {"type": "enum", "values": ["登录","收取资源","历练归来","弟子突破","事件触发","随机"], "tip": "触发类型非法"},
+            "trigger_prob": {"type": "float", "max": 1.0, "tip": "触发概率须≤1"},
+            "valid_time": {"type": "int", "min": 0, "tip": "有效期不能为负"},
+            "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
+            "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
+        }
+    },
+    "quest_reward_pool": {
+        "required_fields": ["pool_id","item_id","item_name","item_grade","weight","drop_limit","daily_max","is_counted_in_balance"],
+        "primary_key": "pool_id+item_id",
+        "field_rules": {
+            "item_grade": {"type": "enum", "values": ["凡品下品","凡品中品","凡品上品","凡品极品","灵品下品","灵品中品","灵品上品","灵品极品","宝品下品","宝品中品","宝品上品","宝品极品","王品下品","王品中品","王品上品","王品极品","圣品下品","圣品中品","圣品上品","圣品极品","固定数值"], "tip": "道具品阶非法（应为 大品阶+细分品级 组合，对齐 7 品 4 级；灵石/气运等固定数值奖励填「固定数值」）"},
+            "weight": {"type": "int", "min": 0, "tip": "权重不能为负"},
+            "drop_limit": {"type": "int", "min": 0, "tip": "掉落上限不能为负"},
+            "daily_max": {"type": "int", "min": 0, "tip": "每日上限不能为负"},
+            "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡测算应为 true/false"}
+        }
     }
 }
 
@@ -267,3 +323,12 @@ const TABLE_RULES := {
 #      需汇总 output_daily vs sink_cost 按 stage 计算，待数据完整后实现。
 # 注：GDD §11.24.6.2 原文「各品阶概率之和=100%」已据 CSV 实际结构（按道具权重）修正为
 #     「同 drop_id 池内 drop_weight 之和=100」，以匹配 drop_common.csv 与 §11.24.8.4 校验说明。
+
+# ---------- 任务系统关系校验（v2.60 新增，对应 GDD §11.25）----------
+# TABLE_RULES 已含 quest_daily/quest_weekly/quest_random/quest_reward_pool 四表。
+# 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
+#   1. check_reward_pool_weight_sum（已落地）：同 pool_id 池内 weight 之和必须 = 100。
+#   2. balance_check（暂缓）：单阶段任务日均产出不得超过全局日均产出的 10%；
+#      需汇总 quest_* 奖励 vs output_daily 按 stage 计算，待奖励明细充实后实现（同 §11.24 口径）。
+# 注：GDD §11.25.8.2 原稿 13.8.2 误将 4 张表写成单一 "quest" 表并内嵌 reward_check/balance_check dict，
+#     已按 4 表结构 + 权重和关系校验重写，避免入库即报错。
