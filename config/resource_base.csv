@@ -1,0 +1,5 @@
+resource_id,resource_name,resource_tier,item_grade,stack_limit,core_positioning,main_use
+res_currency,灵石·灵气·气运,核心货币类,通用,TBD,全局硬通货·贯穿全周期,"灵石:通用交易/建设/招募;灵气:弟子修炼/突破;气运:宗门增益/特殊解锁"
+res_material,灵药·矿石·灵木·符纸·妖兽精血,基础原材料类,按产出品阶,TBD,产业加工原料,炼制丹药/锻造装备/制作符箓/升级建筑
+res_product,丹药·符箓·装备·普通法宝·功法残页,养成成品类,按产出品阶,TBD,弟子养成核心消耗,提升战力/突破境界/战斗消耗/技能升级
+res_strategic,突破丹·本命法宝材料·高阶图纸·灵根洗髓道具,稀有战略类,按产出品阶,TBD,高阶养成稀缺资源,大境界突破/本命法宝祭炼/高阶建筑解锁/弟子资质重塑
