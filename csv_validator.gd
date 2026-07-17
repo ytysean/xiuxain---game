@@ -2,7 +2,7 @@
 # 配置表校验器 —— v2.56 新增文件（原工程无此文件，本次创建）
 # 用途：随 CSV 热更一并跑全量校验（详见 GDD §11.23 八、配置表导入约定）
 # 说明：本文件仅定义规则数据与常量；实际解析/校验逻辑由调用方实现。
-#       当前仅落地 spirit_pet / puppet 两张表的规则，其余表随对应 CSV 一并补入。
+#       当前随各系统 CSV 持续补入（含 economy 四表 drop_common/resource_base/output_daily/sink_cost，v2.59）。
 # 数据质量待办处理结论（2026-07-17，B2/B3 已裁决）：
 #   - 采用「CSV 数据为唯一真相源」原则：保留战斗/产业增益的 "%" 可读性写法，
 #     校验器新增 "percent" 类型解析 "%" 后缀（双值 "a%+b%" 取主值 a 做区间校验），
@@ -219,5 +219,51 @@ const TABLE_RULES := {
             "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "冷却时长超出0-10范围"},
             "mp_cost": {"type": "int", "min": 0, "tip": "灵力消耗不能为负数"}
         }
+    },
+    "drop_common": {
+        "required_fields": ["drop_id","scene_name","unlock_realm","unlock_sect_level","item_id","item_name","item_grade","item_type","drop_weight","guarantee_count","daily_drop_limit","is_counted_in_balance"],
+        "primary_key": "drop_id+item_id",
+        "field_rules": {
+            "unlock_sect_level": {"type": "int", "min": 1, "tip": "解锁宗门等级必须大于0"},
+            "item_grade": {"type": "enum", "values": ["凡品下品","凡品中品","凡品上品","凡品极品","灵品下品","灵品中品","灵品上品","灵品极品","宝品下品","宝品中品","宝品上品","宝品极品","王品下品","王品中品","王品上品","王品极品","圣品下品","圣品中品","圣品上品","圣品极品"], "tip": "道具品阶非法（应为 大品阶+细分品级 组合，对齐 7 品 4 级）"},
+            "drop_weight": {"type": "int", "min": 0, "tip": "掉落权重不能为负"},
+            "guarantee_count": {"type": "int", "min": 0, "tip": "保底次数不能为负"},
+            "daily_drop_limit": {"type": "int", "min": 0, "tip": "每日掉落上限不能为负"},
+            "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡测算应为 true/false"}
+        }
+    },
+    "resource_base": {
+        "required_fields": ["resource_id","resource_name","resource_tier","item_grade","stack_limit","core_positioning","main_use"],
+        "primary_key": "resource_id",
+        "field_rules": {
+            "resource_tier": {"type": "enum", "values": ["核心货币类","基础原材料类","养成成品类","稀有战略类"], "tip": "资源层级非法"},
+            "item_grade": {"type": "string", "tip": "品阶对应：通用 / 按产出品阶"},
+            "stack_limit": {"type": "string", "tip": "堆叠上限：整数或 TBD（待配置）"}
+        }
+    },
+    "output_daily": {
+        "required_fields": ["stage","sect_level","resource","daily_output","unit"],
+        "primary_key": "stage+resource",
+        "field_rules": {
+            "daily_output": {"type": "int", "min": 0, "tip": "日均产出不能为负"}
+        }
+    },
+    "sink_cost": {
+        "required_fields": ["stage","resource","daily_consumption","unit","core_direction"],
+        "primary_key": "stage+resource",
+        "field_rules": {
+            "daily_consumption": {"type": "int", "min": 0, "tip": "日均消耗不能为负"}
+        }
     }
 }
+
+# ---------- 经济系统关系校验（v2.59 新增，对应 GDD §11.24）----------
+# 本文件仅定义单行 schema 规则（TABLE_RULES 已含 drop_common/resource_base/output_daily/sink_cost）。
+# 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
+#   1. check_drop_weight_sum（已落地）：同 drop_id 池内 drop_weight 之和必须 = 100。
+#   2. resource_loop_check（暂缓）：每资源须同时存在产出渠道(output_daily)与消耗出口(sink_cost)，
+#      无孤岛资源；待产出/消耗明细 CSV 充实后实现。
+#   3. balance_check（暂缓）：各阶段通用资源结余率=5%-25%、稀有资源=-40%~0；
+#      需汇总 output_daily vs sink_cost 按 stage 计算，待数据完整后实现。
+# 注：GDD §11.24.6.2 原文「各品阶概率之和=100%」已据 CSV 实际结构（按道具权重）修正为
+#     「同 drop_id 池内 drop_weight 之和=100」，以匹配 drop_common.csv 与 §11.24.8.4 校验说明。
