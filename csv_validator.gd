@@ -207,5 +207,17 @@ const TABLE_RULES := {
             "upgrade_days": {"type": "int", "min": 0, "tip": "升级天数不能为负"},
             "max_cover_buildings": {"type": "int", "min": 1, "tip": "最大覆盖建筑数必须大于0"}
         }
+    },
+    "skill": {
+        "required_fields": [
+            "skill_id", "skill_name", "profession", "damage_rate", "cooldown", "mp_cost"
+        ],
+        "primary_key": "skill_id",
+        "field_rules": {
+            "profession": {"type": "enum", "values": ["体修", "道修", "法修", "通用"], "tip": "职业类型非法"},
+            "damage_rate": {"type": "float", "min": 0, "max": 3.0, "tip": "技能倍率超出合理范围"},
+            "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "冷却时长超出0-10范围"},
+            "mp_cost": {"type": "int", "min": 0, "tip": "灵力消耗不能为负数"}
+        }
     }
 }
