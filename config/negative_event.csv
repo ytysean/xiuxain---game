@@ -1,0 +1,8 @@
+event_id,event_name,trigger_condition,base_prob,monthly_limit,punish_type_1,punish_value_1,punish_type_2,punish_value_2,deal_item,deal_effect,recover_day,is_permanent
+ne_001,走火入魔,修炼过速且心境不足,0.03,2,心魔,10,修为,20,静心丹,心境恢复,5,false
+ne_002,弟子叛逃,忠诚低于20且外界招揽,0.02,1,忠诚,30,无,0,无,无,0,true
+ne_003,怠工旷课,士气低于30,0.05,5,修为,10,无,0,激励令,士气回升,3,false
+ne_004,心境受损,经历负面事件,0.04,3,心境,15,无,0,凝神香,心境恢复,4,false
+ne_005,道心不稳,心魔值过高,0.03,2,道心,8,心魔,5,悟道茶,道心稳固,6,false
+ne_006,历练负伤,高危历练未布护阵,0.06,8,气血,25,修为,5,疗伤丹,伤势痊愈,2,false
+ne_007,偷窃资材,贪欲高且监管松,0.02,2,忠诚,15,灵石,50,无,无,0,false

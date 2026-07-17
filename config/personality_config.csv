@@ -1,0 +1,8 @@
+personality_id,personality_name,work_eff_factor,train_eff_factor,combat_atk_factor,combat_def_factor,work_weight,walk_weight,rest_weight,interact_weight,loyalty_base,morale_base,demon_resist_rate,defect_base_rate,description
+p_diligent,勤勉,1.2,1.1,1.0,1.0,0.5,0.2,0.1,0.2,70,65,0.3,0.02,勤恳任事，劳作高效，心魔抗性中
+p_lazy,慵懒,0.8,0.9,0.9,1.0,0.2,0.3,0.4,0.1,55,60,0.2,0.04,好逸恶劳，易生嗔怒，叛逃风险中
+p_steady,沉稳,1.0,1.1,1.0,1.2,0.3,0.2,0.3,0.2,75,70,0.5,0.01,行止有度，心境稳固，叛逃极低
+p_impulse,急躁,1.1,1.0,1.2,0.9,0.35,0.4,0.05,0.2,50,60,0.15,0.04,杀伐果决，攻强守弱，易生执念
+p_detach,淡泊,0.9,1.0,0.9,1.0,0.25,0.25,0.35,0.15,65,75,0.45,0.02,无欲无求，心境空明，心魔抗性高
+p_ambition,好胜,1.0,1.0,1.2,0.9,0.3,0.35,0.05,0.3,55,65,0.2,0.03,锐意争先，贪进好夺，易生贪欲
+p_benevolent,仁厚,1.0,1.0,0.9,1.1,0.3,0.15,0.25,0.3,80,70,0.4,0.02,仁心济世，忠诚可靠，心魔抗性高

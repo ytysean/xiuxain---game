@@ -310,8 +310,163 @@ const TABLE_RULES := {
             "daily_max": {"type": "int", "min": 0, "tip": "每日上限不能为负"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡测算应为 true/false"}
         }
+    },
+    "event_quest": {
+        "required_fields": ["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance"],
+        "primary_key": "event_id",
+        "field_rules": {
+            "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属"], "tip": "奇遇大类非法"},
+            "rarity": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "稀有度非法（3档映射§10四档）"},
+            "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"], "tip": "触发场景非法"},
+            "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
+            "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体"], "tip": "境界非法"},
+            "trigger_weight": {"type": "int", "min": 0, "tip": "触发权重不能为负"},
+            "cooldown_hour": {"type": "int", "min": 0, "tip": "冷却时长不能为负"},
+            "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false"}
+        }
+    },
+    "faction_base": {
+        "required_fields": ["faction_id","faction_name","reputation_level","need_reputation","global_buff_1","global_buff_2","unlock_content","shop_unlock_grade"],
+        "primary_key": "faction_id+reputation_level",
+        "field_rules": {
+            "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi"], "tip": "阵营编码非法（fz_yuan 暂缓 TODO-③）"},
+            "reputation_level": {"type": "enum", "values": ["中立","友善","尊敬","崇敬","崇拜"], "tip": "声望等级非法"},
+            "need_reputation": {"type": "int", "min": 0, "tip": "所需声望不能为负"},
+            "shop_unlock_grade": {"type": "int", "min": 0, "max": 4, "tip": "商店解锁档位须在0-4"}
+        }
+    },
+    "faction_shop": {
+        "required_fields": ["shop_id","faction_id","item_id","item_name","item_grade","price_lingjing","price_token","limit_daily","limit_weekly","unlock_reputation"],
+        "primary_key": "shop_id",
+        "field_rules": {
+            "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi"], "tip": "阵营编码非法"},
+            "item_grade": {"type": "enum", "values": ["凡品","灵品","宝品","王品","圣品","真品","道品"], "tip": "道具品阶非法（7大品阶）"},
+            "price_lingjing": {"type": "int", "min": 0, "tip": "灵石价不能为负"},
+            "price_token": {"type": "int", "min": 0, "tip": "代币价不能为负"},
+            "limit_daily": {"type": "int", "min": 0, "tip": "每日限购不能为负"},
+            "limit_weekly": {"type": "int", "min": 0, "tip": "每周限购不能为负"},
+            "unlock_reputation": {"type": "int", "min": 0, "tip": "解锁声望阈值不能为负"}
+        }
+    },
+    "inner_demon": {
+        "required_fields": ["demon_id","demon_name","match_personality","trigger_prob","opt1_desc","opt1_success_rate","opt1_success_reward","opt1_fail_punish","opt2_desc","opt2_success_rate","opt2_success_reward","opt2_fail_punish"],
+        "primary_key": "demon_id",
+        "field_rules": {
+            "match_personality": {"type": "enum", "values": ["勤勉","慵懒","沉稳","急躁","淡泊","好胜","仁厚"], "tip": "性格标签非法（7性格行为层）"},
+            "trigger_prob": {"type": "float", "min": 0, "max": 1.0, "tip": "触发概率须∈[0,1]"},
+            "opt1_success_rate": {"type": "float", "min": 0, "max": 1.0, "tip": "成功率须∈[0,1]"},
+            "opt2_success_rate": {"type": "float", "min": 0, "max": 1.0, "tip": "成功率须∈[0,1]"}
+        }
+    },
+    "tribulation_item": {
+        "required_fields": ["item_id","item_name","item_type","success_rate_bonus","damage_reduce","consume_cost","consume_type"],
+        "primary_key": "item_id",
+        "field_rules": {
+            "item_type": {"type": "enum", "values": ["渡劫丹","护阵","长老护法","防御法宝"], "tip": "渡劫道具类型非法"},
+            "success_rate_bonus": {"type": "float", "min": 0, "max": 0.5, "tip": "成功率加成单件上限50%"},
+            "damage_reduce": {"type": "float", "min": 0, "max": 0.5, "tip": "减伤单件上限50%（叠加上限同§11.16总抗性）"},
+            "consume_cost": {"type": "int", "min": 0, "tip": "消耗不能为负"}
+        }
+    },
+    "personality_config": {
+        "required_fields": ["personality_id","personality_name","work_eff_factor","train_eff_factor","combat_atk_factor","combat_def_factor","work_weight","walk_weight","rest_weight","interact_weight","loyalty_base","morale_base","demon_resist_rate","defect_base_rate","description"],
+        "primary_key": "personality_id",
+        "field_rules": {
+            "work_eff_factor": {"type": "float", "min": 0.8, "max": 1.2, "tip": "劳作效率因子须在±20%内"},
+            "train_eff_factor": {"type": "float", "min": 0.8, "max": 1.2, "tip": "修炼效率因子须在±20%内"},
+            "combat_atk_factor": {"type": "float", "min": 0.8, "max": 1.2, "tip": "攻击因子须在±20%内"},
+            "combat_def_factor": {"type": "float", "min": 0.8, "max": 1.2, "tip": "防御因子须在±20%内"},
+            "work_weight": {"type": "float", "min": 0, "max": 1, "tip": "行为权重须在[0,1]"},
+            "walk_weight": {"type": "float", "min": 0, "max": 1, "tip": "行为权重须在[0,1]"},
+            "rest_weight": {"type": "float", "min": 0, "max": 1, "tip": "行为权重须在[0,1]"},
+            "interact_weight": {"type": "float", "min": 0, "max": 1, "tip": "行为权重须在[0,1]"},
+            "loyalty_base": {"type": "int", "min": 0, "max": 100, "tip": "忠诚度须在0-100"},
+            "morale_base": {"type": "int", "min": 0, "max": 100, "tip": "士气须在0-100"},
+            "demon_resist_rate": {"type": "float", "min": 0, "max": 1, "tip": "抗心魔率须∈[0,1]"},
+            "defect_base_rate": {"type": "float", "min": 0, "max": 1, "tip": "叛逃基础率须∈[0,1]"}
+        }
+    },
+    "path_config": {
+        "required_fields": ["path_id","path_name","match_profession","work_area_weight","train_area_weight","public_area_weight","exclusive_behavior_id","skill_grow_bonus","special_buff"],
+        "primary_key": "path_id",
+        "field_rules": {
+            "match_profession": {"type": "enum", "values": ["体修","道修","法修","通用"], "tip": "职业非法"},
+            "work_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "train_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "public_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "skill_grow_bonus": {"type": "float", "min": 0, "max": 1, "tip": "技能成长加成须∈[0,1]"}
+        }
+    },
+    "area_stay_weight": {
+        "required_fields": ["combine_id","personality_id","path_id","lingtian_weight","danfang_weight","yanwuchang_weight","shanmen_weight","public_weight","verify_note"],
+        "primary_key": "combine_id",
+        "field_rules": {
+            "lingtian_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "danfang_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "yanwuchang_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "shanmen_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
+            "public_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"}
+        }
+    },
+    "disciple_interact": {
+        "required_fields": ["interact_id","interact_name","interact_type","trigger_prob","relation_min","relation_max","reward_type","reward_value_a","reward_value_b","punish_type","punish_value","cooldown_hour","is_relation_grow"],
+        "primary_key": "interact_id",
+        "field_rules": {
+            "interact_type": {"type": "enum", "values": ["切磋","论道","赠礼","协作","争执"], "tip": "互动类型非法"},
+            "trigger_prob": {"type": "float", "min": 0, "max": 1.0, "tip": "触发概率须∈[0,1]"},
+            "relation_min": {"type": "int", "min": 0, "max": 100, "tip": "关系下限须在0-100"},
+            "relation_max": {"type": "int", "min": 0, "max": 100, "tip": "关系上限须在0-100"},
+            "reward_type": {"type": "enum", "values": ["好感","灵石","道具","修为","道心"], "tip": "奖励类型非法"},
+            "reward_value_a": {"type": "int", "min": 0, "tip": "奖励数值不能为负"},
+            "reward_value_b": {"type": "int", "min": 0, "tip": "奖励数值不能为负"},
+            "punish_type": {"type": "enum", "values": ["好感","灵石","忠诚","无"], "tip": "惩罚类型非法"},
+            "punish_value": {"type": "int", "min": 0, "tip": "惩罚数值不能为负"},
+            "cooldown_hour": {"type": "int", "min": 0, "tip": "冷却时长不能为负"},
+            "is_relation_grow": {"type": "bool", "tip": "是否增长关系应为 true/false"}
+        }
+    },
+    "negative_event": {
+        "required_fields": ["event_id","event_name","trigger_condition","base_prob","monthly_limit","punish_type_1","punish_value_1","punish_type_2","punish_value_2","deal_item","deal_effect","recover_day","is_permanent"],
+        "primary_key": "event_id",
+        "field_rules": {
+            "base_prob": {"type": "float", "min": 0, "max": 1.0, "tip": "基础概率须∈[0,1]"},
+            "monthly_limit": {"type": "int", "min": 0, "tip": "每月上限不能为负"},
+            "punish_type_1": {"type": "enum", "values": ["心魔","忠诚","道心","修为","气血","心境","灵石","无"], "tip": "惩罚类型非法"},
+            "punish_value_1": {"type": "int", "min": 0, "tip": "惩罚数值不能为负"},
+            "punish_type_2": {"type": "enum", "values": ["心魔","忠诚","道心","修为","气血","心境","灵石","无"], "tip": "惩罚类型非法"},
+            "punish_value_2": {"type": "int", "min": 0, "tip": "惩罚数值不能为负"},
+            "recover_day": {"type": "int", "min": 0, "tip": "恢复天数不能为负"},
+            "is_permanent": {"type": "bool", "tip": "是否永久应为 true/false"}
+        }
+    },
+    "morale_loyalty_config": {
+        "required_fields": ["config_id","attr_name","full_value","zero_effect","low_threshold","low_effect","high_threshold","high_effect","decay_rate_day","increase_daily_base"],
+        "primary_key": "config_id",
+        "field_rules": {
+            "full_value": {"type": "int", "min": 1, "tip": "满值须>0"},
+            "low_threshold": {"type": "int", "min": 0, "tip": "低阈值不能为负"},
+            "high_threshold": {"type": "int", "min": 0, "tip": "高阈值不能为负"},
+            "decay_rate_day": {"type": "float", "min": 0, "max": 1, "tip": "每日衰减率须∈[0,1]"},
+            "increase_daily_base": {"type": "int", "min": 0, "tip": "每日增长基数不能为负"}
+        }
     }
 }
+
+# ---------- 核心玩法深度系统关系校验（v2.61 新增，对应 GDD §11.26）----------
+# TABLE_RULES 已含 §11.26 十一表：event_quest / faction_base / faction_shop /
+# inner_demon / tribulation_item / personality_config / path_config /
+# area_stay_weight / disciple_interact / negative_event / morale_loyalty_config。
+# 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
+#   1. check_event_weight_sum：同 event_type 池内 trigger_weight 之和必须 = 100。
+#   2. check_faction_base_monotonic：同 faction_id 内 need_reputation 必须严格递增。
+#   3. check_faction_shop_grade：item_grade 品阶秩 ≤ 由 unlock_reputation 阈值映射的最大品阶
+#      （1000→灵品 / 3000→宝品 / 8000→王品 / 20000→圣品 / 0→凡品）。
+#   4. check_weight_sum（行为/片区）：personality_config 行为权重和=1、path_config 片区权重和=1、
+#      area_stay_weight 五片区权重和=1（epsilon=1e-6）。
+#   5. check_prob_range：inner_demon.trigger_prob 与成功率、disciple_interact.trigger_prob、
+#      negative_event.base_prob 须∈[0,1]（单行 float 规则已含；此处仅声明口径）。
+# 注：tribulation_config.csv（§11.16 既有 19 列）绝不覆盖；本层新增 inner_demon/tribulation_item
+#     为独立新表（§11.26.6 硬裁决②）。fz_yuan（远古遗泽）按 TODO-③ 暂缓，未入 faction_base 枚举。
 
 # ---------- 经济系统关系校验（v2.59 新增，对应 GDD §11.24）----------
 # 本文件仅定义单行 schema 规则（TABLE_RULES 已含 drop_common/resource_base/output_daily/sink_cost）。

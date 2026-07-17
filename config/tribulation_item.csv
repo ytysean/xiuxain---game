@@ -1,0 +1,5 @@
+item_id,item_name,item_type,success_rate_bonus,damage_reduce,consume_cost,consume_type
+ti_001,九转渡劫丹,渡劫丹,0.15,0.0,500,灵石
+ti_002,周天护劫大阵,护阵,0.1,0.2,800,灵石
+ti_003,长老护法,长老护法,0.08,0.1,0,无
+ti_004,玄龟镇劫甲,防御法宝,0.05,0.25,1200,灵石
