@@ -1,0 +1,7 @@
+dock_id,dock_name,level,unlock_sect_level,max_ship_count,build_speed_bonus,repair_speed_bonus,daily_maintain_cost,upgrade_lingstone,upgrade_material,upgrade_days,unlock_ship_tier,can_build_war_ship
+sd01,基础飞舟坞,1,5,1,0.0,0.1,100,5000,g010:50|g003:30,3,2,0
+sd02,下品飞舟坞,2,6,2,0.15,0.2,250,15000,g013:30|g010:80,5,2,0
+sd03,中品飞舟坞,3,7,3,0.3,0.35,600,40000,g016:15|g013:50,7,3,0
+sd04,上品飞舟坞,4,8,5,0.5,0.55,1500,120000,g016:40|g017:10,10,4,1
+sd05,极品飞舟坞,5,9,8,0.75,0.8,4000,350000,g017:25|g014:20,15,4,1
+sd06,仙级船坞,6,10,12,1.1,1.2,10000,1000000,g018:20|g017:60,25,5,1

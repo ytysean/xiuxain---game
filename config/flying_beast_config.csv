@@ -1,0 +1,5 @@
+beast_id,beast_name,beast_tier,unlock_way,base_carry,speed_bonus,risk_reduce,skill_id,base_loyalty,feed_cost_per_day,tame_material
+fb01,青云鹤,2,秘境收服,30,0.25,0.1,skill_001,70,g004:2,g005:5
+fb02,雷翼雕,3,妖兽山收服,80,0.4,0.2,skill_002,60,g004:5,g008:3
+fb03,金翅大鹏,4,上古遗迹收服,200,0.6,0.35,skill_003,50,g014:2,g012:1
+fb04,玄水龟舟,3,深海收服,300,0.15,0.4,skill_004,75,g004:8,g013:5

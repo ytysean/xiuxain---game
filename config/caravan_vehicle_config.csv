@@ -1,0 +1,9 @@
+vehicle_id,vehicle_name,vehicle_type,unlock_condition,base_carry,speed_bonus,loss_reduce,buy_cost,monthly_maintain,max_stack
+v001,凡品毛驴,beast,sect_level=1,10,0.0,0.0,50,5,10
+v002,下品灵驮兽,beast,sect_level=3,25,0.1,0.05,300,20,10
+v003,中品玄甲兽,beast,sect_level=6,50,0.15,0.1,1200,80,8
+v004,粗制木箱,box,sect_level=1,5,0.0,0.02,30,2,20
+v005,下品灵纹货箱,box,sect_level=4,10,0.0,0.08,200,10,15
+v006,中品防潮灵箱,box,sect_level=7,15,0.0,0.15,800,40,10
+v007,下品御风灵舟,ship,sect_level=9,500,0.5,0.2,20000,500,1
+v008,中品跨域灵舟,ship,sect_level=10,1200,0.7,0.3,80000,2000,1
