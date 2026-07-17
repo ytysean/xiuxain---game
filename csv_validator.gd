@@ -474,6 +474,15 @@ const TABLE_RULES := {
         "field_rules": {
             "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi","fz_yuan","neutral"], "tip": "阵营ID须∈§11.26阵营集/neutral"}
         }
+    },
+    "quest_item": {
+        "required_fields": ["item_id","item_name","item_class","combine_group","combine_target_id","fragment_total","obtain_hint","unlock_event","related_volume","is_counted_in_balance"],
+        "primary_key": "item_id",
+        "field_rules": {
+            "item_class": {"type": "enum", "values": ["主线信物","任务碎片"], "tip": "剧情信物类别非法（信物=合成本体，碎片=合成组件）"},
+            "fragment_total": {"type": "int", "min": 0, "tip": "所需碎片数不能为负（仅信物本体有意义，碎片填0）"},
+            "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false（剧情信物恒为 false）"}
+        }
     }
 }
 
@@ -523,3 +532,12 @@ const TABLE_RULES := {
 #      需汇总 quest_* 奖励 vs output_daily 按 stage 计算，待奖励明细充实后实现（同 §11.24 口径）。
 # 注：GDD §11.25.8.2 原稿 13.8.2 误将 4 张表写成单一 "quest" 表并内嵌 reward_check/balance_check dict，
 #     已按 4 表结构 + 权重和关系校验重写，避免入库即报错。
+
+# ---------- 剧情信物合成校验（v2.66 新增，对应 GDD §16.2.4）----------
+# TABLE_RULES 新增 quest_item 表（剧情主线信物 / 合成碎片，独立于 §11.25 任务四表）。
+# 跨表关系校验（合成完整性）实现于调用方（validate_all.py 镜像）：
+#   1. check_quest_item_combine：同 combine_group 内「任务碎片」行数 必须 == 对应「主线信物」行的 fragment_total；
+#      碎片数不符即报错（防数据层漏配 / 多配碎片）。
+#   2. check_quest_item_target：每枚「任务碎片」的 combine_target_id 必须指向存在的「主线信物」行，
+#      否则报错（防悬空合成目标）。
+# 注：quest_item 不参与经济平衡（is_counted_in_balance 恒 false），不计入 §11.24 产出 / 消耗闭环。
