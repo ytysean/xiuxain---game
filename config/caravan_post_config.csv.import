@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ccoe2sf1yr71q"
+
+[deps]
+
+files=["res://config/caravan_post_config.post.translation", "res://config/caravan_post_config.min.translation", "res://config/caravan_post_config.max.translation", "res://config/caravan_post_config.main.translation", "res://config/caravan_post_config.price.translation", "res://config/caravan_post_config.carry.translation", "res://config/caravan_post_config.speed.translation", "res://config/caravan_post_config.risk.translation", "res://config/caravan_post_config.extra.translation", "res://config/caravan_post_config.loyalty.translation"]
+
+source_file="res://config/caravan_post_config.csv"
+dest_files=["res://config/caravan_post_config.post.translation", "res://config/caravan_post_config.min.translation", "res://config/caravan_post_config.max.translation", "res://config/caravan_post_config.main.translation", "res://config/caravan_post_config.price.translation", "res://config/caravan_post_config.carry.translation", "res://config/caravan_post_config.speed.translation", "res://config/caravan_post_config.risk.translation", "res://config/caravan_post_config.extra.translation", "res://config/caravan_post_config.loyalty.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

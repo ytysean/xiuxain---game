@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bruuc22wi8stl"
+
+[deps]
+
+files=["res://config/item_pill.pill.translation", "res://config/item_pill.grade.translation", "res://config/item_pill.sub.translation", "res://config/item_pill.pill.translation", "res://config/item_pill.use.translation", "res://config/item_pill.effect.translation", "res://config/item_pill.use.translation", "res://config/item_pill.craft.translation", "res://config/item_pill.craft.translation", "res://config/item_pill.base.translation", "res://config/item_pill.sell.translation"]
+
+source_file="res://config/item_pill.csv"
+dest_files=["res://config/item_pill.pill.translation", "res://config/item_pill.grade.translation", "res://config/item_pill.sub.translation", "res://config/item_pill.pill.translation", "res://config/item_pill.use.translation", "res://config/item_pill.effect.translation", "res://config/item_pill.use.translation", "res://config/item_pill.craft.translation", "res://config/item_pill.craft.translation", "res://config/item_pill.base.translation", "res://config/item_pill.sell.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

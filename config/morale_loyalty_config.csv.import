@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b388nhdo62q6v"
+
+[deps]
+
+files=["res://config/morale_loyalty_config.attr.translation", "res://config/morale_loyalty_config.full.translation", "res://config/morale_loyalty_config.zero.translation", "res://config/morale_loyalty_config.low.translation", "res://config/morale_loyalty_config.low.translation", "res://config/morale_loyalty_config.high.translation", "res://config/morale_loyalty_config.high.translation", "res://config/morale_loyalty_config.decay.translation", "res://config/morale_loyalty_config.increase.translation"]
+
+source_file="res://config/morale_loyalty_config.csv"
+dest_files=["res://config/morale_loyalty_config.attr.translation", "res://config/morale_loyalty_config.full.translation", "res://config/morale_loyalty_config.zero.translation", "res://config/morale_loyalty_config.low.translation", "res://config/morale_loyalty_config.low.translation", "res://config/morale_loyalty_config.high.translation", "res://config/morale_loyalty_config.high.translation", "res://config/morale_loyalty_config.decay.translation", "res://config/morale_loyalty_config.increase.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://gokcyv1s3c2s"
+
+[deps]
+
+files=["res://config/map_config.map.translation", "res://config/map_config.unlock.translation", "res://config/map_config.main.translation", "res://config/map_config.stamina.translation", "res://config/map_config.stamina.translation", "res://config/map_config.monster.translation", "res://config/map_config.normal.translation", "res://config/map_config.elite.translation", "res://config/map_config.event.translation", "res://config/map_config.clear.translation"]
+
+source_file="res://config/map_config.csv"
+dest_files=["res://config/map_config.map.translation", "res://config/map_config.unlock.translation", "res://config/map_config.main.translation", "res://config/map_config.stamina.translation", "res://config/map_config.stamina.translation", "res://config/map_config.monster.translation", "res://config/map_config.normal.translation", "res://config/map_config.elite.translation", "res://config/map_config.event.translation", "res://config/map_config.clear.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

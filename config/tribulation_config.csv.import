@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b8124njv4iehv"
+
+[deps]
+
+files=["res://config/tribulation_config.tribulation.translation", "res://config/tribulation_config.target.translation", "res://config/tribulation_config.thunder.translation", "res://config/tribulation_config.base.translation", "res://config/tribulation_config.damage.translation", "res://config/tribulation_config.self.translation", "res://config/tribulation_config.array.translation", "res://config/tribulation_config.item.translation", "res://config/tribulation_config.guard.translation", "res://config/tribulation_config.perfect.translation", "res://config/tribulation_config.success.translation", "res://config/tribulation_config.death.translation", "res://config/tribulation_config.fail.translation", "res://config/tribulation_config.injury.translation", "res://config/tribulation_config.reputation.translation", "res://config/tribulation_config.perfect.translation", "res://config/tribulation_config.link.translation", "res://config/tribulation_config.event.translation"]
+
+source_file="res://config/tribulation_config.csv"
+dest_files=["res://config/tribulation_config.tribulation.translation", "res://config/tribulation_config.target.translation", "res://config/tribulation_config.thunder.translation", "res://config/tribulation_config.base.translation", "res://config/tribulation_config.damage.translation", "res://config/tribulation_config.self.translation", "res://config/tribulation_config.array.translation", "res://config/tribulation_config.item.translation", "res://config/tribulation_config.guard.translation", "res://config/tribulation_config.perfect.translation", "res://config/tribulation_config.success.translation", "res://config/tribulation_config.death.translation", "res://config/tribulation_config.fail.translation", "res://config/tribulation_config.injury.translation", "res://config/tribulation_config.reputation.translation", "res://config/tribulation_config.perfect.translation", "res://config/tribulation_config.link.translation", "res://config/tribulation_config.event.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

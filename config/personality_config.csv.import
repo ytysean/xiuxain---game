@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dmmtqt7qqakdo"
+
+[deps]
+
+files=["res://config/personality_config.personality.translation", "res://config/personality_config.work.translation", "res://config/personality_config.train.translation", "res://config/personality_config.combat.translation", "res://config/personality_config.combat.translation", "res://config/personality_config.work.translation", "res://config/personality_config.walk.translation", "res://config/personality_config.rest.translation", "res://config/personality_config.interact.translation", "res://config/personality_config.loyalty.translation", "res://config/personality_config.morale.translation", "res://config/personality_config.demon.translation", "res://config/personality_config.defect.translation", "res://config/personality_config.description.translation"]
+
+source_file="res://config/personality_config.csv"
+dest_files=["res://config/personality_config.personality.translation", "res://config/personality_config.work.translation", "res://config/personality_config.train.translation", "res://config/personality_config.combat.translation", "res://config/personality_config.combat.translation", "res://config/personality_config.work.translation", "res://config/personality_config.walk.translation", "res://config/personality_config.rest.translation", "res://config/personality_config.interact.translation", "res://config/personality_config.loyalty.translation", "res://config/personality_config.morale.translation", "res://config/personality_config.demon.translation", "res://config/personality_config.defect.translation", "res://config/personality_config.description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

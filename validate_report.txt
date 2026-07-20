@@ -1,0 +1,11 @@
+---
+doc_id: validate_report_txt
+doc_title: validate_report
+doc_version: v1.0
+update_date: 2026-07-18
+doc_type: 设计文档
+game_formal_name: 太玄宗门录
+game_market_name: 开局接手太玄宗
+game_core_ip: 太玄宗
+---
+

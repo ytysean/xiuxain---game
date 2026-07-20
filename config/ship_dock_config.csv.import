@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d4sr3ybn47lp"
+
+[deps]
+
+files=["res://config/ship_dock_config.dock.translation", "res://config/ship_dock_config.level.translation", "res://config/ship_dock_config.unlock.translation", "res://config/ship_dock_config.max.translation", "res://config/ship_dock_config.build.translation", "res://config/ship_dock_config.repair.translation", "res://config/ship_dock_config.daily.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.unlock.translation", "res://config/ship_dock_config.can.translation"]
+
+source_file="res://config/ship_dock_config.csv"
+dest_files=["res://config/ship_dock_config.dock.translation", "res://config/ship_dock_config.level.translation", "res://config/ship_dock_config.unlock.translation", "res://config/ship_dock_config.max.translation", "res://config/ship_dock_config.build.translation", "res://config/ship_dock_config.repair.translation", "res://config/ship_dock_config.daily.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.upgrade.translation", "res://config/ship_dock_config.unlock.translation", "res://config/ship_dock_config.can.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

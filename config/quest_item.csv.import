@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://48jlaewbt7in"
+
+[deps]
+
+files=["res://config/quest_item.item.translation", "res://config/quest_item.item.translation", "res://config/quest_item.combine.translation", "res://config/quest_item.combine.translation", "res://config/quest_item.fragment.translation", "res://config/quest_item.obtain.translation", "res://config/quest_item.unlock.translation", "res://config/quest_item.related.translation", "res://config/quest_item.is.translation"]
+
+source_file="res://config/quest_item.csv"
+dest_files=["res://config/quest_item.item.translation", "res://config/quest_item.item.translation", "res://config/quest_item.combine.translation", "res://config/quest_item.combine.translation", "res://config/quest_item.fragment.translation", "res://config/quest_item.obtain.translation", "res://config/quest_item.unlock.translation", "res://config/quest_item.related.translation", "res://config/quest_item.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

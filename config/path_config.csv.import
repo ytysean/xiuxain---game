@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://eo83lrrwq6gn"
+
+[deps]
+
+files=["res://config/path_config.path.translation", "res://config/path_config.match.translation", "res://config/path_config.work.translation", "res://config/path_config.train.translation", "res://config/path_config.public.translation", "res://config/path_config.exclusive.translation", "res://config/path_config.skill.translation", "res://config/path_config.special.translation"]
+
+source_file="res://config/path_config.csv"
+dest_files=["res://config/path_config.path.translation", "res://config/path_config.match.translation", "res://config/path_config.work.translation", "res://config/path_config.train.translation", "res://config/path_config.public.translation", "res://config/path_config.exclusive.translation", "res://config/path_config.skill.translation", "res://config/path_config.special.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

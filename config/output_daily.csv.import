@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dfcia0ui5ygk"
+
+[deps]
+
+files=["res://config/output_daily.sect.translation", "res://config/output_daily.resource.translation", "res://config/output_daily.daily.translation", "res://config/output_daily.unit.translation"]
+
+source_file="res://config/output_daily.csv"
+dest_files=["res://config/output_daily.sect.translation", "res://config/output_daily.resource.translation", "res://config/output_daily.daily.translation", "res://config/output_daily.unit.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

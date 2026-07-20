@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d4kgt5c62eo32"
+
+[deps]
+
+files=["res://config/npc_config.npc.translation", "res://config/npc_config.faction.translation", "res://config/npc_config.identity.translation", "res://config/npc_config.core.translation", "res://config/npc_config.rep.translation"]
+
+source_file="res://config/npc_config.csv"
+dest_files=["res://config/npc_config.npc.translation", "res://config/npc_config.faction.translation", "res://config/npc_config.identity.translation", "res://config/npc_config.core.translation", "res://config/npc_config.rep.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

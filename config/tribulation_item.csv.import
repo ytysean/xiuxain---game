@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ppdmlfnmxhy0"
+
+[deps]
+
+files=["res://config/tribulation_item.item.translation", "res://config/tribulation_item.item.translation", "res://config/tribulation_item.success.translation", "res://config/tribulation_item.damage.translation", "res://config/tribulation_item.consume.translation", "res://config/tribulation_item.consume.translation"]
+
+source_file="res://config/tribulation_item.csv"
+dest_files=["res://config/tribulation_item.item.translation", "res://config/tribulation_item.item.translation", "res://config/tribulation_item.success.translation", "res://config/tribulation_item.damage.translation", "res://config/tribulation_item.consume.translation", "res://config/tribulation_item.consume.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

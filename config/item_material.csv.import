@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dhdsepogeeho5"
+
+[deps]
+
+files=["res://config/item_material.mat.translation", "res://config/item_material.grade.translation", "res://config/item_material.mat.translation", "res://config/item_material.usage.translation", "res://config/item_material.obtain.translation", "res://config/item_material.stack.translation", "res://config/item_material.sell.translation", "res://config/item_material.realm.translation"]
+
+source_file="res://config/item_material.csv"
+dest_files=["res://config/item_material.mat.translation", "res://config/item_material.grade.translation", "res://config/item_material.mat.translation", "res://config/item_material.usage.translation", "res://config/item_material.obtain.translation", "res://config/item_material.stack.translation", "res://config/item_material.sell.translation", "res://config/item_material.realm.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

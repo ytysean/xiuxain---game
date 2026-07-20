@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dxbso3xlxsmeh"
+
+[deps]
+
+files=["res://config/negative_event.event.translation", "res://config/negative_event.trigger.translation", "res://config/negative_event.base.translation", "res://config/negative_event.monthly.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.deal.translation", "res://config/negative_event.deal.translation", "res://config/negative_event.recover.translation", "res://config/negative_event.is.translation"]
+
+source_file="res://config/negative_event.csv"
+dest_files=["res://config/negative_event.event.translation", "res://config/negative_event.trigger.translation", "res://config/negative_event.base.translation", "res://config/negative_event.monthly.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.punish.translation", "res://config/negative_event.deal.translation", "res://config/negative_event.deal.translation", "res://config/negative_event.recover.translation", "res://config/negative_event.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

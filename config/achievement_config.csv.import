@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dbfjb7y4f4h8w"
+
+[deps]
+
+files=["res://config/achievement_config.ach.translation", "res://config/achievement_config.category.translation", "res://config/achievement_config.grade.translation", "res://config/achievement_config.condition.translation", "res://config/achievement_config.condition.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.point.translation", "res://config/achievement_config.unlock.translation"]
+
+source_file="res://config/achievement_config.csv"
+dest_files=["res://config/achievement_config.ach.translation", "res://config/achievement_config.category.translation", "res://config/achievement_config.grade.translation", "res://config/achievement_config.condition.translation", "res://config/achievement_config.condition.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.reward.translation", "res://config/achievement_config.point.translation", "res://config/achievement_config.unlock.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

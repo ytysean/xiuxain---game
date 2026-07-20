@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bfnoi74b6g180"
+
+[deps]
+
+files=["res://config/skill.skill.translation", "res://config/skill.profession.translation", "res://config/skill.skill.translation", "res://config/skill.unlock.translation", "res://config/skill.damage.translation", "res://config/skill.effect.translation", "res://config/skill.effect.translation", "res://config/skill.cooldown.translation", "res://config/skill.mp.translation", "res://config/skill.target.translation"]
+
+source_file="res://config/skill.csv"
+dest_files=["res://config/skill.skill.translation", "res://config/skill.profession.translation", "res://config/skill.skill.translation", "res://config/skill.unlock.translation", "res://config/skill.damage.translation", "res://config/skill.effect.translation", "res://config/skill.effect.translation", "res://config/skill.cooldown.translation", "res://config/skill.mp.translation", "res://config/skill.target.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

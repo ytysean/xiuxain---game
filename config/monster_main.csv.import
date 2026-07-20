@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cbs8plsholnjq"
+
+[deps]
+
+files=["res://config/monster_main.monster.translation", "res://config/monster_main.realm.translation", "res://config/monster_main.element.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.drop.translation", "res://config/monster_main.drop.translation", "res://config/monster_main.is.translation", "res://config/monster_main.description.translation"]
+
+source_file="res://config/monster_main.csv"
+dest_files=["res://config/monster_main.monster.translation", "res://config/monster_main.realm.translation", "res://config/monster_main.element.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.base.translation", "res://config/monster_main.drop.translation", "res://config/monster_main.drop.translation", "res://config/monster_main.is.translation", "res://config/monster_main.description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

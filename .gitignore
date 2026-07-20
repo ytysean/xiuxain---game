@@ -1,0 +1,11 @@
+# Godot 编辑器缓存（本地生成，绝不进版本库）
+.godot/
+
+# Python 缓存
+__pycache__/
+
+# Agent 工作内存（项目私有，不进游戏仓库）
+.workbuddy/
+
+# Godot CSV 翻译导入产物（随 CSV 导入自动再生，非手维护）
+*.translation

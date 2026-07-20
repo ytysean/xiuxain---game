@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c1acues3qlu3p"
+
+[deps]
+
+files=["res://config/destiny_main.名称.translation", "res://config/destiny_main.品级.translation", "res://config/destiny_main.类型.translation", "res://config/destiny_main.效果参数.translation", "res://config/destiny_main.描述.translation"]
+
+source_file="res://config/destiny_main.csv"
+dest_files=["res://config/destiny_main.名称.translation", "res://config/destiny_main.品级.translation", "res://config/destiny_main.类型.translation", "res://config/destiny_main.效果参数.translation", "res://config/destiny_main.描述.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

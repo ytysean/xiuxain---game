@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ypgy7hxsmc3"
+
+[deps]
+
+files=["res://config/equip_blueprint.blueprint.translation", "res://config/equip_blueprint.grade.translation", "res://config/equip_blueprint.sub.translation", "res://config/equip_blueprint.target.translation", "res://config/equip_blueprint.unlock.translation", "res://config/equip_blueprint.craft.translation", "res://config/equip_blueprint.sell.translation"]
+
+source_file="res://config/equip_blueprint.csv"
+dest_files=["res://config/equip_blueprint.blueprint.translation", "res://config/equip_blueprint.grade.translation", "res://config/equip_blueprint.sub.translation", "res://config/equip_blueprint.target.translation", "res://config/equip_blueprint.unlock.translation", "res://config/equip_blueprint.craft.translation", "res://config/equip_blueprint.sell.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

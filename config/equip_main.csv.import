@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://84c7ls21llde"
+
+[deps]
+
+files=["res://config/equip_main.equip.translation", "res://config/equip_main.grade.translation", "res://config/equip_main.sub.translation", "res://config/equip_main.equip.translation", "res://config/equip_main.apply.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.repair.translation", "res://config/equip_main.sell.translation"]
+
+source_file="res://config/equip_main.csv"
+dest_files=["res://config/equip_main.equip.translation", "res://config/equip_main.grade.translation", "res://config/equip_main.sub.translation", "res://config/equip_main.equip.translation", "res://config/equip_main.apply.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.base.translation", "res://config/equip_main.repair.translation", "res://config/equip_main.sell.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

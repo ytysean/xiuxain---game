@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://0oph1diafamx"
+
+[deps]
+
+files=["res://config/skill_cultivation.skill.translation", "res://config/skill_cultivation.grade.translation", "res://config/skill_cultivation.sub.translation", "res://config/skill_cultivation.apply.translation", "res://config/skill_cultivation.skill.translation", "res://config/skill_cultivation.effect.translation", "res://config/skill_cultivation.max.translation", "res://config/skill_cultivation.unlock.translation", "res://config/skill_cultivation.learn.translation"]
+
+source_file="res://config/skill_cultivation.csv"
+dest_files=["res://config/skill_cultivation.skill.translation", "res://config/skill_cultivation.grade.translation", "res://config/skill_cultivation.sub.translation", "res://config/skill_cultivation.apply.translation", "res://config/skill_cultivation.skill.translation", "res://config/skill_cultivation.effect.translation", "res://config/skill_cultivation.max.translation", "res://config/skill_cultivation.unlock.translation", "res://config/skill_cultivation.learn.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

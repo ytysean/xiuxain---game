@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://blvaimbu4vo06"
+
+[deps]
+
+files=["res://config/area_stay_weight.personality.translation", "res://config/area_stay_weight.path.translation", "res://config/area_stay_weight.lingtian.translation", "res://config/area_stay_weight.danfang.translation", "res://config/area_stay_weight.yanwuchang.translation", "res://config/area_stay_weight.shanmen.translation", "res://config/area_stay_weight.public.translation", "res://config/area_stay_weight.verify.translation"]
+
+source_file="res://config/area_stay_weight.csv"
+dest_files=["res://config/area_stay_weight.personality.translation", "res://config/area_stay_weight.path.translation", "res://config/area_stay_weight.lingtian.translation", "res://config/area_stay_weight.danfang.translation", "res://config/area_stay_weight.yanwuchang.translation", "res://config/area_stay_weight.shanmen.translation", "res://config/area_stay_weight.public.translation", "res://config/area_stay_weight.verify.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

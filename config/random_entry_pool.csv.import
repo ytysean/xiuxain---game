@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bi8g5fdjd1r0n"
+
+[deps]
+
+files=["res://config/random_entry_pool.entry.translation", "res://config/random_entry_pool.entry.translation", "res://config/random_entry_pool.value.translation", "res://config/random_entry_pool.tier.translation", "res://config/random_entry_pool.base.translation", "res://config/random_entry_pool.value.translation", "res://config/random_entry_pool.apply.translation", "res://config/random_entry_pool.rarity.translation", "res://config/random_entry_pool.weight.translation", "res://config/random_entry_pool.weight.translation", "res://config/random_entry_pool.weight.translation"]
+
+source_file="res://config/random_entry_pool.csv"
+dest_files=["res://config/random_entry_pool.entry.translation", "res://config/random_entry_pool.entry.translation", "res://config/random_entry_pool.value.translation", "res://config/random_entry_pool.tier.translation", "res://config/random_entry_pool.base.translation", "res://config/random_entry_pool.value.translation", "res://config/random_entry_pool.apply.translation", "res://config/random_entry_pool.rarity.translation", "res://config/random_entry_pool.weight.translation", "res://config/random_entry_pool.weight.translation", "res://config/random_entry_pool.weight.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

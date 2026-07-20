@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cpaspvb1nf4ro"
+
+[deps]
+
+files=["res://config/drop_pool.item.translation", "res://config/drop_pool.item.translation", "res://config/drop_pool.weight.translation", "res://config/drop_pool.min.translation", "res://config/drop_pool.max.translation", "res://config/drop_pool.quality.translation"]
+
+source_file="res://config/drop_pool.csv"
+dest_files=["res://config/drop_pool.item.translation", "res://config/drop_pool.item.translation", "res://config/drop_pool.weight.translation", "res://config/drop_pool.min.translation", "res://config/drop_pool.max.translation", "res://config/drop_pool.quality.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

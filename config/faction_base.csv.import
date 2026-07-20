@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dccra0rmn088b"
+
+[deps]
+
+files=["res://config/faction_base.faction.translation", "res://config/faction_base.reputation.translation", "res://config/faction_base.need.translation", "res://config/faction_base.global.translation", "res://config/faction_base.global.translation", "res://config/faction_base.unlock.translation", "res://config/faction_base.shop.translation"]
+
+source_file="res://config/faction_base.csv"
+dest_files=["res://config/faction_base.faction.translation", "res://config/faction_base.reputation.translation", "res://config/faction_base.need.translation", "res://config/faction_base.global.translation", "res://config/faction_base.global.translation", "res://config/faction_base.unlock.translation", "res://config/faction_base.shop.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
