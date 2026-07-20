@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bgfrp7m0octjj"
+
+[deps]
+
+files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
+
+source_file="res://config/quest_random.csv"
+dest_files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

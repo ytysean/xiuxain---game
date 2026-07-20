@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cwla062en5mg0"
+
+[deps]
+
+files=["res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.weight.translation", "res://config/quest_reward_pool.drop.translation", "res://config/quest_reward_pool.daily.translation", "res://config/quest_reward_pool.is.translation"]
+
+source_file="res://config/quest_reward_pool.csv"
+dest_files=["res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.item.translation", "res://config/quest_reward_pool.weight.translation", "res://config/quest_reward_pool.drop.translation", "res://config/quest_reward_pool.daily.translation", "res://config/quest_reward_pool.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

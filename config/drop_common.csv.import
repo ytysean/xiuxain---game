@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dymatqnepk2e4"
+
+[deps]
+
+files=["res://config/drop_common.scene.translation", "res://config/drop_common.unlock.translation", "res://config/drop_common.unlock.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.drop.translation", "res://config/drop_common.guarantee.translation", "res://config/drop_common.daily.translation", "res://config/drop_common.is.translation"]
+
+source_file="res://config/drop_common.csv"
+dest_files=["res://config/drop_common.scene.translation", "res://config/drop_common.unlock.translation", "res://config/drop_common.unlock.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.item.translation", "res://config/drop_common.drop.translation", "res://config/drop_common.guarantee.translation", "res://config/drop_common.daily.translation", "res://config/drop_common.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

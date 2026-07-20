@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c4hty4g7jgxw6"
+
+[deps]
+
+files=["res://config/spirit_array_config.array.translation", "res://config/spirit_array_config.grade.translation", "res://config/spirit_array_config.sub.translation", "res://config/spirit_array_config.level.translation", "res://config/spirit_array_config.unlock.translation", "res://config/spirit_array_config.cultivate.translation", "res://config/spirit_array_config.herb.translation", "res://config/spirit_array_config.pill.translation", "res://config/spirit_array_config.forge.translation", "res://config/spirit_array_config.daily.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.max.translation"]
+
+source_file="res://config/spirit_array_config.csv"
+dest_files=["res://config/spirit_array_config.array.translation", "res://config/spirit_array_config.grade.translation", "res://config/spirit_array_config.sub.translation", "res://config/spirit_array_config.level.translation", "res://config/spirit_array_config.unlock.translation", "res://config/spirit_array_config.cultivate.translation", "res://config/spirit_array_config.herb.translation", "res://config/spirit_array_config.pill.translation", "res://config/spirit_array_config.forge.translation", "res://config/spirit_array_config.daily.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.upgrade.translation", "res://config/spirit_array_config.max.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

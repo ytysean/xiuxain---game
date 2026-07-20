@@ -77,7 +77,7 @@ const 天赋池 := [
 	{"类型": "灵根", "关联": "金", "效果": "金灵根破甲+12%"},
 	{"类型": "灵根", "关联": "光", "效果": "光灵根净化增益+10%"},
 	{"类型": "灵根", "关联": "暗", "效果": "暗灵根毒性/减益+15%"},
-	{"类型": "职业", "关联": "剑修", "效果": "剑修破法穿透+12%"},
+	{"类型": "职业", "关联": "道修", "效果": "道修破法穿透+12%"},
 	{"类型": "职业", "关联": "体修", "效果": "体修承伤+15%"},
 	{"类型": "职业", "关联": "法修", "效果": "法修范围AOE+12%"},
 	{"类型": "职业", "关联": "御兽师", "效果": "御兽协同战力+10%"},
@@ -91,13 +91,19 @@ var 品阶 := ""
 var 神兽血脉 := false
 var 孵化中 := true
 var 剩余天数 := 0
-var 战力比例 := 0.12
+var 战力比例 := 0.30  # 核心md定案：灵兽出战战力按30%计入弟子总战力
 var 主动 := ""
 var 被动 := ""
 var 羁绊 := ""
 var 天赋 := ""
 var 天赋类型 := ""
 var 天赋关联 := ""
+
+# 契约与出战（核心md v2.5 灵兽定案 C6）
+# 基础契约上限=2；御兽命格+1（最高3）；出战上限=2（主宠100%/副宠70%），第3只仅持有不参战
+var contract_limit := 2       # 该灵兽所属弟子的契约持有上限（默认2，御兽命格时由disciple侧设为3）
+var is_main_pet := false      # 是否主宠出战（战力100%计入）
+var is_deputy_pet := false    # 是否副宠出战（战力70%计入）
 
 func _init():
 	随机成蛋()
@@ -110,7 +116,8 @@ func 随机成蛋():
 	剩余天数 = randi_range(180, 360)
 	神兽血脉 = false; 主动 = ""; 被动 = ""; 羁绊 = ""
 	天赋 = ""; 天赋类型 = ""; 天赋关联 = ""
-	战力比例 = 0.12
+	战力比例 = 0.30
+	contract_limit = 2; is_main_pet = false; is_deputy_pet = false
 
 func 孵化():
 	# 品阶已在成蛋时固定，此处不再重掷
@@ -118,7 +125,7 @@ func 孵化():
 		神兽血脉 = randf() < 0.05
 	elif 品阶 == "xian_jie":
 		神兽血脉 = randf() < 0.01
-	战力比例 = randf_range(0.12, 0.20)
+	战力比例 = randf_range(0.25, 0.35)  # 核心md定案：基础30%，浮动±5%
 	_滚技能()
 	_滚天赋()
 	孵化中 = false
@@ -147,7 +154,7 @@ func 加权抽(权重: Dictionary) -> String:
 	var 总 := 0.0
 	for k in 权重:
 		总 += 权重[k]
-	var 抽 := randf() * 总
+	var 抽: float = randf() * 总
 	for k in 权重:
 		抽 -= 权重[k]
 		if 抽 <= 0:
@@ -155,15 +162,41 @@ func 加权抽(权重: Dictionary) -> String:
 	return 权重.keys()[0]
 
 func 战力贡献(本体战力: int) -> int:
-	return int(本体战力 * 战力比例)
+	# 核心md定案：主宠100%战力计入，副宠70%计入，未出战0%
+	var 比例 := 1.0
+	if is_deputy_pet:
+		比例 = 0.7
+	elif not is_main_pet:
+		比例 = 0.0  # 未指定出战位，不参战
+	return int(本体战力 * 战力比例 * 比例)
+
+## 设置出战位（互斥：设为主宠自动清除副宠标记，反之亦然）
+func 设为主宠():
+	is_main_pet = true; is_deputy_pet = false
+
+func 设为副宠():
+	is_main_pet = false; is_deputy_pet = true
+
+func 取消出战():
+	is_main_pet = false; is_deputy_pet = false
+
+## 契约上限（由disciple侧根据命格调用设置）
+func 设契约上限(上限: int):
+	contract_limit = clamp(上限, 1, 3)  # 硬限1-3
 
 func 简介(本体战力 := 0) -> String:
 	if 孵化中:
 		return "%s的蛋[%s]（御兽堂孵化中，剩余 %d 日）" % [种类名, 品阶显示[品阶], 剩余天数]
-	var s := "%s" % 种类名
+	var s: String = "%s" % 种类名
 	if 神兽血脉:
 		s += "·神兽血脉"
 	s += " [%s灵兽] 战力+%d（本体%d×%.0f%%）" % [品阶显示[品阶], 战力贡献(本体战力), 本体战力, 战力比例 * 100]
+	if is_main_pet:
+		s += " [主宠]"
+	elif is_deputy_pet:
+		s += " [副宠70%]"
+	else:
+		s += " [待命]"
 	if 主动 != "":
 		s += "\n  主动：%s" % 主动
 	if 被动 != "":
@@ -180,6 +213,8 @@ func to_dict() -> Dictionary:
 		"孵化中": 孵化中, "剩余天数": 剩余天数, "战力比例": 战力比例,
 		"主动": 主动, "被动": 被动, "羁绊": 羁绊,
 		"天赋": 天赋, "天赋类型": 天赋类型, "天赋关联": 天赋关联,
+		"contract_limit": contract_limit,
+		"is_main_pet": is_main_pet, "is_deputy_pet": is_deputy_pet,
 	}
 
 func from_dict(d: Dictionary):
@@ -188,10 +223,13 @@ func from_dict(d: Dictionary):
 	神兽血脉 = d.get("神兽血脉", false)
 	孵化中 = d.get("孵化中", true)
 	剩余天数 = d.get("剩余天数", 0)
-	战力比例 = d.get("战力比例", 0.12)
+	战力比例 = d.get("战力比例", 0.30)
 	主动 = d.get("主动", "")
 	被动 = d.get("被动", "")
 	羁绊 = d.get("羁绊", "")
 	天赋 = d.get("天赋", "")
 	天赋类型 = d.get("天赋类型", "")
 	天赋关联 = d.get("天赋关联", "")
+	contract_limit = d.get("contract_limit", 2)
+	is_main_pet = d.get("is_main_pet", false)
+	is_deputy_pet = d.get("is_deputy_pet", false)

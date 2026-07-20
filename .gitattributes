@@ -1,0 +1,7 @@
+# 强制源码 LF 行尾，避免 Windows 下 CRLF 触发 GDScript Parser Error
+*.gd text eol=lf
+*.gd.uid text eol=lf
+*.tscn text eol=lf
+*.csv text eol=lf
+*.md text eol=lf
+*.py text eol=lf

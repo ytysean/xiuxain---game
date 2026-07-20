@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://jyydaqccn0tl"
+
+[deps]
+
+files=["res://config/disciple_interact.interact.translation", "res://config/disciple_interact.interact.translation", "res://config/disciple_interact.trigger.translation", "res://config/disciple_interact.relation.translation", "res://config/disciple_interact.relation.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.punish.translation", "res://config/disciple_interact.punish.translation", "res://config/disciple_interact.cooldown.translation", "res://config/disciple_interact.is.translation"]
+
+source_file="res://config/disciple_interact.csv"
+dest_files=["res://config/disciple_interact.interact.translation", "res://config/disciple_interact.interact.translation", "res://config/disciple_interact.trigger.translation", "res://config/disciple_interact.relation.translation", "res://config/disciple_interact.relation.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.reward.translation", "res://config/disciple_interact.punish.translation", "res://config/disciple_interact.punish.translation", "res://config/disciple_interact.cooldown.translation", "res://config/disciple_interact.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

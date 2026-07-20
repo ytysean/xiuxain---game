@@ -1,6 +1,6 @@
 combine_id,personality_id,path_id,lingtian_weight,danfang_weight,yanwuchang_weight,shanmen_weight,public_weight,verify_note
 c_001,p_diligent,pa_pill,0.1,0.5,0.1,0.1,0.2,勤勉×丹道：偏向丹房劳作
 c_002,p_steady,pa_array,0.1,0.1,0.2,0.1,0.5,沉稳×阵道：常驻公共区布阵
-c_003,p_impulse,pa_sword,0.05,0.05,0.3,0.2,0.4,急躁×剑修：多赴演武场
+c_003,p_impulse,pa_sword,0.05,0.05,0.3,0.2,0.4,急躁×道修：多赴演武场
 c_004,p_detach,pa_talis,0.1,0.1,0.1,0.1,0.6,淡泊×符道：静修少动
 c_005,p_benevolent,pa_forge,0.1,0.3,0.2,0.1,0.3,仁厚×器道：偏工坊授艺

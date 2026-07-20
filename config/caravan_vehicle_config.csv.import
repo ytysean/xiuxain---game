@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ceo10xf0vseq1"
+
+[deps]
+
+files=["res://config/caravan_vehicle_config.vehicle.translation", "res://config/caravan_vehicle_config.vehicle.translation", "res://config/caravan_vehicle_config.unlock.translation", "res://config/caravan_vehicle_config.base.translation", "res://config/caravan_vehicle_config.speed.translation", "res://config/caravan_vehicle_config.loss.translation", "res://config/caravan_vehicle_config.buy.translation", "res://config/caravan_vehicle_config.monthly.translation", "res://config/caravan_vehicle_config.max.translation"]
+
+source_file="res://config/caravan_vehicle_config.csv"
+dest_files=["res://config/caravan_vehicle_config.vehicle.translation", "res://config/caravan_vehicle_config.vehicle.translation", "res://config/caravan_vehicle_config.unlock.translation", "res://config/caravan_vehicle_config.base.translation", "res://config/caravan_vehicle_config.speed.translation", "res://config/caravan_vehicle_config.loss.translation", "res://config/caravan_vehicle_config.buy.translation", "res://config/caravan_vehicle_config.monthly.translation", "res://config/caravan_vehicle_config.max.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

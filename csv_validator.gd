@@ -25,7 +25,7 @@ const PILL_TYPES := ["培元类", "突破类", "恢复类", "属性类", "特殊
 const TAL_TYPES := ["攻击类", "防御类", "辅助类", "控制类", "特殊类"]
 const TREASURE_TYPES := ["攻击类", "防御类", "辅助类"]
 const SKILL_TYPES := ["攻击", "控制", "辅助防御", "通用"]
-const EQUIP_SLOTS := ["武器", "法袍", "头盔", "护腕", "腰带", "靴子", "饰品"]
+const EQUIP_SLOTS := ["武器", "法袍", "头盔", "护腕", "腰带", "靴子", "饰品", "法宝"]
 const APPLY_CLASSES := ["通用", "体修", "道修", "法修"]
 const SET_CLASSES := ["全职业通用", "道修", "体修", "法修"]
 
@@ -66,7 +66,7 @@ const TABLE_RULES := {
             "base_success_rate": {"type": "percent", "min": MIN_SUCCESS_RATE, "max": MAX_SUCCESS_RATE, "tip": "成功率必须在5%-95%区间内"},
             "sell_price_ling": {"type": "int", "min": 0, "tip": "售价不能为负数"}
         }
-    }
+    },
     "item_pill": {
         "required_fields": ["pill_id","pill_name","grade","sub_grade","pill_type","use_effect","effect_value","use_level","craft_material","craft_time","base_success_rate","sell_price"],
         "primary_key": "pill_id",
@@ -315,7 +315,7 @@ const TABLE_RULES := {
         "required_fields": ["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance"],
         "primary_key": "event_id",
         "field_rules": {
-            "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属"], "tip": "奇遇大类非法"},
+            "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属","征伐"], "tip": "奇遇大类非法"},
             "rarity": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "稀有度非法（3档映射§10四档）"},
             "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"], "tip": "触发场景非法"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
@@ -510,7 +510,9 @@ const TABLE_RULES := {
 # inner_demon / tribulation_item / personality_config / path_config /
 # area_stay_weight / disciple_interact / negative_event / morale_loyalty_config。
 # 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
-#   1. check_event_weight_sum：同 event_type 池内 trigger_weight 之和必须 = 100。
+#   1. check_event_weight_sum：同 event_type 池内（仅 trigger_weight>0 的正式行）trigger_weight 之和必须 = 100。
+#      豁免规则：若某 event_type 池内没有任何 trigger_weight>0 的行（纯测试/调试夹具池，如「征伐」），
+#      则跳过该池的=100 校验；含 weight>0 行的正式池不受影响，weight=0 行不参与求和。
 #   2. check_faction_base_monotonic：同 faction_id 内 need_reputation 必须严格递增。
 #   3. check_faction_shop_grade：item_grade 品阶秩 ≤ 由 unlock_reputation 阈值映射的最大品阶
 #      （1000→灵品 / 3000→宝品 / 8000→王品 / 20000→圣品 / 0→凡品）。

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cmuwrhhqjw4qv"
+
+[deps]
+
+files=["res://config/sect_ship_config.ship.translation", "res://config/sect_ship_config.ship.translation", "res://config/sect_ship_config.unlock.translation", "res://config/sect_ship_config.base.translation", "res://config/sect_ship_config.speed.translation", "res://config/sect_ship_config.risk.translation", "res://config/sect_ship_config.max.translation", "res://config/sect_ship_config.per.translation", "res://config/sect_ship_config.max.translation", "res://config/sect_ship_config.war.translation", "res://config/sect_ship_config.build.translation", "res://config/sect_ship_config.monthly.translation", "res://config/sect_ship_config.max.translation"]
+
+source_file="res://config/sect_ship_config.csv"
+dest_files=["res://config/sect_ship_config.ship.translation", "res://config/sect_ship_config.ship.translation", "res://config/sect_ship_config.unlock.translation", "res://config/sect_ship_config.base.translation", "res://config/sect_ship_config.speed.translation", "res://config/sect_ship_config.risk.translation", "res://config/sect_ship_config.max.translation", "res://config/sect_ship_config.per.translation", "res://config/sect_ship_config.max.translation", "res://config/sect_ship_config.war.translation", "res://config/sect_ship_config.build.translation", "res://config/sect_ship_config.monthly.translation", "res://config/sect_ship_config.max.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

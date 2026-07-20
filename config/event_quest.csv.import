@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b2iq1d7k2ofic"
+
+[deps]
+
+files=["res://config/event_quest.event.translation", "res://config/event_quest.event.translation", "res://config/event_quest.rarity.translation", "res://config/event_quest.trigger.translation", "res://config/event_quest.unlock.translation", "res://config/event_quest.unlock.translation", "res://config/event_quest.event.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.trigger.translation", "res://config/event_quest.cooldown.translation", "res://config/event_quest.is.translation", "res://config/event_quest.base.translation", "res://config/event_quest.level.translation", "res://config/event_quest.min.translation", "res://config/event_quest.max.translation"]
+
+source_file="res://config/event_quest.csv"
+dest_files=["res://config/event_quest.event.translation", "res://config/event_quest.event.translation", "res://config/event_quest.rarity.translation", "res://config/event_quest.trigger.translation", "res://config/event_quest.unlock.translation", "res://config/event_quest.unlock.translation", "res://config/event_quest.event.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt1.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.opt2.translation", "res://config/event_quest.trigger.translation", "res://config/event_quest.cooldown.translation", "res://config/event_quest.is.translation", "res://config/event_quest.base.translation", "res://config/event_quest.level.translation", "res://config/event_quest.min.translation", "res://config/event_quest.max.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bm3oio3vyi3ga"
+
+[deps]
+
+files=["res://config/teleport_array_config.array.translation", "res://config/teleport_array_config.level.translation", "res://config/teleport_array_config.unlock.translation", "res://config/teleport_array_config.max.translation", "res://config/teleport_array_config.max.translation", "res://config/teleport_array_config.daily.translation", "res://config/teleport_array_config.per.translation", "res://config/teleport_array_config.per.translation", "res://config/teleport_array_config.daily.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.unlock.translation"]
+
+source_file="res://config/teleport_array_config.csv"
+dest_files=["res://config/teleport_array_config.array.translation", "res://config/teleport_array_config.level.translation", "res://config/teleport_array_config.unlock.translation", "res://config/teleport_array_config.max.translation", "res://config/teleport_array_config.max.translation", "res://config/teleport_array_config.daily.translation", "res://config/teleport_array_config.per.translation", "res://config/teleport_array_config.per.translation", "res://config/teleport_array_config.daily.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.upgrade.translation", "res://config/teleport_array_config.unlock.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

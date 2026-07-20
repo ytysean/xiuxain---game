@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c05orj6kncruj"
+
+[deps]
+
+files=["res://config/caravan_member_data.disciple.translation", "res://config/caravan_member_data.post.translation", "res://config/caravan_member_data.join.translation", "res://config/caravan_member_data.status.translation"]
+
+source_file="res://config/caravan_member_data.csv"
+dest_files=["res://config/caravan_member_data.disciple.translation", "res://config/caravan_member_data.post.translation", "res://config/caravan_member_data.join.translation", "res://config/caravan_member_data.status.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

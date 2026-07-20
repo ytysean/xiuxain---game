@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bqlrgig1xofgw"
+
+[deps]
+
+files=["res://config/sink_cost.resource.translation", "res://config/sink_cost.daily.translation", "res://config/sink_cost.unit.translation", "res://config/sink_cost.core.translation"]
+
+source_file="res://config/sink_cost.csv"
+dest_files=["res://config/sink_cost.resource.translation", "res://config/sink_cost.daily.translation", "res://config/sink_cost.unit.translation", "res://config/sink_cost.core.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

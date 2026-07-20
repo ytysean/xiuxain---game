@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://cxiumvp_main01"]
+[gd_scene format=3 uid="uid://ci15bcbkq2c00"]
 
-[ext_resource type="Script" path="res://main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://ba6yt1j171aqg" path="res://main.gd" id="1_main"]
 
-[node name="Main" type="Control"]
+[node name="Main" type="Control" unique_id=61334411]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

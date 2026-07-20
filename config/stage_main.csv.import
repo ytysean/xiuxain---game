@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://crwonsl35nsuc"
+
+[deps]
+
+files=["res://config/stage_main.chapter.translation", "res://config/stage_main.stage.translation", "res://config/stage_main.node.translation", "res://config/stage_main.unlock.translation", "res://config/stage_main.recommend.translation", "res://config/stage_main.monster.translation", "res://config/stage_main.stamina.translation", "res://config/stage_main.daily.translation", "res://config/stage_main.first.translation", "res://config/stage_main.first.translation", "res://config/stage_main.first.translation", "res://config/stage_main.repeat.translation", "res://config/stage_main.difficulty.translation", "res://config/stage_main.fail.translation", "res://config/stage_main.designer.translation"]
+
+source_file="res://config/stage_main.csv"
+dest_files=["res://config/stage_main.chapter.translation", "res://config/stage_main.stage.translation", "res://config/stage_main.node.translation", "res://config/stage_main.unlock.translation", "res://config/stage_main.recommend.translation", "res://config/stage_main.monster.translation", "res://config/stage_main.stamina.translation", "res://config/stage_main.daily.translation", "res://config/stage_main.first.translation", "res://config/stage_main.first.translation", "res://config/stage_main.first.translation", "res://config/stage_main.repeat.translation", "res://config/stage_main.difficulty.translation", "res://config/stage_main.fail.translation", "res://config/stage_main.designer.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

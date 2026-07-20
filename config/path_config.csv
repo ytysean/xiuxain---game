@@ -1,5 +1,5 @@
 path_id,path_name,match_profession,work_area_weight,train_area_weight,public_area_weight,exclusive_behavior_id,skill_grow_bonus,special_buff
-pa_sword,剑修,体修,0.2,0.6,0.2,bh_sword_001,0.2,攻击加成+10%
+pa_sword,道修,体修,0.2,0.6,0.2,bh_sword_001,0.2,攻击加成+10%
 pa_pill,丹道,道修,0.5,0.4,0.1,bh_pill_001,0.25,炼丹成功率+15%
 pa_forge,器道,道修,0.5,0.4,0.1,bh_forge_001,0.25,炼器成功率+15%
 pa_talis,符道,法修,0.3,0.5,0.2,bh_talis_001,0.2,符箓威力+10%

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ba3qkmo5t171j"
+
+[deps]
+
+files=["res://config/inner_demon.demon.translation", "res://config/inner_demon.match.translation", "res://config/inner_demon.trigger.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation"]
+
+source_file="res://config/inner_demon.csv"
+dest_files=["res://config/inner_demon.demon.translation", "res://config/inner_demon.match.translation", "res://config/inner_demon.trigger.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt1.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation", "res://config/inner_demon.opt2.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

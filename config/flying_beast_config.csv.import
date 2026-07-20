@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://4hlb8uy7d1lr"
+
+[deps]
+
+files=["res://config/flying_beast_config.beast.translation", "res://config/flying_beast_config.beast.translation", "res://config/flying_beast_config.unlock.translation", "res://config/flying_beast_config.base.translation", "res://config/flying_beast_config.speed.translation", "res://config/flying_beast_config.risk.translation", "res://config/flying_beast_config.skill.translation", "res://config/flying_beast_config.base.translation", "res://config/flying_beast_config.feed.translation", "res://config/flying_beast_config.tame.translation"]
+
+source_file="res://config/flying_beast_config.csv"
+dest_files=["res://config/flying_beast_config.beast.translation", "res://config/flying_beast_config.beast.translation", "res://config/flying_beast_config.unlock.translation", "res://config/flying_beast_config.base.translation", "res://config/flying_beast_config.speed.translation", "res://config/flying_beast_config.risk.translation", "res://config/flying_beast_config.skill.translation", "res://config/flying_beast_config.base.translation", "res://config/flying_beast_config.feed.translation", "res://config/flying_beast_config.tame.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

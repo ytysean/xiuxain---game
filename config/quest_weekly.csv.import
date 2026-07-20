@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d3e2fh6mvxu5m"
+
+[deps]
+
+files=["res://config/quest_weekly.quest.translation", "res://config/quest_weekly.quest.translation", "res://config/quest_weekly.unlock.translation", "res://config/quest_weekly.difficulty.translation", "res://config/quest_weekly.target.translation", "res://config/quest_weekly.target.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.weekly.translation", "res://config/quest_weekly.weekly.translation", "res://config/quest_weekly.is.translation"]
+
+source_file="res://config/quest_weekly.csv"
+dest_files=["res://config/quest_weekly.quest.translation", "res://config/quest_weekly.quest.translation", "res://config/quest_weekly.unlock.translation", "res://config/quest_weekly.difficulty.translation", "res://config/quest_weekly.target.translation", "res://config/quest_weekly.target.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.reward.translation", "res://config/quest_weekly.weekly.translation", "res://config/quest_weekly.weekly.translation", "res://config/quest_weekly.is.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

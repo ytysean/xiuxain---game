@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b7sqnqbak6ln1"
+
+[deps]
+
+files=["res://config/resource_base.resource.translation", "res://config/resource_base.resource.translation", "res://config/resource_base.item.translation", "res://config/resource_base.stack.translation", "res://config/resource_base.core.translation", "res://config/resource_base.main.translation"]
+
+source_file="res://config/resource_base.csv"
+dest_files=["res://config/resource_base.resource.translation", "res://config/resource_base.resource.translation", "res://config/resource_base.item.translation", "res://config/resource_base.stack.translation", "res://config/resource_base.core.translation", "res://config/resource_base.main.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

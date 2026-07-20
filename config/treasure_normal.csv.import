@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://emrmljw606no"
+
+[deps]
+
+files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation"]
+
+source_file="res://config/treasure_normal.csv"
+dest_files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

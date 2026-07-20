@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://csgji2be7658f"
+
+[deps]
+
+files=["res://config/personal_flight_config.flight.translation", "res://config/personal_flight_config.flight.translation", "res://config/personal_flight_config.min.translation", "res://config/personal_flight_config.speed.translation", "res://config/personal_flight_config.risk.translation", "res://config/personal_flight_config.carry.translation", "res://config/personal_flight_config.max.translation", "res://config/personal_flight_config.per.translation", "res://config/personal_flight_config.forge.translation", "res://config/personal_flight_config.forge.translation", "res://config/personal_flight_config.repair.translation", "res://config/personal_flight_config.tier.translation"]
+
+source_file="res://config/personal_flight_config.csv"
+dest_files=["res://config/personal_flight_config.flight.translation", "res://config/personal_flight_config.flight.translation", "res://config/personal_flight_config.min.translation", "res://config/personal_flight_config.speed.translation", "res://config/personal_flight_config.risk.translation", "res://config/personal_flight_config.carry.translation", "res://config/personal_flight_config.max.translation", "res://config/personal_flight_config.per.translation", "res://config/personal_flight_config.forge.translation", "res://config/personal_flight_config.forge.translation", "res://config/personal_flight_config.repair.translation", "res://config/personal_flight_config.tier.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

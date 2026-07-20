@@ -1,0 +1,30 @@
+---
+doc_id: ARCHITECTURE_GDScript
+doc_title: 架构文档 · GDScript 与纯代码 UI
+doc_version: v1.0
+update_date: 2026-07-18
+doc_type: 架构文档
+game_formal_name: 太玄宗门录
+game_market_name: 开局接手太玄宗
+game_core_ip: 太玄宗
+---
+
+> 本文件从 `design/01-总纲/太玄宗门录_核心设定总览.md` §14 归位。
+
+# GDScript 架构与纯代码 UI 落地（纯代码 UI，约 2200 行）
+
+| 文件 | 行数 | 职责 |
+| --- | --- | --- |
+| main.gd | 398 | 主界面：赛博国风主题（形赛博·魂传统）、三标签页 (弟子 / 抉择 / 御兽)、堂口弹窗、测灵根过场 |
+| game_state.gd | 394 | 全局状态：时间推演 (240s=1 游戏日)、12 堂口（C3 已定案：扩展至 15 建筑）、存读档、灵石经济、自动招收 |
+| disciple.gd | 320 | 弟子：6 资质 ×11 灵根 ×20 命格 ×12 性格、7 境界突破、7 职业判定（C4 已定案：重构为 3 职业） |
+| item.gd | 335 | 物品装备：5 类 ×7 品阶、词缀、8 穿戴位、仙 / 道品极品 |
+| beast.gd | 198 | 灵兽：39 种 (7 品阶)、孵化、天赋联动、技能池（待加 contract_limit 字段：默认 2 / 御兽命格 3） |
+| lore.gd | 302 | 内容库：通用历练模板、200 则奇遇拼接逻辑、测灵根文案、效果说明；奇遇正文走配置表 / adventures.json 驱动，不硬编码全量内容 |
+| iter.gd | — | 迭代 / 工具逻辑（待确认职责） |
+| project.godot | — | 工程配置（竖屏 480×854） |
+| main.tscn | — | 主场景入口 |
+
+数据流：main.gd → 调 game_state.gd（时间 / 经济 / 堂口）→ 驱动 disciple.gd/beast.gd/item.gd 实例 → 事件文案取 lore.gd → 存 user://save.json。
+
+
