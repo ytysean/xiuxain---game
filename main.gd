@@ -33,6 +33,39 @@ const 符号表 := {
 }
 const 符号失败 := "❌"   # trivial quest 用
 
+# P0-BUILD-4：建筑总览 UI 分类 / 职能标签 / 类别辅助色（复用现有色值常量，不硬编码）
+const 建筑类别序 := ["生产", "功能", "战略"]
+const 建筑类别 := {
+	"生产": ["lingtian", "kuangmai", "dantang", "qitang"],
+	"功能": ["cangjing", "zhifa", "gongxun", "tanwei"],
+	"战略": ["yuying", "yushou", "zhenfa", "xichi"],
+}
+# 建筑 key → 类别（反查，供卡片辅助色取用）
+const 建筑_类别反查 := {
+	"lingtian": "生产", "kuangmai": "生产", "dantang": "生产", "qitang": "生产",
+	"cangjing": "功能", "zhifa": "功能", "gongxun": "功能", "tanwei": "功能",
+	"yuying": "战略", "yushou": "战略", "zhenfa": "战略", "xichi": "战略",
+}
+# 职能标签（小字次要灰，按建筑取；复用任务示例词 核心生产/防御增益/人才入口）
+const 建筑职能标签 := {
+	"lingtian": "核心生产", "kuangmai": "核心生产", "dantang": "核心生产", "qitang": "核心生产",
+	"cangjing": "功法中枢", "zhifa": "纪律中枢", "gongxun": "功绩中枢", "tanwei": "情报中枢",
+	"yuying": "接引·道基培育", "yushou": "护宗灵兽", "zhenfa": "防御增益", "xichi": "重铸中枢",
+}
+# 类别辅助色：生产→良品绿 / 功能→上品蓝 / 战略→暗金（参考宗门等级金），均复用现有常量
+const 建筑类别色 := {
+	"生产": 颜色_良品,
+	"功能": 颜色_上品,
+	"战略": 暗金,
+}
+# 建筑 key → 负责人全局 buff 维度（对齐 汇总负责人全局buff 映射）
+const 建筑全局维度 := {
+	"qitang": "攻", "kuangmai": "防", "zhenfa": "防",
+	"dantang": "血", "zhifa": "速", "tanwei": "速",
+	"cangjing": "修炼", "lingtian": "产出", "yuying": "测灵",
+}
+const 维度显示 := {"攻": "攻击", "防": "防御", "血": "气血", "速": "速度", "修炼": "修炼", "产出": "产出", "测灵": "测灵"}
+
 var 状态栏: Label
 var 战报: Label
 var 详情: Label
@@ -98,7 +131,7 @@ func _ready():
 	行.add_theme_constant_override("separation", 6)
 	根.add_child(行)
 	var 推演 := Button.new(); 推演.text = "推演汇总"; 行.add_child(推演); 推演.pressed.connect(_on_推演)
-	var 招收 := Button.new(); 招收.text = "测灵根招收"; 行.add_child(招收); 招收.pressed.connect(_on_测灵根)
+	var 招收 := Button.new(); 招收.text = "开启接引大典"; 行.add_child(招收); 招收.pressed.connect(_on_测灵根)
 	引导_招收按钮 = 招收
 	var 建筑 := Button.new(); 建筑.text = "建筑总览"; 行.add_child(建筑); 建筑.pressed.connect(_on_建筑总览)
 	引导_建筑按钮 = 建筑
@@ -197,7 +230,7 @@ func _on_测灵根():
 	_引导_推进("招收")
 	var r: Dictionary = Game.举办测灵根()
 	if r.has("冷却剩余"):
-		详情.text = "测灵根大典尚在筹备中，距下次开办还需 %d 天。" % r["冷却剩余"]
+		详情.text = "接引大典尚在筹备中，接引筹备周期尚余 %d 天。" % r["冷却剩余"]
 		return
 	_过场弹窗(str(r["过场"]), int(r["人数"]))
 
@@ -521,7 +554,7 @@ func _on_一键领取(btn: Button):
 	btn.text = "  ✓ 已领取  "
 	btn.modulate = Color(0.55, 0.52, 0.48)   # 置灰
 	btn.scale = Vector2(1.0, 1.0)                # 重置缩放
-	详情.text = "本次离线收益已确认到账。宗门运转正常，弟子修炼不辍。"
+	详情.text = "本次离线收益已知悉到账。宗门运转正常，弟子修炼不辍。"
 
 func _on_交宗(条目: Dictionary):
 	Game.交宗(条目)
@@ -794,7 +827,7 @@ func _过场弹窗(过场: String, 人数: int):
 	遮.mouse_filter = Control.MOUSE_FILTER_STOP
 	遮.name = "测灵根过场"
 	add_child(遮)
-	var pc: PanelContainer = 新面板("【测灵根大典】")
+	var pc: PanelContainer = 新面板("【接引大典】")
 	# 手动居中：anchor 锁中 + offset 控半宽高
 	pc.anchor_left = 0.5
 	pc.anchor_top = 0.5
@@ -813,13 +846,13 @@ func _过场弹窗(过场: String, 人数: int):
 	文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	内容.add_child(文)
 	var 尾 := Label.new()
-	尾.text = "本届收录外门弟子 %d 人，潜心修行，他日或可证道。" % 人数
+	尾.text = "本届接引大典收录外门弟子 %d 人（本期接引名额已用尽），潜心修行，他日或可证道。" % 人数
 	尾.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(尾)
 	var 关 := Button.new(); 关.text = "收入外门"
-	关.pressed.connect(func(): 遮.queue_free(); 详情.text = "测灵根完成，录入 %d 名新弟子。" % 人数; 刷新())
+	关.pressed.connect(func(): 遮.queue_free(); 详情.text = "接引大典完成，录入 %d 名新弟子。" % 人数; 刷新())
 	内容.add_child(关)
-	详情.text = "测灵根大典进行中……"
+	详情.text = "接引大典进行中……"
 
 # ============ 建筑总览弹窗（原「堂口管理」；首发文案统一称建筑，居中面板）============
 # ============ 历练征途（Day 3 灰模 UI：关卡选择→上阵→战斗结算→掉落）============
@@ -831,7 +864,7 @@ func _过场弹窗(过场: String, 人数: int):
 # 四步引导文案（修仙化包装「宗门传承指引」）
 var 引导_步骤文案: Dictionary = {
 	1: "【宗门传承指引】先点「建筑总览」查看宗门产出，收取第一波资源。",
-	2: "【宗门传承指引】点「测灵根招收」，广招门徒，录入第一名弟子。",
+	2: "【宗门传承指引】点「开启接引大典」，广招门徒，录入第一名弟子。",
 	3: "【宗门传承指引】点「历练征途」，遣弟子下山历练，完成首次战斗。",
 	4: "【宗门传承指引】点开左侧任一弟子，查看其详情，了解境界/灵根/养成。",
 }
@@ -1137,7 +1170,7 @@ func _装备面板(d: Disciple):
 	最优.pressed.connect(_最优穿戴.bind(d))
 	内容.add_child(最优)
 	var 关 := Button.new()
-	关.text = "关闭"
+	关.text = "归藏"
 	关.pressed.connect(func():
 		if 装备面板节点 != null:
 			装备面板节点.queue_free()
@@ -1189,7 +1222,7 @@ func _历练面板():
 				continue
 			列.add_child(_历练关卡卡(s))
 	var 关 := Button.new()
-	关.text = "关闭"
+	关.text = "归藏"
 	关.pressed.connect(func():
 		遮.queue_free()
 		if Game.引导阶段 <= 4:   # 引导进行中：关闭历练后恢复引导层并刷新步骤气泡
@@ -1457,50 +1490,240 @@ func _建筑总览弹窗():
 	pc.offset_bottom = -20
 	遮.add_child(pc)
 	var 内容: Control = pc.get_child(0)
+	内容.add_theme_constant_override("separation", 6)
+	# 顶部全局汇总栏（固定一屏可见）
+	内容.add_child(_建筑总览_汇总栏())
+	# 分类标签导航（复用 TabBar 组件，参考离山汇总/主界面分页）
+	var tb := TabBar.new()
+	for 类别名 in 建筑类别序:
+		tb.add_tab(类别名)
+	内容.add_child(tb)
+	# 滚动内容区（按类别切换，替代长列表滚动）
 	var 滚动 := ScrollContainer.new()
 	滚动.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	滚动.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	内容.add_child(滚动)
-	var 列 := VBoxContainer.new()
-	列.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	列.add_theme_constant_override("separation", 4)
-	滚动.add_child(列)
-	for key in Game.堂口列表.keys():
-		列.add_child(_建筑块(key))
-	var 关 := Button.new(); 关.text = "关闭"
+	var 列表列 := VBoxContainer.new()
+	列表列.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	列表列.add_theme_constant_override("separation", 6)
+	滚动.add_child(列表列)
+	_建筑总览_填充(列表列, 建筑类别序[0])
+	tb.tab_changed.connect(func(idx):
+		_建筑总览_填充(列表列, 建筑类别序[idx])
+	)
+	# 关闭按钮（复用现有术语与交互）
+	var 关 := Button.new(); 关.text = "归藏"
 	关.pressed.connect(func(): 遮.queue_free(); 刷新())
 	内容.add_child(关)
+
+func _建筑总览_填充(列: VBoxContainer, 类别: String):
+	for c in 列.get_children():
+		c.queue_free()
+	for key in 建筑类别.get(类别, []):
+		列.add_child(_建筑块(key))
+
+func _建筑总览_汇总栏() -> Control:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _暗墨面板())
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 2)
+	p.add_child(vb)
+	var 建筑数: int = Game.堂口列表.size()
+	var 在岗: int = _在岗弟子数()
+	var 产出: int = Game.预估月产出()
+	var buff: Dictionary = Game.汇总负责人全局buff()
+	var 经营: float = buff.get("产出", 0.0)
+	var 修炼: float = buff.get("修炼", 0.0)
+	var 经营文本: String = ("+%d%%" % int(经营 * 100)) if 经营 > 0 else "无"
+	var 修炼文本: String = ("+%d%%" % int(修炼 * 100)) if 修炼 > 0 else "无"
+	var l1 := Label.new()
+	l1.text = "宗门建筑 %d 座 ｜ 在岗弟子 %d 人" % [建筑数, 在岗]
+	l1.add_theme_font_size_override("font_size", 13)
+	l1.add_theme_color_override("font_color", 暗金)
+	var l2 := Label.new()
+	l2.text = "预计月产出 %d 灵石" % 产出
+	l2.add_theme_font_size_override("font_size", 14)
+	l2.add_theme_color_override("font_color", 暗金)
+	var l3 := Label.new()
+	l3.text = "全局经营加成 %s ｜ 全局修炼加成 %s" % [经营文本, 修炼文本]
+	l3.add_theme_font_size_override("font_size", 12)
+	l3.add_theme_color_override("font_color", 暗金)
+	vb.add_child(l1); vb.add_child(l2); vb.add_child(l3)
+	return p
+
+func _在岗弟子数() -> int:
+	# 成员按堂口分区，互不重叠；此处按姓名去重计（≈ 全体弟子中已入堂者）
+	var 集合: Dictionary = {}
+	for key in Game.堂口列表.keys():
+		for m in Game.堂口列表[key]["成员"]:
+			var d: Disciple = m as Disciple
+			集合[d.姓名] = true
+	return 集合.size()
+
+func _建筑卡片底色(类别: String) -> StyleBoxFlat:
+	# 复用 造主题 面板形制（宣纸亮底/圆角/边宽），仅边框色按类别取现有色值常量
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = 宣纸亮
+	sb.set_corner_radius_all(8)
+	sb.set_border_width_all(1)
+	sb.border_color = 建筑类别色.get(类别, 暗金)
+	sb.content_margin_left = 10; sb.content_margin_right = 10
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	return sb
 
 func _建筑块(key: String) -> Control:
 	var 堂: Dictionary = Game.堂口列表[key]
 	var 块 := VBoxContainer.new()
-	块.add_theme_constant_override("separation", 2)
+	块.add_theme_constant_override("separation", 4)
+	# 卡片：PanelContainer 包一层，按类别着辅助色边框
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", _建筑卡片底色(建筑_类别反查.get(key, "战略")))
+	var 内 := VBoxContainer.new()
+	内.add_theme_constant_override("separation", 3)
+	pc.add_child(内)
+	块.add_child(pc)
+	# 头部：大名称（金色修真标题字号，对齐 小标题）+ 职能标签（小字次要灰）
+	var 头行 := HBoxContainer.new()
+	var 头 := Label.new()
+	头.text = 堂["名称"]
+	头.add_theme_font_size_override("font_size", 17)
+	头.add_theme_color_override("font_color", 暗金)
+	头行.add_child(头)
+	var 标签 := Label.new()
+	标签.text = "  %s" % 建筑职能标签.get(key, "")
+	标签.add_theme_font_size_override("font_size", 12)
+	标签.add_theme_color_override("font_color", 次墨)
+	头行.add_child(标签)
+	内.add_child(头行)
+	# 负责人行：负责人 XXX ＋ 锁图标（金色小锁）；经营加成 +X%；全局效果
 	var 负责: Disciple = 堂["负责人"]
 	var 负责名: String = "（空缺）" if 负责 == null else 负责.姓名
-	var 头 := Label.new()
-	头.text = "%s ｜ %s ｜ 负责人：%s（加成维度：%s）" % [堂["名称"], 堂["职能"], 负责名, 堂["加成维度"]]
-	头.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	块.add_child(头)
-	var 成员 := 堂["成员"] as Array
+	var 锁定: bool = 堂.get("负责人锁定", false)
+	var 负责行 := HBoxContainer.new()
+	var 锁 := Label.new()
+	锁.text = "🔒 " if 锁定 else ""
+	锁.add_theme_font_size_override("font_size", 13)
+	锁.add_theme_color_override("font_color", 暗金)
+	负责行.add_child(锁)
+	var 负责文本: String = "主事 %s" % 负责名
+	if 负责 != null:
+		负责文本 += "  经营加成 +%.0f" % 负责.加成评分(堂["加成维度"])
+	负责行.add_child(_label(负责文本, 13, 墨黑))
+	if 负责 != null and 建筑全局维度.has(key):
+		var 维: String = 建筑全局维度[key]
+		var 全局文本: String = "  全局效果：全宗%s +1%%" % 维度显示.get(维, 维)
+		负责行.add_child(_label(全局文本, 12, 次墨))
+	内.add_child(负责行)
+	# 产出行：预计月产出 XX 灵石 ｜ 附带效果（从阶段2 被动逻辑读说明文字）
+	var 产出行 := HBoxContainer.new()
+	产出行.add_child(_label("预计月产出 %d 灵石" % Game.预估建筑产出(key), 13, 暗金))
+	var 附带: String = 建筑附带效果(key)
+	if 附带 != "":
+		var 附带标签 := Label.new()
+		附带标签.text = "  ｜ " + 附带
+		附带标签.add_theme_font_size_override("font_size", 11)
+		附带标签.add_theme_color_override("font_color", 次墨)
+		附带标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		产出行.add_child(附带标签)
+	内.add_child(产出行)
+	# 成员折叠区（复用 琐事折叠 ▶/▼ 切换；默认折叠）
+	var 成员: Array = 堂["成员"]
+	var 折叠_container := VBoxContainer.new()
+	var 折叠按钮 := Button.new()
+	折叠按钮.text = "门人共 %d 人 ▸" % 成员.size()
+	折叠按钮.add_theme_font_size_override("font_size", 12)
+	折叠按钮.add_theme_color_override("font_color", 次墨)
+	折叠_container.add_child(折叠按钮)
+	var 成员列表 := VBoxContainer.new()
+	成员列表.visible = false
 	if 成员.is_empty():
-		var 空 := Label.new(); 空.text = "  （暂无成员）"
-		块.add_child(空)
+		var 空 := Label.new(); 空.text = "  （暂无门人）"; 空.add_theme_font_size_override("font_size", 12); 空.add_theme_color_override("font_color", 次墨)
+		成员列表.add_child(空)
 	else:
 		for m in 成员:
-			var mm: Disciple = m
-			var b := Button.new()
-			b.text = "  %s 任负责人（加成%.0f）" % [mm.姓名, mm.加成评分(堂["加成维度"])]
-			b.pressed.connect(_on_任负责人.bind(key, mm))
-			块.add_child(b)
+			var mm: Disciple = m as Disciple
+			var 行 := HBoxContainer.new()
+			var 名按钮 := Button.new(); 名按钮.text = mm.姓名; 名按钮.pressed.connect(_on_建筑成员_看详情.bind(mm))
+			行.add_child(名按钮)
+			var 任按钮 := Button.new()
+			if 锁定:
+				任按钮.text = "已锁定"; 任按钮.disabled = true
+			else:
+				任按钮.text = "任命"; 任按钮.pressed.connect(_on_任负责人.bind(key, mm))
+			行.add_child(任按钮)
+			成员列表.add_child(行)
+	折叠_container.add_child(成员列表)
+	var 已展开 := false
+	折叠按钮.pressed.connect(func():
+		已展开 = not 已展开
+		成员列表.visible = 已展开
+		折叠按钮.text = ("门人共 %d 人 ▾" if 已展开 else "门人共 %d 人 ▸") % 成员.size()
+	)
+	内.add_child(折叠_container)
+	# 锁定/解锁 控制（复用 解除负责人锁定；锁定状态按钮文案变「解除锁定」）
+	if 锁定:
+		var 解锁按钮 := Button.new(); 解锁按钮.text = "解除锁定"; 解锁按钮.pressed.connect(_on_解除锁定.bind(key))
+		内.add_child(解锁按钮)
 	return 块
 
 func _on_任负责人(key: String, m: Disciple):
 	Game.任命负责人(key, m)
-	详情.text = "已任命 %s 为%s负责人。" % [m.姓名, Game.堂口列表[key]["名称"]]
+	详情.text = "已任命 %s 为%s主事。" % [m.姓名, Game.堂口列表[key]["名称"]]
 	var 旧遮: Node = get_node_or_null("建筑总览")
 	if 旧遮 != null:
 		旧遮.queue_free()
 		_建筑总览弹窗()
+
+func _on_解除锁定(key: String):
+	Game.解除负责人锁定(key)
+	详情.text = "已解除%s主事锁定。" % Game.堂口列表[key]["名称"]
+	var 旧遮: Node = get_node_or_null("建筑总览")
+	if 旧遮 != null:
+		旧遮.queue_free()
+		_建筑总览弹窗()
+
+func _on_建筑成员_看详情(d: Disciple):
+	# 复用主界面弟子卡同款入口 _on_选弟子（写入底部详情栏）；关闭本弹窗以露出详情栏
+	var 旧遮: Node = get_node_or_null("建筑总览")
+	if 旧遮 != null:
+		旧遮.queue_free()
+	_on_选弟子(d)
+
+func 建筑附带效果(key: String) -> String:
+	# 说明文字从阶段2 建筑被动逻辑读取；dormant 标注「待实装」
+	match key:
+		"lingtian":
+			return "灵草丰收概率+8%（当月灵石产出翻倍）"
+		"kuangmai":
+			return "富矿现世概率+7%（当月灵石产出翻倍）"
+		"dantang":
+			return "额外丹元概率+15%"
+		"qitang":
+			return "额外器魂概率+12%"
+		"cangjing":
+			return "悟道机缘概率+8% · 修炼速度+5%（常驻）"
+		"tanwei":
+			return "情报奇遇概率+10%（额外灵石） · 负面事件-5%（待实装）"
+		"zhifa":
+			return "负面事件-15%（待实装）"
+		"gongxun":
+			return "全局声望获取+10%（常驻）"
+		"yuying":
+			return "测灵高品质概率+2%（常驻） · 宗门声名远播则天资弟子慕名来投 · 外门弟子于此修习入门吐纳法、夯实道基（道基培育）"
+		"yushou":
+			return "御兽相助概率+10%（战斗）"
+		"zhenfa":
+			return "防御增益+1%（常驻） · 入侵事件-12%（待实装）"
+		"xichi":
+			return "重铸命格/性格/道心（无数值被动）"
+	return ""
+
+func _label(文本: String, 大小: int, 颜色: Color) -> Label:
+	var l := Label.new()
+	l.text = 文本
+	l.add_theme_font_size_override("font_size", 大小)
+	l.add_theme_color_override("font_color", 颜色)
+	return l
 
 # ============ 主题与组件助手 ============
 func 造主题() -> Theme:
