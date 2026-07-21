@@ -19,7 +19,6 @@ const PeriodSettlementScript = preload("res://period_settlement.gd")   # P1：�
 # 入参：游戏日(int) | 返回值：Dict{时辰, 日, 月, 年} 或统一游戏内时间戳（S1 定）
 # 状态：当前未建，仅标记；现役仍用 累计游戏日 裸整数。依赖：时间换算层（见 §四 时间体系修真化）。
 const 现实秒每游戏日 := 240.0
-const 现实秒每游戏日 := 240.0
 const 单次推演上限日 := 3650
 const SAVE_VERSION := 1   # 存档结构版本号：损坏检测与跨版本兼容用
 
@@ -954,12 +953,12 @@ func _提升灵根品阶一档(d: Disciple):
 	match 新阶:
 		"极品":
 			if d.灵根 != "天灵根" and d.灵根 != "先天五行全灵根":
-				d.灵根 = 灵根变异.pick_random()
+				d.灵根 = Disciple.灵根变异.pick_random()
 		"天品":
 			d.灵根 = "天灵根"
 		_:
-			if d.灵根 in 灵根变异 or d.灵根 == "天灵根" or d.灵根 == "先天五行全灵根":
-				d.灵根 = 灵根五行.pick_random()
+			if d.灵根 in Disciple.灵根变异 or d.灵根 == "天灵根" or d.灵根 == "先天五行全灵根":
+				d.灵根 = Disciple.灵根五行.pick_random()
 	d.算属性()
 	d._应用命格养成加成()
 
