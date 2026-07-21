@@ -40,7 +40,7 @@ const 性格四维表 := {
 const _中性四维 := {"激进度": 50, "利他度": 50, "聪慧度": 50, "贪欲度": 50}
 
 # ============ 稀有度 / 干预 ============
-const 稀有度序 := ["普通", "稀有", "珍稀", "传说"]   # 四档（GDD-奇遇 一.1）
+const 稀有度序 := ["普通", "优秀", "稀有", "传说"]   # 四档（P0 拍板：普通/优秀/稀有/传说）
 
 # 兜底期占位权重：CSV 不可用时回退，仅启用 普通/稀有 两档。
 const _兜底稀有度权重 := {"普通": 70.0, "稀有": 30.0}   # [PLACEHOLDER]
@@ -150,9 +150,10 @@ static func _确保csv加载() -> void:
 static func 性格四维(性格: String) -> Dictionary:
 	return 性格四维表.get(性格, _中性四维.duplicate())
 
-# 是否需掌门干预：紫+（珍稀/传说）才触发（ADR-002 D4）。
+# 是否需掌门干预：S0 仅「传说」触发（干预 UI 待 S1；稀有/优秀/普通直接结算，避免奖励因 UI 未建而静默丢失）。
+# S1 建干预 UI 后改回 ["稀有", "传说"]（高两档均需抉择）。
 static func 是否需干预(稀有度: String) -> bool:
-	return 稀有度 in ["珍稀", "传说"]
+	return 稀有度 in ["传说"]
 
 # 从 CSV 按境界过滤 + 权重抽取一条（Sprint-02b：加入权重衰减）
 static func _抽csv事件(d: Disciple, scene: String = "") -> Dictionary:
@@ -202,7 +203,7 @@ static func _抽csv事件(d: Disciple, scene: String = "") -> Dictionary:
 # 返回契约 Dictionary：{文案, 稀有度, 需干预, 奖励, event_name, opt1_*, opt2_*}
 #   · 文案    ：CSV 模式 = event_content；兜底 = Lore.取奇遇()
 #   · 稀有度  ：来自 CSV rarity 字段 / 兜底期占位随机
-#   · 需干预  ：紫+（珍稀/传说）才 true
+#   · 需干预  ：S0 仅「传说」为 true（干预 UI 待 S1；S1 扩为 稀有/传说）
 #   · 奖励    ：兜底期 null（game_state 走随机小奖励）
 static func 抽取(d: Disciple, scene: String = "") -> Dictionary:
 	_确保csv加载()

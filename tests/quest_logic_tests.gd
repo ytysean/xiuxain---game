@@ -30,7 +30,7 @@ func _测性格四维查表():
 	assert(未知["激进度"] == 50 and 未知["贪欲度"] == 50, "未知性格应回退中性 50")
 
 func _测稀有度仅在普通稀有():
-	# 兜底期不应产出 珍稀/传说
+	# 兜底期仅产出 普通/稀有（占位权重 _兜底稀有度权重 不含 优秀/稀有/传说）
 	for i in 1000:
 		var d := Disciple.new()
 		var q: Dictionary = Quest.抽取(d)
@@ -39,7 +39,8 @@ func _测稀有度仅在普通稀有():
 func _测是否需干预():
 	assert(Quest.是否需干预("普通") == false, "普通不干预")
 	assert(Quest.是否需干预("稀有") == false, "稀有不干预")
-	assert(Quest.是否需干预("珍稀") == true, "珍稀需干预")
+	assert(Quest.是否需干预("优秀") == false, "优秀不干预")
+	assert(Quest.是否需干预("传说") == true, "传说需干预")
 	assert(Quest.是否需干预("传说") == true, "传说需干预")
 
 func _测抽取契约键():

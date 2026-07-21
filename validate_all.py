@@ -12,14 +12,14 @@ OUT = os.path.join(CONFIG_DIR, "validate_report.txt")
 TABLE_RULES = {
     "spirit_pet": {"required_fields": ["pet_id","pet_name","grade","sub_grade","pet_type","unlock_realm","passive_value","max_level","feed_cost_per_day","base_lifespan_year"],
         "primary_key":"pet_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "pet_type":{"type":"enum","values":["产出辅助","代步辅助","驮运防御","战斗辅助","丹道辅助","飞行战斗","防御驮运","全宗增益"]},
             "passive_value":{"type":"percent","max":50.0},"max_level":{"type":"int","min":1},
             "feed_cost_per_day":{"type":"int","min":0},"base_lifespan_year":{"type":"int","min":1}}},
     "puppet": {"required_fields":["puppet_id","puppet_name","grade","sub_grade","puppet_type","effect_value","max_durability","daily_maintain_cost","craft_time_sec","base_success_rate","sell_price_ling"],
         "primary_key":"puppet_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "puppet_type":{"type":"enum","values":["劳作","炼丹","炼器","战斗"]},
             "effect_value":{"type":"percent","max":50.0},"max_durability":{"type":"int","min":1},
@@ -27,20 +27,20 @@ TABLE_RULES = {
             "base_success_rate":{"type":"percent","min":5.0,"max":95.0},"sell_price_ling":{"type":"int","min":0}}},
     "item_pill": {"required_fields":["pill_id","pill_name","grade","sub_grade","pill_type","use_effect","effect_value","use_level","craft_material","craft_time","base_success_rate","sell_price"],
         "primary_key":"pill_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "pill_type":{"type":"enum","values":["培元类","突破类","恢复类","属性类","特殊类"]},
             "effect_value":{"type":"percent","max":200.0},"craft_time":{"type":"int","min":1},
             "base_success_rate":{"type":"percent","min":5.0,"max":95.0},"sell_price":{"type":"int","min":0}}},
     "item_talisman": {"required_fields":["talisman_id","talisman_name","grade","sub_grade","talisman_type","use_effect","effect_value","use_limit","craft_material","sell_price"],
         "primary_key":"talisman_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "talisman_type":{"type":"enum","values":["攻击类","防御类","辅助类","控制类","特殊类"]},
             "effect_value":{"type":"percent","max":200.0},"use_limit":{"type":"int","min":1},"sell_price":{"type":"int","min":0}}},
     "equip_main": {"required_fields":["equip_id","equip_name","grade","sub_grade","equip_slot","apply_class","base_atk","base_def","base_hp","base_durability","repair_material","sell_price"],
         "primary_key":"equip_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "equip_slot":{"type":"enum","values":["武器","头盔","衣袍","护腕","腰带","长裤","靴子","配饰","本命法宝"]},
             "apply_class":{"type":"enum","values":["通用","体修","道修","法修"]},
@@ -52,38 +52,38 @@ TABLE_RULES = {
             "类型":{"type":"enum","values":["修行","经营","战斗","奇遇"]}}},
     "equip_blueprint": {"required_fields":["blueprint_id","blueprint_name","grade","sub_grade","target_equip_id","unlock_condition","craft_cost","sell_price"],
         "primary_key":"blueprint_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "craft_cost":{"type":"int","min":1},"sell_price":{"type":"int","min":0}}},
     "skill_cultivation": {"required_fields":["skill_id","skill_name","grade","sub_grade","apply_class","skill_type","effect_value","max_level","unlock_realm","learn_cost"],
         "primary_key":"skill_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "apply_class":{"type":"enum","values":["通用","体修","道修","法修"]},
             "skill_type":{"type":"enum","values":["攻击","控制","辅助防御","通用"]},
             "effect_value":{"type":"percent","max":200.0},"max_level":{"type":"int","min":1},"learn_cost":{"type":"int","min":0}}},
     "treasure_normal": {"required_fields":["treasure_id","treasure_name","grade","sub_grade","treasure_type","base_atk","base_def","base_hp","passive_effect","effect_value","sell_price"],
         "primary_key":"treasure_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "treasure_type":{"type":"enum","values":["攻击类","防御类","辅助类"]},
             "base_atk":{"type":"int","min":0},"base_def":{"type":"int","min":0},"base_hp":{"type":"int","min":0},
             "effect_value":{"type":"percent","max":200.0},"sell_price":{"type":"int","min":0}}},
     "treasure_innate": {"required_fields":["innate_id","innate_name","grade","sub_grade","apply_class","active_skill","passive_effect","growth_value","max_level","sacrifice_material"],
         "primary_key":"innate_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "apply_class":{"type":"enum","values":["通用","体修","道修","法修"]},
             "growth_value":{"type":"percent","max":200.0},"max_level":{"type":"int","min":1}}},
     "equip_set": {"required_fields":["set_id","set_name","grade","sub_grade","apply_class","set_2pc_effect","set_2pc_value","set_4pc_effect","set_4pc_value"],
         "primary_key":"set_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "apply_class":{"type":"enum","values":["全职业通用","道修","体修","法修"]},
             "set_2pc_value":{"type":"percent","max":200.0},"set_4pc_value":{"type":"percent","max":200.0}}},
     "spirit_array_config": {"required_fields":["array_id","array_name","grade","sub_grade","level","unlock_sect_level","cultivate_bonus","herb_grow_bonus","pill_success_bonus","forge_success_bonus","daily_cost","upgrade_lingstone","upgrade_material","upgrade_days","max_cover"],
         "primary_key":"array_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "level":{"type":"int","min":1},"unlock_sect_level":{"type":"int","min":1},
             "cultivate_bonus":{"type":"float","max":1.0},"herb_grow_bonus":{"type":"float","max":1.0},
@@ -92,7 +92,7 @@ TABLE_RULES = {
             "upgrade_days":{"type":"int","min":0},"max_cover":{"type":"int","min":1}}},
     "defense_array_config": {"required_fields":["defense_array_id","array_name","grade","sub_grade","level","unlock_sect_level","daily_cost","daily_defense_rate","spy_reduce_rate","war_cost","war_damage_reduce_max","building_damage_reduce","tribulation_resist_max","tribulation_cost","upgrade_lingstone","upgrade_material","upgrade_days","max_cover_buildings"],
         "primary_key":"defense_array_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "level":{"type":"int","min":1},"unlock_sect_level":{"type":"int","min":1},
             "daily_cost":{"type":"int","min":0},"daily_defense_rate":{"type":"float","max":1.0},
@@ -144,10 +144,10 @@ TABLE_RULES = {
         "primary_key":"pool_id+item_id",
         "field_rules":{"item_grade":{"type":"enum","values":["凡品下品","凡品中品","凡品上品","凡品极品","灵品下品","灵品中品","灵品上品","灵品极品","宝品下品","宝品中品","宝品上品","宝品极品","王品下品","王品中品","王品上品","王品极品","圣品下品","圣品中品","圣品上品","圣品极品","固定数值"]},
             "weight":{"type":"int","min":0},"drop_limit":{"type":"int","min":0},"daily_max":{"type":"int","min":0},"is_counted_in_balance":{"type":"bool"}}},
-    "event_quest": {"required_fields":["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance"],
+    "event_quest": {"required_fields":["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance","trigger_type"],
         "primary_key":"event_id",
         "field_rules":{"event_type":{"type":"enum","values":["宗门常驻","野外历练","昼夜专属","阵营专属","征伐"]},
-            "rarity":{"type":"enum","values":["普通","稀有","传说"]},
+            "rarity":{"type":"enum","values":["普通","优秀","稀有","传说"]},
             "trigger_scene":{"type":"enum","values":["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"]},
             "unlock_sect_level":{"type":"int","min":1,"max":10},
             "unlock_realm":{"type":"enum","values":["练气","筑基","金丹","元婴","化神","炼虚","合体"]},
@@ -160,7 +160,7 @@ TABLE_RULES = {
     "faction_shop": {"required_fields":["shop_id","faction_id","item_id","item_name","item_grade","price_lingjing","price_token","limit_daily","limit_weekly","unlock_reputation"],
         "primary_key":"shop_id",
         "field_rules":{"faction_id":{"type":"enum","values":["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi"]},
-            "item_grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","真品","道品"]},
+            "item_grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "price_lingjing":{"type":"int","min":0},"price_token":{"type":"int","min":0},
             "limit_daily":{"type":"int","min":0},"limit_weekly":{"type":"int","min":0},"unlock_reputation":{"type":"int","min":0}}},
     "inner_demon": {"required_fields":["demon_id","demon_name","match_personality","trigger_prob","opt1_desc","opt1_success_rate","opt1_success_reward","opt1_fail_punish","opt2_desc","opt2_success_rate","opt2_success_reward","opt2_fail_punish"],
@@ -249,7 +249,7 @@ TABLE_RULES = {
             "quality":{"type":"enum","values":["凡品","良品","上品","极品"]}}},
 }
 
-GRADE_RANK = {"凡品":0,"灵品":1,"宝品":2,"王品":3,"圣品":4,"真品":5,"道品":6}
+GRADE_RANK = {"凡品":0,"灵品":1,"宝品":2,"王品":3,"圣品":4,"仙品":5,"道品":6}
 REP_GRADE_CAP = {0:"凡品",1000:"灵品",3000:"宝品",8000:"王品",20000:"圣品"}
 
 def parse_percent(s):
@@ -439,12 +439,23 @@ def main():
             if w > 0:
                 pools[r["event_type"]] += w
                 has_positive[r["event_type"]] = True
-        bad = {k: v for k, v in pools.items() if has_positive[k] and abs(v - 100) > 1e-6}
+        bad = {k: v for k, v in pools.items() if not has_positive[k]}
         if bad:
-            for k, v in bad.items():
-                errors.append(("event_quest.csv","event_quest",0,"event_type=%s trigger_weight和=%.1f≠100"%(k,v)))
+            for k in bad:
+                warns.append("event_quest.csv: event_type=%s 池内无正向 trigger_weight（抽取将退化为等权），请检查" % k)
         else:
-            report.append("- [OK] event_quest: 各 event_type 池内 trigger_weight 和=100（归一化口径，对齐总览§11.26.1）")
+            report.append("- [OK] event_quest: 各 event_type 池内均含正向 trigger_weight（按档权重 普通10/优秀6/稀有2/传说0.5 抽取）")
+
+        # 4. 奇遇品阶占比校验（P0 拍板硬卡死）：传说档硬上限 10 条（203 条量级下占比 4.9%≤5%）。
+        #    从配置层拦截超标，S0 新增传说奇遇超量直接报硬错误。
+        rc = defaultdict(int)
+        for r in d:
+            rc[r["rarity"]] += 1
+        total = sum(rc.values())
+        legend = "普通=%d 优秀=%d 稀有=%d 传说=%d (总计%d)" % (rc.get("普通",0), rc.get("优秀",0), rc.get("稀有",0), rc.get("传说",0), total)
+        report.append("- event_quest 品阶分布: " + legend)
+        if rc.get("传说", 0) > 10:
+            errors.append(("event_quest.csv","event_quest",0,"传说档=%d 条，超过 P0 硬上限 10 条（占比%.1f%%），S0 不得新增超标传说奇遇" % (rc["传说"], rc["传说"]*100.0/max(total,1))))
 
     # ---------- 战斗关卡系统跨表校验（Day1 新增 stage_main / monster_main / drop_pool）----------
     report.append("")

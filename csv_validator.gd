@@ -17,7 +17,7 @@
 extends Node
 
 # ---------- 全局常量 ----------
-const VALID_GRADES := ["凡品", "灵品", "宝品", "王品", "圣品", "真品", "道品"]
+const VALID_GRADES := ["凡品", "灵品", "宝品", "王品", "圣品", "仙品", "道品"]
 const MIN_SUCCESS_RATE := 5.0
 const MAX_SUCCESS_RATE := 95.0
 const VALID_SUB_GRADES := ["下品", "中品", "上品", "极品"]
@@ -312,11 +312,12 @@ const TABLE_RULES := {
         }
     },
     "event_quest": {
-        "required_fields": ["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance"],
+        "required_fields": ["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance","trigger_type"],
         "primary_key": "event_id",
         "field_rules": {
             "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属","征伐"], "tip": "奇遇大类非法"},
-            "rarity": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "稀有度非法（3档映射§10四档）"},
+            "rarity": {"type": "enum", "values": ["普通","优秀","稀有","传说"], "tip": "稀有度非法（四档：普通/优秀/稀有/传说）"},
+            "trigger_type": {"type": "enum", "values": ["monthly","login","adventure_return","breakthrough","building_up"], "tip": "奇遇触发类型非法（S0 仅 monthly 生效，其余预埋）"},
             "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"], "tip": "触发场景非法"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体"], "tip": "境界非法"},

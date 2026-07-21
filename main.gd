@@ -93,6 +93,8 @@ var 引导_层: Control = null          # 引导覆盖层（暗化+高亮框+气
 var 引导_跳过按钮: Button = null     # 右上角常驻「跳过引导」，阶段<5 时可见
 var 引导_开场段: int = 0             # 开场叙事当前段序号
 var _引导已收尾: bool = false         # 收尾弹窗一次性标记（播完不再重复）
+var _坊市提示: String = ""
+var _任务提示: String = ""
 var 页控: Dictionary = {}
 # Step 2 奇遇基础调度：signal 入队、逐个弹窗，避免推演期多奇遇堆叠
 var 奇遇队列: Array = []
@@ -155,6 +157,8 @@ func _ready():
 	var 调试 := Button.new(); 调试.text = "调试战斗"; 行三.add_child(调试); 调试.pressed.connect(_on_调试战斗)
 	var 历练 := Button.new(); 历练.text = "历练征途"; 行三.add_child(历练); 历练.pressed.connect(_on_历练)
 	引导_历练按钮 = 历练
+	var 坊市 := Button.new(); 坊市.text = "坊市"; 行三.add_child(坊市); 坊市.pressed.connect(_on_坊市)
+	var 任务 := Button.new(); 任务.text = "任务"; 行三.add_child(任务); 任务.pressed.connect(_on_任务)
 	# 强制触发征伐奇遇：调试专用，release 导出自动隐藏（OS.is_debug_build 包裹 add_child，不留死代码）
 	var 行四 := HBoxContainer.new()
 	行四.add_theme_constant_override("separation", 6)
@@ -632,10 +636,11 @@ func _on_绑定(灵兽: Beast):
 	详情.text = Game.绑定灵兽给首只合格(灵兽)
 
 func _on_选弟子(d: Disciple):
-	# 不再调用 _引导_推进——引导完成已由战斗胜利"确定"回调接管
-	# 步骤4气泡由 _引导_刷新() 自动展示；点此仅查看详情，不改变引导状态
 	当前选中 = d
 	详情.text = d.简介()
+	# 引导步骤4：点开弟子详情后推进到完成（修复：之前误删导致卡死）
+	if Game.引导阶段 == 4:
+		_引导_推进("查看弟子")
 
 func _on_命格(d: Disciple):
 	详情.text = "【命格】\n%s" % d.命格详情()
@@ -656,8 +661,8 @@ func 刷新():
 		_升级提示 = "（已达当前上限）"
 	else:
 		_升级提示 = "（距 Lv%d 还差声望 %d，亦可由弟子/战力/通关推进）" % [_升级["下一级"], _升级["声望缺口"]]
-	状态栏.text = ("时间：%s\n宗门 Lv%d · 声望 %d · 繁荣 %d ｜ 灵石 %d · 贡献 %d ｜ 弟子 %d%s" %
-	[Game.时间文本(), Game.门派等级, Game.声望, Game.繁荣, Game.灵石, Game.贡献点, Game.弟子列表.size(), _升级提示])
+	状态栏.text = ("时间：%s\n宗门 Lv%d · 声望 %d · 繁荣 %d ｜ 灵石 %d · 灵草 %d · 矿石 %d · 灵气 %d · 贡献 %d ｜ 弟子 %d%s" %
+	[Game.时间文本(), Game.门派等级, Game.声望, Game.繁荣, Game.灵石, Game.灵草, Game.矿石, Game.灵气, Game.贡献点, Game.弟子列表.size(), _升级提示])
 	for c in 列表.get_children():
 		c.queue_free()
 	# P0：按当前排序维度排序（不影响 弟子列表 原始招募序）
@@ -1287,6 +1292,112 @@ func _装备面板(d: Disciple):
 			装备面板节点.queue_free()
 		装备面板节点 = null)
 	内容.add_child(关)
+
+# ============ S0 坊市（商店）：消耗灵石出口 ============
+func _on_坊市():
+	_坊市面板()
+
+func _坊市面板():
+	var 遮 := ColorRect.new()
+	遮.color = Color(0.10, 0.09, 0.08, 0.55)
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "坊市面板"
+	add_child(遮)
+	var pc: PanelContainer = 新面板("✦ 坊市（消耗灵石 · 周限购）")
+	pc.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	pc.custom_minimum_size = Vector2(460, 520)
+	遮.add_child(pc)
+	var 内容: Control = pc.get_child(0)
+	var 结果 := Label.new(); 结果.text = _坊市提示; 内容.add_child(结果)
+	var 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(0, 380); 内容.add_child(滚)
+	var 列 := VBoxContainer.new(); 滚.add_child(列)
+	_刷新坊市列表(列, 结果)
+	var 关 := Button.new(); 关.text = "归藏"; 关.pressed.connect(func(): _坊市提示 = ""; 遮.queue_free()); 内容.add_child(关)
+
+func _刷新坊市列表(列: VBoxContainer, 结果: Label):
+	for c in 列.get_children():
+		c.queue_free()
+	for r in Game._坊市表():
+		var 名: String = r.get("item_name", "")
+		var 价: int = int(r.get("price_lingjing", "0"))
+		var 限: String = "日%d/周%d" % [int(r.get("limit_daily", "0")), int(r.get("limit_weekly", "0"))]
+		var 行 := HBoxContainer.new()
+		var 标 := Label.new(); 标.text = "%s（%s） %d灵石 [%s]" % [名, r.get("item_grade", ""), 价, 限]
+		var 买 := Button.new(); 买.text = "购买"
+		买.pressed.connect(func():
+			var res: Dictionary = Game.购买坊市物品(r.get("shop_id", ""))
+			结果.text = res.get("msg", "")
+			_坊市提示 = res.get("msg", "")
+			刷新()
+			_刷新坊市列表(列, 结果)
+		)
+		行.add_child(标); 行.add_child(买)
+		列.add_child(行)
+	var 库 := Label.new(); 库.text = "宗门库房：%d 件" % Game.宗门库房.size()
+	列.add_child(库)
+
+# ============ S0 任务中心：日常（3条）+ 周常（1条）============
+func _on_任务():
+	_任务面板()
+
+func _任务面板():
+	var 遮 := ColorRect.new()
+	遮.color = Color(0.10, 0.09, 0.08, 0.55)
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "任务面板"
+	add_child(遮)
+	var pc: PanelContainer = 新面板("✦ 任务中心")
+	pc.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	pc.custom_minimum_size = Vector2(440, 480)
+	遮.add_child(pc)
+	var 内容: Control = pc.get_child(0)
+	var 结果 := Label.new(); 结果.text = _任务提示; 内容.add_child(结果)
+	var 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(0, 360); 内容.add_child(滚)
+	var 列 := VBoxContainer.new(); 滚.add_child(列)
+	# —— 日常任务 ——
+	var 日头 := Label.new(); 日头.text = "【日常任务】每日刷新，完成领灵石/灵气"; 列.add_child(日头)
+	for i in Game.当前日常.size():
+		var q: Dictionary = Game.当前日常[i]
+		var 已领: bool = Game.日常已领[i] if i < Game.日常已领.size() else false
+		var 行 := HBoxContainer.new()
+		var 标 := Label.new()
+		标.text = "%s：%s（灵石+%s 灵气+%s）%s" % [q.get("quest_name", ""), q.get("target_desc", ""), q.get("reward_lingjing", "0"), q.get("reward_lingqi", "0"), "✅" if 已领 else ""]
+		var 领 := Button.new(); 领.text = "领取" if not 已领 else "已领"
+		领.disabled = 已领
+		领.pressed.connect(func():
+			var res: Dictionary = Game.领取日常(i)
+			_任务提示 = res.get("msg", "")
+			_任务面板_重建(遮)
+		)
+		行.add_child(标); 行.add_child(领)
+		列.add_child(行)
+	# —— 周常任务 ——
+	var 周头 := Label.new(); 周头.text = "【周常任务】每7日刷新一条"; 列.add_child(周头)
+	if Game.当前周常.is_empty():
+		var 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 列.add_child(无)
+	else:
+		var qw: Dictionary = Game.当前周常
+		var 行 := HBoxContainer.new()
+		var 标 := Label.new()
+		标.text = "%s：%s（灵石+%s 灵气+%s）%s" % [qw.get("quest_name", ""), qw.get("target_desc", ""), qw.get("reward_lingjing", "0"), qw.get("reward_lingqi", "0"), "✅" if Game.周常已领 else ""]
+		var 领 := Button.new(); 领.text = "领取" if not Game.周常已领 else "已领"
+		领.disabled = Game.周常已领
+		领.pressed.connect(func():
+			var res: Dictionary = Game.领取周常()
+			_任务提示 = res.get("msg", "")
+			_任务面板_重建(遮)
+		)
+		行.add_child(标); 行.add_child(领)
+		列.add_child(行)
+	var 关 := Button.new(); 关.text = "归藏"; 关.pressed.connect(func(): _任务提示 = ""; 遮.queue_free()); 内容.add_child(关)
+
+# 任务面板局部重建（保留遮罩，刷新列表与提示）
+func _任务面板_重建(遮: ColorRect):
+	_任务提示 = _任务提示
+	遮.queue_free()
+	_任务面板()
 
 func _历练面板():
 	var 遮 := ColorRect.new()
