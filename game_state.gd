@@ -23,6 +23,9 @@ const 单次推演上限日 := 3650
 const SAVE_VERSION := 1   # 存档结构版本号：损坏检测与跨版本兼容用
 
 var 灵石 := 1000
+var 灵草 := 0
+var 矿石 := 0
+var 灵气 := 0
 var 贡献点 := 0
 var 弟子列表: Array[Disciple] = []   # 强类型数组（需 disciple.gd 已注册 class_name）
 
@@ -37,6 +40,17 @@ var 待抉择: Array[Dictionary] = []
 var 奇遇待抉择: Array[Dictionary] = []
 # 宗门纪事（最简版）：本次会话已触发的奇遇历史，供 main.gd「纪事」标签回看；会话瞬时，load 时清空
 var 宗门纪事: Array = [] 
+# ===== S0 任务/商店系统状态（2026-07-21 新增；不升 SAVE_VERSION，load 用 .get 默认向后兼容）=====
+var 宗门库房: Array = []                 # 坊市购买所得物品（Item 实例）
+var 坊市购买记录: Dictionary = {}         # shop_id -> {daily, weekly, week_start}
+var 当前日常: Array = []                  # 当日日常任务（quest_daily 行字典，最多3条）
+var 日常已领: Array = []                  # 与 当前日常 等长，true=已领取
+var 上次日常日: int = 0
+var 当前周常: Dictionary = {}             # 当周周常任务（quest_weekly 行字典）
+var 周常已领: bool = true
+var 上次周常日: int = 0
+var 随机事件冷却: Dictionary = {}          # quest_id -> 上次触发累计游戏日
+
 # 全宗气运 buff（天品灵根弟子招募触发）：修炼+3% / 产出+2%，持续 7 游戏日
 var 气运修炼加成: float = 0.0
 var 气运产出加成: float = 0.0
@@ -166,6 +180,123 @@ func 招收弟子() -> Disciple:
 	return d
 
 # ============ 时间推演核心 ============
+# ============ S0 商店（坊市）：经济消耗出口 ============
+var _坊市缓存: Array = []
+func _坊市表() -> Array:
+	if _坊市缓存.is_empty():
+		for r in DestinyDataLoader._read_csv("res://config/faction_shop.csv"):
+			_坊市缓存.append(r)
+	return _坊市缓存
+
+# 购买坊市物品：校验声望/限购/灵石，扣费入宗门库房，返回 {ok, msg}
+func 购买坊市物品(shop_id: String) -> Dictionary:
+	var 行: Dictionary = {}
+	for r in _坊市表():
+		if r.get("shop_id", "") == shop_id:
+			行 = r
+			break
+	if 行.is_empty():
+		return {"ok": false, "msg": "无此商品"}
+	if int(行.get("unlock_reputation", "0")) > 声望:
+		return {"ok": false, "msg": "声望不足（需 %d）" % int(行.get("unlock_reputation", "0"))}
+	var 价: int = int(行.get("price_lingjing", "0"))
+	var 日限: int = int(行.get("limit_daily", "0"))
+	var 周限: int = int(行.get("limit_weekly", "0"))
+	var 记: Dictionary = 坊市购买记录.get(shop_id, {"daily": 0, "weekly": 0, "week_start": 累计游戏日})
+	if 累计游戏日 - int(记.get("week_start", 累计游戏日)) >= 7:
+		记 = {"daily": 0, "weekly": 0, "week_start": 累计游戏日}
+	if 日限 > 0 and int(记.get("daily", 0)) >= 日限:
+		return {"ok": false, "msg": "今日限购已用完"}
+	if 周限 > 0 and int(记.get("weekly", 0)) >= 周限:
+		return {"ok": false, "msg": "本周限购已用完"}
+	if 灵石 < 价:
+		return {"ok": false, "msg": "灵石不足（需 %d）" % 价}
+	灵石 -= 价
+	var it: Item = Item.new()
+	it.名称 = 行.get("item_name", "未知物品")
+	it.品阶 = 行.get("item_grade", "凡品")
+	it.类别 = "法器"
+	宗门库房.append(it)
+	记["daily"] = int(记.get("daily", 0)) + 1
+	记["weekly"] = int(记.get("weekly", 0)) + 1
+	坊市购买记录[shop_id] = 记
+	return {"ok": true, "msg": "购入 %s（-%d灵石）" % [行.get("item_name", ""), 价]}
+
+# ============ S0 日常任务（极简版：固定3条/日）============
+func 刷新日常任务():
+	var 池: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/quest_daily.csv"):
+		if int(r.get("unlock_sect_level", "1")) <= 门派等级:
+			池.append(r)
+	池.shuffle()
+	当前日常 = 池.slice(0, min(3, 池.size()))
+	日常已领 = []
+	for i in 当前日常.size():
+		日常已领.append(false)
+	上次日常日 = 累计游戏日
+
+func 领取日常(序号: int) -> Dictionary:
+	if 序号 < 0 or 序号 >= 当前日常.size():
+		return {"ok": false, "msg": "任务不存在"}
+	if 日常已领[序号]:
+		return {"ok": false, "msg": "已领取"}
+	var q: Dictionary = 当前日常[序号]
+	var 灵: int = int(q.get("reward_lingjing", "0"))
+	var 气: int = int(q.get("reward_lingqi", "0"))
+	灵石 += 灵
+	灵气 += 气
+	日常已领[序号] = true
+	return {"ok": true, "msg": "日常「%s」完成：灵石+%d 灵气+%d" % [q.get("quest_name", ""), 灵, 气]}
+
+# ============ S0 周常（轻量：每7日1条）============
+func 刷新周常():
+	var 池: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/quest_weekly.csv"):
+		if int(r.get("unlock_sect_level", "1")) <= 门派等级:
+			池.append(r)
+	if 池.is_empty():
+		当前周常 = {}
+		周常已领 = true
+		return
+	池.shuffle()
+	当前周常 = 池[0]
+	周常已领 = false
+	上次周常日 = 累计游戏日
+
+func 领取周常() -> Dictionary:
+	if 当前周常.is_empty():
+		return {"ok": false, "msg": "本周无周常"}
+	if 周常已领:
+		return {"ok": false, "msg": "已领取"}
+	var 灵: int = int(当前周常.get("reward_lingjing", "0"))
+	var 气: int = int(当前周常.get("reward_lingqi", "0"))
+	灵石 += 灵
+	灵气 += 气
+	周常已领 = true
+	return {"ok": true, "msg": "周常「%s」完成：灵石+%d 灵气+%d" % [当前周常.get("quest_name", ""), 灵, 气]}
+
+# ============ S0 随机事件（轻量挂载：月度推演概率触发）============
+func _尝试随机事件():
+	for r in DestinyDataLoader._read_csv("res://config/quest_random.csv"):
+		var qid: String = r.get("quest_id", "")
+		var 上次: int = int(随机事件冷却.get(qid, -999))
+		if 累计游戏日 - 上次 < int(r.get("valid_time", "24")):
+			continue
+		if randf() < float(r.get("trigger_prob", "0")):
+			灵石 += int(r.get("reward_lingjing", "0"))
+			灵气 += int(r.get("reward_lingqi", "0"))
+			随机事件冷却[qid] = 累计游戏日
+			宗门纪事.append({"日": 累计游戏日, "稀有度": "普通", "名称": r.get("quest_name", ""),
+				"文案": "【随机事件】%s，门派获灵石+%s 灵气+%s。" % [r.get("quest_name", ""), r.get("reward_lingjing", "0"), r.get("reward_lingqi", "0")]})
+
+# ============ S0 任务系统日推进（挂于 推演一月 累计游戏日 += 日 之后）============
+func _推进任务系统(日: int):
+	if 当前日常.is_empty() or (累计游戏日 - 上次日常日 >= 1):
+		刷新日常任务()
+	if 当前周常.is_empty() or (累计游戏日 - 上次周常日 >= 7):
+		刷新周常()
+	_尝试随机事件()
+
 func 推演至现在() -> String:
 	推演日志 = []
 	# 资源快照（用于总览展示"本次收益"，展示型领取不二次发资源）
@@ -276,6 +407,7 @@ func 推演一月(日: int):
 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
 	累计游戏日 += 日
+	_推进任务系统(日)        # S0：每日刷日常 / 每7日刷周常 / 月度随机概率事件
 	# P1：年结周期评分（游戏年 = 365 日）；支持单次大跨度推演结算多年
 	while 累计游戏日 - 上次结算年 >= 365:
 		上次结算年 += 365
@@ -412,6 +544,104 @@ func _尝试触发奇遇(d: Disciple, scene: String, 保底: bool = false) -> Di
 	})
 	return q
 
+# ============ 奇遇奖励结构化解析（偏差#3 / B 部分，极简版）============
+# 输入格式：物品key:数量，多奖励用 | 分隔。例："lingshi:200|lingcao:25"
+# 支持 key：lingshi(灵石) / lingcao(灵草) / kuangshi(矿石) / dan_low(低阶丹药入背包)
+# 设计铁律：解析失败降级为纯文本（并入摘要），不报错、不崩溃、不阻塞主流程。
+# 返回：发放动作的中文摘要串（空串表示无有效发放）。
+func _解析并发放奇遇奖励(d: Disciple, 文本: String) -> String:
+	var 摘要 := ""
+	if 文本.strip_edges() == "":
+		return 摘要
+	for 段 in 文本.split("|"):
+		var 单: String = 段.strip_edges()
+		if 单 == "":
+			continue
+		if not 单.contains(":"):
+			摘要 += " " + 单
+			continue
+		var 部件: Array = 单.split(":", false)
+		var key: String = 部件[0].strip_edges()
+		if key in ["exp", "favor", "buff", "multi"]:
+			摘要 += " " + _奇遇增益_中文描述(部件)
+			continue
+		var 数量: int = 部件[1].strip_edges().to_int()
+		if 数量 <= 0:
+			摘要 += " " + 单
+			continue
+		match key:
+			"lingshi":
+				灵石 += 数量
+				摘要 += " 灵石+%d" % 数量
+			"lingcao":
+				灵草 += 数量
+				摘要 += " 灵草+%d" % 数量
+		"kuangshi":
+			矿石 += 数量
+			摘要 += " 矿石+%d" % 数量
+		"lingqi":
+			灵气 += 数量
+			摘要 += " 灵气+%d" % 数量
+		"dan_low":
+				for _i in 数量:
+					d.获得物品(_造低阶物品("dan_yao", "凡阶"))
+				摘要 += " 聚气丹×%d" % 数量
+			_:
+				摘要 += " " + 单
+	return 摘要
+
+# ---- 第1项拍板：奇遇增益结构化语法预埋（S0 降级中文 / S1 按 effect_type 分发实际逻辑）----
+# 标准格式（与 物品key:数量 对齐）：
+#   exp:弟子范围:数值 / favor:弟子范围:数值 / buff:buff_id:数值 / multi:资源类型:倍率:时长
+# S0 行为：识别后仅生成中文描述（剧情风味文本），不执行实际数值，保证不报错不崩档。
+# S1 扩展：在 _应用奇遇增益 按类型分发真实逻辑，存量奇遇数据无需任何返工即可生效。
+func _奇遇增益_中文描述(部件: Array) -> String:
+	if 部件.size() < 2:
+		return "(增益格式异常)"
+	var 类型: String = 部件[0]
+	match 类型:
+		"exp":
+			var 范围: String = _弟子范围文本(部件[1])
+			var 值: int = 部件[2].to_int() if 部件.size() > 2 else 0
+			return "(%s修为+%d)" % [范围, 值]
+		"favor":
+			var 范围: String = _弟子范围文本(部件[1])
+			var 值: int = 部件[2].to_int() if 部件.size() > 2 else 0
+			return "(%s好感+%d)" % [范围, 值]
+		"buff":
+			var bid: String = 部件[1]
+			var 值: float = 部件[2].to_float() if 部件.size() > 2 else 0.0
+			return "(全宗门%s提升%s)" % [_buff文本(bid), _百分比文本(值)]
+		"multi":
+			var 资源: String = _资源名词(部件[1])
+			var 倍: float = 部件[2].to_float() if 部件.size() > 2 else 1.0
+			var 时: int = 部件[3].to_int() if 部件.size() > 3 else 0
+			return "(%s产出%.1f倍，持续%d个月)" % [资源, 倍, 时]
+		_:
+			return "(未知增益:%s)" % 部件[1]
+
+func _弟子范围文本(范围: String) -> String:
+	match 范围:
+		"random_one": return "随机一名弟子"
+		"all": return "全体弟子"
+		_: return "指定弟子"
+
+func _buff文本(bid: String) -> String:
+	var 表: Dictionary = {
+		"cultivate_speed": "修炼速度", "output": "产出", "exp_gain": "修为获取",
+		"combat_power": "战力", "loot_rate": "掉落率", "sect_reputation": "宗门声望"
+	}
+	return 表.get(bid, bid)
+
+func _资源名词(键: String) -> String:
+	var 表: Dictionary = {
+		"lingshi": "灵石", "lingcao": "灵草", "kuangshi": "矿石", "lingqi": "灵气"
+	}
+	return 表.get(键, 键)
+
+func _百分比文本(值: float) -> String:
+	return "%d%%" % int(round(值 * 100))
+
 # 奇遇奖励结算（ADR-002 D5）：兜底期 q.奖励==null → 随机小奖励；csv 到位后按奖励结构结算。
 # Sprint-02b：记录冷却时刻 + 宗门等级缩放接入
 func 结算奇遇奖励(d: Disciple, q: Dictionary):
@@ -448,6 +678,13 @@ func 结算奇遇奖励(d: Disciple, q: Dictionary):
 			it.奇遇版 = true        # ADR-002 D5：奇遇版标记（增幅曲线待 design 录入，本 Sprint 仅置位）
 			d.获得物品(it)          # 入背包 + 自动穿戴（经 ADR-001 自动进战力）
 			摘要 += " 得【%s·奇遇版】" % it.名称
+	# B 部分：结构化奖励（opt1_reward 字段，格式 物品key:数量）
+	var 奖励文本: String = q.get("opt1_reward", "")
+	if 奖励文本.strip_edges() != "":
+		var 解析摘要: String = _解析并发放奇遇奖励(d, 奖励文本)
+		if 解析摘要 != "":
+			摘要 += 解析摘要
+			宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": q.get("稀有度", "普通"), "名称": q.get("event_name", "奇遇奖励"), "文案": "获得奖励：%s" % 解析摘要.strip_edges()})
 	# 道心值：待道心系统；本 Sprint 先记 履历（ADR-002 D5）。
 	d.履历.append(摘要)
 
@@ -483,6 +720,12 @@ func 结算征伐奇遇(d: Disciple, q: Dictionary):
 	else:
 		var 失败原因: Array[String] = ["不敌对手，险象环生后撤退", "陷入苦战，消耗过大无功而返", "情报有误，扑了个空", "天时不利，草草收兵"]
 		摘要 += " 失利（%s）" % 失败原因[randi() % 失败原因.size()]
+	# B 部分：结构化奖励（opt1_reward 字段）
+	var 征伐奖励文本: String = q.get("opt1_reward", "")
+	if 征伐奖励文本.strip_edges() != "":
+		var 征伐解析: String = _解析并发放奇遇奖励(d, 征伐奖励文本)
+		if 征伐解析 != "":
+			摘要 += 征伐解析
 	d.履历.append(摘要)
 	# 征伐奇遇也写宗门纪事（_尝试触发奇遇的L227可能被冷却/概率拦住）
 	宗门纪事.append({
@@ -675,9 +918,15 @@ func _资源建筑产出():
 		var 产: int = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff) * 等级乘区)
 		灵石 += 产
 		# 阶段2：记录各资源建筑本月实际产出额，供 _建筑被动结算 概率翻倍（灵草丰收/富矿/额外丹元/器魂）时直接加回
+		# 资源系统补全（偏差#3）：灵田/矿脉除普适灵石外，额外产出专属材料，供 S1 丹器消耗
 		match key:
-			"lingtian": _本月灵田产出 = 产
-			"kuangmai": _本月矿脉产出 = 产
+			"lingtian":
+				_本月灵田产出 = 产
+				灵草 += 产
+				灵气 += int(ceil(产 * 0.5))   # 灵气减半产出（老大拍板 2026-07-21）：初期不溢出，核心产出仍以灵草为主
+			"kuangmai":
+				_本月矿脉产出 = 产
+				矿石 += 产
 			"dantang":  _本月丹堂产出 = 产
 			"qitang":   _本月器堂产出 = 产
 	灵石 += 弟子列表.size() * 2
@@ -1210,13 +1459,20 @@ func 移除待抉择(条目: Dictionary):
 func save_game():
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
-		"lingshi": 灵石, "gongxian": 贡献点, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [],
+		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "gongxian": 贡献点, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [],
 		"累计游戏日": 累计游戏日, "最后登录": 最后登录, "门派等级": 门派等级, "声望": 声望, "繁荣": 繁荣,
 		"堂口负责人": 堂口负责人存档, "引导阶段": 引导阶段,
 		"体力": 体力, "已通关关卡": 已通关关卡, "精英每日次数": 精英每日次数,
 		"气运修炼加成": 气运修炼加成, "气运产出加成": 气运产出加成, "气运到期日": 气运到期日,
 		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力,
+		# S0 任务/商店系统（不升 SAVE_VERSION：load 用 .get 默认兼容老档）
+		"kucun": [], "fangshi": 坊市购买记录,
+		"daily": {"当前": 当前日常, "已领": 日常已领, "日": 上次日常日},
+		"weekly": {"当前": 当前周常, "已领": 周常已领, "日": 上次周常日},
+		"randcd": 随机事件冷却,
 	}
+	for it in 宗门库房:
+		data["kucun"].append(it.to_dict())
 	for d in 弟子列表:
 		data["dizi"].append(d.to_dict())
 	for e in 灵兽蛋列表:
@@ -1252,6 +1508,9 @@ func load_game():
 	if data.get("version", 0) != SAVE_VERSION:
 		push_warning("存档版本不一致(%d)，尝试兼容读取" % data.get("version", 0))
 	灵石 = data.get("lingshi", 0)
+	灵草 = data.get("lingcao", 0)
+	矿石 = data.get("kuangshi", 0)
+	灵气 = data.get("lingqi", 0)
 	贡献点 = data.get("gongxian", 0)
 	累计游戏日 = data.get("累计游戏日", 0)
 	最后登录 = data.get("最后登录", 0)
@@ -1292,6 +1551,27 @@ func load_game():
 		var b := Beast.new()
 		b.from_dict(bd)
 		灵兽库存.append(b)
+	# S0 任务/商店系统（.get 默认兼容无此字段的老档）
+	宗门库房.clear()
+	for kd in data.get("kucun", []):
+		var it := Item.new()
+		it.from_dict(kd)
+		宗门库房.append(it)
+	坊市购买记录 = data.get("fangshi", {})
+	var djson: Dictionary = data.get("daily", {})
+	当前日常 = djson.get("当前", [])
+	日常已领 = djson.get("已领", [])
+	上次日常日 = int(djson.get("日", 0))
+	var wjson: Dictionary = data.get("weekly", {})
+	当前周常 = wjson.get("当前", {})
+	周常已领 = wjson.get("已领", true)
+	上次周常日 = int(wjson.get("日", 0))
+	随机事件冷却 = data.get("randcd", {})
+	# 老档或空任务：补刷一次，保证面板非空
+	if 当前日常.is_empty():
+		刷新日常任务()
+	if 当前周常.is_empty():
+		刷新周常()
 
 # ---- 存档安全辅助函数 ----
 func _读存档(path: String) -> Dictionary:
@@ -1342,6 +1622,9 @@ func new_game():
 				da.remove(f)
 	# 2. 重置所有状态到声明默认值
 	灵石 = 1000
+	灵草 = 0
+	矿石 = 0
+	灵气 = 0
 	贡献点 = 0
 	弟子列表.clear()
 	灵兽蛋列表.clear()
@@ -1373,7 +1656,17 @@ func new_game():
 	历史周期评级 = []
 	周期评分.历史 = []
 	周期评分.计数 = {"灵石获取": 0, "稀有道具": 0, "突破": 0, "高品质新弟子": 0, "首通": 0}
+	# S0 任务/商店系统复位
+	宗门库房.clear()
+	坊市购买记录.clear()
+	当前日常.clear()
+	日常已领.clear()
+	当前周常.clear()
+	周常已领 = true
+	随机事件冷却.clear()
 	# 3. 重新初始化
 	初始建宗()
+	刷新日常任务()
+	刷新周常()
 	重建堂口()
 	弟子变动.emit()
