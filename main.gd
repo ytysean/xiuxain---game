@@ -70,6 +70,13 @@ var 状态栏: Label
 var 战报: Label
 var 详情: Label
 var 列表: VBoxContainer
+# P0：弟子总览 总战力 + 排序（仅 UI 层，零底层改动）
+var 弟子页头: Control
+var 总战力标签: Label
+var 上次总战力 := 0
+var 弟子排序维度 := "默认"
+var 弟子排序升序 := false
+var 排序按钮组: Dictionary = {}   # 维度名 -> Button
 var 抉择区: VBoxContainer
 var 离山面板: PanelContainer          # 离山汇总外层面板
 var 离山内容区: VBoxContainer           # 离山面板内层VBox（动态重建内容）
@@ -196,6 +203,30 @@ func _ready():
 	抉择区.visible = false; 御兽区.visible = false; 纪事区.visible = false
 	页控 = {"弟子": 列表, "待抉择": 抉择区, "御兽": 御兽区, "纪事": 纪事区}
 
+	# P0：弟子总览页头（宗门总战力 + 排序按钮），置于滚动区上方、仅弟子页可见
+	弟子页头 = VBoxContainer.new()
+	弟子页头.add_theme_constant_override("separation", 4)
+	var 战力行 := HBoxContainer.new()
+	总战力标签 = Label.new()
+	总战力标签.text = "宗门总战力：0"
+	总战力标签.add_theme_font_size_override("font_size", 16)
+	总战力标签.add_theme_color_override("font_color", 暗金)
+	战力行.add_child(总战力标签)
+	弟子页头.add_child(战力行)
+	var 排序行 := HBoxContainer.new()
+	排序行.add_theme_constant_override("separation", 6)
+	for 名 in ["默认", "战力", "境界", "资质"]:
+		var 钮 := Button.new(); 钮.text = 名
+		钮.add_theme_font_size_override("font_size", 12)
+		钮.pressed.connect(_on_排序.bind(名))
+		排序按钮组[名] = 钮
+		排序行.add_child(钮)
+	弟子页头.add_child(排序行)
+	根.add_child(弟子页头)
+	根.move_child(弟子页头, 根.get_children().find(滚动))
+	弟子页头.visible = true
+	_刷新排序按钮()
+
 	# 详情面板（底部常驻）
 	详情 = Label.new()
 	详情.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -221,6 +252,7 @@ func _on_切页(i: int):
 	var 名: String = 页名[i]
 	for k in 页控:
 		页控[k].visible = (k == 名)
+	弟子页头.visible = (名 == "弟子")   # P0：总战力+排序页头仅弟子页显示
 
 func _on_推演():
 	战报.text = Game.推演至现在()
@@ -370,6 +402,20 @@ func _on_战报(文本: String):
 # ============ 离山汇总三层UI构建 ============
 # 根据 game_state.离线汇总数据（结构化聚合）构建三层面板
 # 层级：总览(收菜爽感) → 重大事件(默认展开) → 琐事(默认折叠)
+# P1：评级颜色（按档位）
+func _评级色(评级: String) -> Color:
+	match 评级:
+		"SSS", "SS":
+			return Color(0.85, 0.15, 0.15)
+		"S", "A+":
+			return Color(0.85, 0.55, 0.1)
+		"A", "B":
+			return Color(0.2, 0.6, 0.3)
+		"C":
+			return Color(0.45, 0.45, 0.55)
+		_:
+			return Color(0.5, 0.3, 0.3)
+
 func _构建离山内容(数据: Dictionary):
 	# 清空旧内容
 	for c in 离山内容区.get_children():
@@ -428,6 +474,24 @@ func _构建离山内容(数据: Dictionary):
 	_接按钮动画(领取按钮)
 	领取按钮.pressed.connect(_on_一键领取.bind(领取按钮))
 	总览.add_child(领取按钮)
+
+	# P1：周期评级卡片（年结后优先展示于离山汇总顶部）
+	if not Game.最新周期评级卡.is_empty():
+		var 卡: Dictionary = Game.最新周期评级卡
+		var 评级卡 := VBoxContainer.new()
+		评级卡.add_theme_constant_override("separation", 3)
+		var 标题 := Label.new()
+		标题.text = "🏆 第 %d 周期评定：%s（%d 分）" % [卡["周期"], 卡["评级"], 卡["总分"]]
+		标题.add_theme_font_size_override("font_size", 16)
+		标题.add_theme_color_override("font_color", _评级色(卡["评级"]))
+		评级卡.add_child(标题)
+		var 维 := Label.new()
+		维.text = "经营 %d ｜ 收益 %d ｜ 弟子 %d" % [卡["分维度"]["经营"], 卡["分维度"]["收益"], 卡["分维度"]["弟子"]]
+		维.add_theme_font_size_override("font_size", 12)
+		维.add_theme_color_override("font_color", 次墨)
+		评级卡.add_child(维)
+		离山内容区.add_child(评级卡)
+		var 分隔顶 := HSeparator.new(); 分隔顶.modulate.a = 0.35; 离山内容区.add_child(分隔顶)
 
 	离山内容区.add_child(总览)
 
@@ -596,11 +660,58 @@ func 刷新():
 	[Game.时间文本(), Game.门派等级, Game.声望, Game.繁荣, Game.灵石, Game.贡献点, Game.弟子列表.size(), _升级提示])
 	for c in 列表.get_children():
 		c.queue_free()
-	for d in Game.弟子列表:
+	# P0：按当前排序维度排序（不影响 弟子列表 原始招募序）
+	var 序: Array = Game.弟子列表.duplicate()
+	if 弟子排序维度 != "默认":
+		序.sort_custom(_排序比较)
+	for d in 序:
 		列表.add_child(_弟子卡(d))
+	# P0：宗门总战力（纯展示，不参与战斗结算）
+	var 总战力 := 0
+	for d in Game.弟子列表:
+		总战力 += d.实时战力()
+	总战力标签.text = "宗门总战力：%d" % 总战力
+	if 总战力 != 上次总战力:
+		上次总战力 = 总战力
+		总战力标签.modulate.a = 0.35
+		var 闪: Tween = create_tween()
+		闪.tween_property(总战力标签, "modulate:a", 1.0, 0.5)
 		刷新抉择()
 		刷新御兽()
 		刷新纪事()
+
+# ===== P0：弟子总览 排序 =====
+func _on_排序(维度: String):
+	if 维度 == 弟子排序维度:
+		弟子排序升序 = not 弟子排序升序
+	else:
+		弟子排序维度 = 维度
+		弟子排序升序 = false
+	_刷新排序按钮()
+	刷新()
+
+func _刷新排序按钮():
+	for 名 in 排序按钮组:
+		var b: Button = 排序按钮组[名]
+		var 选中: bool = (名 == 弟子排序维度)
+		b.text = 名 + (" ▼" if (选中 and not 弟子排序升序) else (" ▲" if (选中 and 弟子排序升序) else ""))
+		b.modulate = 暗金 if 选中 else Color.WHITE
+
+# sort_custom 比较器：返回 true 表示 a 应排在 b 前
+func _排序比较(a: Disciple, b: Disciple) -> bool:
+	var 降: bool = not 弟子排序升序
+	match 弟子排序维度:
+		"战力":
+			var va: int = a.实时战力(); var vb: int = b.实时战力()
+			return va > vb if 降 else va < vb
+		"境界":
+			var va: int = Disciple.境界序.find(a.境界); var vb: int = Disciple.境界序.find(b.境界)
+			return va > vb if 降 else va < vb
+		"资质":
+			var va: int = Lore._灵根品阶值(a.灵根品阶); var vb: int = Lore._灵根品阶值(b.灵根品阶)
+			return va > vb if 降 else va < vb
+		_:
+			return false
 
 func _弟子卡(d: Disciple) -> Control:
 	var pc: PanelContainer = 新面板("")
@@ -1200,7 +1311,7 @@ func _历练面板():
 	头.add_theme_color_override("font_color", 暗金)
 	内容.add_child(头)
 	var 体力标 := Label.new()
-	体力标.text = "体力：%d / %d" % [Game.体力, Game.体力上限()]
+	体力标.text = "气力：%d / %d" % [Game.体力, Game.体力上限()]
 	体力标.add_theme_color_override("font_color", 次墨)
 	内容.add_child(体力标)
 	var 滚动 := ScrollContainer.new()
@@ -1243,7 +1354,7 @@ func _历练关卡卡(s: Dictionary) -> Control:
 	头.text = "%s %s%s" % [sid, s.get("stage_name", ""), "  ✓首通" if 已通 else ""]
 	内容.add_child(头)
 	var 副 := Label.new()
-	副.text = "%s ｜ 体力%d ｜ 推荐战力%s%s" % [类型名, int(s.get("stamina_cost", "0")), str(StageDataLoader.get_recommend_power(s.get("stage_id", ""))), " ｜ 未解锁" if not 解锁 else ""]
+	副.text = "%s ｜ 气力%d ｜ 推荐战力%s%s" % [类型名, int(s.get("stamina_cost", "0")), str(StageDataLoader.get_recommend_power(s.get("stage_id", ""))), " ｜ 未解锁" if not 解锁 else ""]
 	副.add_theme_color_override("font_color", 次墨)
 	副.add_theme_font_size_override("font_size", 12)
 	内容.add_child(副)
@@ -1304,7 +1415,7 @@ func _开战弹窗(s: Dictionary):
 	头.add_theme_color_override("font_color", 暗金)
 	内容.add_child(头)
 	var 副 := Label.new()
-	副.text = "体力-%d ｜ 推荐战力%s ｜ 最多3名弟子" % [int(s.get("stamina_cost", "0")), str(StageDataLoader.get_recommend_power(s.get("stage_id", "")))]
+	副.text = "气力-%d ｜ 推荐战力%s ｜ 最多3名弟子" % [int(s.get("stamina_cost", "0")), str(StageDataLoader.get_recommend_power(s.get("stage_id", "")))]
 	副.add_theme_color_override("font_color", 次墨)
 	内容.add_child(副)
 	var 选中: Array = []
@@ -1432,7 +1543,7 @@ func _历练奇遇(s: Dictionary):
 		return
 	var 耗时: int = int(s.get("stamina_cost", 0))
 	if Game.体力 < 耗时:
-		_toast("（体力不足，需%d，余%d）" % [耗时, Game.体力])
+		_toast("（气力不足，需%d，余%d）" % [耗时, Game.体力])
 		return
 	Game.体力 = clamp(Game.体力 - 耗时, 0, Game.体力上限())
 	var d: Disciple = Game.弟子列表[0]

@@ -216,7 +216,7 @@ const TABLE_RULES := {
         "field_rules": {
             "profession": {"type": "enum", "values": ["体修", "道修", "法修", "通用"], "tip": "职业类型非法"},
             "damage_rate": {"type": "float", "min": 0, "max": 3.0, "tip": "技能倍率超出合理范围"},
-            "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "冷却时长超出0-10范围"},
+            "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "调息周期超出0-10范围"},
             "mp_cost": {"type": "int", "min": 0, "tip": "灵力消耗不能为负数"}
         }
     },
@@ -321,7 +321,7 @@ const TABLE_RULES := {
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体"], "tip": "境界非法"},
             "trigger_weight": {"type": "int", "min": 0, "tip": "触发权重不能为负"},
-            "cooldown_hour": {"type": "int", "min": 0, "tip": "冷却时长不能为负"},
+            "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false"}
         }
     },
@@ -421,7 +421,7 @@ const TABLE_RULES := {
             "reward_value_b": {"type": "int", "min": 0, "tip": "奖励数值不能为负"},
             "punish_type": {"type": "enum", "values": ["好感","灵石","忠诚","无"], "tip": "惩罚类型非法"},
             "punish_value": {"type": "int", "min": 0, "tip": "惩罚数值不能为负"},
-            "cooldown_hour": {"type": "int", "min": 0, "tip": "冷却时长不能为负"},
+            "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
             "is_relation_grow": {"type": "bool", "tip": "是否增长关系应为 true/false"}
         }
     },
@@ -455,8 +455,8 @@ const TABLE_RULES := {
         "primary_key": "map_id",
         "field_rules": {
             "main_attr": {"type": "enum", "values": ["金","木","水","火","土"], "tip": "主五行须∈金木水火土"},
-            "stamina_normal": {"type": "int", "min": 1, "tip": "普通历练体力消耗须>0"},
-            "stamina_elite": {"type": "int", "min": 1, "tip": "精英历练体力消耗须>0"}
+            "stamina_normal": {"type": "int", "min": 1, "tip": "普通历练气力消耗须>0"},
+            "stamina_elite": {"type": "int", "min": 1, "tip": "精英历练气力消耗须>0"}
         }
     },
     "secret_config": {
@@ -464,7 +464,7 @@ const TABLE_RULES := {
         "primary_key": "secret_id",
         "field_rules": {
             "main_attr": {"type": "enum", "values": ["金","木","水","火","土","全","雷"], "tip": "主五行须∈金木水火土/全/雷(雷劫秘境)"},
-            "stamina_cost": {"type": "int", "min": 1, "tip": "秘境体力消耗须>0"},
+            "stamina_cost": {"type": "int", "min": 1, "tip": "秘境气力消耗须>0"},
             "layers": {"type": "int", "min": 1, "tip": "秘境层数须≥1"}
         }
     },
