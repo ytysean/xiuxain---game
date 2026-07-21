@@ -11,6 +11,7 @@ const Quest = preload("res://quest.gd")
 const BattleManager = preload("res://BattleManager.gd")   # ADR-003 D1/D6：战斗编排层（纯逻辑，无 Game 依赖）
 const StageDataLoader = preload("res://StageDataLoader.gd")   # Day 2 关卡数据层（纯数据，无 Game 依赖）
 const DestinyDataLoader = preload("res://DestinyDataLoader.gd")   # 命格数据层（纯数据，无 Game 依赖）
+const PeriodSettlementScript = preload("res://period_settlement.gd")   # P1：周期结算评分模块
 
 # 时间流速：240 现实秒 = 1 游戏日（1 现实天 ≈ 1 游戏年）
 # === S1 端口：时辰历法换算层 ===
@@ -55,6 +56,14 @@ var 最后登录 := 0
 var 门派等级 := 1
 var 声望 := 0
 var 繁荣 := 50
+
+# P1：周期结算评分（年结：游戏年 = 365 日）
+var 周期评分: PeriodSettlement = PeriodSettlementScript.new()
+var 上次结算年 := 0            # 上次年结时的累计游戏日，用于跨 365 日边界检测
+var 年始灵石 := 0             # 本年起始灵石（结算时算增量）
+var 年始总战力 := 0           # 本年起始宗门总战力（结算时算增量）
+var 最新周期评级卡: Dictionary = {}   # 最近一次结算评级卡，供离山汇总展示
+var 历史周期评级: Array = []       # 近 12 周期评级（与 周期评分.历史 同步）
 var 引导阶段: int = 0   # 新手引导：0未开始/1-4四步/5完成（老档兼容见 load_game 默认5）
 var 上次测灵日 := 0        # 测灵根冷却：上次举办时的游戏日（1年一度=365游戏日）
 
@@ -214,6 +223,7 @@ func 推演一月(日: int):
 
 		# 突破播报（境界变化 = 大事，高优先级）
 		if d.境界 != 旧境界:
+			周期评分.记突破()   # P1：突破计入周期评分
 			_加推演条目("【%s】道心通明，突破至 %s！" % [d.姓名, d.境界], ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": d.姓名, "境界": d.境界})
 			# 天品灵根弟子突破 → 仪式感
 			if d.灵根品阶 == "天品":
@@ -267,6 +277,37 @@ func 推演一月(日: int):
 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
 	累计游戏日 += 日
+	# P1：年结周期评分（游戏年 = 365 日）；支持单次大跨度推演结算多年
+	while 累计游戏日 - 上次结算年 >= 365:
+		上次结算年 += 365
+		_年结评分()
+
+# P1：年结评分（由 推演一月 跨 365 日边界触发）
+func _年结评分():
+	var 当前总战力: int = 0
+	for d in 弟子列表:
+		当前总战力 += d.实时战力()
+	var 卡: Dictionary = 周期评分.结算(门派等级, {
+		"资源产能": 预估月产出(),
+		"灵石增量": 灵石 - 年始灵石,
+		"总战力增量": 当前总战力 - 年始总战力,
+	})
+	最新周期评级卡 = 卡
+	_发放周期奖励(卡["评级"])
+	年始灵石 = 灵石
+	年始总战力 = 当前总战力
+
+# P1：周期评定奖励（梯度灵石 + S 级及以上追加上品法宝赐掌门）
+func _发放周期奖励(评级: String):
+	var 灵石奖励表: Dictionary = {"D": 0, "C": 200, "B": 500, "A": 1000, "A+": 1800, "S": 3000, "SS": 5000, "SSS": 8000}
+	var 奖: int = int(灵石奖励表.get(评级, 0))
+	if 奖 > 0:
+		灵石 += 奖
+		_加推演条目("【宗门】周期评定 %s，论功行赏，灵石+%d。" % [评级, 奖], ET_SECT, PRIO_NORMAL, {})
+	if 评级 in ["S", "SS", "SSS"] and not 弟子列表.is_empty():
+		var 宝: Item = _造低阶物品("fabao", "上品")
+		弟子列表[0].背包.append(宝)
+		_加推演条目("【宗门】评定 %s，赐掌门上品法宝【%s】。" % [评级, 宝.名称], ET_LOOT, PRIO_HIGH, {})
 
 # === S1 端口：俸禄/福利按月结算（当前空操作桩）===
 # 调用位置：推演一月 月循环（紧接 _可能触发特殊登门_S1 之前）。
@@ -377,6 +418,8 @@ func _尝试触发奇遇(d: Disciple, scene: String, 保底: bool = false) -> Di
 func 结算奇遇奖励(d: Disciple, q: Dictionary):
 	_上次奇遇时刻 = Time.get_ticks_msec()
 	var 摘要: String = "奇遇·" + str(q.get("稀有度", "普通"))
+	if q.get("稀有度", "普通") in ["上品", "极品", "天品"]:   # P1：高稀有度奇遇计入周期评分
+		周期评分.记稀有道具()
 
 	# Sprint-02b：宗门等级缩放奖励（当 q 有缩放字段时）
 	var base := q.get("base_value", 0.0) as float
@@ -474,7 +517,7 @@ func 挑战关卡(stage_id: String, 出战弟子: Array = [], mode: String = "fu
 	# 体力校验
 	var 耗时: int = int(stage.get("stamina_cost", 0))
 	if 体力 < 耗时:
-		结果["error"] = "体力不足（需%d，余%d）" % [耗时, 体力]
+		结果["error"] = "气力不足（需%d，余%d）" % [耗时, 体力]
 		return 结果
 	# 精英每日次数校验
 	if 节点类型 == "elite":
@@ -518,6 +561,7 @@ func 挑战关卡(stage_id: String, 出战弟子: Array = [], mode: String = "fu
 		var 御兽相助: bool = 堂口列表.has("yushou") and randf() < 0.10
 		var 首通: bool = not 已通关关卡.has(stage_id)
 		if 首通:
+			周期评分.记首通()   # P1：首通计入周期评分
 			已通关关卡[stage_id] = true
 			var 首通类型: String = stage.get("first_reward_type", "")
 			var 首通数: int = int(stage.get("first_reward_num", 0))
@@ -949,6 +993,8 @@ func 举办测灵根(强制天品: bool = false) -> Dictionary:
 		# P0-BUILD-2：外门接引堂负责人 → 测灵高品质概率 +1%（触发时灵根品阶升一档，已为天品则跳过）
 		if 测灵buff > 0.0 and d.灵根品阶 != "天品" and randf() < 测灵buff:
 			_提升灵根品阶一档(d)
+		if d.灵根品阶 in ["天品", "极品", "上品"]:   # P1：高品质新弟子计入周期评分
+			周期评分.记高品质新弟子()
 		弟子列表.append(d)
 		新徒.append(d)
 	# === S1 端口：新弟子制式装备/入职包发放 ===
@@ -1170,6 +1216,7 @@ func save_game():
 		"堂口负责人": 堂口负责人存档, "引导阶段": 引导阶段,
 		"体力": 体力, "已通关关卡": 已通关关卡, "精英每日次数": 精英每日次数,
 		"气运修炼加成": 气运修炼加成, "气运产出加成": 气运产出加成, "气运到期日": 气运到期日,
+		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力,
 	}
 	for d in 弟子列表:
 		data["dizi"].append(d.to_dict())
@@ -1220,6 +1267,14 @@ func load_game():
 	体力 = data.get("体力", 50)
 	已通关关卡 = data.get("已通关关卡", {})
 	精英每日次数 = data.get("精英每日次数", {})
+	# P1：周期评分存档（计数器不持久化，读档后重置；历史与年界/年始快照恢复）
+	历史周期评级 = data.get("历史周期评级", [])
+	周期评分.历史 = 历史周期评级
+	周期评分.计数 = {"灵石获取": 0, "稀有道具": 0, "突破": 0, "高品质新弟子": 0, "首通": 0}
+	上次结算年 = data.get("上次结算年", 0)
+	年始灵石 = data.get("年始灵石", 灵石)
+	年始总战力 = data.get("年始总战力", 0)
+	最新周期评级卡 = {}
 	弟子列表.clear()
 	待抉择.clear()
 	奇遇待抉择.clear()      # 会话瞬时队列，load 时清空（ADR-002 D6）
@@ -1311,6 +1366,14 @@ func new_game():
 	体力 = 50
 	已通关关卡.clear()
 	精英每日次数.clear()
+	# P1：周期评分状态复位
+	上次结算年 = 0
+	年始灵石 = 灵石
+	年始总战力 = 0
+	最新周期评级卡 = {}
+	历史周期评级 = []
+	周期评分.历史 = []
+	周期评分.计数 = {"灵石获取": 0, "稀有道具": 0, "突破": 0, "高品质新弟子": 0, "首通": 0}
 	# 3. 重新初始化
 	初始建宗()
 	重建堂口()
