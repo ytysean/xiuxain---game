@@ -259,6 +259,52 @@ def test_wheel_3v3():
           "full=%.2f quick=%d" % (full_avg, q["round_count"]))
 
 
+# ============ 8. S1 灵兽行动日志注入（编排层，与主宠高频/副宠低频关键 规则）============
+def test_灵兽行动日志():
+    print("== S1 灵兽行动日志注入（主宠高频 / 副宠低频关键）==")
+    # 合成子战斗 局：含一条暴击条目
+    局_暴击 = {"battle_log": [
+        {"round": 1, "actor": "甲", "target": "乙", "damage": 10, "is_crit": True,
+         "is_restrain": False, "attacker_hp": 80, "defender_hp": 50},
+        {"round": 2, "actor": "乙", "target": "甲", "damage": 8, "is_crit": False,
+         "is_restrain": False, "attacker_hp": 72, "defender_hp": 50},
+    ]}
+    攻 = M.make_unit(150, 60, 250, 40, "道修", "金", "单", 名称="甲",
+                     灵兽=[{"名": "朱雀", "类型": "攻伐型", "主副": "主"},
+                           {"名": "灵尾兔", "类型": "辅助型", "主副": "副"}])
+    守 = M.make_unit(70, 35, 200, 25, "法修", "木", "单", 名称="乙", 灵兽=[])
+    总日志 = []
+    M.注入灵兽日志(总日志, 局_暴击, 攻, 守)
+    主宠 = [e for e in 总日志 if e.get("主副") == "主"]
+    副宠 = [e for e in 总日志 if e.get("主副") == "副"]
+    check("主宠条目存在(攻方)", len(主宠) == 1 and "朱雀" in 主宠[0]["actor"])
+    check("副宠条目存在(本局有暴击)", len(副宠) == 1 and "灵尾兔" in 副宠[0]["actor"])
+    必备键 = ("round", "actor", "target", "damage", "is_crit", "is_restrain", "attacker_hp", "defender_hp")
+    check("灵兽条目含全部 8 结构化键", 主宠 and all(k in 主宠[0] for k in 必备键))
+    check("灵兽条目 damage=0(仅叙事不双算)", 主宠 and 主宠[0]["damage"] == 0 and (not 副宠 or 副宠[0]["damage"] == 0))
+    check("灵兽条目标记 pet_action", 主宠 and 主宠[0].get("pet_action") and (not 副宠 or 副宠[0].get("pet_action")))
+
+    # 无暴击局：副宠不出现（低频关键），主宠仍出现（高频可见）
+    局_无暴击 = {"battle_log": [
+        {"round": 1, "actor": "甲", "target": "乙", "damage": 10, "is_crit": False,
+         "is_restrain": False, "attacker_hp": 80, "defender_hp": 50},
+    ]}
+    总日志2 = []
+    M.注入灵兽日志(总日志2, 局_无暴击, 攻, 守)
+    主宠2 = [e for e in 总日志2 if e.get("主副") == "主"]
+    副宠2 = [e for e in 总日志2 if e.get("主副") == "副"]
+    check("无暴击局主宠仍出现", len(主宠2) == 1)
+    check("无暴击局副宠不出现(低频关键)", len(副宠2) == 0)
+
+    # 守方有副宠但无暴击 → 守方副宠也不出现
+    守2 = M.make_unit(70, 35, 200, 25, "法修", "木", "单", 名称="乙",
+                      灵兽=[{"名": "土甲龟", "类型": "防御型", "主副": "副"}])
+    总日志3 = []
+    M.注入灵兽日志(总日志3, 局_无暴击, 攻, 守2)
+    副宠3 = [e for e in 总日志3 if e.get("主副") == "副"]
+    check("守方副宠(无暴击)不出现", len(副宠3) == 0)
+
+
 def main():
     print("==== BattleCalculator 数值红线断言 ====")
     test_wuxing_matrix()
@@ -268,6 +314,7 @@ def main():
     test_quick_vs_full()
     test_structured_log_schema()
     test_wheel_3v3()
+    test_灵兽行动日志()
     print("")
     print("通过 %d / 失败 %d" % (PASS, FAIL))
     return FAIL

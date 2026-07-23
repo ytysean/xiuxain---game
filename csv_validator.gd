@@ -324,7 +324,10 @@ const TABLE_RULES := {
             "trigger_weight": {"type": "int", "min": 0, "tip": "触发权重不能为负"},
             "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false"}
-        }
+        },
+        # 奖励倍率软告警（P0 拍板，实装在 validate_all.py 镜像）：
+        #   普通1x / 优秀2x / 稀有5x / 传说12x，基准 REWARD_BASE=200（灵石当量）。
+        #   解析 opt*_reward 中 `资源key:数量` 数值，超对应品阶软上限即软告警（不阻断闸门）。
     },
     "faction_base": {
         "required_fields": ["faction_id","faction_name","reputation_level","need_reputation","global_buff_1","global_buff_2","unlock_content","shop_unlock_grade"],

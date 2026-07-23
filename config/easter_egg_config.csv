@@ -1,0 +1,10 @@
+egg_id,type,trigger_param,name,text,reward,reward_num,buff_dim,buff_pct,duration,enabled
+egg_click_dantang,click,丹堂,丹炉异响,你连点数下丹炉，炉火噗地窜高半尺，惊得丹童跳脚。,none,0,无,0,日,true
+egg_click_yushou,click,灵兽峰,兽栏探头,灵兽峰兽栏里探出一只毛团，滴溜溜瞅了你一眼又缩了回去。,lingshi,10,无,0,日,true
+egg_click_lingtian,click,灵田,灵苗轻晃,你轻触灵田，灵苗簌簌晃动，惊飞一只灵虫，当日宗门产出微增。,none,0,产出,2,日,true
+egg_click_shanmen,click,山门,山门旧事,山门牌匾古朴，落款依稀是初代掌教手书；宗门立基至今，已历数载风雨。,none,0,无,0,日,true
+egg_click_zhangjiao,click,掌教,掌教自省,你凝视掌教印信良久，忽有所悟，袖中似多了一枚温润丹丸。,lingshi,50,无,0,日,true
+egg_quest_celue,quest,宗门内,测灵偏差,新入门弟子初测灵根平平，修行数载后灵根竟渐显不凡——原是当年测灵柱偏差埋没的天资。,none,0,无,0,无,true
+egg_quest_canye,quest,宗门内,残页遗泽,藏经阁积尘处拾得前人修炼残页，字迹漫漶，却暗合心境之理。,none,0,无,0,无,true
+egg_quest_chenyuan,quest,历练,尘缘未了,弟子历练偶遇凡间故旧，一时尘心浮动，修行缓了数日方才收心。,none,0,无,0,无,true
+egg_quest_lingmai,quest,宗门内,灵脉涨落,驻地灵脉无端涨落，灵气氤氲流转，全宗弟子修炼略畅。,none,0,修炼,5,日,true

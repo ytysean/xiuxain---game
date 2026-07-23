@@ -11,6 +11,8 @@ extends RefCounted
 # ============ 维度定义 ============
 const 类别名 := ["丹药", "灵材", "法器", "神兵", "法宝"]
 const 类别权重 := {"dan_yao": 20.0, "ling_cai": 30.0, "fa_qi": 30.0, "shen_bing": 15.0, "fabao": 5.0}
+# 类别拼音key→中文展示名（简介/显示用，杜绝拼音泄露到UI）
+const 类别中文名 := {"dan_yao": "丹药", "ling_cai": "灵材", "fa_qi": "法器", "shen_bing": "神兵", "fabao": "法宝"}
 
 const 品阶序 := ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
 const 品阶序key := 品阶序  # 别名，统一使用中文 key（与 var 品阶 值口径一致）
@@ -43,6 +45,30 @@ const 职业词缀范围 := {
 const 档权重 := {"bai": 50.0, "lan": 35.0, "zi": 15.0}
 func 档倍(档: String) -> float:
 	return {"bai": 1.0, "lan": 1.4, "zi": 1.9}[档]
+
+# 词缀档位拼音→中文展示名（UI 严禁暴露拼音）
+const 词缀档中文名 := {"bai": "白", "lan": "蓝", "zi": "紫"}
+
+# 词缀拼音key→中文展示名（简介/显示用，杜绝拼音泄露到UI）
+const 词缀中文名 := {
+	# 前缀
+	"xiulian_sudu_zengfu": "修炼加速", "quan_shuxing_zengfu": "全属性增强", "jinzhan_gongji_jiacheng": "近战攻击强化",
+	"shufa_shanghai_beilv": "术法伤害倍率", "wuli_fangyu": "物理防御", "fashu_kangxing": "法术抗性",
+	"xueliang_shangxian": "血量上限", "tupo_chenggonglv": "突破成功率",
+	"ziyuan_chanchu_jiacheng": "资源产出增益", "qishi_baodi_zengfu": "气运保底",
+	# 后缀
+	"zhandou_xixue": "战斗吸血", "shouji_jianshang": "受击反伤", "xinmo_gailv_jiangdi": "心魔概率降低",
+	"tupo_zhe_shousuo_jianshao": "突破折损减少", "mijing_zhanlipin_zengfu": "秘境战利品增益",
+	"jiban_xiaoguo_qianghua": "羁绊效果强化", "zhanchang_shanbi": "战场闪避",
+	"zhanbai_baoming": "战败保命", "fumian_zhuangtai_chixu_duan suo": "负面状态缩短",
+	"zongmen_buff_diejia_zengfu": "宗门buff叠加",
+	# 职业词缀
+	"pofa_chuantou": "破甲穿透", "jianyi_zengsu": "剑意增速", "faxiu_kezhi_zengshang": "法修克制增伤",
+	"jinshen_tuxi_jiacheng": "近身突袭强化", "roushen_fanzhen": "肉身反震", "gaoe_mianshang": "高格挡免伤",
+	"xueliang_zaisheng": "血量再生", "jianxiu_kezhi_jianshang": "剑道克制减伤",
+	"shufa_fanwei_zengkuo": "术法范围扩展", "kongzhi_jinguoyanchang": "控制禁锢延长",
+	"tixiu_kezhi_zengshang": "体修克制增伤", "yuancheng_jianshang": "远程增伤",
+}
 
 # ============ 传奇极品特异词条库 =============
 # 每个词条用 {"名": 中文名, "描述": 中文效果} 结构，确保界面显示中文、且与灵兽联动的中文判定对齐
@@ -311,7 +337,8 @@ func 可穿戴() -> bool:
 
 func 简介() -> String:
 	var s: String = "%s" % 名称
-	s += " [%s·%s" % [类别, 品阶显示[品阶]]
+	var 类别名显示: String = 类别中文名.get(类别, 类别)
+	s += " [%s·%s" % [类别名显示, 品阶显示[品阶]]
 	if 穿戴位 != "":
 		s += "·" + 槽显示.get(穿戴位, 穿戴位)
 	if 职业 != "":
@@ -323,9 +350,11 @@ func 简介() -> String:
 		s += " ★天道"
 	s += "\n  功效：%s" % 功效
 	for a in 词缀:
-		var 类: String = "前" if a["前缀"] else "后"
+		var 类: String = "前缀" if a["前缀"] else "后缀"
 		var 符: String = "+" if a["数值"] >= 0 else ""
-		s += "\n  ·[%s]%s %s%d%%（%s）" % [类, a["名"], 符, a["数值"], a["档"]]
+		var 中文名: String = 词缀中文名.get(a["名"], a["名"])
+		var 档中文: String = 词缀档中文名.get(a["档"], a["档"])
+		s += "\n  ·[%s]%s %s%d%%（%s）" % [类, 中文名, 符, a["数值"], 档中文]
 	if 极品属性 != null:
 		s += "\n  ☆【%s】%s" % [极品属性["名"], 极品属性["描述"]]
 	return s

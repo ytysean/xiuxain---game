@@ -457,6 +457,35 @@ def main():
         if rc.get("传说", 0) > 10:
             errors.append(("event_quest.csv","event_quest",0,"传说档=%d 条，超过 P0 硬上限 10 条（占比%.1f%%），S0 不得新增超标传说奇遇" % (rc["传说"], rc["传说"]*100.0/max(total,1))))
 
+        # 4b. 单条奖励倍率软告警（P0 拍板）：普通1x / 优秀2x / 稀有5x / 传说12x。
+        #     解析 opt*_reward 中 `资源key:数量` 的数值当量，超对应品阶软上限即软告警（不阻断闸门）。
+        REWARD_BASE = 200  # 普通 1x 基准（灵石当量）
+        RARITY_MULT = {"普通": 1, "优秀": 2, "稀有": 5, "传说": 12}
+        RES_KEYS = {"lingshi", "lingcao", "kuangshi", "lingqi", "dan_low"}
+        for r in d:
+            rt = r.get("rarity", "")
+            mult = RARITY_MULT.get(rt, 1)
+            cap = REWARD_BASE * mult
+            for opt in ("opt1_reward", "opt2_reward", "opt3_reward"):
+                s = (r.get(opt) or "").strip()
+                if not s:
+                    continue
+                tot = 0
+                parsed = False
+                for part in s.split("|"):
+                    part = part.strip()
+                    if ":" in part:
+                        k, v = part.split(":", 1)
+                        if k.strip() in RES_KEYS:
+                            try:
+                                tot += int(float(v.strip()))
+                                parsed = True
+                            except ValueError:
+                                pass
+                if parsed and tot > cap:
+                    warns.append("event_quest.csv: event_id=%s %s 数值当量=%d 超%s档软上限%d（%.1fx），请复核是否奖励过高" % (r.get("event_id", ""), opt, tot, rt, cap, tot / float(REWARD_BASE)))
+        report.append("- [OK] event_quest: 单条奖励倍率软告警扫描完成（基准%d，超倍率即告警不阻断）" % REWARD_BASE)
+
     # ---------- 战斗关卡系统跨表校验（Day1 新增 stage_main / monster_main / drop_pool）----------
     report.append("")
     report.append("# 战斗关卡跨表校验（stage_main / monster_main / drop_pool）")
