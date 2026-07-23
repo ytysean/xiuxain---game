@@ -6,10 +6,10 @@ uid="uid://bgfrp7m0octjj"
 
 [deps]
 
-files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
+files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.rarity.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
 
 source_file="res://config/quest_random.csv"
-dest_files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
+dest_files=["res://config/quest_random.quest.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.rarity.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.trigger.translation", "res://config/quest_random.valid.translation", "res://config/quest_random.unlock.translation", "res://config/quest_random.difficulty.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.reward.translation", "res://config/quest_random.quest.translation", "res://config/quest_random.is.translation"]
 
 [params]
 

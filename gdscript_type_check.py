@@ -42,6 +42,14 @@ def check_line(val: str) -> tuple[bool, str]:
         return True, 'empty container'
 
     # === UNSAFE patterns ===
+    # Godot 4 能可靠推断返回具体类型的方法调用 → 视为安全，允许 := 让引擎自己推断，
+    # 避免被逼退回去手填类型名（手填反而易填错内部类型名如 SceneTreeTween）。
+    known_safe_calls = (
+        'create_tween', 'preload', 'load', 'get_node', 'get_node_or_null',
+        'instantiate', 'duplicate', 'get_script', 'ResourceLoader',
+    )
+    if re.search(r'\.(?:' + '|'.join(known_safe_calls) + r')\s*\(', stripped):
+        return True, 'known safe call'
     if re.search(r'\.\w+\(', stripped):
         return False, 'METHOD_CALL'
     if re.search(r'\w+\[', stripped):

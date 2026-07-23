@@ -265,7 +265,18 @@ static func 结算_3v3(atk_list: Array, def_list: Array, mode: String = "quick")
 	}
 
 # 结构化战斗日志单条（D7：行动单位/伤害值/是否暴击/是否克制/双方剩余血量）
+# S0 扩展：log_type/tags/extra + S1预埋 ref_type/ref_id/ref_name；
+# tags 自动映射 暴击/克制/闪避(伤害0)/击败(守方血<=0)，渲染层据此做视觉分层。存量战斗逻辑不变。
 static func _log_entry(回合: int, actor: String, target: String, 伤害: int, 暴击: bool, 克制: bool, 攻方血: int, 守方血: int) -> Dictionary:
+	var 标签: Array = []
+	if 暴击:
+		标签.append("暴击")
+	if 克制:
+		标签.append("克制")
+	if 伤害 == 0:
+		标签.append("闪避")
+	if 守方血 <= 0:
+		标签.append("击败")
 	return {
 		"round": 回合,
 		"actor": actor,
@@ -275,6 +286,12 @@ static func _log_entry(回合: int, actor: String, target: String, 伤害: int, 
 		"is_restrain": 克制,
 		"attacker_hp": 攻方血,
 		"defender_hp": 守方血,
+		"log_type": "damage",
+		"tags": 标签,
+		"extra": "",
+		"ref_type": "",
+		"ref_id": "",
+		"ref_name": "",
 	}
 
 # ============ 统一战力度量（玩家与怪物同公式；推荐战力/界面战力共用口径）============

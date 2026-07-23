@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
-# pre_f5_check.py —— 《太玄宗门录》F5 前必跑三件套（一键编排）
+# pre_f5_check.py —— 《太玄宗门录》F5 前必跑检查（一键编排 · 十二道闸门）
 #
-# 把七道验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
+# 把十二道验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
 #   1) GDScript 4.x 类型推断扫描  (gdscript_type_check.py)
 #   2) 配置表全量校验             (validate_all.py)
 #   3) 战斗数值红线断言           (tests/combat/test_combat.py)
 #   4) 命格数值断言               (tests/destiny/destiny_math.py)
-#   5) 废弃字段引用扫描           (内联：grep 已改名/已删除字段的 `.属性` 点访问)
+#   5) 灵兽数值红线断言           (tests/beast/test_beast.py：双槽战力/双层适配加成/本体战力镜像)
+#   6) 弟子终局机制断言           (tests/disciple/test_disciple.py：资质天花板/坐化触发/资产回收镜像)
+#   7) 废弃字段引用扫描           (内联：grep 已改名/已删除字段的 `.属性` 点访问)
 #   6) GDScript 缩进结构扫描      (indent_scan.py：开块后紧跟同级/降级行的结构性缩进错误)
 #   7) 裸全角字符/跨行未闭字符串扫描 (内联：拦 Godot 真机才报、类型/缩进闸都漏的语法类错误)
 #   8) GDScript 静态扫描          (static_check.py：孤立缩进/class body 裸语句/跨作用域引用
 #                                  三类「只有 Godot 真机才报」的崩溃，纯文本零误报兜底)
+#   9) GDScript 真实语法解析       (gdtoolkit_check.py：用 gdtoolkit 真 parser 拦缩进错位/
+#                                  lambda 提前结束/match case 错位等只有 Godot 才报的语法灾难)
 #
 # 用法（在项目根目录执行）：
 #   python pre_f5_check.py
@@ -31,7 +35,18 @@ CHECKS = [
     ("配置表全量校验",       "validate_all.py",        ROOT),
     ("战斗数值红线断言",     "tests/combat/test_combat.py",  ROOT),
     ("命格数值断言",         "tests/destiny/destiny_math.py", ROOT),
+    ("灵兽数值红线断言",     "tests/beast/test_beast.py", ROOT),
+    ("弟子终局机制断言",     "tests/disciple/test_disciple.py", ROOT),
+    ("彩蛋数值红线断言",     "tests/easter_egg/test_easter_egg.py", ROOT),
 ]
+
+# 第九道闸门依赖 gdtoolkit（真实 GDScript parser），它装在 managed Python venv 里，
+# 不在 sys.executable（运行本脚本的解释器）里。故第九道单独用这个 venv 的 python 启动。
+# 若此 venv 不存在（如换机/未装 gdtoolkit），第九道自动 SKIP 不阻断。
+GD_VENV_PY = os.path.join(
+    os.path.expanduser("~"),
+    ".workbuddy", "binaries", "python", "envs", "default", "Scripts", "python.exe",
+)
 
 # 废弃字段引用护栏：命格重构(2026-07-19)把字段 `命格:String` 改名为 `destiny_id`，
 # 漏改的 `d.命格` 属性访问会在 F5 运行期崩（Invalid access to property '命格'）。
@@ -180,11 +195,11 @@ def check_fullwidth_strings():
 
 def main():
     print("=" * 64)
-    print("  太玄宗门录 · F5 前必跑检查（一键编排 · 八道闸门）")
+    print("  太玄宗门录 · F5 前必跑检查（一键编排 · 必跑闸门）")
     print("=" * 64)
 
     results = []
-    total_steps = len(CHECKS) + 4  # 4 子进程 + 废弃字段 + 缩进结构 + 全角/未闭字符串 + 静态扫描
+    total_steps = len(CHECKS) + 5  # 4 子进程 + 废弃字段 + 缩进结构 + 全角/未闭字符串 + 静态扫描 + gdtoolkit解析
     for i, (name, path, cwd) in enumerate(CHECKS, 1):
         print("  运行中 [%d/%d] %s ..." % (i, total_steps, name), end="\r")
         ok, summary, full = run_check(name, path, cwd)
@@ -245,6 +260,72 @@ def main():
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 静态扫描", " " * pad, mark, s_sum))
 
+    # 第九道：GDScript 真实语法解析（gdtoolkit，需 managed venv）
+    #   pre_f5_check 既有八道闸门都不调真解析器，对 GDScript 语法错（缩进错位 / lambda 提前结束 /
+    #   match case 错位）完全失明，三次被 F5 当人肉解析器才抓到（2026-07-21~22）。
+    #   本道用 gdtoolkit 真 parser 兜底；venv 不存在/未装则自动 SKIP 不阻断。
+    g_ok = None
+    if os.path.exists(GD_VENV_PY):
+        try:
+            proc = subprocess.run(
+                [GD_VENV_PY, os.path.join(ROOT, "gdtoolkit_check.py")],
+                cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+            )
+            g_out = (proc.stdout or "") + (proc.stderr or "")
+            g_ok = (proc.returncode == 0)
+            g_sum = ""
+            for line in g_out.splitlines():
+                s = line.strip()
+                if s.startswith("ALL GDScript PARSE OK") or s.startswith("SKIP"):
+                    g_sum = s
+                    break
+            if not g_sum:
+                nonempty = [l.strip() for l in g_out.splitlines() if l.strip()]
+                g_sum = nonempty[-1] if nonempty else ("returncode=%d" % proc.returncode)
+            g_full = g_out
+        except Exception as e:
+            g_ok = True  # 解析器自身故障不阻断
+            g_sum = "gdtoolkit 启动失败，跳过: %s" % e
+            g_full = ""
+    else:
+        g_ok = True
+        g_sum = "venv 未检测到，跳过 gdtoolkit 解析（不阻断）"
+        g_full = ""
+    total = total + 1
+    results.append(("GDScript 语法解析(gdtoolkit)", g_ok, g_sum, g_full))
+    mark = PASS_MARK if g_ok else FAIL_MARK
+    pad = LINE_W - len("GDScript 语法解析(gdtoolkit)")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 语法解析(gdtoolkit)", " " * pad, mark, g_sum))
+
+    # 第十道：GDScript 类型名存在性扫描（gdscript_type_resolve.py，纯标准库，无需 venv）
+    #   gdtoolkit（第9道）只做语法解析、不解析类型；而 Godot 编辑器一打开 .gd 就跑静态类型检查，
+    #   显式注解里写了「语法合法但作用域不存在的类型名」（如 SceneTreeTween，正确是 Tween）会实时标红、
+    #   F5 直接崩溃。本道模拟编辑器类型存在性检查：KNOWN_BAD 硬拦，未知大写类型名 WARN 不阻断。
+    try:
+        proc = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "gdscript_type_resolve.py")],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+        )
+        tr_full = (proc.stdout or "") + (proc.stderr or "")
+        tr_ok = (proc.returncode == 0)
+        nonempty = [l.strip() for l in tr_full.splitlines() if l.strip()]
+        tr_sum = nonempty[-1] if nonempty else ("returncode=%d" % proc.returncode)
+    except Exception as e:
+        tr_ok = True
+        tr_sum = "类型扫描启动失败，跳过: %s" % e
+        tr_full = ""
+    total = total + 1
+    results.append(("GDScript 类型名存在性扫描", tr_ok, tr_sum, tr_full))
+    mark = PASS_MARK if tr_ok else FAIL_MARK
+    pad = LINE_W - len("GDScript 类型名存在性扫描")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 类型名存在性扫描", " " * pad, mark, tr_sum))
+    if tr_ok and "WARN" in tr_full:
+        print("    \033[93m⚠ 存在未知类型名（WARN），请人工确认是否拼错/为内部类型，不阻断 F5\033[0m")
+
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)
     if not all_ok:
@@ -271,6 +352,8 @@ def main():
                 elif "裸全角" in s or "跨行未闭" in s:                # 第7道明细
                     print("    \033[91m%s\033[0m" % s)
                 elif "孤立缩进" in s or "class body" in s or "跨作用域引用" in s or "未声明" in s:  # 第8道明细
+                    print("    \033[91m%s\033[0m" % s)
+                elif "PARSE ERROR" in s or "读取失败" in s:  # 第9道明细
                     print("    \033[91m%s\033[0m" % s)
         print("")
     if all_ok:

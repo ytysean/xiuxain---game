@@ -8,8 +8,36 @@ class_name Beast
 extends RefCounted
 
 const 品阶序 := ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
+const 品阶等级上限 := {"fan_jie": 10, "ling_jie": 20, "bao_jie": 30, "wang_jie": 40, "sheng_jie": 50, "xian_jie": 60, "dao_jie": 80}   # T13：等级上限按品阶锁死
 const 品阶权重 := {"fan_jie": 50.0, "ling_jie": 28.0, "bao_jie": 14.0, "wang_jie": 6.0, "sheng_jie": 2.5, "xian_jie": 1.0, "dao_jie": 0.3}
 const 品阶显示 := {"fan_jie": "凡阶", "ling_jie": "灵阶", "bao_jie": "宝阶", "wang_jie": "王阶", "sheng_jie": "圣阶", "xian_jie": "仙阶", "dao_jie": "道阶"}
+
+# 灵兽类型（S1 P0 落地：攻伐/防御/辅助三类型，对应职业适配加成）
+# 映射基于 灵兽种类 名称，定稿归类（偏攻击→attack / 偏承伤→defense / 偏续航增益→support）
+const 种类类型 := {
+	"青纹狼": "attack", "灵尾兔": "support", "水纹蛇": "attack", "火羽雀": "attack", "土甲龟": "defense", "风翎燕": "attack",
+	"赤焰虎": "attack", "玄冰蟾": "support", "金毛猿": "defense", "青藤蛇": "attack", "岩甲犀": "defense", "雷纹鹰": "attack", "暗影狐": "attack",
+	"烈火狮": "attack", "碧水蛟": "attack", "金翅雕": "attack", "木灵鹿": "support", "撼山熊": "defense", "冰魄狼": "attack", "风刃豹": "attack", "紫电貂": "attack",
+	"赤焰麒麟幼崽": "attack", "玄水玄武幼崽": "defense", "金睛蛟龙": "attack", "青木凤凰幼崽": "support", "戊土貔貅": "defense", "雷霆夔牛": "attack",
+	"八荒火龙": "attack", "北冥玄龟": "defense", "九尾天狐": "support", "金翅大鹏": "attack", "建木灵神": "support",
+	"朱雀": "attack", "玄武": "defense", "青龙": "attack", "白虎": "attack",
+	"祖龙": "attack", "元凤": "support", "始麒麟": "defense",
+}
+# 类型→适配职业（对齐项目实际 7 职业；部分旧方案职业名已迁移，不复用旧槽位）
+# attack→输出类(道修/法修)；defense→承伤类(体修)；support→辅助/控制类(御兽师/符箓师/毒师/傀儡师)
+const 类型适配职业 := {
+	"attack": ["道修", "法修"],
+	"defense": ["体修"],
+	"support": ["御兽师", "符箓师", "毒师", "傀儡师"],
+}
+const 类型中文 := {"attack": "攻伐型", "defense": "防御型", "support": "辅助型"}
+
+# 类型 → 本体四维属性权重（和为 1.0）：攻伐偏攻速、防御偏防血、辅助偏血速续航（S1 战斗生效·优先级1）
+const 类型属性权重 := {
+	"attack":  {"攻": 0.40, "防": 0.15, "血": 0.20, "速": 0.25},
+	"defense": {"攻": 0.10, "防": 0.40, "血": 0.30, "速": 0.20},
+	"support": {"攻": 0.20, "防": 0.20, "血": 0.35, "速": 0.25},
+}
 
 # 全品阶灵兽名录（文档 V2 七阶 39 种）；无"适配职业"，契合度改由「随机天赋」体现
 const 灵兽种类 := [
@@ -98,26 +126,45 @@ var 羁绊 := ""
 var 天赋 := ""
 var 天赋类型 := ""
 var 天赋关联 := ""
+var beast_type := "attack"   # S1 P0：灵兽类型 attack/defense/support，决定职业适配加成
+var 等级 := 1             # T13：当前等级（周期结算出战+1，封顶等级上限）
+var 等级上限 := 10        # T13：品阶对应上限（fan10/ling20/bao30/wang40/sheng50/xian60/dao80）
+var 忠诚度 := 50          # T14：0-100，周期出战+2/库存-1，满忠诚在 calc_beast_bonus 额外+8%（忠诚0不惩罚）
 
 # 契约与出战（核心md v2.5 灵兽定案 C6）
-# 基础契约上限=2；御兽命格+1（最高3）；出战上限=2（主宠100%/副宠70%），第3只仅持有不参战
+# 基础契约上限=2；御兽命格+1（最高3）；出战上限=2（主宠100%计战力比例帽/副宠30%计战力比例帽），第3只仅持有不参战
 var contract_limit := 2       # 该灵兽所属弟子的契约持有上限（默认2，御兽命格时由disciple侧设为3）
 var is_main_pet := false      # 是否主宠出战（战力100%计入）
 var is_deputy_pet := false    # 是否副宠出战（战力70%计入）
 
-func _init():
-	随机成蛋()
+func _init(品阶偏好:="", 类型偏好:=""):
+	随机成蛋(品阶偏好, 类型偏好)
 
-func 随机成蛋():
-	var s: Dictionary = 灵兽种类.pick_random()
+func 随机成蛋(品阶偏好:="", 类型偏好:=""):
+	var 候选: Array = 灵兽种类
+	if 品阶偏好 != "":
+		var 筛: Array = []
+		for _s in 候选:
+			if _s["品阶"] == 品阶偏好:
+				筛.append(_s)
+		候选 = 筛
+	elif 类型偏好 != "":
+		var 筛: Array = []
+		for _s in 候选:
+			if 种类类型.get(_s["名"], "attack") == 类型偏好:
+				筛.append(_s)
+		候选 = 筛
+	var s: Dictionary = 候选.pick_random()
 	种类名 = s["名"]
 	品阶 = s["品阶"]   # 品阶由种类固定（按品阶名录），孵化时不再重掷
+	beast_type = 种类类型.get(种类名, "attack")   # S1 P0：按种类名定类型
 	孵化中 = true
 	剩余天数 = randi_range(180, 360)
 	神兽血脉 = false; 主动 = ""; 被动 = ""; 羁绊 = ""
 	天赋 = ""; 天赋类型 = ""; 天赋关联 = ""
 	战力比例 = 0.30
 	contract_limit = 2; is_main_pet = false; is_deputy_pet = false
+	等级 = 1; 等级上限 = 品阶等级上限.get(品阶, 10); 忠诚度 = 50
 
 func 孵化():
 	# 品阶已在成蛋时固定，此处不再重掷
@@ -162,13 +209,43 @@ func 加权抽(权重: Dictionary) -> String:
 	return 权重.keys()[0]
 
 func 战力贡献(本体战力: int) -> int:
-	# 核心md定案：主宠100%战力计入，副宠70%计入，未出战0%
+	# S1 P0 裁决：主宠100%战力计入，副宠30%计入，未出战0%
 	var 比例 := 1.0
 	if is_deputy_pet:
-		比例 = 0.7
+		比例 = 0.3
 	elif not is_main_pet:
 		比例 = 0.0  # 未指定出战位，不参战
 	return int(本体战力 * 战力比例 * 比例)
+
+# 本体战力（P0 双槽）：灵兽自身基准战力，按品阶平方递增 + 类型微调 + 神兽血脉；
+# 与 战力比例(0.30)/槽位比例 解耦，灵兽契约战力() 消费此值计算契约贡献。
+func 本体战力() -> int:
+	var 序: int = max(0, 品阶序.find(品阶显示.get(品阶, "凡阶")))
+	var 基准: int = 60 * (序 + 1) * (序 + 1)   # 凡阶60 → 道阶2940（七阶平方递增）
+	var 类型微调: float = 1.0
+	match beast_type:
+		"attack": 类型微调 = 1.10    # 攻伐型略高
+		"defense": 类型微调 = 0.95  # 防御/辅助略低，保持平衡
+		"support": 类型微调 = 0.95
+	var v: int = int(float(基准) * 类型微调)
+	if 神兽血脉:
+		v = int(float(v) * 1.5)
+	# T13 等级增幅红线：同品阶满级总增幅锁死 30%（不随品阶上限递增放大）
+	# 单级系数 = 0.3 / (等级上限 - 1)，满级(等级=上限)时总增幅恰为 1.30
+	var 单级系数: float = 0.3 / float(maxi(等级上限 - 1, 1))
+	v = int(float(v) * (1.0 + 单级系数 * float(等级 - 1)))
+	return v
+
+# 本体四维属性（S1 战斗生效·优先级1）：将 本体战力 按类型权重拆为 攻防血速；
+# 供弟子侧经 战力比例帽(0.30) × 槽位比例(主1.0/副0.3) × 适配加成(1+bonus) 折算映射实战属性。
+# 拆分取整求和 ≤ 本体战力（向下取整，保守不溢出）。
+func 本体属性() -> Dictionary:
+	var 本: int = 本体战力()
+	var w: Dictionary = 类型属性权重.get(beast_type, 类型属性权重["attack"])
+	var r: Dictionary = {}
+	for _st in ["攻", "防", "血", "速"]:
+		r[_st] = int(float(本) * w.get(_st, 0.0))
+	return r
 
 ## 设置出战位（互斥：设为主宠自动清除副宠标记，反之亦然）
 func 设为主宠():
@@ -186,17 +263,22 @@ func 设契约上限(上限: int):
 
 func 简介(本体战力 := 0) -> String:
 	if 孵化中:
-		return "%s的蛋[%s]（御兽堂孵化中，剩余 %d 日）" % [种类名, 品阶显示[品阶], 剩余天数]
-	var s: String = "%s" % 种类名
+		return "%s的蛋[%s·%s]（御兽堂孵化中，剩余 %d 日）" % [种类名, 类型中文.get(beast_type, ""), 品阶显示[品阶], 剩余天数]
+	var s: String = "%s（%s）" % [种类名, 类型中文.get(beast_type, "")]
 	if 神兽血脉:
 		s += "·神兽血脉"
-	s += " [%s灵兽] 战力+%d（本体%d×%.0f%%）" % [品阶显示[品阶], 战力贡献(本体战力), 本体战力, 战力比例 * 100]
+	s += " Lv.%d/%d" % [等级, 等级上限]
+	s += " 忠诚%d" % 忠诚度
+	# 库存未出战时避免"战力+0"误导，直接显示本体潜力与出战状态
+	if is_main_pet or is_deputy_pet:
+		var 倍率: float = 1.0 if is_main_pet else 0.3   # 副宠=主宠贡献的30%（对齐 战力贡献 计算口径，旧0.7为显示残留）
+		s += " [%s灵兽] 出战贡献+%d（本体%d×%.0f%%×%.0f%%）" % [品阶显示[品阶], 战力贡献(本体战力), 本体战力, 战力比例 * 100, 倍率 * 100]
+	else:
+		s += " [%s灵兽] 待命中（本体%d×%.0f%%未激活，需绑定并设为主/副宠）" % [品阶显示[品阶], 本体战力, 战力比例 * 100]
 	if is_main_pet:
 		s += " [主宠]"
 	elif is_deputy_pet:
-		s += " [副宠70%]"
-	else:
-		s += " [待命]"
+		s += " [副宠30%]"
 	if 主动 != "":
 		s += "\n  主动：%s" % 主动
 	if 被动 != "":
@@ -213,6 +295,8 @@ func to_dict() -> Dictionary:
 		"孵化中": 孵化中, "剩余天数": 剩余天数, "战力比例": 战力比例,
 		"主动": 主动, "被动": 被动, "羁绊": 羁绊,
 		"天赋": 天赋, "天赋类型": 天赋类型, "天赋关联": 天赋关联,
+		"beast_type": beast_type,
+		"等级": 等级, "等级上限": 等级上限, "忠诚度": 忠诚度,
 		"contract_limit": contract_limit,
 		"is_main_pet": is_main_pet, "is_deputy_pet": is_deputy_pet,
 	}
@@ -230,6 +314,10 @@ func from_dict(d: Dictionary):
 	天赋 = d.get("天赋", "")
 	天赋类型 = d.get("天赋类型", "")
 	天赋关联 = d.get("天赋关联", "")
+	beast_type = d.get("beast_type", 种类类型.get(种类名, "attack"))
+	等级 = d.get("等级", 1)
+	等级上限 = d.get("等级上限", 品阶等级上限.get(品阶, 10))
+	忠诚度 = d.get("忠诚度", 50)
 	contract_limit = d.get("contract_limit", 2)
 	is_main_pet = d.get("is_main_pet", false)
 	is_deputy_pet = d.get("is_deputy_pet", false)

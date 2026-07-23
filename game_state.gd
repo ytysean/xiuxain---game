@@ -32,6 +32,7 @@ var 弟子列表: Array[Disciple] = []   # 强类型数组（需 disciple.gd 已
 # 御兽堂：孵化中的灵兽蛋 + 已孵化待绑定的灵兽库存
 var 灵兽蛋列表: Array[Beast] = []
 var 灵兽库存: Array[Beast] = []
+var 灵兽兑换队列: Array[Dictionary] = []   # T03：自动兑换队列（{模式,值,cost,启用}），周期结算执行
 
 # 待抉择队列：弟子获得的极品/特殊道具，等待玩家决定“交宗换贡献”或“弟子自留”
 var 待抉择: Array[Dictionary] = []
@@ -40,8 +41,22 @@ var 待抉择: Array[Dictionary] = []
 var 奇遇待抉择: Array[Dictionary] = []
 # 宗门纪事（最简版）：本次会话已触发的奇遇历史，供 main.gd「纪事」标签回看；会话瞬时，load 时清空
 var 宗门纪事: Array = [] 
+
+# ============ 彩蛋系统（第一批·真零成本子集 + 轻量底座）============
+# 全局开关：一键关闭所有彩蛋数值加成（仅保留文案/交互），兜底平衡风险
+var 彩蛋启用: bool = true
+# 单ID屏蔽集：egg_id -> true 表示屏蔽该彩蛋（出问题精准止损，无需回滚）
+var 彩蛋屏蔽集: Dictionary = {}
+# 配置表（由 _加载彩蛋配置 从 config/easter_egg_config.csv 读入）
+var 彩蛋配置表: Array = []
+# 临时增益（当日生效）：dim -> {"pct":float, "到期日":int}；接入产出/修炼加法管线
+var 彩蛋临时增益: Dictionary = {}
+# 数值红线常量（与 pre_f5 断言双保险）：单彩蛋≤5%、永久全局≤3%
+const 彩蛋单上限: float = 0.05
+const 彩蛋永久总上限: float = 0.03
 # ===== S0 任务/商店系统状态（2026-07-21 新增；不升 SAVE_VERSION，load 用 .get 默认向后兼容）=====
 var 宗门库房: Array = []                 # 坊市购买所得物品（Item 实例）
+var 坊市上架集: Array = []               # 本周上架 shop_id 列表（周刷新随机抽8-12件）
 var 坊市购买记录: Dictionary = {}         # shop_id -> {daily, weekly, week_start}
 var 当前日常: Array = []                  # 当日日常任务（quest_daily 行字典，最多3条）
 var 日常已领: Array = []                  # 与 当前日常 等长，true=已领取
@@ -50,6 +65,7 @@ var 当前周常: Dictionary = {}             # 当周周常任务（quest_weekl
 var 周常已领: bool = true
 var 上次周常日: int = 0
 var 随机事件冷却: Dictionary = {}          # quest_id -> 上次触发累计游戏日
+var 随机事件类型冷却: Dictionary = {}     # quest_type -> 上次触发累计游戏日（同类型1月冷却）
 
 # 全宗气运 buff（天品灵根弟子招募触发）：修炼+3% / 产出+2%，持续 7 游戏日
 var 气运修炼加成: float = 0.0
@@ -62,11 +78,14 @@ var _上次奇遇时刻 := 0                    # 上次触发奇遇的真实时
 var _今日奇遇次数 := 0                    # 当日已触发奇遇次数
 var _奇遇日标记 := -1                     # 记录 _今日奇遇次数 对应的游戏日
 var _单条冷却记录: Dictionary = {}         # event_id → 触发时的累计游戏日
+var quest_cooldown: Dictionary = {}         # event_id → 冷却到期月份（防重复3个月）
 
 # 时间 / 门派
 var 累计游戏日 := 0
 var 最后登录 := 0
 var 门派等级 := 1
+const 声望折扣表: Array = [1.0, 0.95, 0.9, 0.85, 0.8]   # 声望等级0-4对应折扣（中立/友善/尊敬/崇敬/崇拜）
+const 声望等级名: Array = ["中立", "友善", "尊敬", "崇敬", "崇拜"]
 var 声望 := 0
 var 繁荣 := 50
 
@@ -135,7 +154,7 @@ func _接引堂测灵加() -> float:
 func _功勋阁声望乘区() -> float:
 	return 1.10 if 堂口列表.has("gongxun") else 1.0
 
-# 藏经阁：全宗弟子 修炼速度 +5%（乘入 推演一月 修炼buff）
+# 藏经阁：全宗弟子 修炼速度 +5%（并入 推演一月 宗门加成pct，加法叠加封顶 +100%）
 func _藏经阁修炼乘区() -> float:
 	return 1.05 if 堂口列表.has("cangjing") else 1.0
 
@@ -161,6 +180,7 @@ func _ready():
 	if 弟子列表.is_empty():
 		初始建宗()
 	重建堂口()
+	_加载彩蛋配置()
 	弟子变动.emit()
 
 # 初始建宗（首次运行）：若干练气弟子 + 一位已入门长老作示范
@@ -188,7 +208,35 @@ func _坊市表() -> Array:
 			_坊市缓存.append(r)
 	return _坊市缓存
 
-# 购买坊市物品：校验声望/限购/灵石，扣费入宗门库房，返回 {ok, msg}
+# 坊市周刷新：从总商品池随机抽 8-12 件上架（S0 P0：保留日/周限购）
+func 刷新坊市上架():
+	var 全部: Array = _坊市表()
+	全部.shuffle()
+	var n: int = mini(randi_range(8, 12), 全部.size())
+	坊市上架集 = []
+	for i in n:
+		坊市上架集.append(全部[i].get("shop_id", ""))
+
+# 声望折扣率（索引=声望等级，clamp 防越界）
+func 坊市折扣率() -> float:
+	return 声望折扣表[clamp(声望, 0, 声望折扣表.size() - 1)]
+
+# 商品实际价格（折后，向上取整避免0灵石）
+func 坊市实价(原价: int) -> int:
+	return int(ceil(原价 * 坊市折扣率()))
+
+# 库房分类：按商品名关键词推断类别（CSV 无类别列，零字段改动）
+func _坊市商品类别(行: Dictionary) -> String:
+	var 名: String = 行.get("item_name", "")
+	if 名.contains("丹") or 名.contains("药"):
+		return "丹药"
+	if 名.contains("剑") or 名.contains("刀") or 名.contains("枪") or 名.contains("甲") or 名.contains("袍") or 名.contains("冠") or 名.contains("靴") or 名.contains("佩") or 名.contains("环") or 名.contains("法宝") or 名.contains("兵"):
+		return "装备"
+	if 名.contains("诀") or 名.contains("经") or 名.contains("功") or 名.contains("法") or 名.contains("术") or 名.contains("卷"):
+		return "功法"
+	return "资源"
+
+# 购买坊市物品：校验声望/上架/限购/灵石，扣费入宗门库房，返回 {ok, msg}
 func 购买坊市物品(shop_id: String) -> Dictionary:
 	var 行: Dictionary = {}
 	for r in _坊市表():
@@ -197,9 +245,12 @@ func 购买坊市物品(shop_id: String) -> Dictionary:
 			break
 	if 行.is_empty():
 		return {"ok": false, "msg": "无此商品"}
+	if not 坊市上架集.has(shop_id):
+		return {"ok": false, "msg": "本周未上架"}
 	if int(行.get("unlock_reputation", "0")) > 声望:
 		return {"ok": false, "msg": "声望不足（需 %d）" % int(行.get("unlock_reputation", "0"))}
-	var 价: int = int(行.get("price_lingjing", "0"))
+	var 原价: int = int(行.get("price_lingjing", "0"))
+	var 折后: int = 坊市实价(原价)
 	var 日限: int = int(行.get("limit_daily", "0"))
 	var 周限: int = int(行.get("limit_weekly", "0"))
 	var 记: Dictionary = 坊市购买记录.get(shop_id, {"daily": 0, "weekly": 0, "week_start": 累计游戏日})
@@ -209,18 +260,19 @@ func 购买坊市物品(shop_id: String) -> Dictionary:
 		return {"ok": false, "msg": "今日限购已用完"}
 	if 周限 > 0 and int(记.get("weekly", 0)) >= 周限:
 		return {"ok": false, "msg": "本周限购已用完"}
-	if 灵石 < 价:
-		return {"ok": false, "msg": "灵石不足（需 %d）" % 价}
-	灵石 -= 价
+	if 灵石 < 折后:
+		return {"ok": false, "msg": "灵石不足（需 %d，%s%d折）" % [折后, 声望等级名[clamp(声望,0,声望等级名.size()-1)], int(坊市折扣率()*100)]}
+	灵石 -= 折后
 	var it: Item = Item.new()
 	it.名称 = 行.get("item_name", "未知物品")
 	it.品阶 = 行.get("item_grade", "凡品")
-	it.类别 = "法器"
+	it.类别 = _坊市商品类别(行)
 	宗门库房.append(it)
 	记["daily"] = int(记.get("daily", 0)) + 1
 	记["weekly"] = int(记.get("weekly", 0)) + 1
 	坊市购买记录[shop_id] = 记
-	return {"ok": true, "msg": "购入 %s（-%d灵石）" % [行.get("item_name", ""), 价]}
+	var 折扣说明: String = "" if 折后 == 原价 else "（%s%d折）" % [声望等级名[clamp(声望,0,声望等级名.size()-1)], int(坊市折扣率()*100)]
+	return {"ok": true, "msg": "购入 %s（-%d灵石%s）" % [行.get("item_name", ""), 折后, 折扣说明]}
 
 # ============ S0 日常任务（极简版：固定3条/日）============
 func 刷新日常任务():
@@ -241,8 +293,8 @@ func 领取日常(序号: int) -> Dictionary:
 	if 日常已领[序号]:
 		return {"ok": false, "msg": "已领取"}
 	var q: Dictionary = 当前日常[序号]
-	var 灵: int = int(q.get("reward_lingjing", "0"))
-	var 气: int = int(q.get("reward_lingqi", "0"))
+	var 灵: int = int(float(q.get("reward_lingjing", "0")) * 任务奖励系数())
+	var 气: int = int(float(q.get("reward_lingqi", "0")) * 任务奖励系数())
 	灵石 += 灵
 	灵气 += 气
 	日常已领[序号] = true
@@ -262,40 +314,160 @@ func 刷新周常():
 	当前周常 = 池[0]
 	周常已领 = false
 	上次周常日 = 累计游戏日
+	刷新坊市上架()   # 周刷新同步更新坊市上架（每7日）
 
 func 领取周常() -> Dictionary:
 	if 当前周常.is_empty():
 		return {"ok": false, "msg": "本周无周常"}
 	if 周常已领:
 		return {"ok": false, "msg": "已领取"}
-	var 灵: int = int(当前周常.get("reward_lingjing", "0"))
-	var 气: int = int(当前周常.get("reward_lingqi", "0"))
+	var 灵: int = int(float(当前周常.get("reward_lingjing", "0")) * 任务奖励系数())
+	var 气: int = int(float(当前周常.get("reward_lingqi", "0")) * 任务奖励系数())
 	灵石 += 灵
 	灵气 += 气
 	周常已领 = true
 	return {"ok": true, "msg": "周常「%s」完成：灵石+%d 灵气+%d" % [当前周常.get("quest_name", ""), 灵, 气]}
 
+# 任务奖励随门派等级线性缩放（每级+10%，上限3倍），避免后期奖励形同虚设
+func 任务奖励系数() -> float:
+	return clamp(1.0 + (门派等级 - 1) * 0.1, 1.0, 3.0)
+
 # ============ S0 随机事件（轻量挂载：月度推演概率触发）============
 func _尝试随机事件():
+	# S0 P0：月度从候选池按品阶权重抽1条（普通70/优秀20/稀有8/传说2），同类型+单事件双冷却
+	var 候选: Array = []
 	for r in DestinyDataLoader._read_csv("res://config/quest_random.csv"):
-		var qid: String = r.get("quest_id", "")
-		var 上次: int = int(随机事件冷却.get(qid, -999))
-		if 累计游戏日 - 上次 < int(r.get("valid_time", "24")):
+		if int(r.get("unlock_sect_level", "1")) > 门派等级:
 			continue
-		if randf() < float(r.get("trigger_prob", "0")):
-			灵石 += int(r.get("reward_lingjing", "0"))
-			灵气 += int(r.get("reward_lingqi", "0"))
-			随机事件冷却[qid] = 累计游戏日
-			宗门纪事.append({"日": 累计游戏日, "稀有度": "普通", "名称": r.get("quest_name", ""),
-				"文案": "【随机事件】%s，门派获灵石+%s 灵气+%s。" % [r.get("quest_name", ""), r.get("reward_lingjing", "0"), r.get("reward_lingqi", "0")]})
+		var qid: String = r.get("quest_id", "")
+		var 类型: String = r.get("quest_type", "")
+		if 累计游戏日 - int(随机事件冷却.get(qid, -999)) < int(r.get("valid_time", "24")):
+			continue
+		if 累计游戏日 - int(随机事件类型冷却.get(类型, -999)) < 30:
+			continue
+		候选.append(r)
+	if 候选.is_empty():
+		return
+	var 总权重: int = 0
+	for r in 候选:
+		总权重 += _随机事件权重(r.get("rarity", "普通"))
+	var 抽: int = randi() % 总权重
+	var 选中: Dictionary = 候选[0]
+	for r in 候选:
+		抽 -= _随机事件权重(r.get("rarity", "普通"))
+		if 抽 < 0:
+			选中 = r
+			break
+	灵石 += int(选中.get("reward_lingjing", "0"))
+	灵气 += int(选中.get("reward_lingqi", "0"))
+	随机事件冷却[选中.get("quest_id", "")] = 累计游戏日
+	随机事件类型冷却[选中.get("quest_type", "")] = 累计游戏日
+	宗门纪事.append({"日": 累计游戏日, "稀有度": 选中.get("rarity", "普通"), "名称": 选中.get("quest_name", ""),
+		"文案": "【随机事件】%s，门派获灵石+%s 灵气+%s。" % [选中.get("quest_name", ""), 选中.get("reward_lingjing", "0"), 选中.get("reward_lingqi", "0")]})
+
+# 随机事件品阶权重（S0 P0：普通70/优秀20/稀有8/传说2，对齐奇遇梯度）
+func _随机事件权重(稀有度: String) -> int:
+	var 表: Dictionary = {"普通": 70, "优秀": 20, "稀有": 8, "传说": 2}
+	return 表.get(稀有度, 20)
 
 # ============ S0 任务系统日推进（挂于 推演一月 累计游戏日 += 日 之后）============
 func _推进任务系统(日: int):
+	# 清理过期的奇遇防重复冷却（月份维度）
+	var 月: int = _当前月()
+	for k in quest_cooldown.keys():
+		if 月 >= quest_cooldown[k]:
+			quest_cooldown.erase(k)
 	if 当前日常.is_empty() or (累计游戏日 - 上次日常日 >= 1):
 		刷新日常任务()
 	if 当前周常.is_empty() or (累计游戏日 - 上次周常日 >= 7):
 		刷新周常()
 	_尝试随机事件()
+	_尝试彩蛋奇遇("宗门内")
+	_尝试彩蛋奇遇("历练")
+
+# ============ 彩蛋系统（第一批）============
+func _加载彩蛋配置():
+	彩蛋配置表 = DestinyDataLoader._read_csv("res://config/easter_egg_config.csv")
+
+func _彩蛋配置(egg_id: String) -> Dictionary:
+	for r in 彩蛋配置表:
+		if r.get("egg_id", "") == egg_id:
+			return r
+	return {}
+
+func 彩蛋启用否(egg_id: String) -> bool:
+	if not 彩蛋启用:
+		return false
+	if 彩蛋屏蔽集.has(egg_id):
+		return false
+	var c: Dictionary = _彩蛋配置(egg_id)
+	if c.is_empty() or c.get("enabled", "true") != "true":
+		return false
+	return true
+
+# 统一发放彩蛋奖励（仅宗门资源，不依赖弟子对象；零破坏核心）
+func _发放彩蛋奖励(reward: String, 数量: int):
+	match reward:
+		"lingshi": 灵石 += 数量
+		"lingcao": 灵草 += 数量
+		"kuangshi": 矿石 += 数量
+		"lingqi": 灵气 += 数量
+		_: pass
+
+# 触发点击类彩蛋（main.gd UI 钩子调用）：写异闻纪事 + 发奖励 + 置临时增益
+func 触发点击彩蛋(egg_id: String):
+	if not 彩蛋启用否(egg_id):
+		return
+	var c: Dictionary = _彩蛋配置(egg_id)
+	var 名称: String = c.get("name", "无名彩蛋")
+	var 文案: String = c.get("text", "")
+	宗门纪事.append({"日": 累计游戏日, "稀有度": "异闻", "名称": 名称, "文案": 文案, "category": "异闻"})
+	var rw: String = c.get("reward", "none")
+	var rn: int = int(c.get("reward_num", "0"))
+	if rw != "none" and rn > 0:
+		_发放彩蛋奖励(rw, rn)
+	_置彩蛋临时增益(c)
+
+# 奇遇类彩蛋（独立于 event_quest.csv，仅复用纪事写入+奖励helper，杜绝污染奇遇池）
+func _尝试彩蛋奇遇(scene: String):
+	if 彩蛋配置表.is_empty():
+		return
+	var 候选: Array = []
+	for r in 彩蛋配置表:
+		if r.get("type", "") != "quest":
+			continue
+		if r.get("trigger_param", "") != scene:
+			continue
+		if not 彩蛋启用否(r.get("egg_id", "")):
+			continue
+		候选.append(r)
+	if 候选.is_empty():
+		return
+	if randf() >= 0.03:
+		return
+	var 选中: Dictionary = 候选[randi() % 候选.size()]
+	触发点击彩蛋(选中.get("egg_id", ""))
+
+# 置临时增益（当日生效；dim=无 则无数值）
+func _置彩蛋临时增益(c: Dictionary):
+	var dim: String = c.get("buff_dim", "无")
+	var pct: float = float(c.get("buff_pct", "0")) / 100.0
+	if dim == "无" or pct <= 0:
+		return
+	彩蛋临时增益[dim] = {"pct": pct, "到期日": 累计游戏日 + 1}
+
+# 运行时加法管线（接入产出/修炼计算，封顶单上限兜底）
+func 彩蛋产出加成() -> float:
+	var g: Dictionary = 彩蛋临时增益.get("产出", {})
+	if g.is_empty() or g.get("到期日", 0) < 累计游戏日:
+		return 0.0
+	return min(g.get("pct", 0.0), 彩蛋单上限)
+
+func 彩蛋修炼加成() -> float:
+	var g: Dictionary = 彩蛋临时增益.get("修炼", {})
+	if g.is_empty() or g.get("到期日", 0) < 累计游戏日:
+		return 0.0
+	return min(g.get("pct", 0.0), 彩蛋单上限)
 
 func 推演至现在() -> String:
 	推演日志 = []
@@ -337,18 +509,20 @@ func 推演一月(日: int):
 		气运修炼加成 = 0.0
 		气运产出加成 = 0.0
 		气运到期日 = 0
-	var 灵脉buff: float = 1.0 + min(门派等级, 10) * 0.02
+	# P1：宗门加成统一加法叠加，总上限 +100%（×2），杜绝乘性无限叠加（境界膨胀根因）
+	var 灵脉加成pct: float = min(门派等级, 10) * 0.02
 	if 累计游戏日 < 气运到期日:
-		灵脉buff *= (1.0 + 气运修炼加成)
-	# P0-BUILD-2：藏经阁负责人 → 全员修炼速度 +1%（乘入灵脉buff 一起作用于推进修炼）
-	# P0-BUILD-2：藏经阁负责人 → 全员修炼速度 +1%（乘入灵脉buff 一起作用于推进修炼）
-	# 阶段2：藏经阁常驻再 ×1.05（与负责人叠加，复用同一乘区位置）
-	var 修炼buff: float = (1.0 + 汇总负责人全局buff().get("修炼", 0.0)) * _藏经阁修炼乘区()
+		灵脉加成pct += 气运修炼加成
+	var 负责人修炼pct: float = 汇总负责人全局buff().get("修炼", 0.0)
+	var 藏经阁pct: float = max(0.0, _藏经阁修炼乘区() - 1.0)
+	var 宗门加成pct: float = clamp(灵脉加成pct + 负责人修炼pct + 藏经阁pct + 彩蛋修炼加成(), 0.0, 1.0)
+	var 修炼乘区: float = 1.0 + 宗门加成pct
 	# 1. 弟子修炼 / 升层 / 突破 / 月度事件（10层体系双轨播报）
+	var 待坐化: Array[Disciple] = []
 	for d in 弟子列表:
 		var 旧境界: String = d.境界
 		var 旧层数: int = d.层数
-		d.推进修炼(日, 灵脉buff * 修炼buff)
+		d.推进修炼(日, 修炼乘区)
 		var 新层数: int = d.层数
 
 		# 突破播报（境界变化 = 大事，高优先级）
@@ -384,7 +558,11 @@ func 推演一月(日: int):
 			elif "大有所获" in 事件:
 				类型 = ET_QUEST
 			_加推演条目(事件, 类型, 优先级, {"弟子": d.姓名})
+		# 终局机制 P0：寿元坐化——年龄达当前境界寿元上限则标记，循环后统一处理（移除+归还+纪事）
+		if d.年龄 >= d.寿元:
+			待坐化.append(d)
 	# 2. 资源建筑产出
+	处理坐化(待坐化)   # P0 终局：寿元耗尽弟子离场（灵兽/装备归还宗门、纪事入册）
 	_资源建筑产出()
 	# 2.5 建筑被动结算（阶段2：每月概率事件；资源产出之后、推演条目汇总之前）
 	_建筑被动结算()
@@ -401,6 +579,8 @@ func 推演一月(日: int):
 			弟子列表.append(nd)
 	# 5. 御兽堂推进孵化
 	推进孵化(日)
+	处理兑换队列()        # T03：自动兑换队列周期执行
+	出战灵兽月度养成()    # T13+T14：出战灵兽每月+1级/+2忠诚，库存-1忠诚
 	# 6. 更新门派
 	更新门派()
 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清单.md）===
@@ -477,7 +657,16 @@ func _弟子月度事件(d: Disciple) -> String:
 			灵兽蛋列表.append(蛋)
 			文本 += " 寻得灵兽蛋一枚"
 	else:
-		var 原因池: Array[String] = ["寻宝未获，空手而归", "遭遇迷障，不得不撤", "探寻无果，徒劳往返", "山路崎岖，半途折返"]
+		var 原因池: Array[String] = [
+			"寻宝未获，空手而归",
+			"遭遇迷障，不得不撤",
+			"探寻无果，徒劳往返",
+			"灵气稀薄，无功而返",
+			"妖兽出没，被迫绕行",
+			"天候骤变，折返避祸",
+			"路径生疏，迷失林间",
+			"所获之物品相不佳，弃之而归",
+		]
 		文本 += "（无功而返：%s）" % 原因池[randi() % 原因池.size()]
 	# ===== 奇遇分支（Step 1：宗门内场景路由；与历练并列、独立概率）=====
 	# 原内联冷却/抽取/分流逻辑抽至 _尝试触发奇遇 复用（资源产出、历练通关共用）。
@@ -496,6 +685,10 @@ func 奇遇触发概率(d: Disciple) -> float:
 # 通用奇遇触发（Step 1 三场景全量接入）：在指定 scene 下按概率 + 全局冷却 + 每日上限 + 单条冷却
 # 尝试触发一条奇遇；命中后按 需干预/征伐 分流收尾，并 emit 奇遇发生 signal 供 UI 调度（Step 2）。
 # 返回触发的奇遇包（未触发返回 {}），供调用方决定是否将 文案 并入推演日志。
+# 当前月份（30游戏日=1月），用于奇遇防重复冷却
+func _当前月() -> int:
+	return int(累计游戏日 / 30)
+
 func _尝试触发奇遇(d: Disciple, scene: String, 保底: bool = false) -> Dictionary:
 	var 结果: Dictionary = {}
 	# Sprint-02b：全局冷却（30秒现实时间）；保底模式（历练探索节点）豁免
@@ -521,8 +714,12 @@ func _尝试触发奇遇(d: Disciple, scene: String, 保底: bool = false) -> Di
 		var 上次触发日 := _单条冷却记录[eid] as int
 		if 累计游戏日 - 上次触发日 < ceil(cd_hour / 24.0):
 			return 结果
+	# S0 P0：奇遇防重复冷却（月份维度，3个月）
+	if quest_cooldown.has(eid) and _当前月() < quest_cooldown[eid]:
+		return 结果
 	_今日奇遇次数 += 1
 	_单条冷却记录[eid] = 累计游戏日
+	quest_cooldown[eid] = _当前月() + 3
 	# 声望：稀有及以上品质奇遇（配套规则 +10~20）
 	if q.get("稀有度", "普通") != "普通":
 		_加声望(randi_range(10, 20))
@@ -576,16 +773,16 @@ func _解析并发放奇遇奖励(d: Disciple, 文本: String) -> String:
 			"lingcao":
 				灵草 += 数量
 				摘要 += " 灵草+%d" % 数量
-		"kuangshi":
-			矿石 += 数量
-			摘要 += " 矿石+%d" % 数量
-		"lingqi":
-			灵气 += 数量
-			摘要 += " 灵气+%d" % 数量
-		"dan_low":
+			"kuangshi":
+				矿石 += 数量
+				摘要 += " 矿石+%d" % 数量
+			"lingqi":
+				灵气 += 数量
+				摘要 += " 灵气+%d" % 数量
+			"dan_low":
 				for _i in 数量:
 					d.获得物品(_造低阶物品("dan_yao", "凡阶"))
-				摘要 += " 聚气丹×%d" % 数量
+				摘要 += " [url=item:dan_low]聚气丹[/url]×%d" % 数量
 			_:
 				摘要 += " " + 单
 	return 摘要
@@ -864,13 +1061,16 @@ func _应用掉落品质(it: Item, quality: String):
 	var 映射: Dictionary = {"凡品": "凡阶", "良品": "灵阶", "上品": "宝阶", "极品": "王阶"}
 	it.品阶 = 映射.get(quality, "凡阶")
 
-# 掉落表行 → Item；修复「碎片误带穿戴位」bug（§碎片为材料，不可穿戴）
-# 根因：Item.new() 随机生成类别/穿戴位，掉落仅覆写 名称+品阶，碎片偶发 roll 到 fa_qi 即带装备槽被穿上。
+# 掉落表行 → Item；修复「材料/碎片误带穿戴位」bug
+# 根因：Item.new() 在 _init 里随机生成类别/穿戴位，掉落仅覆写 名称+品阶。
+#       草药/灵材/碎片等掉落偶发 roll 到 fa_qi 即带装备槽被自动穿上。
+# 对策：drop_pool 里只有 eq_whole_* 是整装装备，其余掉落全部清空穿戴位并归为灵材。
 func _掉落转物品(drop: Dictionary) -> Item:
 	var it: Item = Item.new()
 	it.名称 = drop.get("item_name", "掉落物")
 	_应用掉落品质(it, drop.get("quality", ""))
-	if "碎片" in it.名称:
+	var item_id: String = drop.get("item_id", "")
+	if not item_id.begins_with("eq_whole_"):
 		it.穿戴位 = ""        # 清空→可穿戴()=false，自动/手动/一键最优三路均封死
 		it.类别 = "ling_cai"  # 归为灵材，内部一致
 	return it
@@ -915,7 +1115,7 @@ func _资源建筑产出():
 		var 气运乘: float = (1.0 + 气运产出加成) if (累计游戏日 < 气运到期日) else 1.0
 		# P0-BUILD-4：宗门等级 → 建筑产出乘区（1级无加成，10级 +18%，数值克制）
 		var 等级乘区: float = 1.0 + 0.02 * max(0, 门派等级 - 1)
-		var 产: int = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff) * 等级乘区)
+		var 产: int = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff + 彩蛋产出加成()) * 等级乘区)
 		灵石 += 产
 		# 阶段2：记录各资源建筑本月实际产出额，供 _建筑被动结算 概率翻倍（灵草丰收/富矿/额外丹元/器魂）时直接加回
 		# 资源系统补全（偏差#3）：灵田/矿脉除普适灵石外，额外产出专属材料，供 S1 丹器消耗
@@ -1030,6 +1230,12 @@ func _建筑被动结算():
 	if 堂口列表.has("xichi") and not 弟子列表.is_empty() and randf() < 0.01:
 		_洗髓机缘()
 
+# S1 点击联动 MVP：物品 key → 造物参数（类别, 品阶），供 main.gd::_解析实体 按 key 重建展示模板 Item。
+# 与 _解析并发放奇遇奖励 的 key 口径对齐；资源类 key（lingshi/lingcao/kuangshi/lingqi）不入表（详情不适用）。
+# MVP 仅收录已落地的 dan_low；后续实体系统落地后在此增量扩展即可。
+var _物品定义表: Dictionary = {
+	"dan_low": ["dan_yao", "凡阶"],
+}
 # 造一枚指定类别/品阶的物品（建筑被动掉落用；仅填模板+算战力，不污染战斗数值红线）
 func _造低阶物品(类别: String, 品阶: String) -> Item:
 	var it: Item = Item.new()
@@ -1415,17 +1621,127 @@ func 推进孵化(日数: int):
 	if 已孵.size() > 0:
 		战报更新.emit("御兽堂有 %d 枚灵兽蛋孵化完成，可前往绑定！" % 已孵.size())
 
+# T03 自动兑换队列：周期结算遍历启用条目，灵石足够则扣费+按偏好生成蛋入孵化列表
+func 处理兑换队列():
+	for 条目 in 灵兽兑换队列:
+		if not 条目.get("启用", false):
+			continue
+		var 消耗: int = 条目.get("cost", 0)
+		if 灵石 < 消耗:
+			continue
+		灵石 -= 消耗
+		var 偏好: Dictionary = 条目.get("偏好", {})
+		var 蛋: Beast = Beast.new()
+		蛋.随机成蛋(偏好.get("品阶", ""), 偏好.get("类型", ""))
+		灵兽蛋列表.append(蛋)
+		战报更新.emit("自动兑换获得灵兽蛋一枚（%s）" % 蛋.种类名)
+
+# T13+T14 出战灵兽月度养成：出战(主/副宠)+1级(封顶上限)、忠诚+2(封顶100)；库存灵兽忠诚-1(地板0)
+func 出战灵兽月度养成():
+	for d in 弟子列表:
+		for 兽 in [d.主宠灵兽, d.副宠灵兽]:
+			if 兽 == null or 兽.孵化中:
+				continue
+			兽.等级 = min(兽.等级 + 1, 兽.等级上限)
+			兽.忠诚度 = min(兽.忠诚度 + 2, 100)
+	for 兽 in 灵兽库存:
+		if 兽.孵化中:
+			continue
+		兽.忠诚度 = max(兽.忠诚度 - 1, 0)
+
 func 绑定灵兽给首只合格(灵兽: Beast) -> String:
 	for d in 弟子列表:
-		if d.灵兽 != null:
+		if d.主宠灵兽 != null:
 			continue
 		if (d.资质 == "fan_su" or d.资质 == "pingyong") and not (灵兽.品阶 in ["fan_jie", "ling_jie"]):
 			continue
-		d.灵兽 = 灵兽
-		灵兽库存.erase(灵兽)
-		弟子变动.emit()
-		return "【%s】已绑定灵兽【%s】。" % [d.姓名, 灵兽.种类名]
+		return 绑定灵兽给指定弟子(灵兽, d)
 	return "无符合条件的空闲弟子可绑定（低资质仅能携凡/灵阶灵兽）。"
+
+func 绑定灵兽给指定弟子(灵兽: Beast, 弟子: Disciple, 槽位: String = "主宠") -> String:
+	if 槽位 == "副宠" and 弟子.副宠灵兽 != null:
+		return "【%s】已绑定副宠灵兽。" % 弟子.姓名
+	if 槽位 != "副宠" and 弟子.主宠灵兽 != null:
+		return "【%s】已绑定主宠灵兽。" % 弟子.姓名
+	if (弟子.资质 == "fan_su" or 弟子.资质 == "pingyong") and not (灵兽.品阶 in ["fan_jie", "ling_jie"]):
+		return "【%s】资质过低，仅能携带凡/灵阶灵兽。" % 弟子.姓名
+	if 槽位 == "副宠":
+		弟子.副宠灵兽 = 灵兽
+		灵兽.设为副宠()
+	else:
+		弟子.主宠灵兽 = 灵兽
+		灵兽.设为主宠()
+	灵兽库存.erase(灵兽)
+	弟子变动.emit()
+	return "【%s】已绑定灵兽【%s】（%s）。" % [弟子.姓名, 灵兽.种类名, Beast.类型中文.get(灵兽.beast_type, "")]
+
+# 解绑灵兽（P0-3 双槽：卸下主宠/副宠，灵兽返回御兽堂库存，可重新绑定）
+func 解绑灵兽(弟子: Disciple, 槽位: String) -> String:
+	var 兽: Beast = null
+	if 槽位 == "副宠":
+		兽 = 弟子.副宠灵兽
+		弟子.副宠灵兽 = null
+	else:
+		兽 = 弟子.主宠灵兽
+		弟子.主宠灵兽 = null
+	if 兽 != null:
+		兽.取消出战()
+		if not 灵兽库存.has(兽):
+			灵兽库存.append(兽)
+	弟子变动.emit()
+	return "【%s】已解除%s灵兽契约，灵兽返回御兽堂。" % [弟子.姓名, ("副宠" if 槽位 == "副宠" else "主宠")]
+
+# ============ 终局机制 P0：寿元坐化 ============
+# 寿元耗尽弟子离场：灵兽解绑归御兽堂、装备/背包归宗门库房、按身份分档写纪事、从现役移除。
+# P0 不含延寿/丹毒/传承（留 P1/P2）；单月坐化数量兜底，避免界面/数据洪峰。
+func 处理坐化(名单: Array[Disciple]):
+	if 名单.is_empty():
+		return
+	var 上限 := 5
+	var 计数 := 0
+	for d in 名单:
+		计数 += 1
+		if 计数 > 上限:
+			break
+		# 灵兽解绑归还御兽堂
+		if d.主宠灵兽 != null:
+			var 兽: Beast = d.主宠灵兽
+			d.主宠灵兽 = null
+			兽.取消出战()
+			if not 灵兽库存.has(兽):
+				灵兽库存.append(兽)
+		if d.副宠灵兽 != null:
+			var 兽: Beast = d.副宠灵兽
+			d.副宠灵兽 = null
+			兽.取消出战()
+			if not 灵兽库存.has(兽):
+				灵兽库存.append(兽)
+		# 装备/背包归还宗门库房
+		for it in d.装备.values():
+			宗门库房.append(it)
+		d.装备.clear()
+		for it in d.背包:
+			宗门库房.append(it)
+		d.背包.clear()
+		# 纪事入册（按身份分档）
+		宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "名称": "坐化", "文案": _坐化纪事文案(d)})
+		_加推演条目("【%s】寿元耗尽，坐化于山门。" % d.姓名, ET_SECT, PRIO_NORMAL, {"弟子": d.姓名})
+		弟子列表.erase(d)
+
+# 坐化纪事文案（史官视角，按身份/境界分档；变量全部取自真实属性，禁止写死）
+func _坐化纪事文案(d: Disciple) -> String:
+	var 年: int = int(累计游戏日 / 360.0)
+	var 寿终: int = int(d.年龄)
+	var 偏科注 := ""
+	if (d.资质 in ["fan_su", "pingyong"]) and (d.灵根品阶 in ["极品", "天品"]):
+		偏科注 = "身怀异禀灵根，惜根骨所限，终未完全雕琢，令人叹惋。"
+	if d.身份 == "长老" or d.境界 in ["化神", "仙阶", "道阶"]:
+		var 堂名: String = "宗门" if d.堂口 == "" else Lore.取堂口(d.堂口)["名称"]
+		return "%s%s，寿元耗尽，于第%d年端坐而化。执掌%s多年，兢兢业业，为宗门立下汗马功劳，众弟子皆感念其恩。享寿%d岁。%s" % [d.身份, d.姓名, 年, 堂名, 寿终, 偏科注]
+	elif d.身份 in ["核心弟子", "亲传弟子"] or d.境界 in ["金丹", "元婴"]:
+		return "核心弟子%s（%s），于第%d年坐化。在职期间恪尽职守，宗门记其功绩。享寿%d岁。%s" % [d.姓名, d.境界, 年, 寿终, 偏科注]
+	else:
+		return "%s，于第%d年寿元耗尽，坐化于山门。一生勤恳，虽无大功，亦守宗门本分。享寿%d岁。%s" % [d.姓名, 年, 寿终, 偏科注]
 
 # ============ 交宗 / 自留 ============
 func 交宗(条目: Dictionary):
@@ -1459,17 +1775,17 @@ func 移除待抉择(条目: Dictionary):
 func save_game():
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
-		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "gongxian": 贡献点, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [],
+		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "gongxian": 贡献点, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [], "lingshou_duilie": 灵兽兑换队列,
 		"累计游戏日": 累计游戏日, "最后登录": 最后登录, "门派等级": 门派等级, "声望": 声望, "繁荣": 繁荣,
 		"堂口负责人": 堂口负责人存档, "引导阶段": 引导阶段,
 		"体力": 体力, "已通关关卡": 已通关关卡, "精英每日次数": 精英每日次数,
 		"气运修炼加成": 气运修炼加成, "气运产出加成": 气运产出加成, "气运到期日": 气运到期日,
 		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力,
 		# S0 任务/商店系统（不升 SAVE_VERSION：load 用 .get 默认兼容老档）
-		"kucun": [], "fangshi": 坊市购买记录,
+		"kucun": [], "fangshi": 坊市购买记录, "fs_list": 坊市上架集,
 		"daily": {"当前": 当前日常, "已领": 日常已领, "日": 上次日常日},
 		"weekly": {"当前": 当前周常, "已领": 周常已领, "日": 上次周常日},
-		"randcd": 随机事件冷却,
+		"randcd": 随机事件冷却, "rtypecd": 随机事件类型冷却, "qcd": quest_cooldown,
 	}
 	for it in 宗门库房:
 		data["kucun"].append(it.to_dict())
@@ -1507,6 +1823,7 @@ func load_game():
 		return
 	if data.get("version", 0) != SAVE_VERSION:
 		push_warning("存档版本不一致(%d)，尝试兼容读取" % data.get("version", 0))
+		_版本升级备份(data.get("version", 0))
 	灵石 = data.get("lingshi", 0)
 	灵草 = data.get("lingcao", 0)
 	矿石 = data.get("kuangshi", 0)
@@ -1525,6 +1842,16 @@ func load_game():
 	体力 = data.get("体力", 50)
 	已通关关卡 = data.get("已通关关卡", {})
 	精英每日次数 = data.get("精英每日次数", {})
+	# 老档兼容：加载后数值合法性校验与兜底修正（防坏档崩溃 / 异常数据自动修正）
+	灵石 = _修正负值(灵石, "灵石")
+	灵草 = _修正负值(灵草, "灵草")
+	矿石 = _修正负值(矿石, "矿石")
+	灵气 = _修正负值(灵气, "灵气")
+	贡献点 = _修正负值(贡献点, "贡献点")
+	声望 = _修正负值(声望, "声望")
+	繁荣 = _修正区间(繁荣, 0, 100, "繁荣")
+	体力 = _修正区间(体力, 0, 体力上限(), "体力")
+	累计游戏日 = _修正负值(累计游戏日, "累计游戏日")
 	# P1：周期评分存档（计数器不持久化，读档后重置；历史与年界/年始快照恢复）
 	历史周期评级 = data.get("历史周期评级", [])
 	周期评分.历史 = 历史周期评级
@@ -1539,6 +1866,7 @@ func load_game():
 	宗门纪事.clear()        # 会话瞬时历史，load 时清空
 	灵兽蛋列表.clear()
 	灵兽库存.clear()
+	灵兽兑换队列 = data.get("lingshou_duilie", [])
 	for dd in data.get("dizi", []):
 		var d := Disciple.new()
 		d.from_dict(dd)
@@ -1558,6 +1886,7 @@ func load_game():
 		it.from_dict(kd)
 		宗门库房.append(it)
 	坊市购买记录 = data.get("fangshi", {})
+	坊市上架集 = data.get("fs_list", [])
 	var djson: Dictionary = data.get("daily", {})
 	当前日常 = djson.get("当前", [])
 	日常已领 = djson.get("已领", [])
@@ -1567,6 +1896,8 @@ func load_game():
 	周常已领 = wjson.get("已领", true)
 	上次周常日 = int(wjson.get("日", 0))
 	随机事件冷却 = data.get("randcd", {})
+	随机事件类型冷却 = data.get("rtypecd", {})
+	quest_cooldown = data.get("qcd", {})
 	# 老档或空任务：补刷一次，保证面板非空
 	if 当前日常.is_empty():
 		刷新日常任务()
@@ -1611,6 +1942,32 @@ func _恢复最新备份() -> Dictionary:
 				return d
 	return {}
 
+# 存档数值合法性兜底：负值修正为 0（防坏档负数崩溃）
+func _修正负值(v: int, 名: String) -> int:
+	if v < 0:
+		push_warning("存档校验：%s 为负(%d)，已兜底修正为 0" % [名, v])
+		return 0
+	return v
+
+# 存档数值合法性兜底：区间夹取（越界则 clamp 并告警）
+func _修正区间(v: int, lo: int, hi: int, 名: String) -> int:
+	if v < lo or v > hi:
+		push_warning("存档校验：%s=%d 越界[%d,%d]，已夹取修正" % [名, v, lo, hi])
+		return clampi(v, lo, hi)
+	return v
+
+# 版本升级备份：新版本首次加载旧档时，保留一份升级前存档（时间戳命名，避免覆盖）
+func _版本升级备份(旧版本: int):
+	var da: DirAccess = DirAccess.open("user://")
+	if not da:
+		return
+	if not FileAccess.file_exists("user://save.json"):
+		return
+	var ts: int = int(Time.get_unix_time_from_system())
+	var 目标: String = "save_backup_v%d_%d.json" % [旧版本, ts]
+	da.copy("save.json", 目标)
+	push_warning("检测到存档升级 v%d→v%d，已备份旧档至 user://%s" % [旧版本, SAVE_VERSION, 目标])
+
 # 开始新游戏：删除存档 + 重置所有状态到初始值 + 重新初始化
 # 由 main.gd 调试按钮触发（OS.is_debug_build 包裹）
 func new_game():
@@ -1629,6 +1986,7 @@ func new_game():
 	弟子列表.clear()
 	灵兽蛋列表.clear()
 	灵兽库存.clear()
+	灵兽兑换队列 = []
 	待抉择.clear()
 	奇遇待抉择.clear()
 	宗门纪事.clear()
@@ -1659,6 +2017,9 @@ func new_game():
 	# S0 任务/商店系统复位
 	宗门库房.clear()
 	坊市购买记录.clear()
+	坊市上架集 = []
+	随机事件类型冷却 = {}
+	quest_cooldown = {}
 	当前日常.clear()
 	日常已领.clear()
 	当前周常.clear()

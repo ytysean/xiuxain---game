@@ -11,6 +11,7 @@
 ## disciple_interact.csv  →  识别为 `disciple_interact` (10 行数据)
 ## drop_common.csv  →  识别为 `drop_common` (19 行数据)
 ## drop_pool.csv  →  识别为 `drop_pool` (27 行数据)
+## easter_egg_config.csv  [未识别-跳过]
 ## equip_blueprint.csv  →  识别为 `equip_blueprint` (19 行数据)
 ## equip_main.csv  →  识别为 `equip_main` (45 行数据)
 ## equip_set.csv  →  识别为 `equip_set` (36 行数据)
@@ -60,6 +61,7 @@
 - [OK] quest_reward_pool: 各 pool_id 池内 weight 和=100
 - [OK] event_quest: 各 event_type 池内均含正向 trigger_weight（按档权重 普通10/优秀6/稀有2/传说0.5 抽取）
 - event_quest 品阶分布: 普通=74 优秀=89 稀有=30 传说=10 (总计203)
+- [OK] event_quest: 单条奖励倍率软告警扫描完成（基准200，超倍率即告警不阻断）
 
 # 战斗关卡跨表校验（stage_main / monster_main / drop_pool）
 - [CHECK] 战斗关卡跨表校验完成（怪物引用/掉落池/前置关卡/掉落物存在性/min-max）
@@ -77,12 +79,13 @@
 - 校验 CSV 表数: 41
 - 校验数据行数: 1138
 - 错误数: 0
-- 警告数: 12
+- 警告数: 13
 
 ## 警告
 - caravan_member_data.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - caravan_post_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - caravan_vehicle_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- easter_egg_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - flying_beast_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - item_id_registry.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - item_material.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验

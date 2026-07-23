@@ -182,8 +182,8 @@ def 结算_1v1(atk, def_, mode="full", rng=None):
     }
 
 
-def make_unit(攻, 防, 血, 速, 职业, 灵根主, 纯度, 暴击=0.0, 闪避=0.0, 名称="", 通用增益=0.0, 道心增益=0.0):
-    """测试用快照工厂：结构与 disciple.get_final_combat_attr() 一致。"""
+def make_unit(攻, 防, 血, 速, 职业, 灵根主, 纯度, 暴击=0.0, 闪避=0.0, 名称="", 通用增益=0.0, 道心增益=0.0, 灵兽=None):
+    """测试用快照工厂：结构与 disciple.get_final_combat_attr() 一致。灵兽=S1 出战灵兽快照列表。"""
     return {
         "属性": {"攻": 攻, "防": 防, "血": 血, "速": 速},
         "职业": 职业,
@@ -193,6 +193,7 @@ def make_unit(攻, 防, 血, 速, 职业, 灵根主, 纯度, 暴击=0.0, 闪避=
         "暴击率": 暴击,
         "闪避率": 闪避,
         "名称": 名称,
+        "灵兽": 灵兽 if 灵兽 is not None else [],
     }
 
 
@@ -211,6 +212,8 @@ def 结算_3v3(atk_list, def_list, mode="quick", rng=None):
         局 = 结算_1v1(攻[a_idx], 守[d_idx], mode, rng)
         总回合 += 局["round_count"]
         总日志.extend(局["battle_log"])
+        # S1 战斗生效·优先级2：灵兽行动日志（编排层注入，不碰 结算_1v1 核心计算）
+        注入灵兽日志(总日志, 局, 攻[a_idx], 守[d_idx])
         # 气血继承：把本局终态写回当前单位（胜者保留剩余气血，败者记为 0）
         if 局["battle_log"]:
             末 = 局["battle_log"][-1]
@@ -236,3 +239,36 @@ def 结算_3v3(atk_list, def_list, mode="quick", rng=None):
         "drop_reward": [],
         "battle_log": 总日志,
     }
+
+
+# ============ 灵兽行动日志注入（镜像 BattleManager._注入灵兽日志，纯编排层）============
+# 主宠每局一条（高频可见）；副宠仅本局出现暴击时一条（低频关键）；复用现有日志键。
+def 注入灵兽日志(总日志, 局, 攻单位, 守单位):
+    if not 局["battle_log"]:
+        return
+    日志 = 局["battle_log"]
+    首 = 日志[0]
+    局有暴击 = any(e.get("is_crit", False) for e in 日志)
+    _注入单侧灵兽(总日志, 攻单位, 守单位, 首, True, 局有暴击)
+    _注入单侧灵兽(总日志, 守单位, 攻单位, 首, False, 局有暴击)
+
+
+def _注入单侧灵兽(总日志, 本方, 对方, 首, 本方是攻, 局有暴击):
+    for p in 本方.get("灵兽", []):
+        主副 = p.get("主副", "")
+        if 主副 == "副" and not 局有暴击:
+            continue
+        本方_hp = 首.get("attacker_hp", 0) if 本方是攻 else 首.get("defender_hp", 0)
+        对方_hp = 首.get("defender_hp", 0) if 本方是攻 else 首.get("attacker_hp", 0)
+        总日志.append({
+            "round": 首.get("round", 0),
+            "actor": "%s·%s[%s]" % (本方.get("名称", ""), p.get("名", ""), p.get("类型", "")),
+            "target": 对方.get("名称", ""),
+            "damage": 0,
+            "is_crit": False,
+            "is_restrain": False,
+            "attacker_hp": 本方_hp,
+            "defender_hp": 对方_hp,
+            "pet_action": True,
+            "主副": 主副,
+        })
