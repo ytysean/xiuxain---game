@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bgpm318ilpc6d"
+
+[deps]
+
+files=["res://config/easter_egg_config.type.translation", "res://config/easter_egg_config.trigger.translation", "res://config/easter_egg_config.name.translation", "res://config/easter_egg_config.text.translation", "res://config/easter_egg_config.reward.translation", "res://config/easter_egg_config.reward.translation", "res://config/easter_egg_config.buff.translation", "res://config/easter_egg_config.buff.translation", "res://config/easter_egg_config.duration.translation", "res://config/easter_egg_config.enabled.translation"]
+
+source_file="res://config/easter_egg_config.csv"
+dest_files=["res://config/easter_egg_config.type.translation", "res://config/easter_egg_config.trigger.translation", "res://config/easter_egg_config.name.translation", "res://config/easter_egg_config.text.translation", "res://config/easter_egg_config.reward.translation", "res://config/easter_egg_config.reward.translation", "res://config/easter_egg_config.buff.translation", "res://config/easter_egg_config.buff.translation", "res://config/easter_egg_config.duration.translation", "res://config/easter_egg_config.enabled.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

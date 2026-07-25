@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cp1sowq4rftyw"
+
+[deps]
+
+files=["res://config/battle_buff.buff名.translation", "res://config/battle_buff.类型.translation", "res://config/battle_buff.作用属性.translation", "res://config/battle_buff.数值.translation", "res://config/battle_buff.数值类型.translation", "res://config/battle_buff.持续回合.translation", "res://config/battle_buff.来源类型.translation", "res://config/battle_buff.可叠加.translation", "res://config/battle_buff.备注.translation"]
+
+source_file="res://config/battle_buff.csv"
+dest_files=["res://config/battle_buff.buff名.translation", "res://config/battle_buff.类型.translation", "res://config/battle_buff.作用属性.translation", "res://config/battle_buff.数值.translation", "res://config/battle_buff.数值类型.translation", "res://config/battle_buff.持续回合.translation", "res://config/battle_buff.来源类型.translation", "res://config/battle_buff.可叠加.translation", "res://config/battle_buff.备注.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

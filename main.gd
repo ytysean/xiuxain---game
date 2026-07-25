@@ -10,16 +10,87 @@ const Beast = preload("res://beast.gd")
 const BattleManager = preload("res://BattleManager.gd")
 const Quest = preload("res://quest.gd")
 const StageDataLoader = preload("res://StageDataLoader.gd")
+const BattleCalculator = preload("res://BattleCalculator.gd")
+const SkillCultivationLoader = preload("res://SkillCultivationLoader.gd")
 
-# 主题色（玄洲·水墨古卷国风，低饱和东方古典）
-const 宣纸 := Color(0.88, 0.83, 0.73)      # 做旧宣纸基底
-const 宣纸亮 := Color(0.93, 0.89, 0.80)    # 面板纸（略亮）
-const 墨黑 := Color(0.15, 0.13, 0.11)      # 墨色文字
+# 主题色（写实修仙 v2.0 锁定调色板：青黛/宣纸米白/墨青/暗金/朱砂红/玉石绿）
+const 宣纸 := Color(0.957, 0.937, 0.890)   # v2.0 宣纸米白（基底）
+const 宣纸亮 := Color(0.965, 0.949, 0.918) # 面板纸（略亮）
+const 墨黑 := Color(0.118, 0.169, 0.157)   # v2.0 墨青（正文墨字）
 const 次墨 := Color(0.42, 0.37, 0.31)      # 次级文字
-const 暗金 := Color(0.64, 0.49, 0.22)      # 暗金高亮
+const 暗金 := Color(0.784, 0.659, 0.416)   # v2.0 暗金（高亮/描边）
 const 青灰 := Color(0.40, 0.48, 0.47)      # 青灰次强调
 const 木色 := Color(0.46, 0.36, 0.26)      # 木框
 const 墨底 := Color(0.12, 0.11, 0.10)      # 深墨（弹窗遮罩/状态栏）
+# v2.0 新增强调色
+const 青黛 := Color(0.431, 0.561, 0.533)   # 青黛主调
+const 玉石绿 := Color(0.561, 0.749, 0.624) # 玉石绿
+const 朱砂 := Color(0.702, 0.259, 0.239)   # 朱砂红（危险/道阶）
+const 青玉 := Color(0.561, 0.749, 0.624)   # 按钮底色（同玉石绿）
+const 青玉亮 := Color(0.66, 0.82, 0.70)    # 按钮悬停亮色
+const 墨底半透 := Color(0.118, 0.169, 0.157, 0.92) # 墨青半透（弹窗/遮罩）
+const 面板底 := Color(0.133, 0.216, 0.204, 0.92)   # 暗青玉面板底（参考图主面板色，保证文字清晰）
+const 按钮木 := Color(0.541, 0.404, 0.259)         # 暖木棕（主按钮常态）
+const 按钮木悬 := Color(0.69, 0.52, 0.337)         # 暖木棕悬停提亮
+const 按钮金按 := Color(0.502, 0.38, 0.20)         # 棕金按下态
+const 按钮禁用 := Color(0.32, 0.30, 0.28)          # 灰褐禁用
+# ---- 四类按钮精确 hex 常量 (UI 整改三收尾补丁, 终裁 7.1.1 / 绘图强制规范 3.2) ----
+# 命名 BTN_主/次/标签/危险; 值严格锁死, 禁止在别处散写裸色或裸 Color(...)
+const BTN_主底 := Color(0.173, 0.373, 0.322)   # 深青玉 2C5F52 (主按钮底)
+const BTN_主边 := Color(0.722, 0.608, 0.353)   # 暗金 B89B5A (主按钮边)
+const BTN_主字 := Color(0.941, 0.902, 0.824)   # 米白金 F0E6D2 (主按钮字)
+const BTN_次底 := Color(0.290, 0.231, 0.165)   # 深原木 4A3B2A (次按钮底)
+const BTN_次边 := Color(0.243, 0.420, 0.369)   # 暗青 3E6B5E (次按钮边)
+const BTN_次字 := Color(0.910, 0.863, 0.784)   # 浅米黄 E8DCC8 (次按钮字)
+const BTN_标签底 := Color(0.227, 0.435, 0.376, 0.502)  # 半透青玉 3A6F6080 (标签底)
+const BTN_标签边 := Color(0.353, 0.545, 0.490)  # 5A8B7D (标签边)
+const BTN_标签字 := Color(0.831, 0.898, 0.871)  # 青玉亮 D4E5DE (标签字)
+const BTN_危险底 := Color(0.361, 0.200, 0.200)  # 暗红棕 5C3333 (危险底)
+const BTN_危险边 := Color(0.545, 0.353, 0.353)  # 8B5A5A (危险边)
+const BTN_危险字 := Color(0.910, 0.784, 0.784)  # E8C8C8 (危险字)
+const 启用皮肤纹理: bool = false           # 一键回退：false→纯扁平 v2.0 风（不挂载 AI 方向稿纹理）
+
+# ── UI 整改「三」参数层收敛（§2.2 背景 / §3.1·§3.4 字号 / §3.5 裸色转正）──
+# 背景两层（§2.2）：远景 modulate alpha + 暗叠层颜色/alpha，统一收口
+const BG_SCENE_ALPHA: float = 0.30
+const BG_OVERLAY_COLOR: Color = Color(0.086, 0.133, 0.114)
+const BG_OVERLAY_ALPHA: float = 0.50
+# 字号唯一集合（§3.1·§3.4）：{22,17,18,16,15,13}，禁 <15、禁新增档
+const FONT_TITLE: int = 22
+const FONT_PANEL: int = 17
+const FONT_PANEL_B: int = 18
+const FONT_SUB: int = 16
+const FONT_BODY: int = 15
+const FONT_AUX: int = 13
+# 评级色（§3.5，原 _评级色 裸 Color 收口）
+const 评级_红 := Color(0.85, 0.15, 0.15)
+const 评级_橙 := Color(0.85, 0.55, 0.1)
+const 评级_绿 := Color(0.2, 0.6, 0.3)
+const 评级_灰 := Color(0.45, 0.45, 0.55)
+const 评级_默认 := Color(0.5, 0.3, 0.3)
+# 奇遇角标色（§3.5，原 _奇遇弹窗 裸 Color 收口）
+const 奇遇_灰 := Color(0.60, 0.63, 0.67)
+const 奇遇_蓝 := Color(0.23, 0.51, 0.96)
+const 奇遇_紫 := Color(0.55, 0.36, 0.96)
+const 奇遇_金 := Color(0.96, 0.62, 0.04)
+# 弹窗遮罩（§3.5，原内联 Color(0.10,0.09,0.08,0.55/0.60) 收口；alpha 归一 0.60）
+const 弹窗遮罩 := Color(0.10, 0.09, 0.08, 0.60)
+# 暗化叠层（§3.5，引导/收尾，原 Color(0.06,0.06,0.08,X) 收口）
+const 暗化 := Color(0.06, 0.06, 0.08)
+# 墨青底（§3.5，引导气泡/收尾气泡，原 Color(0.118,0.169,0.157,0.96) 收口）
+const 墨青 := Color(0.118, 0.169, 0.157, 0.96)
+# 战斗结算标题底（§3.5，原 Color(0.22,0.21,0.20,1.0) 收口）
+const 标题底色 := Color(0.22, 0.21, 0.20, 1.0)
+# 展开钮灰（§3.5，原 Color(0.68,0.68,0.68) 收口）
+const 展开灰 := Color(0.68, 0.68, 0.68)
+# Toast 底/边（§3.5，原内联收口）
+const 弹窗底色 := Color(0.12, 0.11, 0.10, 0.92)
+const 弹窗边色 := Color(0.72, 0.58, 0.20, 0.9)
+# 通用强调亮灰 / 置灰（§3.5，原动画/禁用态裸 Color 收口）
+const 强调亮灰 := Color(0.9, 0.9, 0.9)
+const 置灰色 := Color(0.55, 0.52, 0.48)
+# 皮肤纹理调制白（§3.5，_皮肤纹理装填 StyleBoxTexture modulate）
+const 纹理白 := Color(1, 1, 1, 0.97)
 
 # 离山汇总稀有度颜色（对齐装备品阶体系）
 const 颜色_良品 := Color(0.28, 0.65, 0.32)     # 绿色 - 良品/正向事件
@@ -42,7 +113,7 @@ const 建筑彩蛋映射 := {"dantang": "egg_click_dantang", "yushou": "egg_clic
 const 建筑彩蛋阈值 := {"dantang": 5, "yushou": 5, "lingtian": 3}
 var 建筑点击计数: Dictionary = {}
 var 掌教点击计数: int = 0
-var 纪事异闻仅看: bool = false
+var 纪事筛选分类: String = "全部"   # 纪事界面分类筛选（全部/宗门大事件/宗门岁纪/日常庶务/异闻）
 
 func get_rarity_color(品阶: String) -> Color:
 	return 品阶色.get(品阶, 暗金)
@@ -104,13 +175,14 @@ var _琐事已展开 := false                  # 琐事折叠状态（rebuild后
 var _重大已展开 := true                   # 重大事件折叠状态，默认展开
 var _战报筛选: String = ""                # 离山汇总事件筛选：""=全部；breakthrough/appoint/quest
 var _attr_line_pool: Array = []           # S1 预埋：属性行控件对象池（详情复用优化用）
+var _详情回收站: Node = null
 var _当前详情遮: Control = null            # 详情弹窗单实例守卫：开新窗前先释放旧窗，防快速连点层叠
 var 御兽区: VBoxContainer
 var 纪事区: VBoxContainer
 var 当前选中: Disciple = null
 var 装备面板节点: Control = null   # A5 装备面板当前实例，重建前先释放避免叠加
 var 历练滚动列: VBoxContainer = null  # 历练关卡列表（战斗胜利后需刷新）
-# 新手引导系统（A 包：单线性四步，纯灰模）：阶段 0未开始/1-4四步/5完成（Game.引导阶段 为事实源）
+# 新手引导系统（A 包：单线性五步，纯灰模）：阶段 0序章/1-5五步/6完成（Game.引导阶段 为事实源）
 var 引导_建筑按钮: Button = null
 var 引导_招收按钮: Button = null
 var 引导_历练按钮: Button = null
@@ -120,139 +192,615 @@ var 引导_开场段: int = 0             # 开场叙事当前段序号
 var _引导已收尾: bool = false         # 收尾弹窗一次性标记（播完不再重复）
 var _坊市提示: String = ""
 var _任务提示: String = ""
-var 页控: Dictionary = {}
 # Step 2 奇遇基础调度：signal 入队、逐个弹窗，避免推演期多奇遇堆叠
 var 奇遇队列: Array = []
 var 奇遇弹窗中: bool = false
-const 页名 := ["弟子", "待抉择", "御兽", "纪事"]
+const 页名 := ["宗门", "弟子", "御兽", "历练", "纪事"]
+
+# S0 FTUE 引导（五步）相关实例引用与状态（逻辑独立封装，不侵入业务）
+var 引导_状态面板: PanelContainer = null
+var 引导_推演按钮: Button = null
+var 引导_坊市按钮: Button = null
+var 引导_任务按钮: Button = null
+var 标签栏: TabBar = null
+var _导航切换中 := false   # 防递归守卫：设 current_tab 会经 tab_changed 重入本函数，需阻断
+var 引导_目标条: PanelContainer = null
+var 引导_目标条_文: Label = null
+var 引导_弟子提示: Label = null
+var 引导_标题层: Control = null
+var _首推演已保底: bool = false
+var _招徒后_弟子高亮中: bool = false
+var _弟子详情_已自动展开: bool = false
+var _灰锁原文本: Dictionary = {}
+# 整页切换架构（UI整改「三」第二批）
+var 内容区: Control = null            # 固定内容区锚点（顶栏下/底栏上），承载当前页容器
+var 当前页容器: ScrollContainer = null  # 当前整页根（ScrollContainer+VBox），切换时 queue_free
+var 当前页名: String = ""              # 当前核心 Tab 名（用于刷新/引导判定）
+var 当前页持久节点: Array = []          # 当前页持有的持久 VBox（切换前先卸下，避免被 queue_free 误杀）
+var _二级页: String = ""                # 当前二级页名（""=核心页；非空前主导航仍高亮宗门）
+var _弟子二级tab: int = 0               # 弟子页二级 Tab：0=名录 / 1=接引（跨切换保留）
+var 调试图标: Button = null             # 顶栏角落：推演中心（Debug 可见）
+var 设置图标: Button = null             # 顶栏角落：设置（存读/新游戏）
+var _宗门网格入口: Dictionary = {}      # 名 -> 快捷入口按钮（灰锁用）
+var 任务列: VBoxContainer = null        # 任务二级页列表列（刷新用）
 
 func _ready():
 	theme = 造主题()
 
-	# 背景
-	var bg := ColorRect.new()
-	bg.color = 宣纸
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	# 写实宗门背景：独立 CanvasLayer(layer=-1) 承载，置于所有 UI 之下，避免被 UI 重排影响
+	var 背景层 := CanvasLayer.new()
+	背景层.layer = -1
+	add_child(背景层)
+	# 墨底兜底：防止 TextureRect 因 anchors 生效时机或图片比例出现未覆盖区域时透底
+	var 背景底 := ColorRect.new()
+	背景底.color = 墨底
+	背景底.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	背景底.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	背景层.add_child(背景底)
+	var 景 := TextureRect.new()
+	if ResourceLoader.exists("res://assets/ai_art/2026-07-22/仙山宗门远景_云雾半透明_古建木石_青黛色调_低饱和度_水墨_2026-07-22T15-19-56.png"):
+		景.texture = load("res://assets/ai_art/2026-07-22/仙山宗门远景_云雾半透明_古建木石_青黛色调_低饱和度_水墨_2026-07-22T15-19-56.png")
+	景.set_stretch_mode(TextureRect.STRETCH_KEEP_ASPECT_COVERED)
+	景.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	景.modulate = Color(1, 1, 1, BG_SCENE_ALPHA)
+	景.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	背景层.add_child(景)
+	var 暗罩 := ColorRect.new()
+	暗罩.color = Color(BG_OVERLAY_COLOR.r, BG_OVERLAY_COLOR.g, BG_OVERLAY_COLOR.b, BG_OVERLAY_ALPHA)
+	暗罩.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	暗罩.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	背景层.add_child(暗罩)
 
-	# 根滚动容器（整页可滚，解决内容超屏无法下滑）
-	var 外滚 := ScrollContainer.new()
-	外滚.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(外滚)
+	# 主垂直布局：占满目标条以下、屏幕底部边距区域
+	var 主布局 := VBoxContainer.new()
+	主布局.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	主布局.offset_top = 48    # 顶部预留 48px 给常驻目标条（§5.1）
+	主布局.offset_left = 8
+	主布局.offset_right = -8
+	主布局.offset_bottom = -8
+	主布局.add_theme_constant_override("separation", 6)
+	add_child(主布局)
 
-	var 根 := VBoxContainer.new()
-	根.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	根.add_theme_constant_override("separation", 6)
-	根.add_theme_constant_override("margin_left", 8)
-	根.add_theme_constant_override("margin_right", 8)
-	根.add_theme_constant_override("margin_top", 8)
-	根.add_theme_constant_override("margin_bottom", 8)
-	外滚.add_child(根)
+	# 顶栏（固定，不随页面切换销毁）：掌教标题 + 状态带 + 角落图标
+	var 顶栏 := VBoxContainer.new()
+	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	顶栏.add_theme_constant_override("separation", 4)
+	主布局.add_child(顶栏)
 
-	# 顶部标题 + 状态面板
+	# 内容区锚点（固定）：顶栏下、底栏上，承载当前整页容器
+	内容区 = VBoxContainer.new()
+	内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	内容区.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	主布局.add_child(内容区)
+
+	# 底部固定栏：TabBar + 详情面板（不再随中部内容滚动）
+	var 底部区 := VBoxContainer.new()
+	底部区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	底部区.custom_minimum_size = Vector2(0, 180)
+	主布局.add_child(底部区)
+
+	# 顶栏：掌教标题 + 别名 + 状态带（固定不滚动）
 	var 掌教标题 := Button.new()
 	掌教标题.text = "《太玄宗门录》· 掌教治宗"
 	掌教标题.flat = true
-	掌教标题.add_theme_font_size_override("font_size", 18)
+	掌教标题.add_theme_font_size_override("font_size", FONT_PANEL_B)
 	掌教标题.add_theme_color_override("font_color", 暗金)
 	掌教标题.pressed.connect(_on_掌教点击彩蛋)
-	根.add_child(掌教标题)
+	顶栏.add_child(掌教标题)
 	var 别名 := Label.new()
 	别名.text = "又名：开局接手太玄宗"
-	别名.add_theme_font_size_override("font_size", 12)
-	别名.add_theme_color_override("font_color", 次墨)
-	根.add_child(别名)
+	别名.add_theme_font_size_override("font_size", FONT_AUX)
+	别名.add_theme_color_override("font_color", 宣纸亮)
+	顶栏.add_child(别名)
 	状态栏 = Label.new()
 	状态栏.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	状态栏.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 让点击穿透到状态面板，供引导步骤①Hook
 	var 状态面板: PanelContainer = 新面板("")
 	状态面板.get_child(0).add_child(状态栏)
 	状态面板.add_theme_stylebox_override("panel", _暗墨面板())
 	状态栏.add_theme_color_override("font_color", 暗金)
-	根.add_child(状态面板)
+	顶栏.add_child(状态面板)
+	引导_状态面板 = 状态面板
 
-	# 按钮行（紧凑，竖屏 480 宽可分两行）
-	var 行 := HBoxContainer.new()
-	行.add_theme_constant_override("separation", 6)
-	根.add_child(行)
-	var 推演 := Button.new(); 推演.text = "推演汇总"; 行.add_child(推演); 推演.pressed.connect(_on_推演)
-	var 招收 := Button.new(); 招收.text = "开启接引大典"; 行.add_child(招收); 招收.pressed.connect(_on_测灵根)
-	引导_招收按钮 = 招收
-	var 建筑 := Button.new(); 建筑.text = "建筑总览"; 行.add_child(建筑); 建筑.pressed.connect(_on_建筑总览)
-	引导_建筑按钮 = 建筑
-	var 行二 := HBoxContainer.new()
-	行二.add_theme_constant_override("separation", 6)
-	根.add_child(行二)
-	var 快进 := Button.new(); 快进.text = "御兽快进"; 行二.add_child(快进); 快进.pressed.connect(_on_快进)
-	var 存 := Button.new(); 存.text = "存档"; 行二.add_child(存); 存.pressed.connect(_on_存档)
-	var 读 := Button.new(); 读.text = "读档"; 行二.add_child(读); 读.pressed.connect(_on_读档)
-	# 调试行：灰模战斗入口 + 测试工具（ADR-003 D7 调试工具）
-	var 行三 := HBoxContainer.new()
-	行三.add_theme_constant_override("separation", 6)
-	根.add_child(行三)
-	var 调试 := Button.new(); 调试.text = "调试战斗"; 行三.add_child(调试); 调试.pressed.connect(_on_调试战斗)
-	var 历练 := Button.new(); 历练.text = "历练征途"; 行三.add_child(历练); 历练.pressed.connect(_on_历练)
-	引导_历练按钮 = 历练
-	var 坊市 := Button.new(); 坊市.text = "坊市"; 行三.add_child(坊市); 坊市.pressed.connect(_on_坊市)
-	var 任务 := Button.new(); 任务.text = "任务"; 行三.add_child(任务); 任务.pressed.connect(_on_任务)
-	# 强制触发征伐奇遇：调试专用，release 导出自动隐藏（OS.is_debug_build 包裹 add_child，不留死代码）
-	var 行四 := HBoxContainer.new()
-	行四.add_theme_constant_override("separation", 6)
-	根.add_child(行四)
+	# 顶栏角落图标：设置（存读/新游戏，常驻）+ 调试（推演中心，Debug 可见）
+	var 顶栏角 := HBoxContainer.new()
+	顶栏角.alignment = BoxContainer.ALIGNMENT_END
+	顶栏角.add_theme_constant_override("separation", 6)
+	顶栏.add_child(顶栏角)
+	设置图标 = Button.new(); 设置图标.text = "⚙"
+	设置图标.tooltip_text = "设置（存读 / 新游戏）"
+	设置图标.pressed.connect(_弹_设置)
+	顶栏角.add_child(设置图标)
 	if OS.is_debug_build():
-		var 强制征伐 := Button.new(); 强制征伐.text = "强制征伐"
-		行四.add_child(强制征伐); 强制征伐.pressed.connect(_on_强制征伐)
-		var 重置引导 := Button.new(); 重置引导.text = "重置引导"
-		行四.add_child(重置引导); 重置引导.pressed.connect(_on_重置引导)
-		var 推演7 := Button.new(); 推演7.text = "推演7天"
-		行四.add_child(推演7); 推演7.pressed.connect(_on_推演七日)
-		var 强制天品 := Button.new(); 强制天品.text = "强制天品"
-		行四.add_child(强制天品); 强制天品.pressed.connect(_on_强制天品)
-		var 强制聚气丹 := Button.new(); 强制聚气丹.text = "强制聚气丹"
-		行四.add_child(强制聚气丹); 强制聚气丹.pressed.connect(_on_强制聚气丹)
-	var 新游戏 := Button.new(); 新游戏.text = "新游戏"
-	行四.add_child(新游戏); 新游戏.pressed.connect(_on_新游戏)
-	var 快进年 := Button.new(); 快进年.text = "推演1年"
-	行四.add_child(快进年); 快进年.pressed.connect(_on_推荐一年)
+		调试图标 = Button.new(); 调试图标.text = "🐞"
+		调试图标.tooltip_text = "推演中心（调试）"
+		调试图标.pressed.connect(_弹_推演中心)
+		顶栏角.add_child(调试图标)
+		引导_推演按钮 = 调试图标
 
-	# 战报面板（登录推演汇总 → 三层结构：总览/重大事件/琐事折叠）
+	# 离山汇总（离线收益简报）：建为独立弹窗，不内联首页（§1.2 B3）
 	离山面板 = 新面板("✦ 离山汇总（你离开期间）")
-	离山内容区 = 离山面板.get_child(0) as VBoxContainer  # 新面板返回的 VBox
+	var 离山根: VBoxContainer = 离山面板.get_child(0)
+	离山内容区 = VBoxContainer.new()
+	离山内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	离山内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	离山根.add_child(离山内容区)
 	离山面板.custom_minimum_size = Vector2(0, 140)
-	根.add_child(离山面板)
+	离山面板.gui_input.connect(_on_离山面板_点击)
+	var 离山关 := Button.new(); 离山关.text = "归藏"; 离山关.custom_minimum_size = Vector2(0, 44)
+	离山关.pressed.connect(_关_离山简报)
+	离山根.add_child(离山关)
 	# 战报 Label 保留作兼容降级显示（旧存档/无结构化数据时用）
 	战报 = Label.new()
 	战报.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	战报.visible = false   # 默认隐藏，新UI优先
 
-	# 标签页
+	# 底部主导航：复用 标签栏(TabBar)，5 核心 Tab 常驻、跨页不释放（§1.4）
 	var tb := TabBar.new()
 	for n in 页名:
 		tb.add_tab(n)
-		tb.tab_changed.connect(_on_切页)
-	根.add_child(tb)
+	tb.tab_changed.connect(_on_主导航切换)
+	底部区.add_child(tb)
+	标签栏 = tb
+	标签栏.custom_minimum_size = Vector2(0, 56)  # 底部主导航 tab 触摸高度>=44 (§1 ⑩ ACCESSIBILITY Standard)
 
-	# 滚动内容区（三页仅一页可见；硬编码最小高度防嵌套ScrollContainer高度坍塌）
-	var 滚动 := ScrollContainer.new()
-	滚动.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	滚动.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	滚动.custom_minimum_size = Vector2(0, 450)
-	根.add_child(滚动)
+	# 持久内容 VBox（跨页不销毁，仅随整页切换重挂载/卸载；刷新逻辑直接复用）
 	列表 = VBoxContainer.new(); 列表.add_theme_constant_override("separation", 6); 列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 列表.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	抉择区 = VBoxContainer.new(); 抉择区.add_theme_constant_override("separation", 6); 抉择区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 抉择区.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	御兽区 = VBoxContainer.new(); 御兽区.add_theme_constant_override("separation", 4); 御兽区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 御兽区.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	纪事区 = VBoxContainer.new(); 纪事区.add_theme_constant_override("separation", 4); 纪事区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 纪事区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	滚动.add_child(列表); 滚动.add_child(抉择区); 滚动.add_child(御兽区); 滚动.add_child(纪事区)
-	抉择区.visible = false; 御兽区.visible = false; 纪事区.visible = false
-	页控 = {"弟子": 列表, "待抉择": 抉择区, "御兽": 御兽区, "纪事": 纪事区}
+	# 弟子页头（总战力+排序+提示）持久，跨切换保留
+	_建_弟子页头()
 
-	# P0：弟子总览页头（宗门总战力 + 排序按钮），置于滚动区上方、仅弟子页可见
+	# 弟子页头由 _建_弟子页头() 持久构建（见下方整页切换区块）
+
+	# 详情面板（底部常驻，固定不滚动）
+	详情 = Label.new()
+	详情.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var 详情面板: PanelContainer = 新面板("🔍 详情")
+	详情面板.custom_minimum_size = Vector2(0, 110)
+	详情面板.get_child(0).add_child(详情)
+	底部区.add_child(详情面板)
+
+	Game.弟子变动.connect(刷新, CONNECT_DEFERRED)   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
+	Game.新手目标更新.connect(_刷新_新手UI, CONNECT_DEFERRED)   # P0 目标链：玉牌/Tab 红点/跳字刷新   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
+	Game.战报更新.connect(_on_战报)
+	Game.奇遇发生.connect(_on_奇遇发生)   # Step 2：奇遇三场景触发后展示调度
+	# 引导步骤①的点击 Hook：点状态栏→资源（离山面板 Hook 在离山面板创建处绑定）
+	引导_状态面板.gui_input.connect(_on_状态面板_点击)
+
+	# 构建默认首页（宗门），整页切换机制启动
+	_on_主导航切换(0)
+
+	# 标题屏拦截：自动推演延后到标题屏关闭（点或继续）之后，避免新档一开机空推一天
+	_显示标题()
+
+func _on_主导航切换(i: int):
+	if _导航切换中:
+		return   # 重入（current_tab 赋值触发的 tab_changed 再入本函数）：直接忽略，阻断无限递归卡死
+	_导航切换中 = true
+	var 名: String = 页名[i]
+	标签栏.current_tab = i   # 手动/程序切页时同步视觉 tab（已加重入守卫，不会经 tab_changed 递归）
+	_二级页 = ""
+	_卸下当前页()
+	match 名:
+		"宗门": _建_宗门页()
+		"弟子": _建_弟子页()
+		"御兽": _建_御兽页()
+		"历练": _建_历练页()
+		"纪事": _建_纪事页()
+	当前页名 = 名
+	if 名 == "弟子" and Game.引导阶段 == 4:
+		_自动展开首弟子()   # 首进弟子页自动展开首名弟子详情（不自动完成步④）
+	_导航切换中 = false
+
+func _卸下当前页():
+	if 当前页容器 == null:
+		return
+	for n in 当前页持久节点:
+		if is_instance_valid(n) and n.get_parent() != null:
+			n.get_parent().remove_child(n)
+	当前页容器.queue_free()
+	当前页容器 = null
+	当前页持久节点.clear()
+	# 页面被释放后，其上的按钮引用也随之失效；清空引用池避免 dangling freed ref
+	_宗门网格入口.clear()
+	引导_坊市按钮 = null
+	引导_任务按钮 = null
+	引导_招收按钮 = null
+
+func _新页容器() -> ScrollContainer:
+	var 页 := ScrollContainer.new()
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.custom_minimum_size = Vector2(0, 560)
+	var 内容 := VBoxContainer.new()
+	内容.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	内容.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	内容.add_theme_constant_override("separation", 6)
+	页.add_child(内容)
+	内容区.add_child(页)
+	当前页容器 = 页
+	return 页
+
+func _建_宗门页():
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	# W3 宗门全景概要（简洁卡片，非明细列表）
+	内容.add_child(_宗门全景卡())
+	内容.add_child(_宗门香火面板())
+	内容.add_child(_宗门谱系面板())
+	内容.add_child(_宗门路线面板())   # S1 批5-C：正邪路线抉择面板（挂宗门页，不新开 Tab）
+	内容.add_child(_建_玉牌())
+	# W4 快捷入口网格（受控，禁止滚动按钮墙）
+	var 网格 := GridContainer.new()
+	网格.columns = 3
+	网格.add_theme_constant_override("h_separation", 8)
+	网格.add_theme_constant_override("v_separation", 8)
+	内容.add_child(网格)
+	_宗门网格入口.clear()
+	var 入口: Array = ["洞府", "修炼", "建筑", "坊市", "任务", "账册"]
+	for 名 in 入口:
+		var 钮 := Button.new()
+		钮.text = 名
+		钮.custom_minimum_size = Vector2(0, 56)
+		钮.pressed.connect(_进_二级页.bind(名))
+		网格.add_child(钮)
+		_宗门网格入口[名] = 钮
+	# 灰锁（坊市/任务 受锁：disabled+🔒+tooltip，点击不跳转）
+	引导_坊市按钮 = _宗门网格入口.get("坊市", null)
+	引导_任务按钮 = _宗门网格入口.get("任务", null)
+	_刷新功能解锁()
+	当前页持久节点 = []
+
+func _宗门全景卡() -> PanelContainer:
+	var 卡: PanelContainer = 新面板("—— 宗门全景 ——")
+	卡.add_theme_stylebox_override("panel", _暗墨面板())
+	var 文: VBoxContainer = 卡.get_child(0)
+	var 行 := Label.new()
+	行.text = "门派 Lv%d · 声望 %d · 繁荣 %d" % [Game.门派等级, Game.声望, Game.繁荣]
+	行.add_theme_color_override("font_color", 暗金)
+	文.add_child(行)
+	var 行二 := Label.new()
+	行二.text = "灵石 %d｜灵草 %d｜矿石 %d｜灵气 %d｜贡献 %d" % [Game.灵石, Game.灵草, Game.矿石, Game.灵气, Game.贡献点]
+	行二.add_theme_color_override("font_color", 次墨)
+	文.add_child(行二)
+	var 行三 := Label.new()
+	行三.text = "弟子 %d 人｜气力 %d/%d｜%s" % [Game.弟子列表.size(), Game.体力, Game.体力上限(), Game.时间文本()]
+	行三.add_theme_color_override("font_color", 次墨)
+	文.add_child(行三)
+	# W3 资源产出概览（核心经营数据，引用既有 预估月产出 / 在岗弟子数，不新增字段）
+	var 行四 := Label.new()
+	行四.text = "月产出 +%d 灵石｜在岗弟子 %d 人" % [Game.预估月产出(), _在岗弟子数()]
+	行四.add_theme_color_override("font_color", 玉石绿)
+	文.add_child(行四)
+	return 卡
+
+# === S1 批5-A：宗门页香火面板（纯展示 · 数值 [PLACEHOLDER] 待真机校准）===
+func _宗门香火面板() -> PanelContainer:
+	var 卡: PanelContainer = 新面板("—— 宗门香火 ——")
+	卡.add_theme_stylebox_override("panel", _暗墨面板())
+	var 文: VBoxContainer = 卡.get_child(0)
+	var 行一 := Label.new()
+	行一.text = "香火值 %d ｜ 信徒 %d 人" % [Game.香火值, Game.信徒数]
+	行一.add_theme_color_override("font_color", 次墨)
+	行一.add_theme_font_size_override("font_size", FONT_BODY)
+	文.add_child(行一)
+	var 行二 := Label.new()
+	行二.text = "凡世城镇 %d 座 ｜ 月产预估 +%d" % [Game.凡人城镇.size(), Game.香火月产预估]
+	行二.add_theme_color_override("font_color", 次墨)
+	行二.add_theme_font_size_override("font_size", FONT_BODY)
+	文.add_child(行二)
+	var 档 := Label.new()
+	档.text = "信徒增益档：%s" % Game.信徒增益档
+	档.add_theme_color_override("font_color", 玉石绿)
+	档.add_theme_font_size_override("font_size", FONT_BODY)
+	文.add_child(档)
+	# 「凡世」入口钮（BTN_主 风格）；现有二级页机制无"凡世"分支，本批仅标端口，待实装
+	var 钮 := Button.new()
+	钮.text = "凡世 · 城镇经营"
+	钮.custom_minimum_size = Vector2(0, 44)
+	钮.add_theme_stylebox_override("normal", _主按钮样式())
+	钮.add_theme_color_override("font_color", BTN_主字)
+	钮.pressed.connect(_toast.bind("凡世交互待实装"))
+	文.add_child(钮)
+	return 卡
+
+# === S1 批5-B：宗门页谱系 / 辈分礼制面板（纯展示 · 门规三档切换；数值 [PLACEHOLDER]）===
+func _宗门谱系面板() -> PanelContainer:
+	var 卡: PanelContainer = 新面板("—— 宗门谱系 · 辈分礼制 ——")
+	卡.add_theme_stylebox_override("panel", _暗墨面板())
+	var 文: VBoxContainer = 卡.get_child(0)
+	# 字派序列（开山第1字=索引0）；手工循环拼接，避免依赖 String.join 在 Godot 4 的语义不确定性
+	var 派 := Label.new()
+	var 派文本: String = ""
+	if not Game.辈分字派.is_empty():
+		for k in range(Game.辈分字派.size()):
+			派文本 += Game.辈分字派[k]
+			if k < Game.辈分字派.size() - 1:
+				派文本 += "·"
+	else:
+		派文本 = "（未定）"
+	派.text = "字派：" + 派文本
+	派.add_theme_color_override("font_color", 次墨)
+	派.add_theme_font_size_override("font_size", FONT_BODY)
+	文.add_child(派)
+	# 门规严格度三档切换钮（BTN_标签 风格；当前档高亮暗金）
+	var 规标 := Label.new()
+	规标.text = "门规严格度（数值影响 [PLACEHOLDER]）"
+	规标.add_theme_color_override("font_color", 次墨)
+	规标.add_theme_font_size_override("font_size", FONT_BODY)
+	文.add_child(规标)
+	var 档行 := HBoxContainer.new()
+	档行.add_theme_constant_override("separation", 8)
+	var 档: Array[String] = ["宽松", "中庸", "严格"]
+	for 名 in 档:
+		var 钮 := Button.new()
+		钮.text = 名
+		钮.custom_minimum_size = Vector2(0, 40)
+		钮.add_theme_stylebox_override("normal", _标签按钮样式())
+		钮.add_theme_color_override("font_color", BTN_标签字)
+		if Game.门规严格度 == 名:
+			钮.add_theme_color_override("font_color", 暗金)
+		钮.pressed.connect(_设门规_S1.bind(名))
+		档行.add_child(钮)
+	文.add_child(档行)
+	return 卡
+
+func _设门规_S1(档名: String) -> void:
+	Game.门规严格度 = 档名
+	_toast("门规已设为：%s" % 档名)
+
+# === S1 批5-C：正邪路线抉择面板 + 二次确认流程（不可逆核心 · 纯 UI 层）===
+# 颜色铁律（pre_f5 18）：玄门正道→暗金、逍遥中立→青玉、九幽邪道→朱砂；禁用紫色 / 裸 hex。
+
+func _宗门路线面板() -> PanelContainer:
+	var 卡: PanelContainer = 新面板("—— 宗门道统 · 正邪路线 ——")
+	卡.add_theme_stylebox_override("panel", _暗墨面板())
+	var 文: VBoxContainer = 卡.get_child(0)
+	if Game.正邪路线 != "":
+		# 已立誓：显当前路线徽记 + 不可重选
+		var 徽 := Label.new()
+		var 色: Color = 暗金
+		if Game.正邪路线 == "玄门正道":
+			色 = 暗金
+		elif Game.正邪路线 == "逍遥中立":
+			色 = 青玉
+		else:
+			色 = 朱砂
+		徽.text = "道统：" + Game.正邪路线
+		徽.add_theme_color_override("font_color", 色)
+		徽.add_theme_font_size_override("font_size", FONT_PANEL_B)
+		文.add_child(徽)
+		var 注 := Label.new()
+		注.text = "道统既定，终身不改"
+		注.add_theme_color_override("font_color", 次墨)
+		注.add_theme_font_size_override("font_size", FONT_BODY)
+		文.add_child(注)
+		return 卡
+	if not Game._检查正邪解锁_S1():
+		# 未达双条件：灰态提示，无入口
+		var 锁 := Label.new()
+		锁.text = "门派 Lv.3 且 七载大考后解锁"
+		锁.add_theme_color_override("font_color", 次墨)
+		锁.add_theme_font_size_override("font_size", FONT_BODY)
+		锁.modulate.a = 0.5
+		文.add_child(锁)
+		return 卡
+	# 已达双条件且未选：显「立定道统」入口钮（BTN_主 风格）
+	var 钮 := Button.new()
+	钮.text = "立定道统 · 抉择路线"
+	钮.custom_minimum_size = Vector2(0, 44)
+	钮.add_theme_stylebox_override("normal", _主按钮样式())
+	钮.add_theme_color_override("font_color", BTN_主字)
+	钮.pressed.connect(_打开正邪抉择)
+	文.add_child(钮)
+	return 卡
+
+func _打开正邪抉择() -> void:
+	# 三重保险：已选 / 未达双条件 直接返回（防误触）
+	if Game.正邪路线 != "" or not Game._检查正邪解锁_S1():
+		return
+	var 弹: Dictionary = _new_detail_popup("立定道统 · 不可逆", 朱砂)
+	var 盒: VBoxContainer = 弹["内容"]
+	var 示 := Label.new()
+	示.text = "道统选定，终身不可逆。请择一而从："
+	示.add_theme_color_override("font_color", 次墨)
+	示.add_theme_font_size_override("font_size", FONT_BODY)
+	盒.add_child(示)
+	var 路线: Array = ["玄门正道", "逍遥中立", "九幽邪道"]
+	var 定位: Dictionary = {
+		"玄门正道": "堂堂正正，声望经营",
+		"逍遥中立": "自在随性，左右逢源",
+		"九幽邪道": "狠厉果决，强取豪夺",
+	}
+	for 名 in 路线:
+		var 行 := HBoxContainer.new()
+		行.add_theme_constant_override("separation", 8)
+		var 标 := Label.new()
+		var 色: Color = 暗金
+		if 名 == "玄门正道":
+			色 = 暗金
+		elif 名 == "逍遥中立":
+			色 = 青玉
+		else:
+			色 = 朱砂
+		标.text = 名 + "：" + 定位.get(名, "")
+		标.add_theme_color_override("font_color", 色)
+		标.add_theme_font_size_override("font_size", FONT_BODY)
+		行.add_child(标)
+		var 选 := Button.new()
+		选.text = "择此道"
+		选.custom_minimum_size = Vector2(0, 40)
+		选.add_theme_stylebox_override("normal", _标签按钮样式())
+		选.add_theme_color_override("font_color", BTN_标签字)
+		选.pressed.connect(_确认正邪抉择.bind(名))
+		行.add_child(选)
+		盒.add_child(行)
+	盒.add_child(弹["关"])   # 默认「知悉」关闭钮（安全退出口）
+
+func _确认正邪抉择(名: String) -> void:
+	# 二次确认：再弹朱砂警示窗，须二次点「确认立誓」方可写入
+	var 弹: Dictionary = _new_detail_popup("确认立誓？", 朱砂)
+	var 盒: VBoxContainer = 弹["内容"]
+	var 警 := Label.new()
+	警.text = "道统选定，终身不可逆"
+	警.add_theme_color_override("font_color", 朱砂)
+	警.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	盒.add_child(警)
+	var 副 := Label.new()
+	副.text = "一旦立誓入【%s】，永不可改（除非新游戏）。" % 名
+	副.add_theme_color_override("font_color", 次墨)
+	副.add_theme_font_size_override("font_size", FONT_BODY)
+	盒.add_child(副)
+	var 行 := HBoxContainer.new()
+	行.add_theme_constant_override("separation", 8)
+	var 立 := Button.new()
+	立.text = "确认立誓"
+	立.custom_minimum_size = Vector2(0, 44)
+	立.add_theme_stylebox_override("normal", _主按钮样式())
+	立.add_theme_color_override("font_color", BTN_主字)
+	立.pressed.connect(_写入正邪路线.bind(名))
+	行.add_child(立)
+	var 思 := Button.new()
+	思.text = "再思量"
+	思.custom_minimum_size = Vector2(0, 44)
+	思.add_theme_stylebox_override("normal", _危险按钮样式())
+	思.add_theme_color_override("font_color", BTN_危险字)
+	思.pressed.connect(_关闭详情.bind(弹["遮"]))
+	行.add_child(思)
+	盒.add_child(行)
+
+func _写入正邪路线(名: String) -> void:
+	# 不可逆写入 + 即时存档；选定后 UI 显徽记且不可重选（除非 new_game）
+	Game.正邪路线 = 名
+	# 宗门纪事（会话内展示；load 时清空，与现役 纪事 范式一致；旧档不持久）
+	Game.宗门纪事.append({"日": Game.累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "正邪立誓",
+		"文案": "宗门立誓入 %s 道，道统既定，终身不改。" % 名, "category": "宗门大事件"})
+	Game.save_game()   # 即时存档（正邪路线 持久化）
+	_关闭详情(_当前详情遮)   # 关闭二次确认弹窗
+	_toast("道统已定：" + 名)
+
+func _建_弟子页():
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	内容.add_child(弟子页头)   # 持久：总战力 + 排序 + 提示
+	# 二级 Tab：名录 / 接引（待抉择并入接引）
+	var 二级 := TabBar.new()
+	二级.add_tab("名录"); 二级.add_tab("接引")
+	二级.tab_changed.connect(_on_弟子二级切换)
+	内容.add_child(二级)
+	# 名录
+	内容.add_child(列表)
+	# 接引（待抉择 + 招收）
+	var 接引框 := VBoxContainer.new()
+	接引框.name = "弟子页接引框"
+	接引框.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	接引框.add_theme_constant_override("separation", 6)
+	接引框.add_child(抉择区)
+	var 招 := Button.new(); 招.text = "开启接引大典"; 招.name = "Button_开启接引大典"; 招.custom_minimum_size = Vector2(0, 44)
+	招.pressed.connect(_on_测灵根)
+	接引框.add_child(招)
+	引导_招收按钮 = 招
+	内容.add_child(接引框)
+	# 应用二级 Tab 选中态（跨切换保留）
+	二级.current_tab = _弟子二级tab
+	_应用_弟子二级tab()
+	当前页持久节点 = [弟子页头, 列表, 抉择区]
+
+func _on_弟子二级切换(i: int):
+	_弟子二级tab = i
+	_应用_弟子二级tab()
+
+func _应用_弟子二级tab():
+	var 名录: bool = (_弟子二级tab == 0)
+	列表.visible = 名录
+	# 优先用抉择区父节点定位接引框；若持久节点刚换页未挂载，fallback 用名称查找
+	var 接引框: Node = 抉择区.get_parent()
+	if 接引框 == null and 列表.get_parent() != null:
+		接引框 = 列表.get_parent().get_node_or_null("弟子页接引框")
+	if 接引框 != null:
+		接引框.visible = not 名录
+
+func _建_御兽页():
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	var 快进 := Button.new(); 快进.text = "御兽快进（孵化30日）"; 快进.custom_minimum_size = Vector2(0, 44)
+	快进.pressed.connect(_on_快进)
+	内容.add_child(快进)
+	内容.add_child(御兽区)   # 持久
+	当前页持久节点 = [御兽区]
+
+func _建_历练页():
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	var 头 := Label.new()
+	头.text = "⚔ 历练征途"
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(头)
+	内容.add_child(_玄玉占位按钮())
+	var 体力标 := Label.new()
+	体力标.text = "气力：%d / %d" % [Game.体力, Game.体力上限()]
+	体力标.add_theme_color_override("font_color", 次墨)
+	内容.add_child(体力标)
+	# §1.7 B5：禁止嵌套 ScrollContainer（整页已是 ScrollContainer，直接挂列到页 VBox）
+	var 列 := VBoxContainer.new()
+	列.add_theme_constant_override("separation", 4)
+	列.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	内容.add_child(列)
+	历练滚动列 = 列   # 持久引用，战斗胜利后刷新用
+	var 章名: Dictionary = {1: "第一章·后山秘境", 2: "第二章·青冥古道", 3: "第三章·玄雾峡谷"}
+	for 章 in [1, 2, 3]:
+		var 章标 := Label.new()
+		章标.text = "【%s】" % 章名[章]
+		章标.add_theme_color_override("font_color", 青灰)
+		列.add_child(章标)
+		for s in StageDataLoader.get_all_stages():
+			if int(s.get("chapter", "0")) != 章:
+				continue
+			列.add_child(_历练关卡卡(s))
+	当前页持久节点 = []
+
+func _建_纪事页():
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	内容.add_child(纪事区)   # 持久（刷新纪事在其内建分类 Tab）
+	刷新纪事()
+	当前页持久节点 = [纪事区]
+
+func _进_二级页(名: String):
+	_二级页 = 名
+	_建_二级页(名)
+
+func _建_二级页(名: String):
+	_卸下当前页()
+	var 页: ScrollContainer = _新页容器()
+	var 内容: Control = 页.get_child(0)
+	var 返回 := Button.new(); 返回.text = "← 返回宗门"; 返回.custom_minimum_size = Vector2(0, 44)
+	返回.pressed.connect(_返回宗门)
+	内容.add_child(返回)
+	match 名:
+		"坊市": _填_坊市页(内容)
+		"任务": _填_任务页(内容)
+		"建筑": _填_建筑页(内容)
+		"账册": _填_账册页(内容)
+		"洞府": _填_洞府页(内容)
+		"修炼": _填_修炼页(内容)
+	当前页名 = "宗门"   # 主导航仍高亮宗门
+	当前页持久节点 = []
+
+func _返回宗门():
+	_on_主导航切换(0)
+
+func _建_弟子页头():
 	弟子页头 = VBoxContainer.new()
 	弟子页头.add_theme_constant_override("separation", 4)
 	var 战力行 := HBoxContainer.new()
 	总战力标签 = Label.new()
 	总战力标签.text = "宗门总战力：0"
-	总战力标签.add_theme_font_size_override("font_size", 16)
+	总战力标签.add_theme_font_size_override("font_size", FONT_SUB)
 	总战力标签.add_theme_color_override("font_color", 暗金)
 	战力行.add_child(总战力标签)
 	弟子页头.add_child(战力行)
@@ -260,58 +808,165 @@ func _ready():
 	排序行.add_theme_constant_override("separation", 6)
 	for 名 in ["默认", "战力", "境界", "资质"]:
 		var 钮 := Button.new(); 钮.text = 名
-		钮.add_theme_font_size_override("font_size", 12)
+		钮.add_theme_font_size_override("font_size", FONT_AUX)
 		钮.pressed.connect(_on_排序.bind(名))
 		排序按钮组[名] = 钮
 		排序行.add_child(钮)
+	# S1 批1：批量考核入口（弟子页顶部）
+	var 批量考核钮 := Button.new(); 批量考核钮.text = "批量考核"
+	批量考核钮.add_theme_font_size_override("font_size", FONT_AUX)
+	批量考核钮.add_theme_color_override("font_color", 暗金)
+	批量考核钮.pressed.connect(_弹出批量考核)
+	排序行.add_child(批量考核钮)
 	弟子页头.add_child(排序行)
-	根.add_child(弟子页头)
-	根.move_child(弟子页头, 根.get_children().find(滚动))
-	弟子页头.visible = true
 	_刷新排序按钮()
+	引导_弟子提示 = Label.new()
+	引导_弟子提示.text = "可前往「弟子」页查看详情 →"
+	引导_弟子提示.add_theme_font_size_override("font_size", FONT_AUX)
+	引导_弟子提示.add_theme_color_override("font_color", 暗金)
+	引导_弟子提示.visible = false
+	弟子页头.add_child(引导_弟子提示)
 
-	# 详情面板（底部常驻）
-	详情 = Label.new()
-	详情.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var 详情面板: PanelContainer = 新面板("🔍 详情")
-	详情面板.custom_minimum_size = Vector2(0, 110)
-	详情面板.get_child(0).add_child(详情)
-	根.add_child(详情面板)
+func _弹_设置():
+	var 遮 := ColorRect.new()
+	遮.color = 弹窗遮罩
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "设置弹窗"
+	add_child(遮)
+	var pc: PanelContainer = 新面板("⚙ 设置")
+	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
+	pc.offset_left = -160; pc.offset_top = -120; pc.offset_right = 160; pc.offset_bottom = 120
+	遮.add_child(pc)
+	var 内容: Control = pc.get_child(0)
+	var 存 := Button.new(); 存.text = "存档"; 存.custom_minimum_size = Vector2(0, 44); 存.pressed.connect(_on_存档); 内容.add_child(存)
+	var 读 := Button.new(); 读.text = "读档"; 读.custom_minimum_size = Vector2(0, 44); 读.pressed.connect(_on_读档); 内容.add_child(读)
+	var 新 := Button.new(); 新.text = "新游戏"; 新.custom_minimum_size = Vector2(0, 44); 新.pressed.connect(_on_新游戏); 内容.add_child(新)
+	var 关 := Button.new(); 关.text = "关闭"; 关.custom_minimum_size = Vector2(0, 44); 关.pressed.connect(func(): 遮.queue_free()); 内容.add_child(关)
 
-	Game.弟子变动.connect(刷新)
-	Game.战报更新.connect(_on_战报)
-	Game.奇遇发生.connect(_on_奇遇发生)   # Step 2：奇遇三场景触发后展示调度
+func _弹_推演中心():
+	var 遮 := ColorRect.new()
+	遮.color = 弹窗遮罩
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "推演中心"
+	add_child(遮)
+	var pc: PanelContainer = 新面板("🐞 推演中心（调试）")
+	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
+	pc.offset_left = -170; pc.offset_top = -200; pc.offset_right = 170; pc.offset_bottom = 200
+	遮.add_child(pc)
+	var 内容: Control = pc.get_child(0)
+	var 推演 := Button.new(); 推演.text = "推演汇总"; 推演.custom_minimum_size = Vector2(0, 44); 推演.pressed.connect(_on_推演); 内容.add_child(推演)
+	var 推演7 := Button.new(); 推演7.text = "推演7天"; 推演7.custom_minimum_size = Vector2(0, 44); 推演7.pressed.connect(_on_推演七日); 内容.add_child(推演7)
+	var 快进年 := Button.new(); 快进年.text = "推演1年"; 快进年.custom_minimum_size = Vector2(0, 44); 快进年.pressed.connect(_on_推荐一年); 内容.add_child(快进年)
+	var 调试 := Button.new(); 调试.text = "调试战斗"; 调试.custom_minimum_size = Vector2(0, 44); 调试.pressed.connect(_on_调试战斗); 内容.add_child(调试)
+	if OS.is_debug_build():
+		var 强制征伐 := Button.new(); 强制征伐.text = "强制征伐"; 强制征伐.custom_minimum_size = Vector2(0, 44); 强制征伐.pressed.connect(_on_强制征伐); 内容.add_child(强制征伐)
+		var 重置 := Button.new(); 重置.text = "重置引导"; 重置.custom_minimum_size = Vector2(0, 44); 重置.pressed.connect(_on_重置引导); 内容.add_child(重置)
+		var 天品 := Button.new(); 天品.text = "强制天品"; 天品.custom_minimum_size = Vector2(0, 44); 天品.pressed.connect(_on_强制天品); 内容.add_child(天品)
+		var 聚气 := Button.new(); 聚气.text = "强制聚气丹"; 聚气.custom_minimum_size = Vector2(0, 44); 聚气.pressed.connect(_on_强制聚气丹); 内容.add_child(聚气)
+	var 关 := Button.new(); 关.text = "关闭"; 关.custom_minimum_size = Vector2(0, 44); 关.pressed.connect(func(): 遮.queue_free()); 内容.add_child(关)
 
-	# 自动推演：开门即按流逝现实时间推进（足球经理度假式汇总）
-	var 报: String = Game.推演至现在()
-	# 推演至现在() 内部 emit 战报更新 → _on_战报 已构建三层UI
-	# 此处无需手动设置战报.text（信号已处理）
-	刷新()
+func _弹_离山简报():
+	if 离山面板 == null or not is_instance_valid(离山面板):
+		return
+	if 离山内容区.get_child_count() == 0:
+		return
+	if get_node_or_null("离山简报遮") != null:
+		return   # 已开
+	var 遮 := ColorRect.new()
+	遮.name = "离山简报遮"
+	遮.color = 弹窗遮罩
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(遮)
+	var 框 := PanelContainer.new()
+	框.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	框.offset_left = 20; 框.offset_right = -20; 框.offset_top = 60; 框.offset_bottom = -20
+	遮.add_child(框)
+	框.add_child(离山面板)   # 重挂：离山面板 成为 框 子节点
 
-	# 新手引导系统（A 包：单线性四步，纯灰模，逻辑独立封装不侵入业务）
-	_引导_初始化()
+func _关_离山简报():
+	var 遮: Node = get_node_or_null("离山简报遮")
+	if 遮 == null or not is_instance_valid(遮):
+		return   # 弹窗未打开，不操作（避免把离山面板从 main 上误卸掉）
+	if is_instance_valid(离山面板):
+		var 父: Node = 离山面板.get_parent()
+		if is_instance_valid(父):
+			父.remove_child(离山面板)
+	遮.queue_free()
 
-func _on_切页(i: int):
-	var 名: String = 页名[i]
-	for k in 页控:
-		页控[k].visible = (k == 名)
-	弟子页头.visible = (名 == "弟子")   # P0：总战力+排序页头仅弟子页显示
+func _填_洞府页(内容: Control):
+	var 头 := Label.new(); 头.text = "⛰ 洞府经营总览"; 头.add_theme_font_size_override("font_size", FONT_PANEL_B); 头.add_theme_color_override("font_color", 暗金); 内容.add_child(头)
+	if Game.堂口列表.is_empty():
+		var 空 := Label.new(); 空.text = "（尚无堂口，招徒后自动建置）"; 内容.add_child(空)
+		return
+	for key in Game.堂口列表.keys():
+		var 堂: Dictionary = Game.堂口列表[key]
+		var 名: String = 堂.get("名称", key)
+		var 成员数: int = (堂.get("成员", []) as Array).size()
+		var 产: int = Game.预估建筑产出(key)
+		var 卡: PanelContainer = 新面板(名)
+		卡.add_theme_stylebox_override("panel", _暗墨面板())
+		var 文: VBoxContainer = 卡.get_child(0)
+		var l1 := Label.new(); l1.text = "成员 %d 人｜预估月产 +%d 灵石" % [成员数, 产]; l1.add_theme_color_override("font_color", 次墨); 文.add_child(l1)
+		内容.add_child(卡)
+
+func _填_修炼页(内容: Control):
+	var 头 := Label.new(); 头.text = "🧘 修炼设施"; 头.add_theme_font_size_override("font_size", FONT_PANEL_B); 头.add_theme_color_override("font_color", 暗金); 内容.add_child(头)
+	if Game.弟子列表.is_empty():
+		var 空 := Label.new(); 空.text = "（尚无弟子，先去「弟子」页接引）"; 内容.add_child(空)
+		return
+	for d in Game.弟子列表:
+		var 卡: PanelContainer = 新面板(d.姓名)
+		卡.add_theme_stylebox_override("panel", _暗墨面板())
+		var 文: VBoxContainer = 卡.get_child(0)
+		var l1 := Label.new(); l1.text = "境界：%s" % d.境界; l1.add_theme_color_override("font_color", 次墨); 文.add_child(l1)
+		var 进: int = int(d.修炼进度 * 100)
+		var l2 := Label.new(); l2.text = "修炼进度：%d%%" % 进; l2.add_theme_color_override("font_color", 次墨); 文.add_child(l2)
+		if d.突破冷却剩余 > 0:
+			var l3 := Label.new(); l3.text = "突破冷却：%d 日" % int(d.突破冷却剩余); l3.add_theme_color_override("font_color", 朱砂); 文.add_child(l3)
+		内容.add_child(卡)
+
+func _填_账册页(内容: Control):
+	var 头 := Label.new(); 头.text = "📒 宗门账册"; 头.add_theme_font_size_override("font_size", FONT_PANEL_B); 头.add_theme_color_override("font_color", 暗金); 内容.add_child(头)
+	var 总产: int = Game.预估月产出()
+	var 概 := Label.new(); 概.text = "预估月产出：+%d 灵石（含弟子修炼 %d）" % [总产, Game.弟子列表.size() * 2]; 概.add_theme_color_override("font_color", 暗金); 内容.add_child(概)
+	var 资 := Label.new(); 资.text = "现储：灵石 %d｜灵草 %d｜矿石 %d｜灵气 %d｜贡献 %d" % [Game.灵石, Game.灵草, Game.矿石, Game.灵气, Game.贡献点]; 资.add_theme_color_override("font_color", 次墨); 内容.add_child(资)
+	内容.add_child(小标题("—— 各堂口产出 ——", 15))
+	for key in Game.堂口列表.keys():
+		var 堂: Dictionary = Game.堂口列表[key]
+		var 名: String = 堂.get("名称", key)
+		var 产: int = Game.预估建筑产出(key)
+		var l := Label.new(); l.text = "%s：+%d /月" % [名, 产]; l.add_theme_color_override("font_color", 次墨); 内容.add_child(l)
 
 func _on_推演():
+	_引导_推进("推演")
 	战报.text = Game.推演至现在()
 	详情.text = "已推演至现在。"
 
 func _on_测灵根():
-	_引导_推进("招收")
+	# 关键修复：本函数会经 Game.举办测灵根()→弟子变动.emit()→刷新()、以及 _引导_推进 重建当前
+	# 弟子页（含本按钮自身）。整包延迟到本帧 pressed 回调结束后执行，彻底避开"信号回调内释放
+	# 发射者节点"→ "assign invalid previously freed instance" 崩溃。
+	call_deferred("_测灵根_执行")
+
+func _测灵根_执行():
+	# 边缘恢复：理论上步④已招徒，若弟子列表仍空（异常），回落到步③招徒以免卡步
+	if Game.引导阶段 == 4 and Game.弟子列表.is_empty():
+		Game.引导阶段 = 3
+	# 不在这里推进引导："收入外门"按钮才是步③的终点确认，点击后再推进到步④。
+	# 否则弹窗还没关，步④气泡就会在遮罩后面指向弟子页，玩家无法交互。
 	var r: Dictionary = Game.举办测灵根()
 	if r.has("冷却剩余"):
 		详情.text = "接引大典尚在筹备中，接引筹备周期尚余 %d 天。" % r["冷却剩余"]
 		return
 	_过场弹窗(str(r["过场"]), int(r["人数"]))
+	# 弹窗打开后刷新引导：目标从「开启接引大典」切换为「收入外门」
+	_引导_刷新()
 
 func _on_建筑总览():
-	_引导_推进("资源")
-	_建筑总览弹窗()
+	_建_二级页("建筑")
 
 func _on_快进():
 	Game.推进孵化(30)
@@ -324,7 +979,9 @@ func _on_存档():
 func _on_读档():
 	Game.load_game()
 	详情.text = "已读档"
-	_引导_刷新()   # 读档后续接引导气泡（或清场，视读取的引导阶段）
+	刷新()
+	_引导_初始化()   # 读档后续接引导（按引导阶段恢复气泡/目标条/灰锁，或清场）
+	_弹_离山简报()   # 读档上线弹离线收益简报
 
 # 调试战斗入口（灰模）：用真实弟子最终属性快照触发 1v1 与 3v3 车轮战，
 # 结构化战斗日志打印至控制台（ADR-003 D7）。属性全部取自 get_final_combat_attr()，无硬编码。
@@ -403,7 +1060,7 @@ func _on_强制聚气丹():
 		return
 	var 摘要: String = Game._解析并发放奇遇奖励(d, "dan_low:2")
 	Game.宗门纪事.append({"日": Game.累计游戏日, "弟子": d.姓名, "稀有度": "普通", "名称": "调试·聚气丹", "文案": "获得奖励：%s" % 摘要.strip_edges()})
-	if 页控.get("纪事", null) != null and 页控["纪事"].visible:
+	if 当前页名 == "纪事":
 		刷新纪事()
 	_toast("（已强制触发聚气丹奇遇，见「纪事」页签点击验证）")
 
@@ -412,16 +1069,27 @@ func _on_强制聚气丹():
 func _on_重置引导():
 	Game.引导阶段 = 0
 	Game.save_game()
+	_引导已收尾 = false
+	_首推演已保底 = false
+	_招徒后_弟子高亮中 = false
+	_弟子详情_已自动展开 = false
 	引导_跳过按钮.visible = true
-	_引导_开场()
+	_引导_清除()
+	_清除招徒高亮()
+	_引导_初始化()   # 重新初始化（重放序章）
 
 # 开始新游戏（调试专用）：删存档 + 重置所有状态 + 重新初始化
 func _on_新游戏():
 	Game.new_game()
-	引导_跳过按钮.visible = true
 	_引导已收尾 = false
+	_首推演已保底 = false
+	_招徒后_弟子高亮中 = false
+	_弟子详情_已自动展开 = false
+	引导_跳过按钮.visible = true
 	_引导_清除()
+	_清除招徒高亮()
 	刷新()
+	_引导_初始化()
 
 # 推演一年（调试专用）：快进365天，方便测试长期推演/奇遇/突破
 func _on_推荐一年():
@@ -480,20 +1148,65 @@ func _on_战报(文本: String):
 func _评级色(评级: String) -> Color:
 	match 评级:
 		"SSS", "SS":
-			return Color(0.85, 0.15, 0.15)
+			return 评级_红
 		"S", "A+":
-			return Color(0.85, 0.55, 0.1)
+			return 评级_橙
 		"A", "B":
-			return Color(0.2, 0.6, 0.3)
+			return 评级_绿
 		"C":
-			return Color(0.45, 0.45, 0.55)
+			return 评级_灰
 		_:
-			return Color(0.5, 0.3, 0.3)
+			return 评级_默认
+
+# P1：七载大典仪式弹窗（双周期评级收口庆典，零数值，纯展示）
+func _弹七载大典():
+	var 弹: Dictionary = _new_detail_popup("太玄宗·七载宗门大考")
+	var 内容: VBoxContainer = 弹["内容"]
+	var 摘: Dictionary = Game.七载大典摘要
+	var 评级: String = 摘.get("评级", Game.最新周期评级卡.get("评级", "C"))
+	var 文: Dictionary = Game._七载大典文案(评级)
+	var 序号: int = 摘.get("序号", 1)
+	# 标题（按评级分档）
+	var 贺 := Label.new()
+	贺.text = "✦ " + 文["标题"]
+	贺.add_theme_font_size_override("font_size", FONT_SUB)
+	贺.add_theme_color_override("font_color", 暗金)
+	内容.add_child(贺)
+	# 开篇仪式文案（高评级盛事感 / 低评级柔化挫败感）
+	var 开 := Label.new()
+	开.text = 文["开篇"]
+	开.add_theme_font_size_override("font_size", FONT_AUX)
+	开.add_theme_color_override("font_color", 次墨)
+	内容.add_child(开)
+	# 模块包装：七年库府结余 / 宗门重宝颁赐 / 宗门品阶跃迁
+	var 灵石: int = 摘.get("灵石", 0)
+	var 法宝数: int = 摘.get("法宝数", 0)
+	var 晋升至: int = 摘.get("晋升至", 0)
+	if 灵石 > 0 or 法宝数 > 0 or 晋升至 > 0:
+		var 块 := VBoxContainer.new()
+		块.add_theme_constant_override("separation", 2)
+		if 灵石 > 0:
+			var l := Label.new(); l.text = "〔七年库府结余〕灵石 +%d" % 灵石
+			l.add_theme_font_size_override("font_size", FONT_AUX); l.add_theme_color_override("font_color", 次墨); 块.add_child(l)
+		if 法宝数 > 0:
+			var l := Label.new(); l.text = "〔宗门重宝颁赐〕上品法宝 %d 件" % 法宝数
+			l.add_theme_font_size_override("font_size", FONT_AUX); l.add_theme_color_override("font_color", 次墨); 块.add_child(l)
+		if 晋升至 > 0:
+			var l := Label.new(); l.text = "〔宗门品阶跃迁〕晋至 Lv.%d" % 晋升至
+			l.add_theme_font_size_override("font_size", FONT_AUX); l.add_theme_color_override("font_color", 次墨); 块.add_child(l)
+		内容.add_child(块)
+	# 收尾纪年
+	var 铭 := Label.new()
+	铭.text = (文["收尾"] % 序号) + "\n—— 太玄宗·七载大典 ——"
+	铭.add_theme_font_size_override("font_size", FONT_AUX)
+	铭.add_theme_color_override("font_color", 次墨)
+	内容.add_child(铭)
 
 func _构建离山内容(数据: Dictionary):
-	# 清空旧内容
+	# 清空旧内容；关闭弹窗后异步重建可能遇到已释放节点，跳过无效实例
 	for c in 离山内容区.get_children():
-		c.queue_free()
+		if is_instance_valid(c):
+			c.queue_free()
 	# 战报 Label 若之前被 queue_free，直接访问会报 previously freed
 	if is_instance_valid(战报):
 		战报.visible = false
@@ -513,7 +1226,7 @@ func _构建离山内容(数据: Dictionary):
 	# 标题行：离开期间 + 时间
 	var 标题行 := Label.new()
 	标题行.text = "✦ 你离开了 %d 天" % 流失日 if 流失日 > 0 else "✦ 刚刚回归"
-	标题行.add_theme_font_size_override("font_size", 17)
+	标题行.add_theme_font_size_override("font_size", FONT_PANEL)
 	标题行.add_theme_color_override("font_color", 暗金)
 	总览.add_child(标题行)
 
@@ -521,7 +1234,7 @@ func _构建离山内容(数据: Dictionary):
 	if 灵石收益 > 0:
 		var 资源行 := Label.new()
 		资源行.text = "💰  灵石 +%d" % 灵石收益
-		资源行.add_theme_font_size_override("font_size", 14)
+		资源行.add_theme_font_size_override("font_size", FONT_BODY)
 		资源行.add_theme_color_override("font_color", 暗金)
 		总览.add_child(资源行)
 
@@ -538,7 +1251,7 @@ func _构建离山内容(数据: Dictionary):
 	if not 统计部分.is_empty():
 		var 统计行 := Label.new()
 		统计行.text = "    ".join(统计部分)
-		统计行.add_theme_font_size_override("font_size", 12)
+		统计行.add_theme_font_size_override("font_size", FONT_AUX)
 		统计行.add_theme_color_override("font_color", 次墨)
 		总览.add_child(统计行)
 
@@ -546,25 +1259,25 @@ func _构建离山内容(数据: Dictionary):
 	var 筛选行 := HBoxContainer.new()
 	筛选行.add_theme_constant_override("separation", 4)
 	var 全部钮 := Button.new(); 全部钮.text = "全部"
-	全部钮.add_theme_font_size_override("font_size", 11)
+	全部钮.add_theme_font_size_override("font_size", FONT_AUX)
 	全部钮.add_theme_color_override("font_color", 暗金 if _战报筛选 == "" else 次墨)
 	全部钮.pressed.connect(func(): _设战报筛选(""))
 	筛选行.add_child(全部钮)
 	if 摘要.get("breakthrough_count", 0) > 0:
 		var 突破钮 := Button.new(); 突破钮.text = "突破 %d" % 摘要["breakthrough_count"]
-		突破钮.add_theme_font_size_override("font_size", 11)
+		突破钮.add_theme_font_size_override("font_size", FONT_AUX)
 		突破钮.add_theme_color_override("font_color", 暗金 if _战报筛选 == "breakthrough" else 次墨)
 		突破钮.pressed.connect(func(): _设战报筛选("breakthrough"))
 		筛选行.add_child(突破钮)
 	if 摘要.get("appoint_count", 0) > 0:
 		var 任职钮 := Button.new(); 任职钮.text = "任职 %d" % 摘要["appoint_count"]
-		任职钮.add_theme_font_size_override("font_size", 11)
+		任职钮.add_theme_font_size_override("font_size", FONT_AUX)
 		任职钮.add_theme_color_override("font_color", 暗金 if _战报筛选 == "appoint" else 次墨)
 		任职钮.pressed.connect(func(): _设战报筛选("appoint"))
 		筛选行.add_child(任职钮)
 	if 摘要.get("quest_success_count", 0) > 0:
 		var 奇遇钮 := Button.new(); 奇遇钮.text = "奇遇 %d" % 摘要["quest_success_count"]
-		奇遇钮.add_theme_font_size_override("font_size", 11)
+		奇遇钮.add_theme_font_size_override("font_size", FONT_AUX)
 		奇遇钮.add_theme_color_override("font_color", 暗金 if _战报筛选 == "quest" else 次墨)
 		奇遇钮.pressed.connect(func(): _设战报筛选("quest"))
 		筛选行.add_child(奇遇钮)
@@ -573,31 +1286,56 @@ func _构建离山内容(数据: Dictionary):
 	# 一键领取按钮（展示型：确认已阅 + 收起）
 	var 领取按钮 := Button.new()
 	领取按钮.text = "  ✓ 一键领取  "
-	领取按钮.add_theme_font_size_override("font_size", 13)
+	领取按钮.add_theme_font_size_override("font_size", FONT_AUX)
 	# 按钮 Tween 动画（悬停/按下）— 见 _接按钮Tween 函数
 	_接按钮动画(领取按钮)
 	领取按钮.pressed.connect(_on_一键领取.bind(领取按钮))
 	总览.add_child(领取按钮)
 
-	# P1：周期评级卡片（年结后优先展示于离山汇总顶部）
+	# P1：太玄宗·岁末考评卡片（年结后优先展示于离山汇总顶部，三栏：评级 / 当年论功 / 七载积存）
 	if not Game.最新周期评级卡.is_empty():
 		var 卡: Dictionary = Game.最新周期评级卡
 		var 评级卡 := VBoxContainer.new()
 		评级卡.add_theme_constant_override("separation", 3)
 		var 标题 := Label.new()
-		标题.text = "🏆 第 %d 周期评定：%s（%d 分）" % [卡["周期"], 卡["评级"], 卡["总分"]]
-		标题.add_theme_font_size_override("font_size", 16)
+		标题.text = "🏆 太玄宗·岁末考评：%s（第 %d 周期 · %d 分）" % [卡["评级"], 卡["周期"], 卡["总分"]]
+		标题.add_theme_font_size_override("font_size", FONT_SUB)
 		标题.add_theme_color_override("font_color", _评级色(卡["评级"]))
 		评级卡.add_child(标题)
 		var 维 := Label.new()
 		维.text = "经营 %d ｜ 收益 %d ｜ 弟子 %d" % [卡["分维度"]["经营"], 卡["分维度"]["收益"], 卡["分维度"]["弟子"]]
-		维.add_theme_font_size_override("font_size", 12)
+		维.add_theme_font_size_override("font_size", FONT_AUX)
 		维.add_theme_color_override("font_color", 次墨)
 		评级卡.add_child(维)
+		# 三栏：当年论功（灵石）/ 七载积存 / 高阶法宝平移
+		var 栏文: String = "当年论功 灵石+%d" % 卡.get("年度发", 0)
+		if Game._校准开("双周期评级启用", true):
+			栏文 += " ｜ 七载积存 %d" % Game.七载奖励池
+			if 卡.get("平移法宝", false):
+				栏文 += " ｜ 上品法宝留待七载大典"
+		var 栏 := Label.new()
+		栏.text = 栏文
+		栏.add_theme_font_size_override("font_size", FONT_AUX)
+		栏.add_theme_color_override("font_color", 暗金)
+		评级卡.add_child(栏)
+		# 双倒计时：距岁末 / 距七载大考
+		var 距岁末: int = max(0, (Game.上次结算年 + 365) - Game.累计游戏日)
+		var 倒文: String = "距岁末考评 %d 日" % 距岁末
+		if Game._校准开("双周期评级启用", true):
+			var 距七载: int = max(0, (Game.上次七载日 + Game._校准整("七载周期年", 7) * 365) - Game.累计游戏日)
+			倒文 += " ｜ 距七载大考 %d 日" % 距七载
+		var 倒 := Label.new()
+		倒.text = 倒文
+		倒.add_theme_font_size_override("font_size", FONT_AUX)
+		倒.add_theme_color_override("font_color", 次墨)
+		评级卡.add_child(倒)
 		离山内容区.add_child(评级卡)
 		var 分隔顶 := HSeparator.new(); 分隔顶.modulate.a = 0.35; 离山内容区.add_child(分隔顶)
 
 	离山内容区.add_child(总览)
+
+	# 「你离开期间 · 宗门现状」概览（纯展示既有字段，确保离线简报永不为空）
+	离山内容区.add_child(_离山现状块(摘要))
 
 	# 分隔线
 	var 分隔1 := HSeparator.new()
@@ -642,7 +1380,7 @@ func _构建离山内容(数据: Dictionary):
 		离山内容区.add_child(分隔_重大)
 		var 重大容器 := VBoxContainer.new()
 		var 重大按钮 := Button.new()
-		重大按钮.add_theme_font_size_override("font_size", 13)
+		重大按钮.add_theme_font_size_override("font_size", FONT_AUX)
 		重大按钮.add_theme_color_override("font_color", 颜色_极品)
 		重大按钮.text = ("▼ 收起重大事件" if _重大已展开 else "▶ 展开重大事件（%d条）") % 重大总数
 		重大容器.add_child(重大按钮)
@@ -669,7 +1407,7 @@ func _构建离山内容(数据: Dictionary):
 		离山内容区.add_child(分隔2)
 		var 折叠_container := VBoxContainer.new()
 		var 折叠按钮 := Button.new()
-		折叠按钮.add_theme_font_size_override("font_size", 11)
+		折叠按钮.add_theme_font_size_override("font_size", FONT_AUX)
 		折叠按钮.add_theme_color_override("font_color", 颜色_琐事)
 		折叠按钮.text = ("▼ 收起琐事" if _琐事已展开 else "▶ 查看全部琐事（%d条）") % 琐事总数
 		折叠_container.add_child(折叠按钮)
@@ -678,7 +1416,7 @@ func _构建离山内容(数据: Dictionary):
 		for 条目 in 琐事_可见:
 			var 行 := Label.new()
 			行.text = "  " + 符号失败 + " " + 条目.get("text", "")
-			行.add_theme_font_size_override("font_size", 11)
+			行.add_theme_font_size_override("font_size", FONT_AUX)
 			行.add_theme_color_override("font_color", 颜色_琐事)
 			理事列表.add_child(行)
 		折叠_container.add_child(理事列表)
@@ -695,10 +1433,58 @@ func _构建离山内容(数据: Dictionary):
 	if _战报筛选 != "" and 重大总数 == 0 and 琐事总数 == 0:
 		var 空记 := Label.new()
 		空记.text = "暂无相关记录"
-		空记.add_theme_font_size_override("font_size", 12)
+		空记.add_theme_font_size_override("font_size", FONT_AUX)
 		空记.add_theme_color_override("font_color", 次墨)
 		离山内容区.add_child(空记)
 
+	# 七载大典仪式弹窗（七载大考后于离山汇总展示一次，纯展示零数值）
+	if Game.七载大典待展示:
+		Game.七载大典待展示 = false
+		_弹七载大典()
+
+# 「你离开期间 · 宗门现状」概览块（纯展示既有字段，确保离线简报永不为空）
+func _离山现状块(摘要: Dictionary) -> VBoxContainer:
+	var 块 := VBoxContainer.new()
+	块.add_theme_constant_override("separation", 2)
+	块.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var 题: Label = 小标题("—— 你离开期间 · 宗门现状 ——", FONT_AUX)
+	块.add_child(题)
+	# 资源产出（核心经营数据，既有 预估月产出）
+	var l1 := Label.new()
+	l1.text = "资源产出：+%d 灵石 / 月" % Game.预估月产出()
+	l1.add_theme_font_size_override("font_size", FONT_AUX)
+	l1.add_theme_color_override("font_color", 玉石绿)
+	块.add_child(l1)
+	# 弟子（在册 + 在岗）
+	var 在岗: int = _在岗弟子数()
+	var l2 := Label.new()
+	l2.text = "弟子：%d 人在册（在岗 %d 人）" % [Game.弟子列表.size(), 在岗]
+	l2.add_theme_font_size_override("font_size", FONT_AUX)
+	l2.add_theme_color_override("font_color", 次墨)
+	块.add_child(l2)
+	# 修炼进展（在修弟子数，既有 修炼进度 字段）
+	var 在修: int = 0
+	for d in Game.弟子列表:
+		if d.修炼进度 > 0:
+			在修 += 1
+	var l3 := Label.new()
+	l3.text = "修炼进展：%d 人在修" % 在修
+	l3.add_theme_font_size_override("font_size", FONT_AUX)
+	l3.add_theme_color_override("font_color", 次墨)
+	块.add_child(l3)
+	# 事件数（来自结构化 summary，无事件时为 0）
+	var 事件数: int = int(摘要.get("total_events", 0))
+	var l4 := Label.new()
+	l4.text = "累计事件：%d 条" % 事件数
+	l4.add_theme_font_size_override("font_size", FONT_AUX)
+	l4.add_theme_color_override("font_color", 次墨)
+	块.add_child(l4)
+	var l5 := Label.new()
+	l5.text = "当前时日：%s" % Game.时间文本()
+	l5.add_theme_font_size_override("font_size", FONT_AUX)
+	l5.add_theme_color_override("font_color", 青灰)
+	块.add_child(l5)
+	return 块
 
 # 格式化单条事件为带符号+颜色的文本
 func _格式事件行(条目: Dictionary, 是高优: bool) -> String:
@@ -714,7 +1500,7 @@ func _格式事件行(条目: Dictionary, 是高优: bool) -> String:
 func _新事件行(条目: Dictionary, 是高优: bool) -> Label:
 	var 行: Label = Label.new()
 	行.text = _格式事件行(条目, 是高优)
-	行.add_theme_font_size_override("font_size", 12)
+	行.add_theme_font_size_override("font_size", FONT_AUX)
 	行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return 行
 
@@ -726,6 +1512,9 @@ func _设战报筛选(类型: String) -> void:
 	# 等待完整一帧后再重建，确保按钮 pressed 信号、Tween、焦点切换全部结束，
 	# 避免在信号活跃期间 queue_free 自己或其 lambda 捕获的节点。
 	await get_tree().process_frame
+	# 若用户已关闭弹窗，离山面板不再挂载，取消重建避免访问已释放节点
+	if not is_instance_valid(离山面板) or 离山面板.get_parent() == null:
+		return
 	_构建离山内容(Game.离线汇总数据)
 
 
@@ -754,7 +1543,7 @@ func _接按钮动画(btn: Button):
 			return
 		var tw: Tween = btn.create_tween()
 		tw.tween_property(btn, "scale", press_scale, anim_dur * 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tw.parallel().tween_property(btn, "modulate", Color(0.9, 0.9, 0.9), anim_dur * 0.8)
+		tw.parallel().tween_property(btn, "modulate", 强调亮灰, anim_dur * 0.8)
 	)
 	btn.button_up.connect(func():
 		if not is_instance_valid(btn):
@@ -767,9 +1556,11 @@ func _接按钮动画(btn: Button):
 
 # 一键领取回调（展示型：确认已阅 + 按钮变灰）
 func _on_一键领取(btn: Button):
+	if not is_instance_valid(btn):
+		return
 	btn.disabled = true
 	btn.text = "  ✓ 已领取  "
-	btn.modulate = Color(0.55, 0.52, 0.48)   # 置灰
+	btn.modulate = 置灰色   # 置灰
 	btn.scale = Vector2(1.0, 1.0)                # 重置缩放
 	详情.text = "本次离线收益已知悉到账。宗门运转正常，弟子修炼不辍。"
 
@@ -864,6 +1655,7 @@ func _on_选弟子(d: Disciple):
 	# 引导步骤4：点开弟子详情后推进到完成（修复：之前误删导致卡死）
 	if Game.引导阶段 == 4:
 		_引导_推进("查看弟子")
+		_清除招徒高亮()   # 完成步④后清除招徒高亮与淡提示
 
 func _on_命格(d: Disciple):
 	_弹出弟子属性弹窗("命格", "【命格】%s" % d.命格详情(), d)
@@ -878,13 +1670,119 @@ func _on_职业(d: Disciple):
 	var 职名: String = d.职业 if d.职业 != "" else "未入门"
 	_弹出弟子属性弹窗("职业", "【职业·%s】\n%s" % [职名, d.职业详情()], d)
 
+# ============ S1 批1：阶位轴操作（考核晋升 / 罢免阶位 / 批量考核）============
+func _on_考核晋升(d: Disciple):
+	if d == null:
+		return
+	if not d.可授阶():
+		_toast("%s 身份不足，须内门及以上方可授阶" % d.姓名)
+		return
+	if d.考核冷却剩余 > 0:
+		_toast("%s 考核冷却中（剩余 %d 日）" % [d.姓名, d.考核冷却剩余])
+		return
+	var 破格: bool = Game.满足破格条件(d)
+	var 上限idx: int = d.阶位上限索引(破格)
+	if d.阶位索引() >= 上限idx:
+		_toast("%s 已达该身份可任最高阶位" % d.姓名)
+		return
+	var 目标阶位: String = d.阶位层级序[d.阶位索引() + 1]
+	var 占用: int = Game.阶位名额占用(目标阶位)
+	var 上限: int = Game.阶位名额上限(目标阶位)
+	if 占用 >= 上限:
+		_toast("%s 名额已满（%d/%d）" % [目标阶位, 占用, 上限])
+		return
+	var 弹: Dictionary = _new_detail_popup("考核晋升 · %s" % d.姓名)
+	var 信息 := Label.new()
+	信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	信息.text = "当前阶位：阶位·%s\n目标阶位：阶位·%s\n成功率：%d%%\n行政成本：贡献点 -%d（失败再 -%d）\n名额：%d/%d%s" % \
+		[d.阶位 if d.阶位 != "无" else "无（未授阶）", 目标阶位, int(d.考核成功率() * 100),
+		 Game.考核成本, Game.考核失败扣减, 占用, 上限, ("（破格 +1 阶）" if 破格 else "")]
+	弹["内容"].add_child(信息)
+	var 行 := HBoxContainer.new(); 行.add_theme_constant_override("separation", 6)
+	var 确认 := Button.new(); 确认.text = "发起考核"
+	确认.disabled = (Game.贡献点 < Game.考核成本)
+	确认.pressed.connect(func():
+		if not is_instance_valid(弹["遮"]):
+			return
+		弹["遮"].queue_free()
+		_执行考核(d)
+	)
+	行.add_child(确认)
+	var 取消 := Button.new(); 取消.text = "取消"
+	取消.pressed.connect(func():
+		if is_instance_valid(弹["遮"]):
+			弹["遮"].queue_free()
+	)
+	行.add_child(取消)
+	弹["内容"].add_child(行)
+	弹["内容"].add_child(弹["关"])
+
+func _执行考核(d: Disciple):
+	var r: Dictionary = Game.发起考核(d)
+	if r.get("成功"):
+		_toast("【晋升】%s 晋阶为 阶位·%s！" % [d.姓名, d.阶位])
+	else:
+		_toast("考核结果：%s（%s）" % [("失利" if r.get("ok") else "未发起"), r.get("原因", "")])
+	刷新()
+
+func _on_罢免阶位(d: Disciple):
+	if d == null or d.阶位 == "无":
+		return
+	var r: Dictionary = Game.罢免阶位(d)
+	if r.get("ok"):
+		_toast("【罢免】%s 被罢去阶位，现任 阶位·%s。" % [d.姓名, d.阶位])
+	else:
+		_toast("罢免失败：%s" % r.get("原因", ""))
+	刷新()
+
+func _弹出批量考核():
+	var 候选: Array = []
+	for d in Game.弟子列表:
+		if d.可授阶() and d.考核冷却剩余 <= 0:
+			候选.append(d)
+	if 候选.is_empty():
+		_toast("当前无可考核弟子（须内门及以上且不在冷却中）")
+		return
+	var 弹: Dictionary = _new_detail_popup("批量考核")
+	var 说明 := Label.new()
+	说明.text = "勾选参与本次考核的弟子（逐人独立掷骰，独立判定冷却与名额）："
+	说明.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	弹["内容"].add_child(说明)
+	var 勾列表: Array = []
+	for d in 候选:
+		var 行 := HBoxContainer.new(); 行.add_theme_constant_override("separation", 6)
+		var 勾 := CheckBox.new(); 勾.text = "%s（阶位·%s）" % [d.姓名, d.阶位]
+		勾.set_meta("弟子", d)
+		勾列表.append(勾)
+		行.add_child(勾)
+		弹["内容"].add_child(行)
+	var 确认 := Button.new(); 确认.text = "确认考核"
+	确认.pressed.connect(func():
+		if not is_instance_valid(弹["遮"]):
+			return
+		var 选: Array = []
+		for 勾 in 勾列表:
+			if 勾.button_pressed:
+				选.append(勾.get_meta("弟子"))
+		if 选.is_empty():
+			_toast("未勾选任何弟子")
+			return
+		var 汇总: Dictionary = Game.批量考核(选)
+		_toast("批量考核完成：成功 %d · 失败 %d · 跳过 %d · 贡献扣减 %d" % [汇总["成功"].size(), 汇总["失败"].size(), 汇总["跳过"].size(), 汇总["贡献扣减"]])
+		刷新()
+		if is_instance_valid(弹["遮"]):
+			_关闭详情(弹["遮"])
+	)
+	弹["内容"].add_child(确认)
+	弹["内容"].add_child(弹["关"])
+
 # 统一详情弹窗外壳：创建遮罩+面板+标题，返回 {遮, 内容, 关}
 # 内置：点击蒙版关闭 / ESC关闭 / 0.15s淡入缩放动画 / 长内容滚动兜底
 # 调用方往 内容 加滚动区/信息/关按钮。降级不崩：标题为空显示占位。
 func _new_detail_popup(标题文本: String, 标题色: Color = 暗金) -> Dictionary:
 	# 单实例守卫：快速连点时释放上一个遮罩，只保留最后一次（防层叠、降开销）
 	if _当前详情遮 != null and is_instance_valid(_当前详情遮):
-		_当前详情遮.queue_free()
+		_关闭详情(_当前详情遮)
 	var 遮 := ColorRect.new()
 	遮.color = 墨底
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -897,7 +1795,7 @@ func _new_detail_popup(标题文本: String, 标题色: Color = 暗金) -> Dicti
 	背板.modulate.a = 0.0
 	背板.mouse_filter = Control.MOUSE_FILTER_STOP
 	背板.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	背板.pressed.connect(func(): 遮.queue_free())
+	背板.pressed.connect(func(): _关闭详情(遮))
 	遮.add_child(背板)
 	var 大 := PanelContainer.new()
 	大.anchor_left = 0.5; 大.anchor_top = 0.5; 大.anchor_right = 0.5; 大.anchor_bottom = 0.5
@@ -908,15 +1806,15 @@ func _new_detail_popup(标题文本: String, 标题色: Color = 暗金) -> Dicti
 	大.add_child(内容)
 	var 标题 := Label.new()
 	标题.text = "📜 " + (标题文本 if 标题文本 != "" else "详情")
-	标题.add_theme_font_size_override("font_size", 17)
+	标题.add_theme_font_size_override("font_size", FONT_PANEL)
 	标题.add_theme_color_override("font_color", 标题色)
 	内容.add_child(标题)
 	var 关 := Button.new(); 关.text = "知悉"
-	关.pressed.connect(func(): 遮.queue_free())
+	关.pressed.connect(func(): _关闭详情(遮))
 	# ESC 全局关闭（遮罩获焦后接收键盘事件）
 	遮.gui_input.connect(func(e: InputEvent):
 		if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
-			遮.queue_free())
+			_关闭详情(遮))
 	遮.grab_focus()
 	# 入场动画：淡入 + 轻微缩放（绕中心）
 	大.modulate.a = 0.0
@@ -938,9 +1836,188 @@ func _弹出弟子属性弹窗(类型: String, 内容文本: String, _d: Discipl
 	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	弹["内容"].add_child(滚)
+	var 盒 := VBoxContainer.new()
+	滚.add_child(盒)
 	var 信息 := Label.new()
 	信息.text = 内容文本
-	滚.add_child(信息)
+	盒.add_child(信息)
+	# === S1 批5-B：辈分 / 道号 行（复用批4 _属性行 范式，次墨）===
+	盒.add_child(_属性行("辈分：%s" % (Game.辈分字派[_d.辈分序] if _d.辈分序 < Game.辈分字派.size() else "—"), 次墨))
+	盒.add_child(_属性行("道号：%s" % (_d.道号 if _d.道号 != "" else "（未取）"), 次墨))
+	弹["内容"].add_child(弹["关"])
+
+# ===== S1 批4：详情弹窗扩展 + 富文本点击联动（纯 UI 层，不改动战斗结算代码） =====
+
+# 属性行（复用对象池）：优先从 _attr_line_pool 取 Label，否则新建；标记 meta("pooled") 以便回收
+func _属性行(文本: String, 色: Color) -> Label:
+	var l: Label
+	if not _attr_line_pool.is_empty():
+		l = _attr_line_pool.pop_back()
+		if is_instance_valid(l):
+			l.text = 文本
+			l.visible = true
+			l.modulate = Color(1, 1, 1, 1)
+			l.add_theme_color_override("font_color", 色)
+		else:
+			l = Label.new()
+	else:
+		l = Label.new()
+	if l.get_meta("pooled", false) == false:
+		l.set_meta("pooled", true)
+	return l
+
+# 回收详情行：递归遍历遮罩子树，将 meta("pooled")==true 的 Label 移入回收站保活并归还对象池
+func _回收详情行(遮: Control) -> void:
+	if 遮 == null or not is_instance_valid(遮):
+		return
+	for c in 遮.get_children():
+		if c is Label and c.get_meta("pooled", false) == true:
+			c.visible = false
+			_详情回收站.add_child(c)
+			_attr_line_pool.append(c)
+		elif c is Control and c != 遮:
+			_回收详情行(c)
+
+# 统一关闭入口：回收池化 Label 后 queue_free（视觉生命周期不变，关闭即销毁）
+func _关闭详情(遮: Control) -> void:
+	if 遮 == null or not is_instance_valid(遮):
+		return
+	_回收详情行(遮)
+	遮.queue_free()
+
+func _弹出功法详情(id: String) -> void:
+	var g: Dictionary = SkillCultivationLoader.get_skill(id)
+	if g.is_empty():
+		_toast("（暂无详情）")
+		return
+	var 弹: Dictionary = _new_detail_popup(g.get("skill_name", "功法"), 暗金)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("功法ID：%s" % g.get("skill_id", ""), 墨黑))
+	vb.add_child(_属性行("品阶·亚阶：%s" % (str(g.get("grade", "")) + "·" + str(g.get("sub_grade", ""))), 墨黑))
+	vb.add_child(_属性行("适用职业：%s" % g.get("apply_class", "—"), 墨黑))
+	vb.add_child(_属性行("功法类型：%s" % g.get("skill_type", "—"), 墨黑))
+	vb.add_child(_属性行("效果数值：%s" % g.get("effect_value", "—"), 墨黑))
+	vb.add_child(_属性行("最大参悟等级：%s" % g.get("max_level", "—"), 墨黑))
+	vb.add_child(_属性行("解锁境界：%s" % g.get("unlock_realm", "—"), 墨黑))
+	vb.add_child(_属性行("参悟消耗：%s" % g.get("learn_cost", "—"), 墨黑))
+	vb.add_child(_属性行("描述：（暂无描述）", 墨黑))
+	弹["内容"].add_child(弹["关"])
+
+func _弹出Buff详情(id: String) -> void:
+	var b: Dictionary = BattleCalculator._buff模板(id)
+	if b.is_empty():
+		_toast("（暂无详情）")
+		return
+	var 弹: Dictionary = _new_detail_popup(b.get("buff名", "Buff"), 朱砂)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("BuffID：%s" % b.get("buff_id", ""), 墨黑))
+	var 类型色: Color = 次墨
+	if b.get("类型", "") in ["dot", "控制", "减益"]:
+		类型色 = 朱砂
+	vb.add_child(_属性行("类型：%s" % b.get("类型", "—"), 类型色))
+	vb.add_child(_属性行("作用属性：%s" % b.get("作用属性", "—"), 墨黑))
+	var 数值类型: String = b.get("数值类型", "none")
+	var 数值文本: String
+	if 数值类型 == "percent":
+		数值文本 = "%d%%（百分比）" % int(float(b.get("数值", 0)) * 100)
+	elif 数值类型 == "flat":
+		数值文本 = "%s（固定）" % str(b.get("数值", 0))
+	else:
+		数值文本 = "—"
+	vb.add_child(_属性行("数值·类型：%s" % 数值文本, 墨黑))
+	vb.add_child(_属性行("持续回合：%s" % b.get("持续回合", "—"), 墨黑))
+	vb.add_child(_属性行("来源类型：%s" % b.get("来源类型", "—"), 墨黑))
+	vb.add_child(_属性行("可叠加：%s" % ("是" if b.get("可叠加", false) else "否"), 墨黑))
+	vb.add_child(_属性行("备注：%s" % b.get("备注", "（暂无备注）"), 墨黑))
+	弹["内容"].add_child(弹["关"])
+
+func _弹出建筑详情(key: String) -> void:
+	var e: Variant = Game.堂口列表.get(key)
+	if e == null or not (e is Dictionary):
+		_toast("（暂无详情）")
+		return
+	var 弹: Dictionary = _new_detail_popup(e.get("名称", "建筑"), 青灰)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("堂口key：%s" % key, 墨黑))
+	vb.add_child(_属性行("等级：%s" % e.get("等级", "—"), 墨黑))
+	vb.add_child(_属性行("政绩：%s" % e.get("政绩", "—"), 墨黑))
+	vb.add_child(_属性行("状态：%s" % e.get("状态", "—"), 墨黑))
+	vb.add_child(_属性行("加成维度：%s" % e.get("加成维度", "—"), 墨黑))
+	var 负责: Variant = e.get("负责人", null)
+	vb.add_child(_属性行("负责人：%s" % (负责.姓名 if 负责 is Disciple else "—"), 墨黑))
+	var 成员数: int = (e.get("成员", []) as Array).size()
+	vb.add_child(_属性行("成员数：%d" % 成员数, 墨黑))
+	弹["内容"].add_child(弹["关"])
+
+func _弹出丹药详情(物品: Item) -> void:
+	if 物品 == null or 物品.类别 != "dan_yao":
+		_toast("（暂无详情）")
+		return
+	var 色: Color = get_rarity_color(物品.品阶)
+	var 弹: Dictionary = _new_detail_popup(物品.名称, 色)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("品阶：%s" % 物品.品阶, 墨黑))
+	vb.add_child(_属性行("品类标记：丹药", 墨黑))
+	vb.add_child(_属性行("简介：%s" % 物品.简介(), 墨黑))
+	vb.add_child(_属性行("描述：%s" % (物品.描述 if 物品.描述 != "" else "（暂无描述）"), 次墨))
+	vb.add_child(_属性行("说明：丹药功效详见简介/描述", 墨黑))
+	弹["内容"].add_child(弹["关"])
+
+func _弹出灵兽详情(b: Beast) -> void:
+	if b == null:
+		_toast("（暂无详情）")
+		return
+	var 弹: Dictionary = _new_detail_popup(b.种类名, 暗金)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("品阶：%s" % b.品阶, 墨黑))
+	vb.add_child(_属性行("等级：Lv.%d" % b.等级, 墨黑))
+	vb.add_child(_属性行("等级上限：%d" % b.等级上限, 墨黑))
+	vb.add_child(_属性行("类型：%s" % b.beast_type, 墨黑))
+	vb.add_child(_属性行("忠诚度：%d" % b.忠诚度, 墨黑))
+	vb.add_child(_属性行("简介：%s" % b.简介(), 墨黑))
+	弹["内容"].add_child(弹["关"])
+
+func _弹出纪事详情(记: Dictionary) -> void:
+	if 记 == null or not (记 is Dictionary) or 记.is_empty():
+		_toast("（暂无详情）")
+		return
+	var 弹: Dictionary = _new_detail_popup(记.get("名称", "纪事"), 暗金)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, mini(340, int(get_viewport_rect().size.y * 0.7)))
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	弹["内容"].add_child(滚)
+	var vb := VBoxContainer.new()
+	滚.add_child(vb)
+	vb.add_child(_属性行("日：%s" % 记.get("日", "—"), 墨黑))
+	vb.add_child(_属性行("category：%s" % 记.get("category", "—"), 墨黑))
+	vb.add_child(_属性行("稀有度：%s" % 记.get("稀有度", "—"), 墨黑))
+	vb.add_child(_属性行("弟子：%s" % (记.get("弟子", "") if 记.get("弟子", "") != "" else "—"), 墨黑))
+	vb.add_child(_属性行("文案：%s" % 记.get("文案", "—"), 墨黑))
 	弹["内容"].add_child(弹["关"])
 
 func 刷新():
@@ -960,6 +2037,12 @@ func 刷新():
 		序.sort_custom(_排序比较)
 	for d in 序:
 		列表.add_child(_弟子卡(d))
+	# 名录空占位（无弟子时给出引导，避免空白页）
+	if Game.弟子列表.is_empty():
+		var 空 := Label.new()
+		空.text = "（尚无弟子在册，前往「接引」开启接引大典）"
+		空.add_theme_color_override("font_color", 次墨)
+		列表.add_child(空)
 	# P0：宗门总战力（纯展示，不参与战斗结算）
 	var 总战力 := 0
 	for d in Game.弟子列表:
@@ -974,6 +2057,7 @@ func 刷新():
 	刷新抉择()
 	刷新御兽()
 	刷新纪事()
+	_刷新功能解锁()   # 同步灰锁（坊市/任务/历练/御兽）状态
 
 # ===== P0：弟子总览 排序 =====
 func _on_排序(维度: String):
@@ -1005,6 +2089,15 @@ func _排序比较(a: Disciple, b: Disciple) -> bool:
 		"资质":
 			var va: int = Lore._灵根品阶值(a.灵根品阶); var vb: int = Lore._灵根品阶值(b.灵根品阶)
 			return va > vb if 降 else va < vb
+		# === S1 批5-B 端口：[PLACEHOLDER] 辈分礼制排序维度「辈分序→境界→入门序」待实装 ===
+		# 接入方式：在 排序按钮组 增「辈分」钮(绑定 弟子排序维度="辈分")，并在此 match 增 case：
+		#   "辈分":
+		#       var va: int = a.辈分序; var vb: int = b.辈分序
+		#       if va != vb: return va > vb if 降 else va < vb
+		#       var ja: int = Disciple.境界序.find(a.境界); var jb: int = Disciple.境界序.find(b.境界)
+		#       if ja != jb: return ja > jb if 降 else ja < jb
+		#       return Game.弟子列表.find(a) < Game.弟子列表.find(b)   # 入门序=原始招募序（[PLACEHOLDER] 字段待定）
+		# 当前仅标端口，不强行改排序；门规严格度/辈分间隔数值未定（GDD §⑨ [PLACEHOLDER]）。
 		_:
 			return false
 
@@ -1021,17 +2114,25 @@ func _弟子卡(d: Disciple) -> Control:
 	var pc: PanelContainer = 新面板("")
 	var vb: Control = pc.get_child(0)
 	var 头 := HBoxContainer.new()
-	var 选 := Button.new(); 选.text = d.姓名; 选.pressed.connect(_on_选弟子.bind(d))
+	var 选 := Button.new(); 选.text = d.姓名; 选.name = "Button_选弟子"; 选.pressed.connect(_on_选弟子.bind(d))
 	头.add_child(选)
 	# S1 战斗生效·优先级3：随行灵兽徽标（头像旁轻量标识，不抢弟子主体视觉重心）
 	var 徽: String = _灵兽随行徽标(d)
 	if 徽 != "":
 		var 宠标 := Label.new()
 		宠标.text = "随行：" + 徽
-		宠标.add_theme_font_size_override("font_size", 13)
+		宠标.add_theme_font_size_override("font_size", FONT_AUX)
 		宠标.add_theme_color_override("font_color", 暗金)
 		头.add_child(宠标)
+	# S1 批1：阶位· chip（双轴前缀消歧，暗金描边，type scale 13）
+	if d.阶位 != "无":
+		var 阶标 := Label.new()
+		阶标.text = "阶位·" + d.阶位
+		阶标.add_theme_font_size_override("font_size", FONT_AUX)
+		阶标.add_theme_color_override("font_color", 暗金)
+		头.add_child(阶标)
 	vb.add_child(头)
+	vb.add_child(_玄玉占位按钮())
 	var 简 := Label.new()
 	简.text = d.简介()
 	简.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1046,6 +2147,20 @@ func _弟子卡(d: Disciple) -> Control:
 	var 装备按钮 := Button.new(); 装备按钮.text = "法宝"; 装备按钮.pressed.connect(_装备面板.bind(d))
 	详情行.add_child(命格按钮); 详情行.add_child(灵根按钮); 详情行.add_child(性格按钮); 详情行.add_child(职业按钮); 详情行.add_child(装备按钮)
 	vb.add_child(详情行)
+	# S1 批1：阶位操作入口（考核晋升 / 罢免阶位），仅在可授阶/有阶位时可用
+	var 阶位行 := HBoxContainer.new()
+	阶位行.add_theme_constant_override("separation", 4)
+	var 考核钮 := Button.new(); 考核钮.text = "考核晋升"
+	考核钮.add_theme_font_size_override("font_size", FONT_AUX)
+	考核钮.disabled = (not d.可授阶()) or (d.考核冷却剩余 > 0) or (d.阶位索引() >= 3)
+	考核钮.pressed.connect(_on_考核晋升.bind(d))
+	阶位行.add_child(考核钮)
+	var 罢免钮 := Button.new(); 罢免钮.text = "罢免阶位"
+	罢免钮.add_theme_font_size_override("font_size", FONT_AUX)
+	罢免钮.disabled = (d.阶位 == "无")
+	罢免钮.pressed.connect(_on_罢免阶位.bind(d))
+	阶位行.add_child(罢免钮)
+	vb.add_child(阶位行)
 	return pc
 
 func 刷新抉择():
@@ -1124,22 +2239,22 @@ func 刷新御兽():
 		绑.pressed.connect(_on_绑定.bind(灵兽))
 		vb.add_child(绑)
 		御兽区.add_child(pc)
-	# T03 自动兑换队列管理区
-	御兽区.add_child(小标题("—— 自动兑换（灵石） ——", 15))
+	# T03 引育计划队列管理区
+	御兽区.add_child(小标题("—— 引育计划队列（拨付经费） ——", 15))
 	if Game.灵兽兑换队列.is_empty():
-		var 空 := Label.new(); 空.text = "（未设置自动兑换，点击下方按钮添加）"; 御兽区.add_child(空)
+		var 空 := Label.new(); 空.text = "（未设置引育计划，点击下方按钮添加）"; 御兽区.add_child(空)
 	for i in Game.灵兽兑换队列.size():
 		var 条目: Dictionary = Game.灵兽兑换队列[i]
 		var pc2: PanelContainer = 新面板("")
 		var vb2: Control = pc2.get_child(0)
-		var 模式文本: String = "随机"
+		var 模式文本: String = "泛性引育"
 		var 偏好: Dictionary = 条目.get("偏好", {})
 		if 偏好.get("品阶", "") != "":
-			模式文本 = "指定品阶：" + Beast.品阶显示.get(偏好["品阶"], 偏好["品阶"])
+			模式文本 = "定向品阶：" + Beast.品阶显示.get(偏好["品阶"], 偏好["品阶"])
 		elif 偏好.get("类型", "") != "":
-			模式文本 = "指定类型：" + Beast.类型中文.get(偏好["类型"], 偏好["类型"])
+			模式文本 = "定向属性：" + Beast.类型中文.get(偏好["类型"], 偏好["类型"])
 		var 信息 := Label.new()
-		信息.text = "模式：%s | 消耗 %d 灵石 | %s" % [模式文本, 条目.get("cost", 0), ("启用" if 条目.get("启用", false) else "停用")]
+		信息.text = "模式：%s | 拨付经费 %d 灵石 | %s" % [模式文本, 条目.get("cost", 0), ("启用" if 条目.get("启用", false) else "停用")]
 		信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vb2.add_child(信息)
 		var 行 := HBoxContainer.new()
@@ -1151,7 +2266,7 @@ func 刷新御兽():
 		行.add_child(启停); 行.add_child(删)
 		vb2.add_child(行)
 		御兽区.add_child(pc2)
-	var 添加 := Button.new(); 添加.text = "＋ 新增自动兑换"
+	var 添加 := Button.new(); 添加.text = "＋ 新增引育计划"
 	添加.pressed.connect(_弹出兑换新增)
 	御兽区.add_child(添加)
 
@@ -1163,7 +2278,7 @@ func _on_卸下(弟子: Disciple, 槽位: String):
 
 # T03 自动兑换：新增弹窗（预设偏好+阶梯消耗，一键入队）
 func _弹出兑换新增():
-	var 弹: Dictionary = _new_detail_popup("新增自动兑换")
+	var 弹: Dictionary = _new_detail_popup("新增引育计划")
 	var 滚 := ScrollContainer.new()
 	滚.custom_minimum_size = Vector2(0, mini(360, int(get_viewport_rect().size.y * 0.7)))
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1172,10 +2287,10 @@ func _弹出兑换新增():
 	滚.add_child(vb)
 	var 说明 := Label.new()
 	说明.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	说明.text = "选择兑换偏好与单次灵石消耗，加入自动兑换队列。周期结算时自动扣灵石生成灵兽蛋。"
+	说明.text = "选择引育偏好与单次拨付经费，加入引育计划队列。周期结算时自动拨付灵石，由御兽峰寻兽驯化生成兽卵。"
 	vb.add_child(说明)
 	var 预设: Array = [
-		{"标签": "随机(600)", "偏好": {}, "cost": 600},
+		{"标签": "泛性引育(600)", "偏好": {}, "cost": 600},
 		{"标签": "凡阶(200)", "偏好": {"品阶": "fan_jie"}, "cost": 200},
 		{"标签": "灵阶(600)", "偏好": {"品阶": "ling_jie"}, "cost": 600},
 		{"标签": "宝阶(1500)", "偏好": {"品阶": "bao_jie"}, "cost": 1500},
@@ -1193,14 +2308,14 @@ func _弹出兑换新增():
 			if not is_instance_valid(弹["遮"]):
 				return
 			Game.灵兽兑换队列.append({"偏好": p["偏好"], "cost": p["cost"], "启用": true})
-			详情.text = "已添加自动兑换：" + p["标签"]
+			详情.text = "已添加引育计划：" + p["标签"]
 			弹["遮"].queue_free()
 			刷新御兽()
 		)
 		vb.add_child(b)
 	弹["内容"].add_child(弹["关"])
 
-# T03 自动兑换：启停/删除条目
+# T03 引育计划：启停/删除条目
 func _on_兑换启停(索引: int):
 	if 索引 >= 0 and 索引 < Game.灵兽兑换队列.size():
 		var 条目: Dictionary = Game.灵兽兑换队列[索引]
@@ -1233,11 +2348,11 @@ func _奇遇弹窗(q: Dictionary, 弟子: Disciple):
 	var 大: bool = 层级 >= 3
 
 	# 稀有度角标色（灰/蓝/紫/金，对齐 q-2 拍板；预留§10 四档映射）
-	var 角标色: Color = Color(0.60, 0.63, 0.67)   # 普通 灰
+	var 角标色: Color = 奇遇_灰   # 普通 灰
 	match 稀有度:
-		"稀有": 角标色 = Color(0.23, 0.51, 0.96)   # 蓝
-		"史诗": 角标色 = Color(0.55, 0.36, 0.96)   # 紫
-		"传说": 角标色 = Color(0.96, 0.62, 0.04)   # 金
+		"稀有": 角标色 = 奇遇_蓝   # 蓝
+		"史诗": 角标色 = 奇遇_紫   # 紫
+		"传说": 角标色 = 奇遇_金   # 金
 
 	if 大:
 		_奇遇详情(q, 弟子, 角标色, true)
@@ -1296,7 +2411,7 @@ func _奇遇弹窗(q: Dictionary, 弟子: Disciple):
 
 func _奇遇详情(q: Dictionary, 弟子: Disciple, 角标色: Color, 全屏: bool):
 	var 遮 := ColorRect.new()
-	遮.color = Color(0.10, 0.09, 0.08, 0.60)
+	遮.color = 弹窗遮罩
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.mouse_filter = Control.MOUSE_FILTER_STOP
 	遮.name = "奇遇详情"
@@ -1346,44 +2461,61 @@ func 刷新纪事():
 	if Game.宗门纪事.is_empty():
 		var 空 := Label.new(); 空.text = "（宗门纪事暂无记录，奇遇触发后于此回看）"; 纪事区.add_child(空)
 		return
-		纪事区.add_child(小标题("—— 宗门纪事 ——", 15))
-	var 异闻数: int = 0
+	# 分类筛选标签栏（全部 / 宗门大事件 / 宗门岁纪 / 日常庶务 / 异闻）
+	var 分类表: Array = ["全部", "宗门大事件", "宗门岁纪", "日常庶务", "异闻"]
+	var 计数: Dictionary = {}
+	for 分类 in 分类表:
+		计数[分类] = 0
 	for 记 in Game.宗门纪事:
-		if 记.get("category", "") == "异闻":
-			异闻数 += 1
-	if 异闻数 > 0:
-		var 切换 := Button.new()
-		切换.text = ("✦ 异闻秘闻（%d）" % 异闻数) if not 纪事异闻仅看 else "· 显示全部纪事 ·"
-		切换.flat = true
-		切换.add_theme_font_size_override("font_size", 13)
-		切换.add_theme_color_override("font_color", 暗金)
-		切换.pressed.connect(func():
-			纪事异闻仅看 = not 纪事异闻仅看
+		var c: String = 记.get("category", "")
+		计数["全部"] += 1
+		if 计数.has(c):
+			计数[c] += 1
+	var 标签栏 := HBoxContainer.new()
+	标签栏.add_theme_constant_override("separation", 4)
+	for 分类 in 分类表:
+		var 钮 := Button.new()
+		var 选中: bool = (分类 == 纪事筛选分类)
+		钮.text = "%s(%d)" % [分类, 计数.get(分类, 0)]
+		钮.flat = not 选中
+		钮.toggle_mode = true
+		钮.button_pressed = 选中
+		钮.add_theme_font_size_override("font_size", FONT_AUX)
+		钮.add_theme_color_override("font_color", 暗金 if 选中 else 次墨)
+		钮.pressed.connect(func():
+			纪事筛选分类 = 分类
 			刷新纪事()
 		)
-		纪事区.add_child(切换)
+		标签栏.add_child(钮)
+	纪事区.add_child(标签栏)
+	var 分隔 := HSeparator.new(); 分隔.modulate.a = 0.3; 纪事区.add_child(分隔)
 	for 记 in Game.宗门纪事:
-		if 纪事异闻仅看 and 记.get("category", "") != "异闻":
+		if 纪事筛选分类 != "全部" and 记.get("category", "") != 纪事筛选分类:
 			continue
 		var pc: PanelContainer = 新面板("")
 		var vb: Control = pc.get_child(0)
 		var 文案: String = 记.get("文案", "")
-		if 文案.contains("[url="):
+		var 标: String = 记.get("category", "")
+		var 名: String = ("〔" + 标 + "〕" if 标 != "" else "") + 记.get("名称", "无名奇遇")
+		var 弟子名: String = 记.get("弟子", "")
+		var 弟子前缀: String = ("[url=disciple:%s]【%s】[/url]" % [弟子名, 弟子名] if 弟子名 != "" else "")
+		if 文案.contains("[url=") or 弟子名 != "":
 			# S1 点击联动 MVP：含 bbcode 链接（奇遇奖励物品）的纪事用 RichTextLabel 渲染，
 			# 复用战斗日志同款 meta_clicked → open_detail_by_url 接法；不含链接的保持原 Label 行为。
 			var 链接: RichTextLabel = RichTextLabel.new()
 			链接.bbcode_enabled = true
 			链接.fit_content = true
 			链接.meta_clicked.connect(func(meta): open_detail_by_url(str(meta)))
-			链接.text = "历%d日·【%s】%s（%s）\n%s" % [
-				记.get("日", 0), 记.get("弟子", "无名"), 记.get("名称", "无名奇遇"),
+			链接.text = "历%d日·%s%s（%s）\n%s" % [
+				记.get("日", 0), 弟子前缀, 名,
 				记.get("稀有度", "普通"), 文案,
 			]
 			vb.add_child(链接)
+			纪事区.add_child(pc)
 		else:
 			var 信息 := Label.new()
-			信息.text = "历%d日·【%s】%s（%s）\n%s" % [
-				记.get("日", 0), 记.get("弟子", "无名"), 记.get("名称", "无名奇遇"),
+			信息.text = "历%d日·%s%s（%s）\n%s" % [
+				记.get("日", 0), 弟子前缀, 名,
 				记.get("稀有度", "普通"), 文案,
 			]
 			信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1393,7 +2525,7 @@ func 刷新纪事():
 # ============ 测灵根过场弹窗（文字占位，动画接口预留）============
 func _过场弹窗(过场: String, 人数: int):
 	var 遮 := ColorRect.new()
-	遮.color = Color(0.10, 0.09, 0.08, 0.60)
+	遮.color = 弹窗遮罩
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.mouse_filter = Control.MOUSE_FILTER_STOP
 	遮.name = "测灵根过场"
@@ -1420,56 +2552,69 @@ func _过场弹窗(过场: String, 人数: int):
 	尾.text = "本届接引大典收录外门弟子 %d 人（本期接引名额已用尽），潜心修行，他日或可证道。" % 人数
 	尾.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(尾)
-	var 关 := Button.new(); 关.text = "收入外门"
-	关.pressed.connect(func(): 遮.queue_free(); 详情.text = "接引大典完成，录入 %d 名新弟子。" % 人数; 刷新())
+	var 关 := Button.new(); 关.text = "收入外门"; 关.name = "Button_收入外门"
+	关.pressed.connect(func(): _收入外门_关闭(遮, 人数))
 	内容.add_child(关)
 	详情.text = "接引大典进行中……"
+
+func _收入外门_关闭(遮: Node, 人数: int):
+	# 关闭弹窗与推进引导必须全部延迟：「收入外门」按钮自身是弹窗子节点，
+	# 同步操作会在 pressed 回调内释放发射者/重建页面，导致 freed instance 或 UI 重叠。
+	详情.text = "接引大典完成，录入 %d 名新弟子。" % 人数
+	遮.call_deferred("queue_free")
+	_引导_推进.call_deferred("招收")   # 推进到步④，由 _引导_刷新 统一刷新/重建页面
 
 # ============ 建筑总览弹窗（原「堂口管理」；首发文案统一称建筑，居中面板）============
 # ============ 历练征途（Day 3 灰模 UI：关卡选择→上阵→战斗结算→掉落）============
 # 架构解耦：UI 仅调用 Game.挑战关卡（数据驱动逻辑层），不碰 BattleCalculator/Manager 结算核心。
-# ============ 新手引导系统（A 包：单线性四步，纯灰模，逻辑独立封装不侵入业务）============
-# 阶段：0=未开始(开场叙事) / 1=收资源 / 2=招弟子 / 3=历练战斗 / 4=看弟子详情 / 5=完成
-# 事实源：Game.引导阶段（game_state 存档，老档默认=5 不强制弹）。零新增文案，复用 GDD-新手引导 既有设定。
+# ============ S0 FTUE 引导系统（五步，纯灰模，逻辑独立封装不侵入业务）============
+# 阶段语义：0=序章中 / 1=资源栏 / 2=推演 / 3=招收 / 4=查看弟子 / 5=考评 / 6=完成(或跳过)
+# 事实源：Game.引导阶段（game_state 存档，老档默认=6 不强制弹）。复用 GDD-新手引导 既有设定。
 
-# 四步引导文案（修仙化包装「宗门传承指引」）
+# 五步引导文案（修仙化包装「宗门传承指引」；气泡与目标条共用，目标条去前缀显示）
 var 引导_步骤文案: Dictionary = {
-	1: "【宗门传承指引】先点「建筑总览」查看宗门产出，收取第一波资源。",
-	2: "【宗门传承指引】点「开启接引大典」，广招门徒，录入第一名弟子。",
-	3: "【宗门传承指引】点「历练征途」，遣弟子下山历练，完成首次战斗。",
-	4: "【宗门传承指引】点开左侧任一弟子，查看其详情，了解境界/灵根/养成。",
+	1: "【宗门传承指引】先戳一下顶上的家底——灵石、灵草、矿石、灵气，皆是宗门命脉。",
+	2: "【宗门传承指引】查看离线简报 / 等待时辰流转——宗门自会运转，堂口日积灵石灵草。",
+	3: "【宗门传承指引】点「开启接引大典」，收录第一名弟子入门，宗门方有传人。",
+	4: "【宗门传承指引】到「弟子」页点开一人，看看他的境界、灵根与养成去处。",
+	5: "【宗门传承指引】这「离山汇总」记着你离山期间宗门变化。宗门每岁末考评、每七载大考，考得越好，灵石越多。",
 }
-# 开场叙事（复用 GDD §2.2 序章剧情 + §2.3 吴伯原句，零新增文案需求）
+# 序章三屏（复用 GDD-新手引导 苏清禾/吴伯 设定；仅复用台词，不新增人设字段）
 var 引导_开场文本: Array = [
-	{"人":"【序章·继位】", "文":"老宗主已然仙去，临终托孤于你。太玄宗虽已式微，根基尚在——重振山门，在此一举。"},
-	{"人":"苏清禾", "文":"掌门，妾身与吴伯会一路辅佐。当务之急，是先收取宗门产出、广招门徒、遣其历练。"},
-	{"人":"吴伯", "文":"山下青峰山脚有妖兽作乱，正好可以让弟子前去历练，积攒经验还能捡回材料。"},
+	{"人":"【序章·继位】", "文":"老宗主已然仙去，临终把这座破落山门托付于你。太玄宗虽已式微，根基尚在——重振山门，就在此一举。"},
+	{"人":"苏清禾", "文":"掌门莫慌，妾身会一路帮衬。咱宗门的家底就那几样：灵石、灵草、矿石、灵气。先认清它们，日后才好经营。"},
+	{"人":"吴伯", "文":"山下青峰一带妖兽作乱，正可遣弟子去历练长进。不过不急——掌门先推演几日、收点产出、再开接引大典广招门徒，宗门便转起来了。"},
 ]
 
 func _引导_初始化():
 	# 覆盖层：全屏、不拦截点击（点击穿透到下层真实按钮，强引导仅高亮不阻挡）
-	引导_层 = Control.new()
-	引导_层.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	引导_层.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	引导_层.visible = false
-	add_child(引导_层)
-	# 常驻「跳过引导」按钮（右上角）
-	引导_跳过按钮 = Button.new()
-	引导_跳过按钮.text = "跳过引导"
-	引导_跳过按钮.add_theme_font_size_override("font_size", 12)
-	引导_跳过按钮.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	引导_跳过按钮.offset_left = -84
-	引导_跳过按钮.offset_top = 4
-	引导_跳过按钮.offset_right = -8
-	引导_跳过按钮.offset_bottom = 32
-	引导_跳过按钮.visible = false
-	引导_跳过按钮.pressed.connect(_引导_跳过)
-	add_child(引导_跳过按钮)
-	# 触发：新档开场 / 中途档续接 / 老档(=5)隐藏
-	引导_跳过按钮.visible = (Game.引导阶段 < 5)
+	if 引导_层 == null:
+		引导_层 = Control.new()
+		引导_层.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		引导_层.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		引导_层.visible = false
+		add_child(引导_层)
+		if 引导_跳过按钮 == null:
+			引导_跳过按钮 = Button.new()
+			引导_跳过按钮.text = "跳过引导"
+			引导_跳过按钮.add_theme_font_size_override("font_size", FONT_AUX)
+			引导_跳过按钮.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+			引导_跳过按钮.offset_left = -84
+			引导_跳过按钮.offset_top = 4
+			引导_跳过按钮.offset_right = -8
+			引导_跳过按钮.offset_bottom = 32
+			引导_跳过按钮.visible = false
+			引导_跳过按钮.pressed.connect(_引导_跳过)
+			add_child(引导_跳过按钮)
+	if 引导_目标条 == null:
+		_新建目标条()
+	引导_跳过按钮.visible = (Game.引导阶段 < 6)
+	_刷新功能解锁()
+	_刷新目标条()
+	# 触发：新档开场(序章) / 中途档续接 / 完成(>=6)隐藏
 	if Game.引导阶段 == 0:
 		_引导_开场()
-	elif Game.引导阶段 >= 1 and Game.引导阶段 <= 4:
+	elif Game.引导阶段 >= 1 and Game.引导阶段 <= 5:
 		_引导_刷新()
 
 func _引导_开场():
@@ -1480,7 +2625,7 @@ func _引导_开场():
 func _引导_开场渲染():
 	_引导_清除()
 	var 遮 := ColorRect.new()
-	遮.color = Color(0.06, 0.06, 0.08, 0.80)
+	遮.color = Color(暗化.r, 暗化.g, 暗化.b, 0.80)
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.mouse_filter = Control.MOUSE_FILTER_STOP
 	引导_层.add_child(遮)
@@ -1497,7 +2642,7 @@ func _引导_开场渲染():
 	pc.custom_minimum_size = Vector2(420, 296)
 	var 内容: Control = pc.get_child(0)
 	var 段: Dictionary = 引导_开场文本[引导_开场段]
-	var 说话 := Label.new(); 说话.text = 段["人"]; 说话.add_theme_font_size_override("font_size", 15); 说话.add_theme_color_override("font_color", 暗金)
+	var 说话 := Label.new(); 说话.text = 段["人"]; 说话.add_theme_font_size_override("font_size", FONT_BODY); 说话.add_theme_color_override("font_color", 暗金)
 	var 文 := Label.new(); 文.text = 段["文"]; 文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; 文.custom_minimum_size = Vector2(320, 80)
 	内容.add_child(说话); 内容.add_child(文)
 	var 末: bool = (引导_开场段 >= 引导_开场文本.size() - 1)
@@ -1518,46 +2663,90 @@ func _引导_开场渲染():
 	引导_层.visible = true
 
 func _引导_推进(动作: String):
-	var 期望: Dictionary = {"资源": 1, "招收": 2, "历练战斗": 3, "查看弟子": 4}
+	if Game.引导阶段 >= 6:
+		return   # 已完成/跳过，不再推进
+	var 期望: Dictionary = {"资源": 1, "推演": 2, "招收": 3, "查看弟子": 4, "考评": 5}
 	var 目标: int = 期望.get(动作, -1)
+	if 目标 == -1:
+		return
 	if Game.引导阶段 == 目标:
 		Game.引导阶段 += 1
 		Game.save_game()
-	if Game.引导阶段 == 5:
+	if Game.引导阶段 >= 6:
 		_引导_收尾()
 	else:
 		_引导_刷新()
 
 func _引导_刷新():
 	_引导_清除()
-	if Game.引导阶段 >= 1 and Game.引导阶段 <= 4:
+	if Game.引导阶段 >= 1 and Game.引导阶段 <= 5:
 		引导_跳过按钮.visible = true
 	var 目标: Control = null
+	var 确认动作: String = ""
+	var 文案: String = 引导_步骤文案.get(Game.引导阶段, "")
 	match Game.引导阶段:
-		1: 目标 = 引导_建筑按钮
-		2: 目标 = 引导_招收按钮
-		3: 目标 = 引导_历练按钮
-		4: 目标 = 列表
+		1: 目标 = 引导_状态面板
+		2:
+			目标 = 引导_状态面板   # 自动推演为信息步：无需点击按钮，附「知道了」确认推进
+			确认动作 = "推演"
+		3:
+			var 过场遮: Node = get_node_or_null("测灵根过场")
+			if 过场遮 != null and is_instance_valid(过场遮):
+				# 弹窗已打开：步③目标变为弹窗内「收入外门」按钮
+				目标 = 过场遮.find_child("Button_收入外门", true, false)
+				文案 = "【宗门传承指引】点「收入外门」，将新收录弟子纳入山门。"
+			else:
+				# 弹窗未打开：指向弟子页·接引 Tab 的「开启接引大典」
+				_弟子二级tab = 1
+				_on_主导航切换(1)
+				_应用_弟子二级tab()
+				if not is_instance_valid(引导_招收按钮) and 当前页容器 != null:
+					引导_招收按钮 = 当前页容器.find_child("Button_开启接引大典", true, false) as Button
+				目标 = 引导_招收按钮
+		4:
+			_弟子二级tab = 0     # 先切到「名录」Tab，确保弟子卡片可见
+			_on_主导航切换(1)   # 切到弟子页
+			_应用_弟子二级tab()
+			刷新()              # 重建弟子列表卡片（列表刚被新建，需要填充）
+			if Game.弟子列表.is_empty():
+				if not is_instance_valid(引导_招收按钮) and 当前页容器 != null:
+					引导_招收按钮 = 当前页容器.find_child("Button_开启接引大典", true, false) as Button
+				目标 = 引导_招收按钮
+			else:
+				var 首卡: Control = 列表.get_child(0)
+				if 首卡 != null and is_instance_valid(首卡):
+					目标 = 首卡.find_child("Button_选弟子", true, false)
+					if 目标 == null:
+						目标 = 首卡
+				_自动展开首弟子()
+				_招徒后高亮弟子入口()   # 招徒成功后高亮弟子入口 + 淡提示（此刻不在 pressed 回调，重建页安全）
+		5:
+			_弹_离山简报()       # 离线收益简报弹窗
+			目标 = 离山面板
+			确认动作 = "考评"
 	if 目标 != null and is_instance_valid(目标):
-		var 文案: String = 引导_步骤文案.get(Game.引导阶段, "")
 		if 文案.strip_edges() != "":   # 防护：空白文案不渲染气泡
-			_引导_显示气泡(目标, 文案)
-	elif Game.引导阶段 >= 5:
+			_引导_显示气泡.call_deferred(目标, 文案, 确认动作)
+	elif Game.引导阶段 >= 6:
 		引导_跳过按钮.visible = false
+	_刷新功能解锁()
+	_刷新目标条()
 
-func _引导_显示气泡(目标: Control, 文案: String):
+func _引导_显示气泡(目标: Control, 文案: String, 确认动作: String = ""):
 	if 文案.strip_edges() == "" or not is_instance_valid(目标):
 		return   # 防护：空白文案或无效目标不渲染气泡（避免空白弹窗）
+	if 引导_层 != null and 引导_层.get_parent() != null:
+		引导_层.get_parent().move_child(引导_层, -1)   # 确保气泡层位于弹窗之上
 	var 遮 := ColorRect.new()
-	遮.color = Color(0.06, 0.06, 0.08, 0.55)
+	遮.color = Color(暗化.r, 暗化.g, 暗化.b, 0.35)   # 暗化 alpha 收敛到 0.35（更轻，减少被挡感）
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	引导_层.add_child(遮)
-	# 高亮框（透明底 + 青霓边框圈住目标按钮）
+	# 高亮框（透明底 + 暗金边框圈住目标，色收敛自赛博青霓）
 	var 框 := Panel.new()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0)
-	sb.border_color = Color(0.25, 0.82, 0.88, 1)
+	sb.border_color = 暗金
 	sb.set_border_width_all(3)
 	框.add_theme_stylebox_override("panel", sb)
 	var gp: Vector2 = 目标.get_global_position()
@@ -1566,73 +2755,533 @@ func _引导_显示气泡(目标: Control, 文案: String):
 	框.size = 目标.size
 	框.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	引导_层.add_child(框)
-	# 气泡（墨底圆角 + 青霓边）
+	# 气泡（墨青底 + 暗金边，色收敛自赛博青霓）
 	var 泡 := PanelContainer.new()
 	var sb_style := StyleBoxFlat.new()
-	sb_style.bg_color = Color(0.12, 0.13, 0.16, 0.96)
-	sb_style.border_color = Color(0.25, 0.82, 0.88, 1)
+	sb_style.bg_color = 墨青   # 墨青
+	sb_style.border_color = 暗金
 	sb_style.set_border_width_all(1)
 	sb_style.set_corner_radius_all(6)
 	泡.add_theme_stylebox_override("panel", sb_style)
-	var 文 := Label.new(); 文.text = 文案; 文.add_theme_font_size_override("font_size", 14); 文.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78, 1))
+	var 文 := Label.new(); 文.text = 文案; 文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; 文.add_theme_font_size_override("font_size", FONT_BODY); 文.add_theme_color_override("font_color", 宣纸亮)
 	泡.add_child(文)
 	泡.custom_minimum_size = Vector2(300, 70)
 	泡.position = Vector2(框.position.x, 框.position.y + 框.size.y + 6)
 	if 泡.position.y + 80 > 854:
 		泡.position.y = max(4.0, 框.position.y - 90.0)
+	# 信息步（步②自动推演 / 步⑤考评）：气泡附「知道了」按钮，点击即推进对应阶段
+	if 确认动作 != "":
+		var 知 := Button.new(); 知.text = "知道了"
+		知.pressed.connect(func(): _引导_推进(确认动作))
+		泡.add_child(知)
 	引导_层.add_child(泡)
 	引导_层.visible = true
+
+# ===== P0 目标链系统 · 新手阶梯 UI（玉牌入口 / 宗门要务面板 / Tab 红点 / 跳转 / 数值跳字）=====
+var _last_新手完成数: int = 0
+var _宗门要务面板: Node = null
+var _玉牌红点: Control = null
+
+func _建_玉牌() -> Control:
+	var 条 := HBoxContainer.new()
+	var 牌 := Button.new()
+	牌.text = "\u1F000 宗门要务"
+	牌.custom_minimum_size = Vector2(0, 48)
+	牌.add_theme_stylebox_override("normal", _主按钮样式())
+	牌.add_theme_color_override("font_color", BTN_主字)
+	牌.pressed.connect(_打开_宗门要务)
+	条.add_child(牌)
+	_玉牌红点 = ColorRect.new()
+	_玉牌红点.color = 朱砂
+	_玉牌红点.custom_minimum_size = Vector2(10, 10)
+	_玉牌红点.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	条.add_child(_玉牌红点)
+	_刷新_新手UI()
+	return 条
+
+func _打开_宗门要务():
+	if _宗门要务面板 != null and is_instance_valid(_宗门要务面板):
+		_宗门要务面板.queue_free()
+	var 遮 := ColorRect.new()
+	遮.color = 弹窗遮罩
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "宗门要务遮"
+	add_child(遮)
+	var 面板: PanelContainer = 新面板("宗门要务")
+	面板.anchor_left = 0.5; 面板.anchor_top = 0.5; 面板.anchor_right = 0.5; 面板.anchor_bottom = 0.5
+	面板.offset_left = -180; 面板.offset_top = -170; 面板.offset_right = 180; 面板.offset_bottom = 170
+	遮.add_child(面板)
+	var 内容: Control = 面板.get_child(0)
+	_填_宗门要务(内容, 遮)
+	_宗门要务面板 = 遮
+
+func _填_宗门要务(内容: Control, 遮: Control):
+	内容.add_theme_constant_override("separation", 8)
+	var 进: Dictionary = Game.新手_当前进行()
+	var 标题 := Label.new()
+	if Game.新手_全部完成():
+		标题.text = "宗门要务 · 已全部达成（%d/7）" % Game.新手_完成数()
+	elif 进.is_empty():
+		标题.text = "宗门要务 · 筹备中（%d/7）" % Game.新手_完成数()
+	else:
+		标题.text = "宗门要务 · 进行中（%d/7）" % Game.新手_完成数()
+	标题.add_theme_color_override("font_color", 暗金)
+	内容.add_child(标题)
+	if not 进.is_empty():
+		var 名 := Label.new()
+		名.text = "\u25B8 %s" % 进.get("quest_name", "")
+		名.add_theme_font_size_override("font_size", FONT_PANEL)
+		名.add_theme_color_override("font_color", 玉石绿)
+		内容.add_child(名)
+		var 描 := Label.new()
+		描.text = 进.get("target_desc", "")
+		描.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		描.add_theme_color_override("font_color", 宣纸亮)
+		内容.add_child(描)
+		var 是主动: bool = (进.get("is_auto_trigger", "true") != "true")
+		if 是主动 and not 进.get("jump_path", "").is_empty():
+			var 往 := Button.new(); 往.text = "前往处理"
+			往.add_theme_stylebox_override("normal", _主按钮样式())
+			往.add_theme_color_override("font_color", BTN_主字)
+			往.pressed.connect(func():
+				var 路: String = 进.get("jump_path", "")
+				if 遮 != null and is_instance_valid(遮):
+					遮.queue_free()
+				_跳转(路)
+			)
+			内容.add_child(往)
+		else:
+			var 态 := Label.new()
+			态.text = "（自动达成中，静候机缘）"
+			态.add_theme_color_override("font_color", 次墨)
+			内容.add_child(态)
+	var 完成 := Label.new()
+	完成.text = "已完成：%s" % "、".join(Game.新手完成列表)
+	完成.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	完成.add_theme_color_override("font_color", 次墨)
+	内容.add_child(完成)
+	var 关 := Button.new(); 关.text = "关闭"
+	关.add_theme_stylebox_override("normal", _次按钮样式())
+	关.add_theme_color_override("font_color", BTN_次字)
+	关.pressed.connect(func():
+		if 遮 != null and is_instance_valid(遮):
+			遮.queue_free()
+	)
+	内容.add_child(关)
+
+func _刷新_新手UI():
+	if _玉牌红点 != null and is_instance_valid(_玉牌红点):
+		_玉牌红点.visible = Game.新手_有红点()
+	if 标签栏 != null and is_instance_valid(标签栏):
+		var 点 := 标签栏.get_node_or_null("新手红点")
+		if 点 == null:
+			点 = ColorRect.new()
+			点.name = "新手红点"
+			点.color = 朱砂
+			点.custom_minimum_size = Vector2(10, 10)
+			点.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			标签栏.add_child(点)
+		var 有: bool = Game.新手_有红点() or _有未领日常()
+		点.visible = 有
+		if 有 and 标签栏.get_tab_count() > 0:
+			var 矩: Rect2 = 标签栏.get_tab_rect(0)
+			点.position = Vector2(矩.position.x + 矩.size.x - 14, 矩.position.y + 6)
+	if Game.新手_完成数() > _last_新手完成数:
+		if Game.新手_完成数() > 0:
+			_数值跳字(self, "宗门要务 第%d项达成" % Game.新手_完成数(), 玉石绿)
+		_last_新手完成数 = Game.新手_完成数()
+	if _宗门要务面板 != null and is_instance_valid(_宗门要务面板):
+		var pn: Node = _宗门要务面板.get_child(0)
+		if pn != null and is_instance_valid(pn):
+			for c in pn.get_children():
+				c.queue_free()
+			_填_宗门要务(pn, _宗门要务面板)
+
+func _有未领日常() -> bool:
+	for i in Game.当前日常.size():
+		if i < Game.日常已领.size() and not Game.日常已领[i]:
+			return true
+	return false
+
+func _跳转(路: String):
+	if 路.is_empty():
+		return
+	var 段: PackedStringArray = 路.split("/")
+	var 页: String = 段[0]
+	match 页:
+		"宗门":
+			_on_主导航切换(0)
+			if 段.size() > 1 and 段[1] == "收益栏":
+				_进_二级页("账册")
+		"弟子":
+			if 段.size() > 1:
+				match 段[1]:
+					"接引": _弟子二级tab = 1
+					"名录": _弟子二级tab = 0
+					"详情": _弟子二级tab = 0
+			_on_主导航切换(1)
+		"历练": _on_主导航切换(3)
+		"纪事": _on_主导航切换(4)
+		"御兽": _on_主导航切换(2)
+		_: _on_主导航切换(0)
+
+func _数值跳字(父: Control, 文本: String, 色: Color):
+	if 父 == null or not is_instance_valid(父):
+		return
+	var 跳 := Label.new()
+	跳.text = 文本
+	跳.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	跳.add_theme_color_override("font_color", 色)
+	跳.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	父.add_child(跳)
+	跳.position = Vector2(max(8, 父.size.x / 2 - 70), 40)
+	var t: Tween = create_tween()
+	t.tween_property(跳, "position", Vector2(跳.position.x, 跳.position.y - 60), 1.2)
+	t.parallel().tween_property(跳, "modulate:a", 0.0, 1.2)
+	t.tween_callback(跳.queue_free)
 
 func _引导_收尾():
 	if _引导已收尾:
 		return   # 已播过，不再重复弹
 	_引导已收尾 = true
 	_引导_清除()
+	var 弹窗遮: Node = get_node_or_null("离山简报遮")
+	if 弹窗遮 != null and is_instance_valid(弹窗遮):
+		_关_离山简报()
 	var 遮 := ColorRect.new()
-	遮.color = Color(0.06, 0.06, 0.08, 0.55)
+	遮.color = Color(暗化.r, 暗化.g, 暗化.b, 0.35)
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	引导_层.add_child(遮)
 	var 泡 := PanelContainer.new()
 	var sb_style := StyleBoxFlat.new()
-	sb_style.bg_color = Color(0.12, 0.13, 0.16, 0.96)
-	sb_style.border_color = Color(0.25, 0.82, 0.88, 1)
+	sb_style.bg_color = 墨青   # 墨青
+	sb_style.border_color = 暗金
 	sb_style.set_border_width_all(1)
 	sb_style.set_corner_radius_all(6)
 	泡.add_theme_stylebox_override("panel", sb_style)
 	泡.custom_minimum_size = Vector2(340, 120)
 	var 文 := Label.new()
-	文.text = "【苏清禾】掌门已初窥门径，宗门运转自此步入正轨。\n可点击弟子查看详情，后续自有典籍指引，可随时翻阅。"
+	文.text = "【宗门初立指南】掌门既已立足，宗门初立，诸事待举。谨奉三策：\n一、开坛接引，广纳门人；\n二、稽核收益，开源节流；\n三、遣徒历练，访道寻机。\n愿掌门循序渐进，早壮玄门。"
 	文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	文.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78, 1))
+	文.add_theme_color_override("font_color", 宣纸亮)
 	泡.add_child(文)
+	var 跳行 := HBoxContainer.new()
+	var 跳1 := Button.new(); 跳1.text = "前往·接引弟子"
+	跳1.add_theme_stylebox_override("normal", _主按钮样式())
+	跳1.add_theme_color_override("font_color", BTN_主字)
+	跳1.pressed.connect(func(): _引导_清除(); _跳转("弟子/接引"))
+	var 跳2 := Button.new(); 跳2.text = "查看·宗门收益"
+	跳2.add_theme_stylebox_override("normal", _主按钮样式())
+	跳2.add_theme_color_override("font_color", BTN_主字)
+	跳2.pressed.connect(func(): _引导_清除(); _跳转("宗门/收益栏"))
+	var 跳3 := Button.new(); 跳3.text = "开启·历练"
+	跳3.add_theme_stylebox_override("normal", _主按钮样式())
+	跳3.add_theme_color_override("font_color", BTN_主字)
+	跳3.pressed.connect(func(): _引导_清除(); _跳转("历练/秘境"))
+	跳行.add_child(跳1); 跳行.add_child(跳2); 跳行.add_child(跳3)
+	泡.add_child(跳行)
 	var 关 := Button.new(); 关.text = "知道了"
+	关.add_theme_stylebox_override("normal", _次按钮样式())
+	关.add_theme_color_override("font_color", BTN_次字)
 	关.pressed.connect(func(): _引导_清除())
 	泡.add_child(关)
 	泡.position = Vector2(90, 360)
 	引导_层.add_child(泡)
 	引导_层.visible = true
 	引导_跳过按钮.visible = false
+	Game.引导阶段 = 6
+	Game.激活新手目标链()
+	Game.save_game()
+	_刷新功能解锁()   # 点亮灰锁按钮（坊市/任务/历练/御兽）
+	_刷新目标条()      # 隐藏常驻目标条
+	_清除招徒高亮()
 
 func _引导_跳过():
-	Game.引导阶段 = 5
+	Game.引导阶段 = 6
+	Game.激活新手目标链()
 	Game.save_game()
 	_引导_清除()
-	引导_跳过按钮.visible = false
-	详情.text = "（已跳过新手引导）"
+	var 遮: Node = get_node_or_null("离山简报遮")
+	if 遮 != null and is_instance_valid(遮):
+		_关_离山简报()
+	if 引导_跳过按钮 != null and is_instance_valid(引导_跳过按钮):
+		引导_跳过按钮.visible = false
+	_刷新功能解锁()
+	_刷新目标条()
+	_清除招徒高亮()
+	if 详情 != null and is_instance_valid(详情):
+		详情.text = "（已跳过新手引导）"
 
 func _引导_清除():
 	if 引导_层 == null:
 		return
 	for c in 引导_层.get_children():
 		c.queue_free()
-		引导_层.visible = false
+	引导_层.visible = false
+
+# —— 标题屏（在 _ready 最前拦截）——
+func _显示标题():
+	引导_标题层 = Control.new()
+	引导_标题层.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	引导_标题层.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(引导_标题层)
+	var 遮 := ColorRect.new()
+	遮.color = 墨底半透   # 墨青半透
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	引导_标题层.add_child(遮)
+	var pc: PanelContainer = 新面板("")
+	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
+	pc.offset_left = -200; pc.offset_top = -150; pc.offset_right = 200; pc.offset_bottom = 150
+	pc.custom_minimum_size = Vector2(400, 300)
+	pc.add_theme_stylebox_override("panel", _暗墨面板())
+	var 内容: Control = pc.get_child(0)
+	var 名 := Label.new()
+	名.text = "太玄宗"
+	名.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	名.add_theme_font_size_override("font_size", FONT_TITLE)
+	名.add_theme_color_override("font_color", 暗金)
+	var 标语 := Label.new()
+	标语.text = "执掌太玄宗——从一座破落山门，重振仙宗。"
+	标语.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	标语.add_theme_font_size_override("font_size", FONT_BODY)
+	标语.add_theme_color_override("font_color", 次墨)
+	var 角注 := Label.new()
+	角注.text = "又名：开局接手太玄宗"
+	角注.add_theme_font_size_override("font_size", FONT_AUX)
+	角注.add_theme_color_override("font_color", 次墨)
+	内容.add_child(名); 内容.add_child(标语); 内容.add_child(角注)
+	var 有档: bool = FileAccess.file_exists("user://save.json")
+	var 开新 := Button.new()
+	开新.text = "开新宗门"
+	开新.add_theme_stylebox_override("normal", _主按钮样式())
+	开新.add_theme_color_override("font_color", BTN_主字)
+	开新.pressed.connect(_标题_开新宗门)
+	var 继续 := Button.new()
+	继续.text = "继续"
+	继续.visible = 有档
+	继续.add_theme_stylebox_override("normal", _次按钮样式())
+	继续.add_theme_color_override("font_color", BTN_次字)
+	继续.pressed.connect(_标题_继续)
+	内容.add_child(开新); 内容.add_child(继续)
+	引导_标题层.add_child(pc)
+
+func _标题_继续():
+	Game.load_game()
+	_标题_关闭()
+	_进入主界面()
+
+func _标题_开新宗门():
+	_标题_确认弹窗()
+
+func _标题_确认弹窗():
+	var 遮 := ColorRect.new()
+	遮.color = Color(暗化.r, 暗化.g, 暗化.b, 0.6)
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "确认重开"
+	引导_标题层.add_child(遮)
+	var pc: PanelContainer = 新面板("确定重开宗门？")
+	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
+	pc.offset_left = -160; pc.offset_top = -90; pc.offset_right = 160; pc.offset_bottom = 90
+	pc.custom_minimum_size = Vector2(320, 180)
+	var 内容: Control = pc.get_child(0)
+	var 提示 := Label.new()
+	提示.text = "当前进度将清空，确定重开？"
+	提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内容.add_child(提示)
+	var 行 := HBoxContainer.new()
+	var 确 := Button.new(); 确.text = "确定重开"; 确.add_theme_stylebox_override("normal", _危险按钮样式()); 确.add_theme_color_override("font_color", BTN_危险字)
+	确.pressed.connect(func():
+		pc.queue_free(); 遮.queue_free(); Game.new_game(); _标题_关闭(); _进入主界面())
+	var 取 := Button.new(); 取.text = "取消"
+	取.pressed.connect(func(): pc.queue_free(); 遮.queue_free())
+	行.add_child(确); 行.add_child(取)
+	内容.add_child(行)
+	引导_标题层.add_child(pc)
+
+func _标题_关闭():
+	if 引导_标题层 != null and is_instance_valid(引导_标题层):
+		引导_标题层.queue_free()
+		引导_标题层 = null
+
+func _进入主界面():
+	var 报: String = Game.推演至现在()   # 自动推演：加载时推进到当前时刻
+	# FTUE 保底：新档真实流逝≈0，保底推进 1 游戏日，确保离线简报有内容、引导有正反馈
+	if Game.引导阶段 >= 1 and Game.引导阶段 <= 5 and Game.累计游戏日 == 0:
+		Game.推演一月(1)
+	刷新()
+	_引导_初始化()
+	# 离线简报：仅正式版/老档（引导已完成）进游戏即弹。FTUE 进行中（引导阶段<6）不在此弹，
+	# 留给步⑤「离山汇总」统一呈现，避免弹窗遮罩挡住引导交互（自动推演保底使新档累计游戏日=1）
+	if Game.累计游戏日 > 0 and Game.引导阶段 >= 6:
+		_弹_离山简报()
+
+func _on_状态面板_点击(e: InputEvent):
+	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+		_引导_推进("资源")
+
+func _on_离山面板_点击(e: InputEvent):
+	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+		_引导_推进("考评")
+
+# 解锁主条件：FTUE 完成（引导阶段>=6）或 门派 Lv>=3（兜底防卡死）
+# 梯度（主理人裁定）：坊市 FTUE 后立开；任务 Lv>=2；历练/御兽 主条件
+func _功能解锁(名: String) -> bool:
+	match 名:
+		"坊市": return Game.引导阶段 >= 6 or Game.门派等级 >= 3
+		"任务": return Game.门派等级 >= 2 or Game.引导阶段 >= 6
+		"历练", "御兽": return Game.引导阶段 >= 6 or Game.门派等级 >= 3
+		_: return Game.引导阶段 >= 6 or Game.门派等级 >= 3
+
+func _灰锁提示(名: String) -> String:
+	match 名:
+		"坊市": return "完成新手引导后开启坊市"
+		"任务": return "宗门 Lv.2 后开启师门事务"
+		"历练": return "宗门 Lv.3 或完成引导后开启历练"
+		"御兽": return "御兽堂 Lv.3 开启"
+		_: return "后续开启"
+
+func _刷新功能解锁():
+	# 二级页受锁入口（坊市/任务）：disabled+🔒+tooltip，点击不跳转
+	# 关键修复：页面切换时（如 FTUE 切到弟子页）宗门网格按钮会被释放，引导_坊市按钮/任务按钮
+	# 会变成 dangling freed ref；直接强类型 var b: Button = 规则[名] 会触发"assign invalid previously freed instance"。
+	# 改用条件构建+无类型变量，只操作仍存活的实例。
+	var 规则: Dictionary = {}
+	if is_instance_valid(引导_坊市按钮):
+		规则["坊市"] = 引导_坊市按钮
+	if is_instance_valid(引导_任务按钮):
+		规则["任务"] = 引导_任务按钮
+	for 名 in 规则:
+		var b = 规则[名]   # 不声明为 Button：字典 value 若变质不阻塞，后续 is_instance_valid 再过滤
+		if b == null or not is_instance_valid(b):
+			continue
+		if not _灰锁原文本.has(名):
+			_灰锁原文本[名] = b.text
+		var 开: bool = _功能解锁(名)
+		b.disabled = not 开
+		if 开:
+			b.text = _灰锁原文本[名]
+			b.tooltip_text = ""
+			b.modulate.a = 1.0
+		else:
+			b.text = "🔒 " + _灰锁原文本[名]
+			b.tooltip_text = _灰锁提示(名)
+			b.modulate.a = 0.5
+	# 受锁核心 Tab（御兽/历练）：disabled + 🔒 文字 + tooltip，置灰可显（§1.5）
+	if 标签栏 != null:
+		for 名 in ["御兽", "历练"]:
+			var idx: int = 页名.find(名)
+			if idx < 0:
+				continue
+			var 锁: bool = not _功能解锁(名)
+			标签栏.set_tab_disabled(idx, 锁)
+			if 锁:
+				标签栏.set_tab_title(idx, "🔒 " + 名)
+			else:
+				标签栏.set_tab_title(idx, 名)
+
+func _刷新目标条():
+	if 引导_目标条 == null:
+		return
+	if Game.引导阶段 < 1 or Game.引导阶段 > 5:
+		引导_目标条.visible = false
+		return
+	引导_目标条.visible = true
+	var 步: int = Game.引导阶段
+	var 文案: String = 引导_步骤文案.get(步, "")
+	if 文案.begins_with("【宗门传承指引】"):
+		文案 = 文案.trim_prefix("【宗门传承指引】")   # 目标条文案去前缀
+	引导_目标条_文.text = "当前目标 · 第 %d/5 步：%s" % [步, 文案]
+
+func _新建目标条():
+	引导_目标条 = PanelContainer.new()
+	引导_目标条.anchor_left = 0.0
+	引导_目标条.anchor_top = 0.0
+	引导_目标条.anchor_right = 1.0
+	引导_目标条.anchor_bottom = 0.0
+	引导_目标条.offset_left = 8
+	引导_目标条.offset_top = 4
+	引导_目标条.offset_right = -92
+	引导_目标条.offset_bottom = 48
+	引导_目标条.custom_minimum_size = Vector2(0, 44)   # 点击区≥44px
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = 墨底半透
+	sb.border_color = 暗金
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(6)
+	引导_目标条.add_theme_stylebox_override("panel", sb)
+	var 内 := VBoxContainer.new()
+	引导_目标条_文 = Label.new()
+	引导_目标条_文.add_theme_font_size_override("font_size", FONT_BODY)
+	引导_目标条_文.add_theme_color_override("font_color", 宣纸亮)
+	引导_目标条_文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内.add_child(引导_目标条_文)
+	引导_目标条.add_child(内)
+	引导_目标条.visible = false
+	add_child(引导_目标条)
+
+func _招徒后高亮弟子入口():
+	_招徒后_弟子高亮中 = true
+	# 仅当当前不在弟子页时才切页（避免引导刷新已切页后重复重建，也隔绝 pressed 回调内重建风险）
+	if 当前页名 != "弟子":
+		_on_主导航切换(1)
+	if 弟子页头 != null and is_instance_valid(弟子页头):
+		弟子页头.modulate = 暗金   # 高亮弟子页头
+	if 引导_弟子提示 != null and is_instance_valid(引导_弟子提示):
+		引导_弟子提示.visible = true   # 淡提示「可前往查看弟子详情」
+
+func _自动展开首弟子():
+	if _弟子详情_已自动展开:
+		return
+	if Game.弟子列表.size() > 0:
+		_弟子详情_已自动展开 = true
+		当前选中 = Game.弟子列表[0]
+		详情.text = Game.弟子列表[0].简介()   # 自动展开首名弟子详情（不自动完成步④）
+
+func _清除招徒高亮():
+	_招徒后_弟子高亮中 = false
+	if 引导_弟子提示 != null:
+		引导_弟子提示.visible = false
+	if 弟子页头 != null:
+		弟子页头.modulate = Color.WHITE
+
+func _主按钮样式() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = BTN_主底
+	s.border_color = BTN_主边
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(8)
+	return s
+
+func _次按钮样式() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = BTN_次底
+	s.border_color = BTN_次边
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(8)
+	return s
+
+func _标签按钮样式() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = BTN_标签底
+	s.border_color = BTN_标签边
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(8)
+	return s
+
+func _危险按钮样式() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = BTN_危险底
+	s.border_color = BTN_危险边
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(8)
+	return s
 
 func _on_历练():
-	_引导_推进("历练战斗")
-	if Game.引导阶段 <= 4:   # 引导未结束：临时隐藏引导层，避免暗化遮罩盖住历练面板
-		引导_层.visible = false
-	_历练面板()
+	_on_主导航切换(3)
 
 # ============ A5 法宝 UI 面板（灰模：9 槽 + 储物袋点击穿戴/卸载）============
 # 槽位 9 个（键见 item.gd 槽显示：wuqi/toukui/yipao/huzhi/yaodai/changku/xuezi/peishi/本命法宝）
@@ -1670,7 +3319,7 @@ func _装备面板(d: Disciple):
 	大.add_child(内容)
 	var 头 := Label.new()
 	头.text = "⚔ 法宝 · %s" % d.姓名
-	头.add_theme_font_size_override("font_size", 18)
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
 	头.add_theme_color_override("font_color", 暗金)
 	内容.add_child(头)
 	var 战 := Label.new()
@@ -1709,7 +3358,7 @@ func _装备面板(d: Disciple):
 			var 详 := Button.new(); 详.text = "详情"; 详.custom_minimum_size.x = 40
 			行.add_child(详); 详.pressed.connect(_弹出物品详情.bind(当前装备))
 		else:
-			装备标签.append_text("[color=888888]— 空 —[/color]")
+			装备标签.append_text("[color=#%s]— 空 —[/color]" % 次墨.to_html(false))
 		行.add_child(装备标签)
 		if 当前装备 != null:
 			var 卸 := Button.new(); 卸.text = "卸下"
@@ -1729,9 +3378,9 @@ func _装备面板(d: Disciple):
 			var 信息 := RichTextLabel.new()
 			信息.fit_content = true
 			if it.可穿戴():
-				信息.append_text("%s［%s］·%s·[color=green]+%d[/color]" % [it.名称, it.品阶, Item.槽显示.get(it.穿戴位, it.穿戴位), it.战力加成])
+				信息.append_text("%s［%s］·%s·[color=#%s]+%d[/color]" % [it.名称, it.品阶, Item.槽显示.get(it.穿戴位, it.穿戴位), 颜色_良品.to_html(false), it.战力加成])
 			else:
-				信息.append_text("%s［%s］[color=888888]（不可穿戴）[/color]" % [it.名称, it.品阶])
+				信息.append_text("%s［%s］[color=#%s]（不可穿戴）[/color]" % [it.名称, it.品阶, 次墨.to_html(false)])
 			行.add_child(信息)
 			if it.可穿戴():
 				var 穿 := Button.new()
@@ -1754,29 +3403,37 @@ func _装备面板(d: Disciple):
 
 # ============ S0 坊市（商店）：消耗灵石出口 ============
 func _on_坊市():
-	_坊市面板()
+	_建_二级页("坊市")
 
-func _坊市面板():
+# 玄玉加速占位按钮（S0 stub：置灰，不生效，S1 接付费）
+func _玄玉占位按钮() -> Button:
+	var b := Button.new()
+	b.text = "玄玉加速（敬请期待）"
+	b.disabled = true
+	b.tooltip_text = "付费便利功能，后续版本开放"
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.modulate.a = 0.6
+	return b
+
+func _填_坊市页(内容: Control):
 	if Game.坊市上架集.is_empty():
 		Game.刷新坊市上架()
-	var 遮 := ColorRect.new()
-	遮.color = Color(0.10, 0.09, 0.08, 0.55)
-	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	遮.mouse_filter = Control.MOUSE_FILTER_STOP
-	遮.name = "坊市面板"
-	add_child(遮)
-	var pc: PanelContainer = 新面板("✦ 坊市（消耗灵石 · 周限购）")
-	# 锚点居中：anchor 全 0.5 + offset 正负半宽高 = 精确居中，不受嵌套布局影响
-	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
-	pc.offset_left = -200; pc.offset_top = -260; pc.offset_right = 200; pc.offset_bottom = 260
-	遮.add_child(pc)
-	var 内容: Control = pc.get_child(0)
 	var 结果 := Label.new(); 结果.text = _坊市提示; 内容.add_child(结果)
 	var 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(380, 400); 内容.add_child(滚)
 	var 列 := VBoxContainer.new(); 滚.add_child(列)
-	_刷新坊市列表(列, 结果, 遮)
+	_刷新坊市列表(列, 结果)
+	# 玄玉专区占位（S0 stub：置灰，敬请期待）
+	var 玄玉分隔 := HSeparator.new(); 玄玉分隔.modulate.a = 0.4; 内容.add_child(玄玉分隔)
+	var 玄玉标题 := Label.new(); 玄玉标题.text = "—— 玄玉专区（后续版本开放） ——"; 玄玉标题.modulate.a = 0.5; 内容.add_child(玄玉标题)
+	for r in Game._玄玉表():
+		var b := Button.new()
+		b.text = "%s（%d 玄玉）" % [r.get("name", ""), int(r.get("price_xuanyu", "0"))]
+		b.disabled = true
+		b.tooltip_text = "付费功能，后续版本开放"
+		b.mouse_filter = Control.MOUSE_FILTER_STOP
+		内容.add_child(b)
 
-func _刷新坊市列表(列: VBoxContainer, 结果: Label, 遮: ColorRect):
+func _刷新坊市列表(列: VBoxContainer, 结果: Label):
 	for c in 列.get_children():
 		c.queue_free()
 	var 等级名: String = Game.声望等级名[clamp(Game.声望, 0, Game.声望等级名.size() - 1)]
@@ -1797,7 +3454,7 @@ func _刷新坊市列表(列: VBoxContainer, 结果: Label, 遮: ColorRect):
 			结果.text = res.get("msg", "")
 			_坊市提示 = res.get("msg", "")
 			刷新()
-			_刷新坊市列表(列, 结果, 遮)
+			_刷新坊市列表(列, 结果)
 		)
 		行.add_child(标); 行.add_child(买)
 		列.add_child(行)
@@ -1823,32 +3480,25 @@ func _刷新坊市列表(列: VBoxContainer, 结果: Label, 遮: ColorRect):
 				钮.pressed.connect(_弹出物品详情.bind(it))
 				段.add_child(钮)
 			列.add_child(段)
-	var 关 := Button.new(); 关.text = "归藏"
-	关.pressed.connect(func(): _坊市提示 = ""; 遮.queue_free())
-	列.add_child(关)
 
 # ============ S0 任务中心：日常（3条）+ 周常（1条）============
 func _on_任务():
-	_任务面板()
+	_建_二级页("任务")
 
-func _任务面板():
-	var 遮 := ColorRect.new()
-	遮.color = Color(0.10, 0.09, 0.08, 0.55)
-	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	遮.mouse_filter = Control.MOUSE_FILTER_STOP
-	遮.name = "任务面板"
-	add_child(遮)
-	var pc: PanelContainer = 新面板("✦ 任务中心")
-	pc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5
-	pc.offset_left = -200; pc.offset_top = -260; pc.offset_right = 200; pc.offset_bottom = 260
-	遮.add_child(pc)
-	var 内容: Control = pc.get_child(0)
+func _填_任务页(内容: Control):
 	var 结果 := Label.new(); 结果.text = _任务提示; 内容.add_child(结果)
 	var 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(380, 400); 内容.add_child(滚)
-	var 列 := VBoxContainer.new(); 滚.add_child(列)
+	任务列 = VBoxContainer.new(); 滚.add_child(任务列)
+	_刷新_任务页(结果)
+
+func _刷新_任务页(结果: Label):
+	if 任务列 == null or not is_instance_valid(任务列):
+		return
+	for c in 任务列.get_children():
+		c.queue_free()
 	# —— 日常任务 ——
 	var 日常倒计: int = max(0, (Game.上次日常日 + 1) - Game.累计游戏日)
-	var 日头 := Label.new(); 日头.text = "【日常】每日刷新(距%d日) 领灵石/灵气" % 日常倒计; 列.add_child(日头)
+	var 日头 := Label.new(); 日头.text = "【日常】每日刷新(距%d日) 领灵石/灵气" % 日常倒计; 任务列.add_child(日头)
 	for i in Game.当前日常.size():
 		var q: Dictionary = Game.当前日常[i]
 		var 已领: bool = Game.日常已领[i] if i < Game.日常已领.size() else false
@@ -1860,15 +3510,26 @@ func _任务面板():
 		领.pressed.connect(func():
 			var res: Dictionary = Game.领取日常(i)
 			_任务提示 = res.get("msg", "")
-			_任务面板_重建(遮)
+			if res.get("ok", false):
+				var qq: Dictionary = Game.当前日常[i]
+				var 灵: int = int(float(qq.get("reward_lingjing", "0")) * Game.任务奖励系数())
+				var 气: int = int(float(qq.get("reward_lingqi", "0")) * Game.任务奖励系数())
+				_数值跳字(任务列, "灵石+%d 灵气+%d" % [灵, 气], 玉石绿)
+			_刷新_任务页(结果)
 		)
 		行.add_child(标); 行.add_child(领)
-		列.add_child(行)
+		if not 已领 and q.get("jump_path", "") != "":
+			var 往 := Button.new(); 往.text = "前往"
+			往.add_theme_stylebox_override("normal", _次按钮样式())
+			往.add_theme_color_override("font_color", BTN_次字)
+			往.pressed.connect(_跳转.bind(q.get("jump_path", "")))
+			行.add_child(往)
+		任务列.add_child(行)
 	# —— 周常任务 ——
 	var 周常倒计: int = max(0, (Game.上次周常日 + 7) - Game.累计游戏日)
-	var 周头 := Label.new(); 周头.text = "【周常】每7日刷新(距%d日)" % 周常倒计; 列.add_child(周头)
+	var 周头 := Label.new(); 周头.text = "【周常】每7日刷新(距%d日)" % 周常倒计; 任务列.add_child(周头)
 	if Game.当前周常.is_empty():
-		var 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 列.add_child(无)
+		var 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 任务列.add_child(无)
 	else:
 		var qw: Dictionary = Game.当前周常
 		var 行 := HBoxContainer.new()
@@ -1879,10 +3540,10 @@ func _任务面板():
 		领.pressed.connect(func():
 			var res: Dictionary = Game.领取周常()
 			_任务提示 = res.get("msg", "")
-			_任务面板_重建(遮)
+			_刷新_任务页(结果)
 		)
 		行.add_child(标); 行.add_child(领)
-		列.add_child(行)
+		任务列.add_child(行)
 	var 一键 := Button.new(); 一键.text = "一键领取"
 	一键.pressed.connect(func():
 		var 领了: int = 0
@@ -1894,70 +3555,10 @@ func _任务面板():
 			var rw: Dictionary = Game.领取周常()
 			if rw.get("ok", false): 领了 += 1
 		_任务提示 = "已领取 %d 项" % 领了
-		_任务面板_重建(遮)
+		_刷新_任务页(结果)
 	)
-	列.add_child(一键)
-	var 关 := Button.new(); 关.text = "归藏"; 关.pressed.connect(func(): _任务提示 = ""; 遮.queue_free()); 列.add_child(关)
+	任务列.add_child(一键)
 
-# 任务面板局部重建（保留遮罩，刷新列表与提示）
-func _任务面板_重建(遮: ColorRect):
-	_任务提示 = _任务提示
-	遮.queue_free()
-	_任务面板()
-
-func _历练面板():
-	var 遮 := ColorRect.new()
-	遮.color = 墨底
-	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	遮.mouse_filter = Control.MOUSE_FILTER_STOP
-	遮.name = "历练面板"
-	add_child(遮)
-	var 大 := PanelContainer.new()
-	# 全屏锚点 + 边距内嵌（不用 PRESET_CENTER+minimum_size，后者在 GD4 中会被内容收缩）
-	大.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	大.offset_left = 12
-	大.offset_right = -12
-	大.offset_top = 36
-	大.offset_bottom = -12
-	遮.add_child(大)
-	var 内容 := VBoxContainer.new()
-	大.add_child(内容)
-	var 头 := Label.new()
-	头.text = "⚔ 历练征途"
-	头.add_theme_font_size_override("font_size", 18)
-	头.add_theme_color_override("font_color", 暗金)
-	内容.add_child(头)
-	var 体力标 := Label.new()
-	体力标.text = "气力：%d / %d" % [Game.体力, Game.体力上限()]
-	体力标.add_theme_color_override("font_color", 次墨)
-	内容.add_child(体力标)
-	var 滚动 := ScrollContainer.new()
-	滚动.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	滚动.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	内容.add_child(滚动)
-	var 列 := VBoxContainer.new()
-	列.add_theme_constant_override("separation", 4)
-	滚动.add_child(列)
-	历练滚动列 = 列   # 保存引用，战斗胜利后刷新用
-	var 章名: Dictionary = {1: "第一章·后山秘境", 2: "第二章·青冥古道", 3: "第三章·玄雾峡谷"}
-	for 章 in [1, 2, 3]:
-		var 章标 := Label.new()
-		章标.text = "【%s】" % 章名[章]
-		章标.add_theme_color_override("font_color", 青灰)
-		列.add_child(章标)
-		for s in StageDataLoader.get_all_stages():
-			if int(s.get("chapter", "0")) != 章:
-				continue
-			列.add_child(_历练关卡卡(s))
-	var 关 := Button.new()
-	关.text = "归藏"
-	关.pressed.connect(func():
-		遮.queue_free()
-		if Game.引导阶段 <= 4:   # 引导进行中：关闭历练后恢复引导层并刷新步骤气泡
-			引导_层.visible = true
-			_引导_刷新()
-	)
-	内容.add_child(关)
 
 func _历练关卡卡(s: Dictionary) -> Control:
 	var pc: PanelContainer = 新面板("")
@@ -1973,7 +3574,7 @@ func _历练关卡卡(s: Dictionary) -> Control:
 	var 副 := Label.new()
 	副.text = "%s ｜ 气力%d ｜ 推荐战力%s%s" % [类型名, int(s.get("stamina_cost", "0")), str(StageDataLoader.get_recommend_power(s.get("stage_id", ""))), " ｜ 未解锁" if not 解锁 else ""]
 	副.add_theme_color_override("font_color", 次墨)
-	副.add_theme_font_size_override("font_size", 12)
+	副.add_theme_font_size_override("font_size", FONT_AUX)
 	内容.add_child(副)
 	if 解锁:
 		var 攻 := Button.new()
@@ -2028,7 +3629,7 @@ func _开战弹窗(s: Dictionary):
 	大.add_child(内容)
 	var 头 := Label.new()
 	头.text = "出战布阵：%s" % s.get("stage_name", "")
-	头.add_theme_font_size_override("font_size", 16)
+	头.add_theme_font_size_override("font_size", FONT_SUB)
 	头.add_theme_color_override("font_color", 暗金)
 	内容.add_child(头)
 	var 副 := Label.new()
@@ -2104,12 +3705,12 @@ func _战斗结算面板(战报: Dictionary, stage_id: String):
 	大.add_child(内容)
 	# 标题强化（micro-opt 2）：浅灰背景条 + 字号加粗观感，与正文日志形成区块分隔
 	var 标题底 := StyleBoxFlat.new()
-	标题底.bg_color = Color(0.22, 0.21, 0.20, 1.0)
+	标题底.bg_color = 标题底色
 	标题底.set_content_margin_all(7)
 	标题底.set_corner_radius_all(4)
 	var 头 := Label.new()
 	头.text = "⚔ %s：%s" % [stage_id, "胜 利" if 胜 else "失 败"]
-	头.add_theme_font_size_override("font_size", 20)
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
 	头.add_theme_color_override("font_color", 暗金 if 胜 else 次墨)
 	头.add_theme_stylebox_override("normal", 标题底)
 	内容.add_child(头)
@@ -2145,7 +3746,7 @@ func _战斗结算面板(战报: Dictionary, stage_id: String):
 			return "[url=disciple:%s]%s[/url]" % [名, 名]
 		var 显示日志: Array = 全日志
 		if not 展开 and 全日志.size() > 50:
-			文本 += "[color=#adb5bd]（前 %d 条已折叠，仅显示最近 50 条）[/color]\n" % (全日志.size() - 50)
+			文本 += "[color=#%s]（前 %d 条已折叠，仅显示最近 50 条）[/color]\n" % [青灰.to_html(false), 全日志.size() - 50]
 			显示日志 = 全日志.slice(全日志.size() - 50)
 		for e in 显示日志:
 			var 标签: Array = e.get("tags", [])
@@ -2156,13 +3757,15 @@ func _战斗结算面板(战报: Dictionary, stage_id: String):
 					标签.append("克制")
 			var 标记 := ""
 			for t in 标签:
-				标记 += "[color=#ffd43b][b]【%s】[/b][/color] " % t
-			var 回: String = "[color=#868e96]R%d[/color] " % int(e.get("round", 0))
+				标记 += "[color=#%s][b]【%s】[/b][/color] " % [暗金.to_html(false), t]
+			var 回: String = "[color=#%s]R%d[/color] " % [次墨.to_html(false), int(e.get("round", 0))]
 			var 伤: int = int(e.get("damage", 0))
 			if 标签.has("闪避"):
 				文本 += "%s%s → %s %s\n" % [回, 链名.call(e.get("actor", "")), 链名.call(e.get("target", "")), 标记]
 			else:
-				文本 += "%s%s → %s 伤害 [color=#ff6b6b][b]%d[/b][/color] %s\n" % [回, 链名.call(e.get("actor", "")), 链名.call(e.get("target", "")), 伤, 标记]
+				文本 += "%s%s → %s 伤害 [color=#%s][b]%d[/b][/color] %s\n" % [回, 链名.call(e.get("actor", "")), 链名.call(e.get("target", "")), 朱砂.to_html(false), 伤, 标记]
+			if e.get("ref_type", "") != "" and e.get("ref_name", "") != "":
+				文本 += " [url=%s:%s]%s[/url]" % [e.get("ref_type", ""), e.get("ref_id", ""), e.get("ref_name", "")]
 		日志.text = 文本
 	构建日志.call(展开全部)
 	滚.add_child(日志)
@@ -2172,8 +3775,8 @@ func _战斗结算面板(战报: Dictionary, stage_id: String):
 	日志头.add_spacer(false)
 	var 展开钮 := Button.new()
 	展开钮.text = "展开全部"
-	展开钮.add_theme_font_size_override("font_size", 12)
-	展开钮.add_theme_color_override("font_color", Color(0.68, 0.68, 0.68))
+	展开钮.add_theme_font_size_override("font_size", FONT_AUX)
+	展开钮.add_theme_color_override("font_color", 展开灰)
 	展开钮.visible = 全日志.size() > 50
 	展开钮.pressed.connect(func():
 		展开全部 = not 展开全部
@@ -2231,8 +3834,8 @@ func _toast(文案: String):
 	t.add_theme_stylebox_override("panel", _toast底色())
 	var lb := Label.new()
 	lb.text = 文案
-	lb.add_theme_font_size_override("font_size", 15)
-	lb.add_theme_color_override("font_color", Color(1.0, 0.95, 0.85))
+	lb.add_theme_font_size_override("font_size", FONT_BODY)
+	lb.add_theme_color_override("font_color", BTN_主字)
 	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.add_child(lb)
 	add_child(t)
@@ -2248,32 +3851,19 @@ func _toast(文案: String):
 
 func _toast底色() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.11, 0.10, 0.92)
-	sb.border_color = Color(0.72, 0.58, 0.20, 0.9)
+	sb.bg_color = 弹窗底色
+	sb.border_color = 弹窗边色
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(6)
 	return sb
-func _建筑总览弹窗():
-	var 遮 := ColorRect.new()
-	遮.color = Color(0.10, 0.09, 0.08, 0.60)
-	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	遮.mouse_filter = Control.MOUSE_FILTER_STOP
-	遮.name = "建筑总览"
-	add_child(遮)
-	var pc: PanelContainer = 新面板("—— 宗门建筑 ——")
-	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pc.offset_left = 20
-	pc.offset_right = -20
-	pc.offset_top = 50
-	pc.offset_bottom = -20
-	遮.add_child(pc)
-	var 内容: Control = pc.get_child(0)
+func _填_建筑页(内容: Control):
 	内容.add_theme_constant_override("separation", 6)
+	内容.add_child(_玄玉占位按钮())
 	# 山门牌匾（彩蛋钩子）：点击查看宗门立基旧事
 	var 牌匾 := Button.new()
 	牌匾.text = "「太玄宗·山门」"
 	牌匾.flat = true
-	牌匾.add_theme_font_size_override("font_size", 16)
+	牌匾.add_theme_font_size_override("font_size", FONT_SUB)
 	牌匾.add_theme_color_override("font_color", 暗金)
 	牌匾.pressed.connect(_on_山门牌匾)
 	内容.add_child(牌匾)
@@ -2281,6 +3871,7 @@ func _建筑总览弹窗():
 	内容.add_child(_建筑总览_汇总栏())
 	# 分类标签导航（复用 TabBar 组件，参考离山汇总/主界面分页）
 	var tb := TabBar.new()
+	tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for 类别名 in 建筑类别序:
 		tb.add_tab(类别名)
 	内容.add_child(tb)
@@ -2297,10 +3888,7 @@ func _建筑总览弹窗():
 	tb.tab_changed.connect(func(idx):
 		_建筑总览_填充(列表列, 建筑类别序[idx])
 	)
-	# 关闭按钮（复用现有术语与交互）
-	var 关 := Button.new(); 关.text = "归藏"
-	关.pressed.connect(func(): 遮.queue_free(); 刷新())
-	内容.add_child(关)
+	刷新()
 
 func _建筑点击彩蛋(key: String):
 	var egg_id: String = 建筑彩蛋映射.get(key, "")
@@ -2312,13 +3900,13 @@ func _建筑点击彩蛋(key: String):
 		建筑点击计数[key] = 0
 		Game.触发点击彩蛋(egg_id)
 		_toast("（异闻）%s" % Game._彩蛋配置(egg_id).get("name", ""))
-		if 页控.get("纪事", null) != null and 页控["纪事"].visible:
+		if 当前页名 == "纪事":
 			刷新纪事()
 
 func _on_山门牌匾():
 	Game.触发点击彩蛋("egg_click_shanmen")
 	_toast("（异闻）山门旧事：宗门立基至今，已历 %d 载风雨。" % Game.累计游戏日)
-	if 页控.get("纪事", null) != null and 页控["纪事"].visible:
+	if 当前页名 == "纪事":
 		刷新纪事()
 
 func _on_掌教点击彩蛋():
@@ -2327,7 +3915,7 @@ func _on_掌教点击彩蛋():
 		掌教点击计数 = 0
 		Game.触发点击彩蛋("egg_click_zhangjiao")
 		_toast("（异闻）掌教自省")
-		if 页控.get("纪事", null) != null and 页控["纪事"].visible:
+		if 当前页名 == "纪事":
 			刷新纪事()
 
 func _建筑总览_填充(列: VBoxContainer, 类别: String):
@@ -2352,15 +3940,15 @@ func _建筑总览_汇总栏() -> Control:
 	var 修炼文本: String = ("+%d%%" % int(修炼 * 100)) if 修炼 > 0 else "无"
 	var l1 := Label.new()
 	l1.text = "宗门建筑 %d 座 ｜ 在岗弟子 %d 人" % [建筑数, 在岗]
-	l1.add_theme_font_size_override("font_size", 13)
+	l1.add_theme_font_size_override("font_size", FONT_AUX)
 	l1.add_theme_color_override("font_color", 暗金)
 	var l2 := Label.new()
 	l2.text = "预计月产出 %d 灵石" % 产出
-	l2.add_theme_font_size_override("font_size", 14)
+	l2.add_theme_font_size_override("font_size", FONT_BODY)
 	l2.add_theme_color_override("font_color", 暗金)
 	var l3 := Label.new()
 	l3.text = "全局经营加成 %s ｜ 全局修炼加成 %s" % [经营文本, 修炼文本]
-	l3.add_theme_font_size_override("font_size", 12)
+	l3.add_theme_font_size_override("font_size", FONT_AUX)
 	l3.add_theme_color_override("font_color", 暗金)
 	vb.add_child(l1); vb.add_child(l2); vb.add_child(l3)
 	return p
@@ -2387,10 +3975,14 @@ func _建筑卡片底色(类别: String) -> StyleBoxFlat:
 
 func _建筑块(key: String) -> Control:
 	var 堂: Dictionary = Game.堂口列表[key]
+	var 等级: int = int(堂.get("等级", 1))
+	var 政绩: int = int(堂.get("政绩", 0))
 	var 块 := VBoxContainer.new()
+	块.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	块.add_theme_constant_override("separation", 4)
 	# 卡片：PanelContainer 包一层，按类别着辅助色边框
 	var pc := PanelContainer.new()
+	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pc.add_theme_stylebox_override("panel", _建筑卡片底色(建筑_类别反查.get(key, "战略")))
 	var 内 := VBoxContainer.new()
 	内.add_theme_constant_override("separation", 3)
@@ -2398,19 +3990,27 @@ func _建筑块(key: String) -> Control:
 	块.add_child(pc)
 	# 头部：大名称（金色修真标题字号，对齐 小标题）+ 职能标签（小字次要灰）
 	var 头行 := HBoxContainer.new()
+	头行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var 头 := Label.new()
 	头.text = 堂["名称"]
-	头.add_theme_font_size_override("font_size", 17)
+	头.add_theme_font_size_override("font_size", FONT_PANEL)
 	头.add_theme_color_override("font_color", 暗金)
 	头.mouse_filter = Control.MOUSE_FILTER_STOP
 	头.gui_input.connect(func(ev):
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			建筑点击彩蛋(key)
+			_建筑点击彩蛋(key)
 	)
+	头.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	头行.add_child(头)
+	# S1 批2：建筑等级芯片
+	var 等级芯片 := Label.new()
+	等级芯片.text = "Lv.%d" % 等级
+	等级芯片.add_theme_font_size_override("font_size", FONT_AUX)
+	等级芯片.add_theme_color_override("font_color", 暗金)
+	头行.add_child(等级芯片)
 	var 标签 := Label.new()
 	标签.text = "  %s" % 建筑职能标签.get(key, "")
-	标签.add_theme_font_size_override("font_size", 12)
+	标签.add_theme_font_size_override("font_size", FONT_AUX)
 	标签.add_theme_color_override("font_color", 次墨)
 	头行.add_child(标签)
 	内.add_child(头行)
@@ -2419,30 +4019,54 @@ func _建筑块(key: String) -> Control:
 	var 负责名: String = "（空缺）" if 负责 == null else 负责.姓名
 	var 锁定: bool = 堂.get("负责人锁定", false)
 	var 负责行 := HBoxContainer.new()
+	负责行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var 锁 := Label.new()
 	锁.text = "🔒 " if 锁定 else ""
-	锁.add_theme_font_size_override("font_size", 13)
+	锁.add_theme_font_size_override("font_size", FONT_AUX)
 	锁.add_theme_color_override("font_color", 暗金)
 	负责行.add_child(锁)
 	var 负责文本: String = "主事 %s" % 负责名
 	if 负责 != null:
 		负责文本 += "  经营加成 +%.0f" % 负责.加成评分(堂["加成维度"])
-	负责行.add_child(_label(负责文本, 13, 墨黑))
+	var 负责标签: Label = _label(负责文本, 13, 墨黑)
+	负责标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	负责行.add_child(负责标签)
 	if 负责 != null and 建筑全局维度.has(key):
 		var 维: String = 建筑全局维度[key]
 		var 全局文本: String = "  全局效果：全宗%s +1%%" % 维度显示.get(维, 维)
-		负责行.add_child(_label(全局文本, 12, 次墨))
+		var 全局标签: Label = _label(全局文本, 13, 次墨)
+		全局标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		负责行.add_child(全局标签)
 	内.add_child(负责行)
+	# S1 批2：任期政绩行（高政绩主事以朱砂提示）
+	var 政绩色: Color = 次墨
+	if 政绩 > 0:
+		政绩色 = 朱砂
+	var 政绩徽: String = ""
+	if 政绩 >= 36:
+		政绩徽 = " · 声誉卓著"
+	elif 政绩 >= 12:
+		政绩徽 = " · 已达里程碑"
+	var 政绩行 := HBoxContainer.new()
+	政绩行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var 政绩标签: Label = _label("任期政绩 %d%s" % [政绩, 政绩徽], 13, 政绩色)
+	政绩标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	政绩行.add_child(政绩标签)
+	内.add_child(政绩行)
 	# 产出行：预计月产出 XX 灵石 ｜ 附带效果（从阶段2 被动逻辑读说明文字）
 	var 产出行 := HBoxContainer.new()
-	产出行.add_child(_label("预计月产出 %d 灵石" % Game.预估建筑产出(key), 13, 暗金))
+	产出行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var 产出标签: Label = _label("预计月产出 %d 灵石" % Game.预估建筑产出(key), 13, 暗金)
+	产出标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	产出行.add_child(产出标签)
 	var 附带: String = 建筑附带效果(key)
 	if 附带 != "":
 		var 附带标签 := Label.new()
 		附带标签.text = "  ｜ " + 附带
-		附带标签.add_theme_font_size_override("font_size", 11)
+		附带标签.add_theme_font_size_override("font_size", FONT_AUX)
 		附带标签.add_theme_color_override("font_color", 次墨)
 		附带标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		附带标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		产出行.add_child(附带标签)
 	内.add_child(产出行)
 	# 成员折叠区（复用 琐事折叠 ▶/▼ 切换；默认折叠）
@@ -2450,13 +4074,14 @@ func _建筑块(key: String) -> Control:
 	var 折叠_container := VBoxContainer.new()
 	var 折叠按钮 := Button.new()
 	折叠按钮.text = "门人共 %d 人 ▸" % 成员.size()
-	折叠按钮.add_theme_font_size_override("font_size", 12)
+	折叠按钮.add_theme_font_size_override("font_size", FONT_AUX)
 	折叠按钮.add_theme_color_override("font_color", 次墨)
 	折叠_container.add_child(折叠按钮)
 	var 成员列表 := VBoxContainer.new()
+	成员列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	成员列表.visible = false
 	if 成员.is_empty():
-		var 空 := Label.new(); 空.text = "  （暂无门人）"; 空.add_theme_font_size_override("font_size", 12); 空.add_theme_color_override("font_color", 次墨)
+		var 空 := Label.new(); 空.text = "  （暂无门人）"; 空.add_theme_font_size_override("font_size", FONT_AUX); 空.add_theme_color_override("font_color", 次墨)
 		成员列表.add_child(空)
 	else:
 		for m in 成员:
@@ -2480,26 +4105,43 @@ func _建筑块(key: String) -> Control:
 	)
 	内.add_child(折叠_container)
 	# 锁定/解锁 控制（复用 解除负责人锁定；锁定状态按钮文案变「解除锁定」）
+	# S1 批2：建筑升级入口（展示目标等级/消耗 + 升级按钮，点击展开详情确认）
+	var 提示: Dictionary = _建筑_升级提示(key)
+	var 目标等级: int = int(提示["等级"]) + 1
+	var 升级文本: String = "升级 → Lv.%d · 灵石 -%d" % [目标等级, int(提示["耗"])]
+	if bool(提示["可升"]):
+		升级文本 += " · 可升级"
+	else:
+		升级文本 += " · " + str(提示["原因"])
+	var 升级行 := HBoxContainer.new()
+	升级行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var 升级标签: Label = _label(升级文本, 13, 暗金)
+	升级标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	升级行.add_child(升级标签)
+	var 升按钮 := Button.new()
+	升按钮.text = "升级 ▸"
+	升按钮.disabled = (int(提示["等级"]) >= int(提示["上限"])) or (Game.门派等级 < 2)
+	升按钮.pressed.connect(func(): _打开建筑详情(key))
+	升级行.add_child(升按钮)
+	内.add_child(升级行)
 	if 锁定:
 		var 解锁按钮 := Button.new(); 解锁按钮.text = "解除锁定"; 解锁按钮.pressed.connect(_on_解除锁定.bind(key))
 		内.add_child(解锁按钮)
 	return 块
 
 func _on_任负责人(key: String, m: Disciple):
+	var 旧主事: Variant = Game.堂口列表[key].get("负责人", null)
+	if 旧主事 != null and 旧主事 != m and int(Game.堂口列表[key].get("政绩", 0)) >= 12:
+		_弹出高政绩撤换确认(key, m)
+		return
 	Game.任命负责人(key, m)
 	详情.text = "已任命 %s 为%s主事。" % [m.姓名, Game.堂口列表[key]["名称"]]
-	var 旧遮: Node = get_node_or_null("建筑总览")
-	if 旧遮 != null:
-		旧遮.queue_free()
-		_建筑总览弹窗()
+	_建_二级页("建筑")
 
 func _on_解除锁定(key: String):
 	Game.解除负责人锁定(key)
 	详情.text = "已解除%s主事锁定。" % Game.堂口列表[key]["名称"]
-	var 旧遮: Node = get_node_or_null("建筑总览")
-	if 旧遮 != null:
-		旧遮.queue_free()
-		_建筑总览弹窗()
+	_建_二级页("建筑")
 
 func _on_建筑成员_看详情(d: Disciple):
 	# 复用主界面弟子卡同款入口 _on_选弟子（写入底部详情栏）；关闭本弹窗以露出详情栏
@@ -2544,39 +4186,164 @@ func _label(文本: String, 大小: int, 颜色: Color) -> Label:
 	l.add_theme_color_override("font_color", 颜色)
 	return l
 
+# ============ S1 批2：建筑升级 + 任期政绩 UI（§二 / §三）============
+
+# 升级可用性与原因（供总览卡片与详情弹窗共用，避免逻辑重复）
+func _建筑_升级提示(key: String) -> Dictionary:
+	var 等级: int = int(Game.堂口列表[key].get("等级", 1))
+	var 上限: int = Game._建筑等级上限()
+	var 耗: int = Game._升级消耗_灵石(等级)
+	var 可升: bool = (等级 < 上限) and (Game.门派等级 >= 2) and (Game.灵石 >= 耗)
+	var 原因: String = ""
+	if 等级 >= 上限:
+		原因 = "已达宗门品级上限（Lv.%d）" % 上限
+	elif Game.门派等级 < 2:
+		原因 = "需灵阶及以上宗门方可升级"
+	elif Game.灵石 < 耗:
+		原因 = "灵石不足（需 %d，余 %d）" % [耗, Game.灵石]
+	return {"可升": 可升, "原因": 原因, "等级": 等级, "上限": 上限, "耗": 耗}
+
+# 执行升级：调用 Game.升级建筑，toast 反馈；成功则关弹窗并重建建筑页
+func _执行建筑升级(key: String) -> void:
+	var 结果: Dictionary = Game.升级建筑(key)
+	_toast(str(结果.get("msg", "升级完成")))
+	if bool(结果.get("ok", false)):
+		if _当前详情遮 != null and is_instance_valid(_当前详情遮):
+			_当前详情遮.queue_free()
+		_建_二级页("建筑")
+
+# 建筑详情弹窗：等级/上限、任期政绩、当前产出、升级按钮（含消耗与禁用原因）
+func _打开建筑详情(key: String) -> void:
+	var 堂: Dictionary = Game.堂口列表[key]
+	var 等级: int = int(堂.get("等级", 1))
+	var 上限: int = Game._建筑等级上限()
+	var 政绩: int = int(堂.get("政绩", 0))
+	var 提示: Dictionary = _建筑_升级提示(key)
+	var 弹: Dictionary = _new_detail_popup("%s · Lv.%d" % [堂["名称"], 等级], 暗金)
+	var 内容: VBoxContainer = 弹["内容"] as VBoxContainer
+	内容.add_child(_label("建筑等级 Lv.%d / 上限 Lv.%d（由宗门品级驱动）" % [等级, 上限], FONT_AUX, 次墨))
+	var 政绩色: Color = 次墨
+	if 政绩 > 0:
+		政绩色 = 朱砂
+	var 政绩徽: String = ""
+	if 政绩 >= 36:
+		政绩徽 = " · 声誉卓著"
+	elif 政绩 >= 12:
+		政绩徽 = " · 已达里程碑"
+	内容.add_child(_label("任期政绩 %d%s" % [政绩, 政绩徽], FONT_AUX, 政绩色))
+	内容.add_child(_label("当前预计月产出 %d 灵石" % Game.预估建筑产出(key), FONT_AUX, 暗金))
+	if bool(提示["可升"]):
+		内容.add_child(_label("升级至 Lv.%d 需 灵石 -%d（产出 +2%%）" % [等级 + 1, int(提示["耗"])], FONT_BODY, 玉石绿))
+	else:
+		内容.add_child(_label("升级至 Lv.%d 需 灵石 -%d" % [等级 + 1, int(提示["耗"])], FONT_BODY, 次墨))
+	var 升按钮 := Button.new()
+	升按钮.text = "升级至 Lv.%d（灵石 -%d）" % [等级 + 1, int(提示["耗"])]
+	升按钮.disabled = not bool(提示["可升"])
+	升按钮.pressed.connect(func(): _执行建筑升级(key))
+	内容.add_child(升按钮)
+	if not bool(提示["可升"]) and str(提示["原因"]) != "":
+		内容.add_child(_label(str(提示["原因"]), FONT_AUX, 朱砂))
+	内容.add_child(弹["关"])
+
+# 撤换高政绩主事确认（D10：政绩≥12 撤换将清零其政绩，开启新任期）
+func _弹出高政绩撤换确认(key: String, m: Disciple) -> void:
+	var 旧政绩: int = int(Game.堂口列表[key].get("政绩", 0))
+	var 弹: Dictionary = _new_detail_popup("撤换主事确认", 朱砂)
+	var 内容: VBoxContainer = 弹["内容"] as VBoxContainer
+	内容.add_child(_label("%s 现任主事任期内政绩已达 %d，撤换将清零其政绩、开启新任期。" % [Game.堂口列表[key]["名称"], 旧政绩], FONT_BODY, 墨黑))
+	内容.add_child(_label("确认撤换为 %s？" % m.姓名, FONT_BODY, 墨黑))
+	var 确认 := Button.new(); 确认.text = "确认撤换"
+	确认.pressed.connect(func():
+		Game.任命负责人(key, m)
+		详情.text = "已任命 %s 为%s主事（前任政绩清零）。" % [m.姓名, Game.堂口列表[key]["名称"]]
+		if is_instance_valid(弹["遮"]):
+			弹["遮"].queue_free()
+		_建_二级页("建筑")
+	)
+	内容.add_child(确认)
+	内容.add_child(弹["关"])
+
 # ============ 主题与组件助手 ============
 func 造主题() -> Theme:
 	var t := Theme.new()
-	t.default_font_size = 15
-	# 面板：宣纸底 + 暗金细边（卷轴形制近似）
+	t.default_font_size = FONT_BODY
+	# 面板：暗青玉半透底 + 暗金描边（参考写实宗门经营 UI）
 	var p := StyleBoxFlat.new()
-	p.bg_color = 宣纸亮
+	p.bg_color = 面板底
 	p.set_corner_radius_all(8)
 	p.set_border_width_all(1)
 	p.border_color = 暗金
 	p.content_margin_left = 10; p.content_margin_right = 10
 	p.content_margin_top = 8; p.content_margin_bottom = 8
 	t.set_stylebox("panel", "PanelContainer", p)
-	# 按钮：宣纸底 + 木框 + 暗金字
+	# 通用 Panel（状态栏/底框由 _暗墨面板 局部覆盖，此处仅定义默认）
+	var pp := p.duplicate(); pp.bg_color = 面板底; pp.border_color = 暗金
+	t.set_stylebox("panel", "Panel", pp)
+	# 按钮：暖木棕底 + 暗金框 + 宣纸亮字（高对比、有材质感）
 	var b := StyleBoxFlat.new()
-	b.bg_color = 宣纸
-	b.set_corner_radius_all(6)
-	b.set_border_width_all(1)
-	b.border_color = 木色
-	b.content_margin_left = 10; b.content_margin_right = 10
+	b.bg_color = 按钮木
+	b.set_corner_radius_all(8)
+	b.set_border_width_all(2)
+	b.border_color = 暗金
+	b.content_margin_left = 12; b.content_margin_right = 12
 	b.content_margin_top = 6; b.content_margin_bottom = 6
 	t.set_stylebox("normal", "Button", b)
-	var bh: StyleBoxFlat = b.duplicate(); bh.bg_color = Color(0.82, 0.75, 0.62); t.set_stylebox("hover", "Button", bh)
-	var bp: StyleBoxFlat = b.duplicate(); bp.bg_color = 暗金; bp.border_color = 暗金; t.set_stylebox("pressed", "Button", bp)
-	# 文字色：墨黑正文 + 暗金按钮字
-	t.set_color("font_color", "Label", 墨黑)
-	t.set_color("font_color", "Button", 暗金)
+	var bh: StyleBoxFlat = b.duplicate(); bh.bg_color = 按钮木悬; t.set_stylebox("hover", "Button", bh)
+	var bp: StyleBoxFlat = b.duplicate(); bp.bg_color = 按钮金按; bp.border_color = 按钮金按; t.set_stylebox("pressed", "Button", bp)
+	var bd: StyleBoxFlat = b.duplicate(); bd.bg_color = 按钮禁用; bd.border_color = 按钮禁用; t.set_stylebox("disabled", "Button", bd)
+	# 文字色：统一浅色确保在暗底上可读
+	t.set_color("font_color", "Label", 宣纸亮)
+	t.set_color("font_color", "Button", 宣纸亮)
+	t.set_color("font_color", "RichTextLabel", 宣纸亮)
+	# 分隔线（清单/卡片间）
+	var hs := StyleBoxFlat.new(); hs.bg_color = 暗金; hs.set_corner_radius_all(0)
+	t.set_stylebox("separator", "HSeparator", hs)
+	t.set_stylebox("separator", "VSeparator", hs.duplicate())
+	# 滚动条（低调暗金抓柄）
+	var sb := StyleBoxFlat.new(); sb.bg_color = 暗金; sb.set_corner_radius_all(3)
+	sb.content_margin_left = 2; sb.content_margin_right = 2; sb.content_margin_top = 2; sb.content_margin_bottom = 2
+	t.set_stylebox("grabber", "ScrollBar", sb)
+	t.set_stylebox("grabber_highlight", "ScrollBar", sb.duplicate())
+	# 标签页（主界面 弟子/待抉择/御兽/纪事）：未选暗青玉，选中暗金
+	var tb := StyleBoxFlat.new(); tb.bg_color = 面板底; tb.set_corner_radius_all(6); tb.set_border_width_all(1); tb.border_color = 暗金
+	t.set_stylebox("tab_unselected", "TabBar", tb)
+	var tbs := tb.duplicate(); tbs.bg_color = 暗金
+	t.set_stylebox("tab_selected", "TabBar", tbs)
+	t.set_color("font_color", "TabBar", 宣纸亮)
+	t.set_color("font_color_selected", "TabBar", 墨黑)
+	# 现实皮肤纹理层（沿用 AI 生成方向稿；缺资源静默回退扁平风，见 启用皮肤纹理）
+	_皮肤纹理装填(t)
 	return t
+
+# 现实皮肤纹理层：将 AI 生成方向稿作 9 宫格切片挂载到面板/按钮。
+# 全部以 ResourceLoader.exists 守护——资源缺失或想回退纯扁平风时，置 启用皮肤纹理=false 即零成本切回。
+func _皮肤纹理装填(t: Theme):
+	if not 启用皮肤纹理:
+		return
+	var 面板路 := "res://assets/ai_art/2026-07-22/游戏UI弹窗面板_玉石半透明质感_宣纸纤维纹理_旧金描边_轻_2026-07-22T15-19-56.png"
+	var 按钮路 := "res://assets/ai_art/2026-07-22/游戏UI按钮_暗金边框_青玉底色_轻微浮雕_古风器物感_鎏金_2026-07-22T15-19-56.png"
+	if ResourceLoader.exists(面板路):
+		var tex := load(面板路) as Texture2D
+		var s := StyleBoxTexture.new()
+		s.texture = tex
+		s.region_rect = Rect2(0, 0, 832, 1216)
+		s.expand_margin_left = 48; s.expand_margin_top = 48; s.expand_margin_right = 48; s.expand_margin_bottom = 48
+		s.modulate_color = 纹理白
+		t.set_stylebox("panel", "PanelContainer", s)
+	if ResourceLoader.exists(按钮路):
+		var tex := load(按钮路) as Texture2D
+		var s := StyleBoxTexture.new()
+		s.texture = tex
+		s.region_rect = Rect2(0, 0, 1024, 1024)
+		s.expand_margin_left = 80; s.expand_margin_top = 80; s.expand_margin_right = 80; s.expand_margin_bottom = 80
+		t.set_stylebox("normal", "Button", s)
+		var sh := s.duplicate(); t.set_stylebox("hover", "Button", sh)
+		var sp := s.duplicate(); t.set_stylebox("pressed", "Button", sp)
 
 # 深墨半透明面板（状态栏专用，呼应"深墨色半透明基底 + 暗金数值"）
 func _暗墨面板() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.12, 0.11, 0.10, 0.92)
+	s.bg_color = 面板底
 	s.set_corner_radius_all(8)
 	s.set_border_width_all(1)
 	s.border_color = 暗金
@@ -2619,10 +4386,47 @@ func _解析实体(_type: String, _id: String) -> Variant:
 				if d is Disciple and d.姓名 == _id:
 					return d
 		"item", "equip":
-			var 定义: Variant = Game._物品定义表.get(_id)
-			if 定义 is Array and (定义 as Array).size() >= 2:
-				var 参: Array = 定义 as Array
-				return Game._造低阶物品(参[0], 参[1])
+			var 定义甲: Variant = Game._物品定义表.get(_id)
+			if 定义甲 is Array and (定义甲 as Array).size() >= 2:
+				var 参甲: Array = 定义甲 as Array
+				return Game._造低阶物品(参甲[0], 参甲[1])
+		"gongfa":
+			var gs: Dictionary = SkillCultivationLoader.get_skill(_id)
+			if not gs.is_empty():
+				return gs
+		"buff":
+			var bf: Dictionary = BattleCalculator._buff模板(_id)
+			if not bf.is_empty():
+				return bf
+		"building":
+			var bd: Variant = Game.堂口列表.get(_id)
+			if bd is Dictionary:
+				return bd
+		"beast":
+			for 灵 in Game.灵兽库存:
+				if 灵 is Beast and 灵.种类名 == _id:
+					return 灵
+		"encounter":
+			for 记 in Game.宗门纪事:
+				if 记.get("名称", "") == _id:
+					return 记
+		"chronicle":
+			if _id.contains(":"):
+				var 部分: Array = _id.split(":", false, 1)
+				var 日: String = 部分[0]
+				var 名: String = 部分[1]
+				for 纪 in Game.宗门纪事:
+					if String(纪.get("日", "")) == 日 and 纪.get("名称", "") == 名:
+						return 纪
+			else:
+				var idx: int = int(_id)
+				if idx >= 0 and idx < Game.宗门纪事.size():
+					return Game.宗门纪事[idx]
+		"dan_yao":
+			var 定义乙: Variant = Game._物品定义表.get(_id)
+			if 定义乙 is Array and (定义乙 as Array).size() >= 2:
+				var 参乙: Array = 定义乙 as Array
+				return Game._造低阶物品(参乙[0], 参乙[1])
 		_:
 			pass
 	# 仅调试版本告警（开发期快速定位无效ID），正式发布不输出，玩家无感知
@@ -2645,6 +4449,50 @@ func open_detail(type: String, id: String) -> void:
 				_弹出弟子属性弹窗("弟子", dp.简介(), dp)
 			else:
 				_toast("（暂无详情）")
+		"gongfa":
+			var gs: Variant = _解析实体("gongfa", id)
+			if gs is Dictionary and not (gs as Dictionary).is_empty():
+				_弹出功法详情(id)
+			else:
+				_toast("（暂无详情）")
+		"buff":
+			var bf: Variant = _解析实体("buff", id)
+			if bf is Dictionary and not (bf as Dictionary).is_empty():
+				_弹出Buff详情(id)
+			else:
+				_toast("（暂无详情）")
+		"building":
+			var bd: Variant = _解析实体("building", id)
+			if bd is Dictionary:
+				_弹出建筑详情(id)
+			else:
+				_toast("（暂无详情）")
+		"beast":
+			var bv: Variant = _解析实体("beast", id)
+			if bv is Beast:
+				_弹出灵兽详情(bv)
+			else:
+				_toast("（暂无详情）")
+		"encounter":
+			var en: Variant = _解析实体(type, id)
+			if en is Dictionary:
+				_弹出纪事详情(en)
+			else:
+				_toast("（暂无详情）")
+		"chronicle":
+			var ch: Variant = _解析实体(type, id)
+			if ch is Dictionary:
+				_弹出纪事详情(ch)
+			else:
+				_toast("（暂无详情）")
+		"dan_yao":
+			var dy: Variant = _解析实体("dan_yao", id)
+			if dy is Item:
+				_弹出丹药详情(dy)
+			else:
+				_toast("（暂无详情）")
+		"skill":
+			_弹出功法详情(id)
 		_:
 			_toast("（暂无详情）")
 
@@ -2665,6 +4513,7 @@ func 小标题(文本: String, 大小 := 16) -> Label:
 # 返回一个带标题的 PanelContainer；内容添加到其首个子（VBoxContainer）
 func 新面板(标题文本: String) -> PanelContainer:
 	var pc := PanelContainer.new()
+	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pc.add_child(vb)

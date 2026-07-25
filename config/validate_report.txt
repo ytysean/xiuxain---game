@@ -3,6 +3,7 @@
 
 ## achievement_config.csv  →  识别为 `achievement_config` (164 行数据)
 ## area_stay_weight.csv  →  识别为 `area_stay_weight` (5 行数据)
+## battle_buff.csv  →  识别为 `battle_buff` (9 行数据)
 ## caravan_member_data.csv  [未识别-跳过]
 ## caravan_post_config.csv  [未识别-跳过]
 ## caravan_vehicle_config.csv  [未识别-跳过]
@@ -34,13 +35,14 @@
 ## personal_flight_config.csv  [未识别-跳过]
 ## personality_config.csv  →  识别为 `personality_config` (7 行数据)
 ## puppet.csv  →  识别为 `puppet` (36 行数据)
-## quest_daily.csv  →  识别为 `quest_daily` (16 行数据)
+## quest_daily.csv  →  识别为 `quest_daily` (23 行数据)
 ## quest_item.csv  →  识别为 `quest_item` (3 行数据)
 ## quest_random.csv  →  识别为 `quest_random` (8 行数据)
-## quest_reward_pool.csv  →  识别为 `quest_reward_pool` (51 行数据)
+## quest_reward_pool.csv  →  识别为 `quest_reward_pool` (56 行数据)
 ## quest_weekly.csv  →  识别为 `quest_weekly` (10 行数据)
 ## random_entry_pool.csv  [未识别-跳过]
 ## resource_base.csv  →  识别为 `resource_base` (4 行数据)
+## resource_flow.csv  [未识别-跳过]
 ## secret_config.csv  →  识别为 `secret_config` (4 行数据)
 ## sect_ship_config.csv  [未识别-跳过]
 ## ship_dock_config.csv  [未识别-跳过]
@@ -55,6 +57,10 @@
 ## treasure_normal.csv  →  识别为 `treasure_normal` (36 行数据)
 ## tribulation_config.csv  [未识别-跳过]
 ## tribulation_item.csv  →  识别为 `tribulation_item` (4 行数据)
+## xuanyu_shop.csv  [未识别-跳过]
+## 引育纪事.csv  [未识别-跳过]
+## 节奏校准.csv  [未识别-跳过]
+## 评级节奏.csv  [未识别-跳过]
 
 # 跨表关系校验
 - [OK] drop_common: 各 drop_id 池内 drop_weight 和=100
@@ -76,10 +82,10 @@
 - [OK] 根目录 .gd 与 config/*.csv 中无残留「剑修」，职业枚举已统一为「道修」
 
 # 汇总
-- 校验 CSV 表数: 41
-- 校验数据行数: 1138
+- 校验 CSV 表数: 42
+- 校验数据行数: 1159
 - 错误数: 0
-- 警告数: 13
+- 警告数: 18
 
 ## 警告
 - caravan_member_data.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
@@ -91,10 +97,15 @@
 - item_material.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - personal_flight_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - random_entry_pool.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- resource_flow.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - sect_ship_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - ship_dock_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - teleport_array_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - tribulation_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- xuanyu_shop.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 引育纪事.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 节奏校准.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 评级节奏.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 
 ## 结论: ✅ 全部通过，无错误
 

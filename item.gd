@@ -13,6 +13,8 @@ const 类别名 := ["丹药", "灵材", "法器", "神兵", "法宝"]
 const 类别权重 := {"dan_yao": 20.0, "ling_cai": 30.0, "fa_qi": 30.0, "shen_bing": 15.0, "fabao": 5.0}
 # 类别拼音key→中文展示名（简介/显示用，杜绝拼音泄露到UI）
 const 类别中文名 := {"dan_yao": "丹药", "ling_cai": "灵材", "fa_qi": "法器", "shen_bing": "神兵", "fabao": "法宝"}
+# 历史bug兜底：drop_pool 中材料/碎片名曾被误生成到法器/神兵/法宝类别，按名称强制归回灵材
+const 掉落材料名白名单 := ["草药", "灵材", "凡品装备碎片", "良品装备碎片"]
 
 const 品阶序 := ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
 const 品阶序key := 品阶序  # 别名，统一使用中文 key（与 var 品阶 值口径一致）
@@ -331,8 +333,10 @@ func 装备基础战力() -> int:
 		b += (1500 if 品阶 == "道阶" else 600)
 	return b
 
-# 是否可穿戴（拥有穿戴位的装备/法宝类；丹药/灵材无穿戴位）
+# 是否可穿戴（仅法器/神兵/法宝可穿戴；丹药/灵材无论穿戴位是否非空都不可穿）
 func 可穿戴() -> bool:
+	if 类别 in ["dan_yao", "ling_cai"]:
+		return false
 	return 穿戴位 != "" and 穿戴位 != null
 
 func 简介() -> String:
@@ -367,12 +371,29 @@ func to_dict() -> Dictionary:
 		"词缀": 词缀, "极品属性": 极品属性, "奇遇版": 奇遇版,
 	}
 
+func 是材料名称(名: String) -> bool:
+	if 名 in 掉落材料名白名单:
+		return true
+	if 基础库.has("ling_cai"):
+		for 阶 in 基础库["ling_cai"].keys():
+			for 条 in 基础库["ling_cai"][阶]:
+				if 条.get("名", "") == 名:
+					return true
+	return false
+
 func from_dict(d: Dictionary):
 	类别 = d.get("类别", "法器")
 	品阶 = d.get("品阶", "凡阶")
 	穿戴位 = d.get("穿戴位", "")
+	if 类别 in ["dan_yao", "ling_cai"]:
+		穿戴位 = ""
 	职业 = d.get("职业", "")
 	名称 = d.get("名称", "")
+	# 旧档兼容：曾被误存为法器/神兵/法宝的材料，按名称强制归回灵材并清空穿戴属性
+	if 是材料名称(名称) and not (类别 in ["dan_yao", "ling_cai"]):
+		类别 = "ling_cai"
+		穿戴位 = ""
+		职业 = ""
 	功效 = d.get("功效", "")
 	描述 = d.get("描述", "")
 	战力加成 = d.get("战力加成", 0)

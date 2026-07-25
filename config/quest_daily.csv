@@ -1,7 +1,7 @@
-quest_id,quest_name,quest_type,unlock_sect_level,difficulty,target_desc,target_num,reward_lingjing,reward_lingqi,reward_pool_id,active_point,daily_limit,is_auto_complete
-daily_001,收取宗门资源,经营,1,难度Ⅰ,收取全宗资源产出,1,50,20,pool_daily_1,10,1,true
-daily_002,弟子闭关修炼,养成,1,难度Ⅰ,安排任意弟子闭关修炼1次,1,40,30,pool_daily_1,10,1,true
-daily_003,野外历练,探索,1,难度Ⅰ,完成普通野外历练2次,2,60,15,pool_daily_1,10,1,true
+quest_id,quest_name,quest_type,unlock_sect_level,difficulty,target_desc,target_num,reward_lingjing,reward_lingqi,reward_pool_id,active_point,daily_limit,is_auto_complete,jump_path,condition_type,is_newbie,prev_quest_id,is_auto_trigger
+daily_001,收取宗门资源,经营,1,难度Ⅰ,收取全宗资源产出,1,50,20,pool_daily_1,10,1,true,宗门/收益栏/领取按钮,collect_daily_income,false,,true
+daily_002,弟子闭关修炼,养成,1,难度Ⅰ,安排任意弟子闭关修炼1次,1,40,30,pool_daily_1,10,1,true,弟子/详情/修炼状态,close_cultivation,false,,true
+daily_003,野外历练,探索,1,难度Ⅰ,完成普通野外历练2次,2,60,15,pool_daily_1,10,1,true,弟子/详情/境界,weekly_breakthrough,false,,true
 daily_004,宗门巡视,互动,1,难度Ⅰ,与宗门内3名游走弟子互动,3,30,10,pool_daily_1,10,1,true
 daily_005,炼制丹药,经营,2,难度Ⅱ,在丹房炼制1炉丹药,1,120,50,pool_daily_2,10,1,true
 daily_006,弟子突破引导,养成,2,难度Ⅱ,使用1颗聚气丹,1,100,60,pool_daily_2,10,1,true
@@ -15,3 +15,10 @@ daily_013,丹药量产,经营,4,难度Ⅳ,炼制5炉宝品丹药,5,800,300,pool_
 daily_014,法宝祭炼,养成,4,难度Ⅳ,祭炼1次普通法宝,1,700,350,pool_daily_4,10,1,true
 daily_015,秘境首领挑战,探索,4,难度Ⅳ,击败1次秘境BOSS,1,900,250,pool_daily_4,10,1,true
 daily_016,宗门人事调整,互动,4,难度Ⅳ,任命1名片区执事,1,600,200,pool_daily_4,10,1,true
+newbie_001,再纳一名弟子,互动,1,难度Ⅰ,宗门初立，当广纳弟子，以固根基,2,200,50,pool_newbie,10,0,false,弟子/接引,recruit_count,true,,false
+newbie_002,首遣弟子历练,探索,1,难度Ⅰ,根基初稳，可遣弟子外出历练，寻访机缘,1,300,80,pool_newbie,15,0,false,历练/秘境,realm_first_enter,true,newbie_001,false
+newbie_003,首次收取日供,经营,1,难度Ⅰ,宗门每日自有产出，待宗主查收,1,200,30,pool_newbie,8,0,false,宗门/收益栏,collect_income,true,newbie_002,true
+newbie_004,首桩宗门轶事,互动,1,难度Ⅰ,宗门运转，自有诸事发生，静候决断,1,200,40,pool_newbie,10,0,false,纪事,event_first_trigger,true,newbie_003,true
+newbie_005,炼气三层初成,养成,1,难度Ⅰ,弟子潜心修行，自有境界突破之喜,1,400,100,pool_newbie,20,0,false,弟子/详情,disciple_realm_3,true,newbie_004,true
+newbie_006,炼气五层精进,养成,1,难度Ⅰ,修行日深，炼气五层是宗门战力根基,1,600,150,pool_newbie,30,0,false,弟子/详情,disciple_realm_5,true,newbie_005,true
+newbie_007,五人宗门初具,养成,1,难度Ⅰ,弟子满五，宗门初具规模，道途渐宽,5,1000,200,pool_newbie,50,0,false,弟子/名录,recruit_count_5,true,newbie_006,true

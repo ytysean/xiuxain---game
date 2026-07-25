@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://0qtgwd7hudnc"
+
+[deps]
+
+files=["res://config/引育纪事.类型.translation", "res://config/引育纪事.category.translation", "res://config/引育纪事.文案.translation"]
+
+source_file="res://config/引育纪事.csv"
+dest_files=["res://config/引育纪事.类型.translation", "res://config/引育纪事.category.translation", "res://config/引育纪事.文案.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

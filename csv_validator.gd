@@ -24,7 +24,7 @@ const VALID_SUB_GRADES := ["下品", "中品", "上品", "极品"]
 const PILL_TYPES := ["培元类", "突破类", "恢复类", "属性类", "特殊类"]
 const TAL_TYPES := ["攻击类", "防御类", "辅助类", "控制类", "特殊类"]
 const TREASURE_TYPES := ["攻击类", "防御类", "辅助类"]
-const SKILL_TYPES := ["攻击", "控制", "辅助防御", "通用"]
+const SKILL_TYPES := ["攻击", "控制", "辅助防御", "通用", "普攻", "主动", "被动天赋"]
 const EQUIP_SLOTS := ["武器", "法袍", "头盔", "护腕", "腰带", "靴子", "饰品", "法宝"]
 const APPLY_CLASSES := ["通用", "体修", "道修", "法修"]
 const SET_CLASSES := ["全职业通用", "道修", "体修", "法修"]
@@ -215,9 +215,23 @@ const TABLE_RULES := {
         "primary_key": "skill_id",
         "field_rules": {
             "profession": {"type": "enum", "values": ["体修", "道修", "法修", "通用"], "tip": "职业类型非法"},
+            "skill_type": {"type": "enum", "values": SKILL_TYPES, "tip": "技能类型非法（应为 攻击/控制/辅助防御/通用/普攻/主动/被动天赋）"},
             "damage_rate": {"type": "float", "min": 0, "max": 3.0, "tip": "技能倍率超出合理范围"},
             "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "调息周期超出0-10范围"},
             "mp_cost": {"type": "int", "min": 0, "tip": "灵力消耗不能为负数"}
+        }
+    },
+    "battle_buff": {
+        "required_fields": ["buff_id","buff名","类型","作用属性","数值","数值类型","持续回合","来源类型","可叠加","备注"],
+        "primary_key": "buff_id",
+        "field_rules": {
+            "类型": {"type": "enum", "values": ["增益","减益","dot","控制"], "tip": "buff 类型非法（应为 增益/减益/dot/控制）"},
+            "作用属性": {"type": "enum", "values": ["攻","防","血","速","灵力","全"], "tip": "作用属性非法（攻/防/血/速/灵力/全）"},
+            "数值": {"type": "float", "tip": "数值须为可解析浮点（dot=每回合伤害比例/flat；控制=0；增益减益=属性增量）"},
+            "数值类型": {"type": "enum", "values": ["flat","percent","none"], "tip": "数值类型非法（flat/percent/none）"},
+            "持续回合": {"type": "int", "min": 1, "tip": "持续回合须≥1"},
+            "来源类型": {"type": "enum", "values": ["skill","item","passive","environment"], "tip": "来源类型非法（skill/item/passive/environment）"},
+            "可叠加": {"type": "bool", "tip": "可叠加应为 true/false"}
         }
     },
     "drop_common": {

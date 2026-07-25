@@ -8,6 +8,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = os.path.join(SCRIPT_DIR, "config") if os.path.basename(SCRIPT_DIR) != "config" else SCRIPT_DIR
 OUT = os.path.join(CONFIG_DIR, "validate_report.txt")
 
+# 技能类型枚举（镜像 csv_validator.gd const SKILL_TYPES，ADD-ONLY 扩为技能/功法两表并集）
+# 旧：攻击/控制/辅助防御/通用（skill_cultivation.csv）；新增：普攻/主动/被动天赋（skill.csv 实际值，A4 处置）
+SKILL_TYPES = ["攻击", "控制", "辅助防御", "通用", "普攻", "主动", "被动天赋"]
+
 # ---------------- 镜像 TABLE_RULES ----------------
 TABLE_RULES = {
     "spirit_pet": {"required_fields": ["pet_id","pet_name","grade","sub_grade","pet_type","unlock_realm","passive_value","max_level","feed_cost_per_day","base_lifespan_year"],
@@ -60,7 +64,7 @@ TABLE_RULES = {
         "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "apply_class":{"type":"enum","values":["通用","体修","道修","法修"]},
-            "skill_type":{"type":"enum","values":["攻击","控制","辅助防御","通用"]},
+            "skill_type":{"type":"enum","values":SKILL_TYPES},
             "effect_value":{"type":"percent","max":200.0},"max_level":{"type":"int","min":1},"learn_cost":{"type":"int","min":0}}},
     "treasure_normal": {"required_fields":["treasure_id","treasure_name","grade","sub_grade","treasure_type","base_atk","base_def","base_hp","passive_effect","effect_value","sell_price"],
         "primary_key":"treasure_id",
@@ -104,8 +108,16 @@ TABLE_RULES = {
     "skill": {"required_fields":["skill_id","skill_name","profession","damage_rate","cooldown","mp_cost"],
         "primary_key":"skill_id",
         "field_rules":{"profession":{"type":"enum","values":["体修","道修","法修","通用"]},
+            "skill_type":{"type":"enum","values":SKILL_TYPES},
             "damage_rate":{"type":"float","min":0,"max":3.0},"cooldown":{"type":"int","min":0,"max":10},
             "mp_cost":{"type":"int","min":0}}},
+    "battle_buff": {"required_fields":["buff_id","buff名","类型","作用属性","数值","数值类型","持续回合","来源类型","可叠加","备注"],
+        "primary_key":"buff_id",
+        "field_rules":{"类型":{"type":"enum","values":["增益","减益","dot","控制"]},
+            "作用属性":{"type":"enum","values":["攻","防","血","速","灵力","全"]},
+            "数值":{"type":"float"},"数值类型":{"type":"enum","values":["flat","percent","none"]},
+            "持续回合":{"type":"int","min":1},"来源类型":{"type":"enum","values":["skill","item","passive","environment"]},
+            "可叠加":{"type":"bool"}}},
     "drop_common": {"required_fields":["drop_id","scene_name","unlock_realm","unlock_sect_level","item_id","item_name","item_grade","item_type","drop_weight","guarantee_count","daily_drop_limit","is_counted_in_balance"],
         "primary_key":"drop_id+item_id",
         "field_rules":{"unlock_sect_level":{"type":"int","min":1},
