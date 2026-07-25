@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# pre_f5_check.py —— 《太玄宗门录》F5 前必跑检查（一键编排 · 十二道闸门）
+# pre_f5_check.py —— 《太玄宗门录》F5 前必跑检查（一键编排 · 十九道闸门）
 #
-# 把十二道验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
+# 把十九道验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
 #   1) GDScript 4.x 类型推断扫描  (gdscript_type_check.py)
 #   2) 配置表全量校验             (validate_all.py)
 #   3) 战斗数值红线断言           (tests/combat/test_combat.py)
@@ -15,6 +15,9 @@
 #                                  三类「只有 Godot 真机才报」的崩溃，纯文本零误报兜底)
 #   9) GDScript 真实语法解析       (gdtoolkit_check.py：用 gdtoolkit 真 parser 拦缩进错位/
 #                                  lambda 提前结束/match case 错位等只有 Godot 才报的语法灾难)
+#   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","御兽","历练","纪事"] 且长度 5)
+#   18) 按钮色值/裸 hex 校验        (内联：全文件裸 #xxxxxx 比对顶部常量+四类锁定 hex，未定义即 FAIL)
+#   19) 背景透明度校验             (内联：BG_SCENE_ALPHA≤0.35 / BG_OVERLAY_ALPHA==0.50 / #16221D)
 #
 # 用法（在项目根目录执行）：
 #   python pre_f5_check.py
@@ -38,6 +41,9 @@ CHECKS = [
     ("灵兽数值红线断言",     "tests/beast/test_beast.py", ROOT),
     ("弟子终局机制断言",     "tests/disciple/test_disciple.py", ROOT),
     ("彩蛋数值红线断言",     "tests/easter_egg/test_easter_egg.py", ROOT),
+    ("资源产耗闭环断言",     "tests/resource_flow/test_resource_flow.py", ROOT),
+    ("增益数值红线断言",     "tests/buff_redline/test_buff_redline.py", ROOT),
+    ("七载奖励零通胀校验",   "check_rating_inflation.py", ROOT),
 ]
 
 # 第九道闸门依赖 gdtoolkit（真实 GDScript parser），它装在 managed Python venv 里，
@@ -193,6 +199,147 @@ def check_fullwidth_strings():
     return False, "检出 %d 处裸全角/未闭字符串" % len(hits), detail
 
 
+# ── UI 整改「三」新增校验（闸门 17/18/19）────────────────────────────────
+# 17) 底部主导航 Tab 数恒为 5（宗门/弟子/御兽/历练/纪事）
+# 18) 按钮色值 / 裸 hex：全文件裸 #xxxxxx 比对顶部常量 + 四类锁定 hex，未定义即 FAIL
+# 19) 背景透明度：BG_SCENE_ALPHA ≤ 0.35、BG_OVERLAY_ALPHA == 0.50、BG_OVERLAY_COLOR == #16221D
+NEW_UI_GATES = ("底部导航 Tab 数校验", "按钮色值/裸 hex 校验", "背景透明度校验")
+
+
+def check_tab_count():
+    """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/御兽/历练/纪事）。
+    扫描 main.gd 的 `页名` 常量数组，须精确等于该 5 项，否则 FAIL。
+    返回 (ok, summary, detail)。"""
+    fp = os.path.join(ROOT, "main.gd")
+    if not os.path.exists(fp):
+        return False, "main.gd 缺失", ""
+    try:
+        src = open(fp, "r", encoding="utf-8").read()
+    except Exception as e:
+        return False, "读取失败: %s" % e, ""
+    m = re.search(r"页名\s*:?=\s*\[(.*?)\]", src, re.DOTALL)
+    if not m:
+        return False, "未找到 页名 常量定义", ""
+    items = re.findall(r'"([^"]*)"', m.group(1))
+    expected = ["宗门", "弟子", "御兽", "历练", "纪事"]
+    if items == expected and len(items) == 5:
+        return True, "页名 = 5 Tab（宗门/弟子/御兽/历练/纪事）", ""
+    detail = "页名 = %s（应为 %s）" % (items, expected)
+    return False, "页名 Tab 数/项不匹配（实为 %d 项）" % len(items), detail
+
+
+def check_button_hex():
+    """闸门18：扫描 main.gd 中「规范色表外裸 hex」。
+    FAIL 触发条件（用户指定）：存在未定义为顶部常量、且不属于四类按钮锁定 hex 的裸 `#xxxxxx` 字面。
+    另对 `Color(r,g,b[,a])` 裸色字面做非阻断扫描：列出现行非常量裸 Color 供复查（不阻断）。
+    返回 (ok, summary, detail)。"""
+    fp = os.path.join(ROOT, "main.gd")
+    if not os.path.exists(fp):
+        return False, "main.gd 缺失", ""
+    try:
+        lines = open(fp, "r", encoding="utf-8").readlines()
+    except Exception as e:
+        return False, "读取失败: %s" % e, ""
+
+    # 1) 收集「已定义」颜色 hex：顶部 const 直接定义 + 字典条目（如 品阶色）中的 Color 字面
+    defined_hex = set()
+    color_re = re.compile(
+        r"Color\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+)\s*)?\)")
+    for raw in lines:
+        is_const = ("const " in raw) or raw.strip().startswith("const")
+        is_dict_entry = bool(re.search(r'["\w\u4e00-\u9fff]+"\s*:\s*Color\(', raw))
+        if not (is_const or is_dict_entry):
+            continue
+        for cm in color_re.finditer(raw):
+            r, g, b = float(cm.group(1)), float(cm.group(2)), float(cm.group(3))
+            a = cm.group(4)
+            hx = "%02X%02X%02X" % (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
+            defined_hex.add(hx.lower())
+            if a is not None:
+                av = int(round(float(a) * 255))
+                defined_hex.add(("%08X" % ((int(hx, 16) << 8) | av)).lower())
+
+    # 2) 四类按钮锁死 hex（终裁 · 写实规范 §7.1.1 / 绘图强制规范 §3.2）
+    locked = {
+        "2c5f52", "b89b5a", "f0e6d2",          # 主按钮
+        "4a3b2a", "3e6b5e", "e8dcc8",          # 次按钮
+        "3a6f6080", "5a8b7d", "d4e5de",        # 标签/筛选
+        "5c3333", "8b5a5a", "e8c8c8",          # 危险按钮
+    }
+    allowed = defined_hex | locked
+
+    hex_hits = []       # 未定义裸 hex（FAIL）
+    color_hits = []     # 非阻断：裸 Color(...) 非常量（供复查）
+    for idx, raw in enumerate(lines, 1):
+        # 裸 #xxxxxx / #xxxxxxxx
+        for hx in re.findall(r"#([0-9A-Fa-f]{6,8})", raw):
+            if hx.lower() not in allowed:
+                hex_hits.append((idx, "#" + hx))
+        # 裸 Color(r,g,b[,a])：仅四通道全为数字字面才算真裸色（引用常量/变量者跳过）
+        for cm in color_re.finditer(raw):
+            r, g, b = float(cm.group(1)), float(cm.group(2)), float(cm.group(3))
+            a = cm.group(4)
+            comps = [r, g, b] + ([float(a)] if a else [])
+            if all(c in (0.0, 1.0) for c in comps):   # 跳过白/黑/透明等运行期调制色
+                continue
+            hx = "%02X%02X%02X" % (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
+            if hx.lower() in defined_hex:
+                continue
+            if a is not None and ("%08X" % ((int(hx, 16) << 8) | int(round(float(a) * 255)))).lower() in defined_hex:
+                continue
+            color_hits.append((idx, "Color(%s,%s,%s%s)" % (
+                cm.group(1), cm.group(2), cm.group(3), ("," + a) if a else "")))
+
+    if hex_hits:
+        detail = "\n".join("%s:%d 未定义裸 hex %s" % (os.path.relpath(fp, ROOT), ln, h)
+                           for ln, h in hex_hits)
+        return False, "检出 %d 处规范色表外裸 hex" % len(hex_hits), detail
+    note = ""
+    if color_hits:
+        note = "（非阻断：%d 处裸 Color 未收口常量，建议复查：%s）" % (
+            len(color_hits),
+            ", ".join("%d:%s" % (ln, c) for ln, c in color_hits[:5]),
+        )
+    return True, "未检出规范色表外裸 hex" + note, ""
+
+
+def check_bg_alpha():
+    """闸门19：背景透明度校验。
+    BG_SCENE_ALPHA ≤ 0.35；BG_OVERLAY_ALPHA == 0.50；BG_OVERLAY_COLOR == #16221D。
+    任一不满足即 FAIL。返回 (ok, summary, detail)。"""
+    fp = os.path.join(ROOT, "main.gd")
+    if not os.path.exists(fp):
+        return False, "main.gd 缺失", ""
+    try:
+        src = open(fp, "r", encoding="utf-8").read()
+    except Exception as e:
+        return False, "读取失败: %s" % e, ""
+    detail = []
+    m = re.search(r"const\s+BG_SCENE_ALPHA\s*:?\s*float\s*=\s*([\d.]+)", src)
+    if not m:
+        return False, "未找到 BG_SCENE_ALPHA", ""
+    scene_a = float(m.group(1))
+    if not (scene_a <= 0.35):
+        detail.append("BG_SCENE_ALPHA=%s > 0.35" % scene_a)
+    m = re.search(r"const\s+BG_OVERLAY_ALPHA\s*:?\s*float\s*=\s*([\d.]+)", src)
+    if not m:
+        return False, "未找到 BG_OVERLAY_ALPHA", ""
+    overlay_a = float(m.group(1))
+    if overlay_a != 0.50:
+        detail.append("BG_OVERLAY_ALPHA=%s != 0.50" % overlay_a)
+    m = re.search(r"const\s+BG_OVERLAY_COLOR\s*:?\s*Color\s*=\s*Color\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)", src)
+    if not m:
+        return False, "未找到 BG_OVERLAY_COLOR", ""
+    rh = "%02X%02X%02X" % (int(round(float(m.group(1)) * 255)),
+                           int(round(float(m.group(2)) * 255)),
+                           int(round(float(m.group(3)) * 255)))
+    if rh.lower() != "16221d":
+        detail.append("BG_OVERLAY_COLOR=#%s != #16221D" % rh)
+    if detail:
+        return False, "背景透明度校验未通过", "; ".join(detail)
+    return True, "BG_SCENE_ALPHA=%.2f(≤0.35) / BG_OVERLAY_ALPHA=%.2f / #16221D" % (scene_a, overlay_a), ""
+
+
 def main():
     print("=" * 64)
     print("  太玄宗门录 · F5 前必跑检查（一键编排 · 必跑闸门）")
@@ -326,6 +473,21 @@ def main():
     if tr_ok and "WARN" in tr_full:
         print("    \033[93m⚠ 存在未知类型名（WARN），请人工确认是否拼错/为内部类型，不阻断 F5\033[0m")
 
+    # 第十七~十九道：UI 整改「三」新增校验（Tab 数 / 按钮裸色 / 背景透明度）
+    for fn, name in (
+        (check_tab_count, "底部导航 Tab 数校验"),
+        (check_button_hex, "按钮色值/裸 hex 校验"),
+        (check_bg_alpha, "背景透明度校验"),
+    ):
+        ok, summary, detail = fn()
+        total = total + 1
+        results.append((name, ok, summary, detail))
+        mark = PASS_MARK if ok else FAIL_MARK
+        pad = LINE_W - len(name)
+        if pad < 1:
+            pad = 1
+        print("  [%d/%d] %s%s %s  %s" % (total, total, name, " " * pad, mark, summary))
+
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)
     if not all_ok:
@@ -335,6 +497,11 @@ def main():
             if ok:
                 continue
             print("  --- %s ---" % name)
+            if name in NEW_UI_GATES:
+                for line in full.splitlines():
+                    if line.strip():
+                        print("    \033[91m%s\033[0m" % line.strip())
+                continue
             for line in full.splitlines():
                 s = line.strip()
                 if not s:

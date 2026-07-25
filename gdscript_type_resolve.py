@@ -11,7 +11,20 @@ Godot 编辑器一打开 .gd 就会做静态类型检查；凡是显式注解里
   - 白名单（Godot 4 引擎类型 + 项目 class_name 自定义类型）→ OK
   - 其它大写类型名 → UNKNOWN（WARN，不阻断，但提示人工确认是否拼错/是内部类型）
 
-返回码：有 KNOWN_BAD → 1（FAIL）；否则 0（含 UNKNOWN 仅 WARN）。
+另含「裸中文方法调用存在性」校验：
+  - GDScript 中裸调用 名( 解析为 self.名()；若本文件未定义该方法，编辑器报
+    "Function X not found in base self"（编译期崩溃）。
+  - 引擎方法 / GDScript 内置函数均为 ASCII，本项目自有方法名均为中文，故仅对
+    「含中文字符的裸调用」做存在性校验：高精度、近零误报（如把 _建筑点击彩蛋 误写成
+    建筑点击彩蛋(key) 即会被抓出）。含字符串字面量的行整体跳过，避免误判。
+
+另含「typed array 字面重赋」校验：
+  - Godot 4 中 `var x: Array[Dictionary] = []` 声明允许，但函数体内 `x = []` 重赋值时
+    RHS 字面数组被推断为普通 `Array`，编辑器报 "assign an array of type 'Array' to a
+    variable of type 'Array[Dictionary]'"。扫描「把字面数组 [..] 赋给 Array[X] 变量」
+    （声明行除外），命中即 FAIL。
+
+返回码：有 KNOWN_BAD 或 裸中文调用未定义 或 typed array 字面重赋 → 1（FAIL）；否则 0（含 UNKNOWN 仅 WARN）。
 
 Run: python gdscript_type_resolve.py
 """
@@ -159,6 +172,18 @@ RE_FUNC_SIG = re.compile(r"func\s+\w+\s*\(([^)]*)\)")
 RE_PARAM_TYPE = re.compile(r"(?:^|[\s,(])([A-Za-z_]\w*)\s*:\s*([A-Z]\w+)")
 # 匹配：is / as 后的类型名
 RE_IS_AS = re.compile(r"\b(?:is|as)\s+([A-Z]\w+)")
+# 匹配：本文件定义的 func 名（含 static func），含中文方法名
+RE_FUNC_DEF = re.compile(r"^\s*(?:static\s+)?func\s+([\w一-鿿]+)\s*\(")
+# 匹配：本文件声明的 signal 名（声明行形如 signal 名(，需并入"已定义"集合避免误判）
+RE_SIGNAL_DEF = re.compile(r"^\s*signal\s+([\w一-鿿]+)")
+# 匹配：裸调用（前导非 . 且非单词字符）且名称含中文字符  名(
+RE_BARE_CJK_CALL = re.compile(r"(?<![\w.])([\w一-鿿]*[一-鿿][\w一-鿿]*)\s*\(")
+# 去除字符串字面量（避免把字符串内容误判为调用）
+RE_STRIP_STR = re.compile(r'"[^"\n]*"|\'[^\'\n]*\'')
+# 匹配：本文件声明为 Array[...] 的变量名（裸字面值/容器调用重赋会触发编辑器类型错）
+RE_TYPED_ARRAY_DEF = re.compile(r"^\s*(?:var|const)\s+([\w一-鿿]+)\s*:\s*Array\[")
+# 匹配：把任意右值赋给某变量（声明行除外）  NAME = <rhs>
+RE_TYPED_ARRAY_ASSIGN = re.compile(r"^\s*([\w一-鿿]+)\s*=\s*(.+)$")
 
 
 def judge(typ, custom):
@@ -221,6 +246,103 @@ def scan_file(filepath, custom):
     return bad, unknown, ""
 
 
+def collect_defined_funcs(filepath):
+    """收集本文件定义的 func 名 与 signal 名（用于裸中文调用存在性校验）。
+    signal 声明行形如 signal 名(，同样会被裸调用正则命中，故需并入已定义集合。"""
+    names = set()
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                m = RE_FUNC_DEF.match(line)
+                if m:
+                    names.add(m.group(1))
+                s = RE_SIGNAL_DEF.match(line)
+                if s:
+                    names.add(s.group(1))
+    except Exception:
+        pass
+    return names
+
+
+def scan_cjk_bare_calls(filepath, defs):
+    """扫描裸中文方法调用：含中文的裸调用 名( 若不在本文件已定义 func 中，
+    编辑器会报 Function not found in base self。返回 [(行号, 名), ...]。
+
+    先剔除字符串字面量与行内注释再扫描，避免把字符串/注释内容误判为调用，
+    同时不漏掉带字符串参数的真实调用。"""
+    issues = []
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception:
+        return issues
+    for i, raw in enumerate(lines, 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        line = RE_STRIP_STR.sub(" ", line)        # 去字符串字面量
+        h = line.find("#")
+        if h != -1:
+            line = line[:h]                        # 去行内注释
+        if not line:
+            continue
+        for m in RE_BARE_CJK_CALL.finditer(line):
+            name = m.group(1)
+            if name not in defs:
+                issues.append((i, name))
+    return issues
+
+
+def collect_typed_array_vars(filepath):
+    """收集本文件声明为 Array[...] 的变量名（裸字面值重赋会触发编辑器类型错）。"""
+    names = set()
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                m = RE_TYPED_ARRAY_DEF.match(line)
+                if m:
+                    names.add(m.group(1))
+    except Exception:
+        pass
+    return names
+
+
+def scan_typed_array_reassign(filepath, typed_vars):
+    """扫描：把数组（字面 / Variant+数组默认 / 容器或函数调用）赋给 Array[X] 变量（声明行除外）。
+    Godot 4 中 var x: Array[int] 声明允许 = [1,2]，但函数体内 x = [...] 重赋值、
+    x = data.get(key, [])（Variant + 数组默认）、x = arr.filter()/.duplicate()
+    都会因 RHS 推断为普通 Array 而报 'assign Array to Array[X]'。
+    返回 [(行号, 名, 类别)]；类别: literal / get_array → FAIL，call → WARN。"""
+    issues = []
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except Exception:
+        return issues
+    for i, raw in enumerate(lines, 1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("var ") or line.startswith("const "):
+            continue  # 声明行初始化器合法，跳过
+        m = RE_TYPED_ARRAY_ASSIGN.match(line)
+        if not m:
+            continue
+        name = m.group(1)
+        if name not in typed_vars:
+            continue
+        rhs = m.group(2).strip()
+        if rhs.startswith("Array["):        # 正确形式：Array[X]() typed 构造，放行
+            continue
+        if rhs.startswith("["):
+            issues.append((i, name, "literal"))
+        elif ".get(" in rhs and "[" in rhs:
+            issues.append((i, name, "get_array"))
+        elif "(" in rhs:
+            issues.append((i, name, "call"))
+    return issues
+
+
 def main():
     root = "."
     custom = collect_custom_types(root)
@@ -241,6 +363,22 @@ def main():
         for u in unknown:
             all_unknown.append((rel,) + u)
 
+    all_cjk = []
+    for fp in sorted(gd_files):
+        rel = os.path.relpath(fp, ".").replace("\\", "/")
+        defs = collect_defined_funcs(fp)
+        for ln, name in scan_cjk_bare_calls(fp, defs):
+            all_cjk.append((rel, ln, name))
+
+    all_tarr = []
+    for fp in sorted(gd_files):
+        rel = os.path.relpath(fp, ".").replace("\\", "/")
+        tav = collect_typed_array_vars(fp)
+        for ln, name, kind in scan_typed_array_reassign(fp, tav):
+            all_tarr.append((rel, ln, name, kind))
+    tarr_fail = [(r, l, n) for (r, l, n, k) in all_tarr if k in ("literal", "get_array")]
+    tarr_warn = [(r, l, n) for (r, l, n, k) in all_tarr if k == "call"]
+
     print("=== GDScript 类型名存在性扫描（第10道闸门） ===")
     print("自定义类型(class_name): %s" % (", ".join(sorted(custom)) if custom else "无"))
     print("扫描: %d 文件" % len(gd_files))
@@ -256,11 +394,30 @@ def main():
 
     if not all_bad and not all_unknown:
         print("\n✅ 全部类型名合法（白名单/自定义类型命中）")
+    if all_cjk:
+        print("\n❌ 命中裸中文方法调用未定义（编辑器将报 Function not found in base self）：")
+        for rel, ln, name in all_cjk:
+            print("   [%s] L%d | 裸调用 %s() 但本文件未定义该方法（疑似拼错/漏下划线）" % (rel, ln, name))
+    if all_tarr:
+        print("\n❌/⚠️ 命中 typed array 重赋（编辑器将报 assign Array to Array[X]）：")
+        for rel, ln, name, kind in all_tarr:
+            if kind == "literal":
+                print("   [FAIL][%s] L%d | %s = [...] 字面重赋（声明为 Array[X]，应改用 %s.clear()）" % (rel, ln, name, name))
+            elif kind == "get_array":
+                print("   [FAIL][%s] L%d | %s = data.get(..., [...]) 把 Variant+数组默认赋给 Array[X]（应改用 .clear()+循环append）" % (rel, ln, name))
+            else:
+                print("   [WARN][%s] L%d | %s = <调用>(...) 把函数/容器返回赋给 Array[X]（若函数确返回同型数组可忽略，否则改 .clear()+append）" % (rel, ln, name))
     if all_bad:
         print("\n总判定: FAIL（%d 处已知错误类型名）" % len(all_bad))
         return 1
-    if all_unknown:
-        print("\n总判定: PASS（含 %d 处 WARN，不阻断，请人工确认）" % len(all_unknown))
+    if all_cjk:
+        print("\n总判定: FAIL（%d 处裸中文方法调用未定义）" % len(all_cjk))
+        return 1
+    if tarr_fail:
+        print("\n总判定: FAIL（%d 处 typed array 危险重赋：字面/容器get）" % len(tarr_fail))
+        return 1
+    if all_unknown or tarr_warn:
+        print("\n总判定: PASS（含 %d 处 WARN，不阻断，请人工确认）" % (len(all_unknown) + len(tarr_warn)))
     else:
         print("\n总判定: PASS")
     return 0

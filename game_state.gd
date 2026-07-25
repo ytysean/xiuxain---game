@@ -27,12 +27,29 @@ var 灵草 := 0
 var 矿石 := 0
 var 灵气 := 0
 var 贡献点 := 0
+# === S1 批1：阶位轴考核经济参数（全部 [PLACEHOLDER]，待数值 GDD/CSV 校准，不影响 F5）===
+const 考核成本: int = 50          # 发起单次考核行政成本（贡献点）
+const 考核失败扣减: int = 50      # 失败额外扣减（叠加行政成本，单次失败共 -100）
+const 考核贡献阈值: int = 300     # 贡献点 → 成功率加成满值门槛
+const 破格声望阈值: int = 5000    # D5：声望≥此值且立大功方可破格升一阶
+const 考核冷却日: int = 7         # 失败冷却（游戏日）
+# 堂口阶位门槛映射（阶位索引：0=执事,1=堂主,2=长老阶位,3=供奉；-1=不可任）。
+# 对齐实际 Lore.堂口定义（现役 12 堂口）；GDD §7.2 所列 shanzhen/hushan/baoku/yanwu/xixi/wudao
+# 在现役 Lore 中不存在，已按实际 key 对齐。供奉档无对应堂口（供奉阶位仍可经考核取得）。
+const 堂口阶位门槛: Dictionary = {
+	"yuying": 0, "lingtian": 0, "kuangmai": 0,        # 基础资源/接引：执事起
+	"dantang": 1, "qitang": 1, "cangjing": 1, "zhifa": 1, "tanwei": 1, "gongxun": 1,  # 功能堂口：堂主起
+	"yushou": 2, "zhenfa": 2, "xichi": 2,             # 核心堂口：长老阶位起
+}
+# S1 批1：立大功标记（运行时态，不持久化；D5 破格条件3：声望≥阈值且刚立大功）
+var 立大功标记: Dictionary = {}
+var 玄玉 := 0                      # 付费便利货币（S0 stub：仅占位，真实充值/广告后端归S1）
 var 弟子列表: Array[Disciple] = []   # 强类型数组（需 disciple.gd 已注册 class_name）
 
 # 御兽堂：孵化中的灵兽蛋 + 已孵化待绑定的灵兽库存
 var 灵兽蛋列表: Array[Beast] = []
 var 灵兽库存: Array[Beast] = []
-var 灵兽兑换队列: Array[Dictionary] = []   # T03：自动兑换队列（{模式,值,cost,启用}），周期结算执行
+var 灵兽兑换队列: Array[Dictionary] = []   # T03：引育计划队列（{偏好,cost,启用}），周期结算执行
 
 # 待抉择队列：弟子获得的极品/特殊道具，等待玩家决定“交宗换贡献”或“弟子自留”
 var 待抉择: Array[Dictionary] = []
@@ -49,11 +66,80 @@ var 彩蛋启用: bool = true
 var 彩蛋屏蔽集: Dictionary = {}
 # 配置表（由 _加载彩蛋配置 从 config/easter_egg_config.csv 读入）
 var 彩蛋配置表: Array = []
+# 节奏校准配置表（双周期评级配套系统：招徒/随机事件/奇遇/稳固期/瓶颈打磨，由 _加载节奏校准 从 config/节奏校准.csv 读入）
+var 节奏校准: Dictionary = {}
 # 临时增益（当日生效）：dim -> {"pct":float, "到期日":int}；接入产出/修炼加法管线
 var 彩蛋临时增益: Dictionary = {}
 # 数值红线常量（与 pre_f5 断言双保险）：单彩蛋≤5%、永久全局≤3%
 const 彩蛋单上限: float = 0.05
 const 彩蛋永久总上限: float = 0.03
+# ===== 增益数值红线（全游戏统一，所有buff遵守；与 pre_f5 断言双保险）=====
+# 单位：百分比整数（与 config/*.csv 的 buff_pct 列一致，0-5 即 0%~5%）
+const 增益单条上限: float = 5.0       # 任意类型单条buff≤5%（彩蛋/付费/活动/建筑，永久限时统一）
+const 增益永久全局上限: float = 3.0  # 永久类全局总增益≤3%（与彩蛋永久红线对齐）
+const 增益限时全局上限: float = 8.0  # 限时类全局总增益≤8%（全局总和上限，非单条）
+# 通用增益(战斗)软25%/硬30% 见 disciple.gd _clamp_soft(...,0.25,0.30,0.2)，付费buff并入同池共享封顶
+
+# ===== 付费预留接入点（S0 stub：全部置灰，当前不生效，S1 接真实支付/广告后端）=====
+# 统一前缀 _pay_reserved_，全局可检索；每个对应一个未来付费功能入口。
+func _pay_reserved_修炼加速():
+	# S1 付费：消耗玄玉立即完成 N 天修炼进度 / 瓶颈加速。当前不生效。
+	pass
+
+func _pay_reserved_灵兽加速():
+	# S1 付费：消耗玄玉立即孵化灵兽 / 灵兽+1级。当前不生效。
+	pass
+
+func _pay_reserved_坊市购买():
+	# S1 付费：玄玉购买坊市商品 / 手动刷新坊市。当前不生效。
+	pass
+
+func _pay_reserved_历练购买():
+	# S1 付费：玄玉购买历练额外次数 / 重置次数。当前不生效。
+	pass
+
+func _pay_reserved_建筑加速():
+	# S1 付费：玄玉立即领取建筑产出 / 建筑升级加速。当前不生效。
+	pass
+
+func _pay_reserved_全局增益():
+	# S1 付费：付费buff统一接入入口，并入 disciple.聚合通用增益() 共享 25%/30% 封顶。当前不生效。
+	pass
+
+# 玄玉专区配置读取（S0 stub：仅供 UI 占位展示，不接真实购买）
+func _玄玉表() -> Array:
+	var 表: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/xuanyu_shop.csv"):
+		表.append(r)
+	return 表
+
+# 引育纪事配置读取（S1：按 品阶×类型 匹配差异化纪事文案，圣/仙/道标异闻；纯配置驱动，零数值）
+func _引育纪事表() -> Array:
+	var 表: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/引育纪事.csv"):
+		表.append(r)
+	return 表
+
+# 按灵兽蛋的 品阶 + beast_type 查表生成引育纪事文案；优先级：
+# (品阶,类型) > (品阶,通用) > (通用,类型) > (通用,通用)；均无匹配则兜底文本。
+func _引育纪事文案(蛋: Beast) -> Dictionary:
+	var 阶: String = 蛋.品阶
+	var 型: String = 蛋.beast_type
+	var 表: Array = _引育纪事表()
+	for r in 表:
+		if r.get("品阶", "") == 阶 and r.get("类型", "") == 型:
+			return {"文案": r.get("文案", "").replace("{种类}", 蛋.种类名), "category": r.get("category", "")}
+	for r in 表:
+		if r.get("品阶", "") == 阶 and r.get("类型", "") == "通用":
+			return {"文案": r.get("文案", "").replace("{种类}", 蛋.种类名), "category": r.get("category", "")}
+	for r in 表:
+		if r.get("品阶", "") == "通用" and r.get("类型", "") == 型:
+			return {"文案": r.get("文案", "").replace("{种类}", 蛋.种类名), "category": r.get("category", "")}
+	for r in 表:
+		if r.get("品阶", "") == "通用" and r.get("类型", "") == "通用":
+			return {"文案": r.get("文案", "").replace("{种类}", 蛋.种类名), "category": r.get("category", "")}
+	return {"文案": "御兽峰按月引育，收得兽卵一枚（%s），已入温养池。" % 蛋.种类名, "category": ""}
+
 # ===== S0 任务/商店系统状态（2026-07-21 新增；不升 SAVE_VERSION，load 用 .get 默认向后兼容）=====
 var 宗门库房: Array = []                 # 坊市购买所得物品（Item 实例）
 var 坊市上架集: Array = []               # 本周上架 shop_id 列表（周刷新随机抽8-12件）
@@ -66,6 +152,12 @@ var 周常已领: bool = true
 var 上次周常日: int = 0
 var 随机事件冷却: Dictionary = {}          # quest_id -> 上次触发累计游戏日
 var 随机事件类型冷却: Dictionary = {}     # quest_type -> 上次触发累计游戏日（同类型1月冷却）
+
+# ===== P0 目标链系统 · 新手阶梯状态（2026-07-25 新增；不升 SAVE_VERSION，load 用 .get 默认兼容老档）=====
+var 新手目标链激活: bool = false          # FTUE 收尾后解锁（激活 newbie_001）
+var 新手完成列表: Array = []              # 已完成 newbie quest_id 列表（靠 prev_quest_id 推导解锁链）
+signal 新手目标更新()                      # UI 玉牌红点 / 宗门要务面板刷新
+
 
 # 全宗气运 buff（天品灵根弟子招募触发）：修炼+3% / 产出+2%，持续 7 游戏日
 var 气运修炼加成: float = 0.0
@@ -88,20 +180,41 @@ const 声望折扣表: Array = [1.0, 0.95, 0.9, 0.85, 0.8]   # 声望等级0-4�
 const 声望等级名: Array = ["中立", "友善", "尊敬", "崇敬", "崇拜"]
 var 声望 := 0
 var 繁荣 := 50
+# === S1 批5-A：凡人香火体系（纯经营层 · 空桩逻辑 · 数值 [PLACEHOLDER] 待真机校准）===
+var 香火值 := 0
+var 信徒数 := 0
+var 凡人城镇: Array = []
+var 香火月产预估 := 0
+var 信徒增益档: String = "未启"
+# === S1 批5-B：辈分礼制体系（纯经营层 · 字派序列 / 门规严格度）===
+# 旧档 辈分字派 空 → 首次推演月/首次招徒自动生成并持久化（见 _确保字派_S1）；不升 SAVE_VERSION。
+var 辈分字派: Array = []
+var 门规严格度: String = "中庸"
+# === S1 批5-C：正邪路线抉择（纯经营/叙事层 · 不可逆标记 · 数值 [PLACEHOLDER] 待真机校准）===
+var 正邪路线: String = ""     # 空=未选；取值 {玄门正道, 逍遥中立, 九幽邪道}（D7 已拍板）
 
 # P1：周期结算评分（年结：游戏年 = 365 日）
 var 周期评分: PeriodSettlement = PeriodSettlementScript.new()
 var 上次结算年 := 0            # 上次年结时的累计游戏日，用于跨 365 日边界检测
+# ===== 双周期评级（1年小考 + 7年大考）状态 =====
+var 双周期评级启用: bool = true   # 全局回退开关（true=七载双周期；false=回退纯年度实时，读 config/评级节奏.csv）
+var 七载奖励池: int = 0          # 年度评定 deferred 的 30% 灵石累积池
+var 七载待发掉落: Array = []     # 年度评定 deferred 的 S 级以上高阶法宝（按评级记录）
+var 门派等级目标: int = 1        # 七载模式下「成长值中间量」，七载大考才生效
+var 上次七载日: int = 0          # 上次七载大考时的累计游戏日，用于跨 2555 日边界检测
+var 七载大典待展示: bool = false   # 七载大考触发的瞬时展示标记（不存档），main._构建离山内容 读取后置 false
+var 七载大典摘要: Dictionary = {}  # 七载大典待展示时承载的展示数据（灵石/法宝数/晋升至），不存档
 var 年始灵石 := 0             # 本年起始灵石（结算时算增量）
 var 年始总战力 := 0           # 本年起始宗门总战力（结算时算增量）
 var 最新周期评级卡: Dictionary = {}   # 最近一次结算评级卡，供离山汇总展示
 var 历史周期评级: Array = []       # 近 12 周期评级（与 周期评分.历史 同步）
-var 引导阶段: int = 0   # 新手引导：0未开始/1-4四步/5完成（老档兼容见 load_game 默认5）
+var 引导阶段: int = 0   # 新手引导：0序章/1-5五步/6完成（老档兼容见 load_game 默认6）
 var 上次测灵日 := 0        # 测灵根冷却：上次举办时的游戏日（1年一度=365游戏日）
 
 # 堂口系统：{key: {key,名称,职能,产出,加成维度,负责人:Disciple,成员:Array}}
 var 堂口列表: Dictionary = {}
 var 堂口负责人存档: Dictionary = {}
+var 堂口状态存档: Dictionary = {}   # S1 批2：堂口等级/政绩持久化（仿 堂口负责人存档 范式）
 
 # ============ 建筑被动（阶段2：占位建筑被动功能）============
 # 资源翻倍类：本月各资源建筑实际产出额（供 _建筑被动结算 概率翻倍时直接加回，避免重复计算 经营/气运/产出 乘区）
@@ -109,6 +222,8 @@ var _本月灵田产出: int = 0
 var _本月矿脉产出: int = 0
 var _本月丹堂产出: int = 0
 var _本月器堂产出: int = 0
+# S1 批2 D7：Lv.2+ 保底津贴基数（每月 等级×基数 灵石，[PLACEHOLDER] 待数值 GDD 校准）
+const 建筑保底津贴: int = 5
 # [DORMANT] 负面事件减免聚合（zhifa/tanwei/zhenfa）：当前无负面/入侵事件系统，仅暂存不消费
 var 建筑被动_负面事件减免: float = 0.0
 
@@ -181,6 +296,7 @@ func _ready():
 		初始建宗()
 	重建堂口()
 	_加载彩蛋配置()
+	_加载节奏校准()
 	弟子变动.emit()
 
 # 初始建宗（首次运行）：若干练气弟子 + 一位已入门长老作示范
@@ -195,6 +311,12 @@ func 初始建宗():
 # 招收一名弟子（内部/自动用）
 func 招收弟子() -> Disciple:
 	var d := Disciple.new()
+	# === S1 批5-B：新弟子道号简化生成（[PLACEHOLDER] 简化版：外门=辈分字派[0]+单字）===
+	_确保字派_S1()
+	d.辈分序 = 0   # 默认开山第1字
+	if d.身份 == "外门" and not 辈分字派.is_empty():
+		d.道号 = 辈分字派[0] + (d.姓名.left(1) if d.姓名.length() > 0 else "尘")
+	# 其余阶位道号暂留空 ""（玩家可改）；[PLACEHOLDER] 命名规则见 GDD §⑤.2
 	弟子列表.append(d)
 	弟子变动.emit()
 	return d
@@ -280,6 +402,8 @@ func 刷新日常任务():
 	for r in DestinyDataLoader._read_csv("res://config/quest_daily.csv"):
 		if int(r.get("unlock_sect_level", "1")) <= 门派等级:
 			池.append(r)
+		if r.get("is_newbie", "") == "true":
+			continue
 	池.shuffle()
 	当前日常 = 池.slice(0, min(3, 池.size()))
 	日常已领 = []
@@ -298,6 +422,7 @@ func 领取日常(序号: int) -> Dictionary:
 	灵石 += 灵
 	灵气 += 气
 	日常已领[序号] = true
+	_新手_检测("collect_income")
 	return {"ok": true, "msg": "日常「%s」完成：灵石+%d 灵气+%d" % [q.get("quest_name", ""), 灵, 气]}
 
 # ============ S0 周常（轻量：每7日1条）============
@@ -332,6 +457,144 @@ func 领取周常() -> Dictionary:
 func 任务奖励系数() -> float:
 	return clamp(1.0 + (门派等级 - 1) * 0.1, 1.0, 3.0)
 
+# ============ P0 目标链系统 · 新手阶梯（混合主动/自动，上一条完成才解锁下一条）============
+# 配置来源：quest_daily.csv 中 is_newbie==true 的 7 行（newbie_001..007）
+# 事件型条件（recruit_count / realm_first_enter / collect_income / event_first_trigger）由 5 处业务钩子
+#   调用 _新手_检测(条件) 触发完成；状态型条件（recruit_count_5 / disciple_realm_3 / disciple_realm_5）
+#   由 _新手_评估后续() 依据当前状态预判，避免“死目标”。
+func 激活新手目标链():
+	if 新手目标链激活:
+		return
+	新手目标链激活 = true
+	_新手_评估后续()   # 解锁 newbie_001 并预检状态型条件是否已满足
+
+func _新手_配置() -> Array:
+	var 链: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/quest_daily.csv"):
+		if r.get("is_newbie", "") == "true":
+			链.append(r)
+	return 链
+
+func _新手_已解锁(q: Dictionary) -> bool:
+	var prev: String = q.get("prev_quest_id", "")
+	if prev == "" or prev == null:
+		return true
+	return 新手完成列表.has(prev)
+
+func 新手_当前进行() -> Dictionary:
+	# 首个未完成且已解锁的 newbie（供 UI 展示）；未激活/全完成返回 {}
+	if not 新手目标链激活:
+		return {}
+	for q in _新手_配置():
+		if 新手完成列表.has(q.get("quest_id", "")):
+			continue
+		if _新手_已解锁(q):
+			return q
+	return {}
+
+func 新手_完成数() -> int:
+	return 新手完成列表.size()
+
+func 新手_全部完成() -> bool:
+	if not 新手目标链激活:
+		return false
+	return 新手完成列表.size() >= _新手_配置().size()
+
+func 新手_有红点() -> bool:
+	if not 新手目标链激活 or 新手_全部完成():
+		return false
+	return not 新手_当前进行().is_empty()
+
+func _新手_检测(条件: String):
+	# 事件型钩子入口：满足 条件 且已解锁&未完成的 newbie 立即完成（钩子本身即证据）
+	if not 新手目标链激活:
+		return
+	for q in _新手_配置():
+		var qid: String = q.get("quest_id", "")
+		if 新手完成列表.has(qid):
+			continue
+		if not _新手_已解锁(q):
+			continue
+		if q.get("condition_type", "") != 条件:
+			continue
+		_新手_完成(q)
+		return
+
+func _新手_评估后续():
+	# 状态型条件预检 + 链推进（解锁后/每次完成后调用；可连续解锁多条）
+	if not 新手目标链激活:
+		return
+	for q in _新手_配置():
+		var qid: String = q.get("quest_id", "")
+		if 新手完成列表.has(qid):
+			continue
+		if not _新手_已解锁(q):
+			continue
+		if _新手_条件满足(q):
+			_新手_完成(q)
+			return
+
+func _新手_条件满足(q: Dictionary) -> bool:
+	var 条件: String = q.get("condition_type", "")
+	match 条件:
+		"recruit_count_5":
+			return 弟子列表.size() >= 5
+		"disciple_realm_3":
+			for d in 弟子列表:
+				if d.境界 == "练气" and d.层数 >= 3:
+					return true
+			return false
+		"disciple_realm_5":
+			for d in 弟子列表:
+				if d.境界 == "练气" and d.层数 >= 5:
+					return true
+			return false
+	return false   # 事件型条件不在状态预检中自动满足，交由对应钩子触发
+
+func _新手_完成(q: Dictionary):
+	var qid: String = q.get("quest_id", "")
+	if 新手完成列表.has(qid):
+		return
+	新手完成列表.append(qid)
+	var 灵: int = int(float(q.get("reward_lingjing", "0")) * 任务奖励系数())
+	var 气: int = int(float(q.get("reward_lingqi", "0")) * 任务奖励系数())
+	灵石 += 灵
+	灵气 += 气
+	_新手_抽池(q.get("reward_pool_id", ""))
+	宗门纪事.append({"日": 累计游戏日, "稀有度": "琐事", "名称": "新手目标",
+		"文案": "【新手目标】%s 达成，获灵石+%d 灵气+%d。" % [q.get("quest_name", ""), 灵, 气]})
+	新手目标更新.emit()
+	_新手_评估后续()   # 推进链（可能连续解锁多条状态型）
+
+func _新手_抽池(pool_id: String):
+	# P0 范围：仅结算可量化部分（灵石/气运）；材料/丹药按 +灵石 折算，
+	# 避免向 宗门库房（Item 实例数组）写入非 Item 字典，破坏 save/load。
+	if pool_id == "" or pool_id == null:
+		return
+	var 行: Array = []
+	for r in DestinyDataLoader._read_csv("res://config/quest_reward_pool.csv"):
+		if r.get("pool_id", "") == pool_id:
+			行.append(r)
+	if 行.is_empty():
+		return
+	var 总: float = 0.0
+	for r in 行:
+		总 += float(r.get("weight", "0"))
+	if 总 <= 0:
+		return
+	var 抽: float = randf() * 总
+	var 中: Dictionary = 行[0]
+	for r in 行:
+		抽 -= float(r.get("weight", "0"))
+		if 抽 <= 0:
+			中 = r
+			break
+	var 名: String = 中.get("item_name", "")
+	if "气运" in 名:
+		玄玉 += 1
+	else:
+		灵石 += 20
+
 # ============ S0 随机事件（轻量挂载：月度推演概率触发）============
 func _尝试随机事件():
 	# S0 P0：月度从候选池按品阶权重抽1条（普通70/优秀20/稀有8/传说2），同类型+单事件双冷却
@@ -358,12 +621,16 @@ func _尝试随机事件():
 		if 抽 < 0:
 			选中 = r
 			break
-	灵石 += int(选中.get("reward_lingjing", "0"))
-	灵气 += int(选中.get("reward_lingqi", "0"))
+	var 事件系数: float = _校准浮("随机事件奖励系数", 1.8)
+	var 奖灵石: int = int(int(选中.get("reward_lingjing", "0")) * 事件系数)
+	var 奖灵气: int = int(int(选中.get("reward_lingqi", "0")) * 事件系数)
+	灵石 += 奖灵石
+	灵气 += 奖灵气
 	随机事件冷却[选中.get("quest_id", "")] = 累计游戏日
 	随机事件类型冷却[选中.get("quest_type", "")] = 累计游戏日
 	宗门纪事.append({"日": 累计游戏日, "稀有度": 选中.get("rarity", "普通"), "名称": 选中.get("quest_name", ""),
-		"文案": "【随机事件】%s，门派获灵石+%s 灵气+%s。" % [选中.get("quest_name", ""), 选中.get("reward_lingjing", "0"), 选中.get("reward_lingqi", "0")]})
+		"文案": "【随机事件】%s，门派获灵石+%d 灵气+%d。" % [选中.get("quest_name", ""), 奖灵石, 奖灵气]})
+	_新手_检测("event_first_trigger")
 
 # 随机事件品阶权重（S0 P0：普通70/优秀20/稀有8/传说2，对齐奇遇梯度）
 func _随机事件权重(稀有度: String) -> int:
@@ -381,13 +648,41 @@ func _推进任务系统(日: int):
 		刷新日常任务()
 	if 当前周常.is_empty() or (累计游戏日 - 上次周常日 >= 7):
 		刷新周常()
-	_尝试随机事件()
 	_尝试彩蛋奇遇("宗门内")
 	_尝试彩蛋奇遇("历练")
 
 # ============ 彩蛋系统（第一批）============
 func _加载彩蛋配置():
 	彩蛋配置表 = DestinyDataLoader._read_csv("res://config/easter_egg_config.csv")
+
+# ============ 节奏校准（双周期评级配套：招徒/随机事件/奇遇/稳固期/瓶颈打磨）============
+# 全配置化：参数集中在 config/节奏校准.csv；缺失文件或缺失行时回落到各调用点的默认值，绝不崩。
+func _加载节奏校准():
+	if 节奏校准.size() > 0:
+		return
+	节奏校准 = {}
+	for 路径 in ["res://config/节奏校准.csv", "res://config/评级节奏.csv"]:
+		for r in DestinyDataLoader._read_csv(路径):
+			节奏校准[r.get("参数", "")] = r.get("值", "")
+
+# 类型化读取（CSV 存为字符串，按调用点需要解析）：缺失/空值回落默认，保证安全
+func _校准浮(参数: String, 默认: float) -> float:
+	var s: String = 节奏校准.get(参数, "")
+	if s == "":
+		return 默认
+	return float(s)
+
+func _校准整(参数: String, 默认: int) -> int:
+	var s: String = 节奏校准.get(参数, "")
+	if s == "":
+		return 默认
+	return int(float(s))
+
+func _校准开(参数: String, 默认: bool) -> bool:
+	var s: String = 节奏校准.get(参数, "")
+	if s == "":
+		return 默认
+	return s in ["1", "true", "True", "TRUE", "是", "yes", "YES"]
 
 func _彩蛋配置(egg_id: String) -> Dictionary:
 	for r in 彩蛋配置表:
@@ -470,7 +765,7 @@ func 彩蛋修炼加成() -> float:
 	return min(g.get("pct", 0.0), 彩蛋单上限)
 
 func 推演至现在() -> String:
-	推演日志 = []
+	推演日志.clear()
 	# 资源快照（用于总览展示"本次收益"，展示型领取不二次发资源）
 	var 灵石快照 := 灵石
 	# 解锁职业池随门派等级更新（供筑基判定职业使用）
@@ -561,22 +856,44 @@ func 推演一月(日: int):
 		# 终局机制 P0：寿元坐化——年龄达当前境界寿元上限则标记，循环后统一处理（移除+归还+纪事）
 		if d.年龄 >= d.寿元:
 			待坐化.append(d)
+	_新手_评估后续()   # 状态型 newbie（弟子层数达标）月内预判
 	# 2. 资源建筑产出
 	处理坐化(待坐化)   # P0 终局：寿元耗尽弟子离场（灵兽/装备归还宗门、纪事入册）
 	_资源建筑产出()
+	# S1 批2：任期政绩月度累积（须在主事在任、资源产出之后）
+	_累计任期政绩()
 	# 2.5 建筑被动结算（阶段2：每月概率事件；资源产出之后、推演条目汇总之前）
 	_建筑被动结算()
 	# 3. 宗门事件（约每月一次）
+	# S1 批5-A 端口：凡人事件池 config/凡人事件.csv 待建（权重接入本区；本批仅标端口，不写事件逻辑）
 	if randf() < 0.5:
 		_加推演条目("【宗门】" + Lore.取宗门事件(), ET_SECT, PRIO_NORMAL)
 		_加声望(5)
-	# 4. 育英堂常驻自动招收（练气候补）
-	if randf() < 0.3:
-		var n: int = 1 + (1 if randf() < 0.3 else 0)
-		for i in n:
-			var nd := Disciple.new()
-			nd.堂口 = "yuying"   # 育英堂候补
-			弟子列表.append(nd)
+	# 4. 育英堂常驻自动招收（练气候补）：由原「月度 30%」改为「季度触发」，基础概率 + 门派等级缩放
+	#   按本次推演跨越的月份逐月判定，兼容 日=30/365/7 等不同粒度（度假式快进不漏触发）
+	var 招徒周期: int = _校准整("招徒周期月", 3)
+	var 招徒起月: int = int(累计游戏日 / 30)
+	var 招徒止月: int = int((累计游戏日 + 日) / 30)
+	for 招徒月 in range(招徒起月, 招徒止月):
+		if 招徒月 % 招徒周期 != 0:
+			continue
+		var 招徒概率: float = _校准浮("招徒基础概率", 0.75) + (门派等级 - 1) * _校准浮("招徒等级缩放", 0.02)
+		招徒概率 = clamp(招徒概率, 0.0, _校准浮("招徒概率上限", 0.95))
+		if randf() < 招徒概率:
+			var n: int = 1 + (1 if randf() < 0.3 else 0)
+			for i in n:
+				var nd := Disciple.new()
+				nd.堂口 = "yuying"   # 育英堂候补
+				弟子列表.append(nd)
+	# 4.5 随机事件（半年触发，单次奖励放大 系数 倍；原月度触发已移至此，按跨越月份逐月判定）
+	var 事件周期: int = _校准整("随机事件周期月", 6)
+	var 事件累计快照: int = 累计游戏日
+	for 事件月 in range(招徒起月, 招徒止月):
+		if 事件月 % 事件周期 != 0:
+			continue
+		累计游戏日 = 事件累计快照 + 事件月 * 30   # 让冷却/纪事落在对应月份，避免同刻冷却互相抵消
+		_尝试随机事件()
+	累计游戏日 = 事件累计快照
 	# 5. 御兽堂推进孵化
 	推进孵化(日)
 	处理兑换队列()        # T03：自动兑换队列周期执行
@@ -586,6 +903,9 @@ func 推演一月(日: int):
 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清单.md）===
 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
+	_结算香火_S1()            # 凡人香火月度结算（当前空桩，S1 批5-A）
+	_确保字派_S1()            # S1 批5-B：旧档首次进入自动生成字派序列并持久化
+	_检查正邪解锁_S1()         # S1 批5-C：正邪路线解锁检测（空桩，当前仅读门派等级+七载大考标记）
 	累计游戏日 += 日
 	_推进任务系统(日)        # S0：每日刷日常 / 每7日刷周常 / 月度随机概率事件
 	# P1：年结周期评分（游戏年 = 365 日）；支持单次大跨度推演结算多年
@@ -603,22 +923,105 @@ func _年结评分():
 		"灵石增量": 灵石 - 年始灵石,
 		"总战力增量": 当前总战力 - 年始总战力,
 	})
+	var 评级名: String = 卡["评级"]
+	var 发: Dictionary = _发放周期奖励(评级名)
+	卡["年度发"] = 发["年度发"]
+	卡["入池"] = 发["入池"]
+	卡["平移法宝"] = 发["平移法宝"]
 	最新周期评级卡 = 卡
-	_发放周期奖励(卡["评级"])
+	# 岁末考评轻量纪事（归入「日常庶务」分类，保证每年成长可回溯）
+	var 岁末评语: String = _七载大典文案(评级名).get("评语", "")
+	宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "岁末考评",
+		"文案": "岁末考评裁定 %s：%s" % [评级名, 岁末评语], "category": "日常庶务"})
 	年始灵石 = 灵石
 	年始总战力 = 当前总战力
+	# 七载双周期：跨 2555 日（7×365）边界触发七载大考集中结算
+	if _校准开("双周期评级启用", true):
+		var 七载周期日: int = _校准整("七载周期年", 7) * 365
+		if 累计游戏日 - 上次七载日 >= 七载周期日:
+			上次七载日 = 累计游戏日
+			_七载大考()
 
 # P1：周期评定奖励（梯度灵石 + S 级及以上追加上品法宝赐掌门）
-func _发放周期奖励(评级: String):
+# 双周期评级启用（默认）：年度发放 70%，剩余 30% 平移入「七载奖励池」于七载大典集中结算；
+#   S 级及以上高阶法宝留待七载大典一次性赐下。全程零新增资源（7 年总量 = 7 × 原年度）。
+# 双周期评级关闭（回退）：维持原年度实时全额发放，行为与原版完全一致。
+# 返回值供 UI 展示：{年度发, 入池, 平移法宝}
+func _发放周期奖励(评级: String) -> Dictionary:
 	var 灵石奖励表: Dictionary = {"D": 0, "C": 200, "B": 500, "A": 1000, "A+": 1800, "S": 3000, "SS": 5000, "SSS": 8000}
 	var 奖: int = int(灵石奖励表.get(评级, 0))
-	if 奖 > 0:
+	if 奖 <= 0:
+		return {"年度发": 0, "入池": 0, "平移法宝": false}
+	var 等级平移: bool = 评级 in ["S", "SS", "SSS"]
+	if not _校准开("双周期评级启用", true):
+		# 回退：原年度实时全额发放
 		灵石 += 奖
 		_加推演条目("【宗门】周期评定 %s，论功行赏，灵石+%d。" % [评级, 奖], ET_SECT, PRIO_NORMAL, {})
-	if 评级 in ["S", "SS", "SSS"] and not 弟子列表.is_empty():
+		if 等级平移 and not 弟子列表.is_empty():
+			var 宝: Item = _造低阶物品("fabao", "上品")
+			弟子列表[0].背包.append(宝)
+			_加推演条目("【宗门】评定 %s，赐掌门上品法宝【%s】。" % [评级, 宝.名称], ET_LOOT, PRIO_HIGH, {})
+		return {"年度发": 奖, "入池": 0, "平移法宝": 等级平移}
+	# 双周期模式：年度 70% 即时 + 30% 入池；高阶法宝平移七载
+	var 年度发: int = int(奖 * _校准浮("年度奖励占比", 0.70))
+	var 入池: int = 奖 - 年度发
+	灵石 += 年度发
+	_加推演条目("【宗门】岁末考评 %s，论功行赏，灵石+%d（余 %d 并入七载大典）。" % [评级, 年度发, 入池], ET_SECT, PRIO_NORMAL, {})
+	if 入池 > 0:
+		七载奖励池 += 入池
+	if 等级平移 and not 弟子列表.is_empty():
 		var 宝: Item = _造低阶物品("fabao", "上品")
-		弟子列表[0].背包.append(宝)
-		_加推演条目("【宗门】评定 %s，赐掌门上品法宝【%s】。" % [评级, 宝.名称], ET_LOOT, PRIO_HIGH, {})
+		七载待发掉落.append({"类型": 宝.类别, "品阶": 宝.品阶, "名称": 宝.名称})
+		_加推演条目("【宗门】评定 %s，上品法宝【%s】留待七载大典赐下。" % [评级, 宝.名称], ET_LOOT, PRIO_HIGH, {})
+	return {"年度发": 年度发, "入池": 入池, "平移法宝": 等级平移}
+
+# P1：七载大典集中结算（双周期评级核心）
+# 一次性发放 7 年累积的「七载奖励池」（=7×30% 年度灵石）+ 历年平移的高阶法宝，
+# 并将「门派等级目标」正式生效为门派等级。全程零新增资源。
+# 七载大典 / 岁末考评 仪式文案（纯展示，零数值）。按评级分 8 档差异化包装。
+func _七载大典文案(评级: String) -> Dictionary:
+	var 表: Dictionary = {
+		"D":   {"标题": "七载考评·守拙", "开篇": "根基尚浅，然守拙归真，来日方长。", "收尾": "第%d七载，宗门稳守本心，来年期可待。", "评语": "岁末考评守拙，根基虽浅，来日方长。"},
+		"C":   {"标题": "七载考评·筑基", "开篇": "百事初立，稳中有进，假以时日可期大成。", "收尾": "第%d七载，宗门筑基渐稳，来年再图进取。", "评语": "岁末考评筑基，稳中有进，来年可期。"},
+		"B":   {"标题": "七载考评·兴业", "开篇": "产业渐丰，弟子用命，宗门气象一新。", "收尾": "第%d七载，宗门兴业有成，道途愈宽。", "评语": "岁末考评兴业，基业渐丰，气象一新。"},
+		"A":   {"标题": "七载考评·昌盛", "开篇": "七载经营，宗门昌盛，灵脉日盛。", "收尾": "第%d七载，宗门昌盛绵延，声望渐起。", "评语": "岁末考评昌盛，灵脉日盛，声望渐起。"},
+		"A+":  {"标题": "七载考评·隆盛", "开篇": "贤才云集，基业隆盛，已具大宗气象。", "收尾": "第%d七载，宗门隆盛日彰，名动一方。", "评语": "岁末考评隆盛，贤才云集，名动一方。"},
+		"S":   {"标题": "七载大考·宗门鼎盛", "开篇": "七载积淀，道基再固，宗门鼎盛，四海仰止。", "收尾": "第%d七载，宗门鼎盛，道途至此再进一步。", "评语": "七载大考鼎盛，道基再固，四海仰止。"},
+		"SS":  {"标题": "七载大考·威震一方", "开篇": "七载砥砺，威震一方，诸宗来朝，灵脉通玄。", "收尾": "第%d七载，宗门威名远播，基业永固。", "评语": "七载大考威震一方，诸宗来朝，基业永固。"},
+		"SSS": {"标题": "七载大考·道途无双", "开篇": "七载问道，道途无双，太玄之名，响彻修真界。", "收尾": "第%d七载，太玄宗立不朽之基，万世流芳。", "评语": "七载大考道途无双，太玄之名响彻修真界。"},
+	}
+	return 表.get(评级, 表["C"])
+func _七载大考():
+	var 晋升: int = 门派等级目标 if 门派等级目标 > 门派等级 else 0
+	var 大典灵石: int = 七载奖励池
+	var 大典法宝: int = 七载待发掉落.size()
+	var 序号: int = int(累计游戏日 / (_校准整("七载周期年", 7) * 365))
+	var 评级: String = 最新周期评级卡.get("评级", "C")
+	var 文: Dictionary = _七载大典文案(评级)
+	# 基础纪事：每次七载必生成 1 条；S 级以上归「宗门大事件」，其余归「宗门岁纪」
+	var 七载分类: String = "宗门大事件" if 评级 in ["S", "SS", "SSS"] else "宗门岁纪"
+	宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "七载大考",
+		"文案": "第%d七载宗门大考礼成（本年评定 %s），论功行赏、重宝颁赐，宗门至此再进一步。" % [序号, 评级],
+		"category": 七载分类})
+	if 晋升 > 0:
+		宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "宗门晋升",
+			"文案": "太玄宗于第 %d 年七载大典正式晋为 Lv.%d 宗门，辖地扩张，弟子云集。" % [int(累计游戏日 / 365), 门派等级目标],
+			"category": "宗门大事件"})
+		_加推演条目("【宗门】七载大典！太玄宗晋升至 Lv.%d！灵脉修炼速度 +%d%%" % [门派等级目标, 门派等级目标 * 2], ET_SECT, PRIO_HIGH, {"宗门等级": 门派等级目标})
+		门派等级 = 门派等级目标
+	if 大典灵石 > 0:
+		灵石 += 大典灵石
+		_加推演条目("【宗门】七载大典论功行赏，灵石+%d（历年岁末之积）。" % 大典灵石, ET_SECT, PRIO_HIGH, {})
+		七载奖励池 = 0
+	if 大典法宝 > 0 and not 弟子列表.is_empty():
+		for 掉落 in 七载待发掉落:
+			var 宝: Item = _造低阶物品(掉落.get("类型", "fabao"), 掉落.get("品阶", "上品"))
+			弟子列表[0].背包.append(宝)
+			_加推演条目("【宗门】七载大典赐掌门上品法宝【%s】。" % 宝.名称, ET_LOOT, PRIO_HIGH, {})
+		七载待发掉落 = []
+	七载大典摘要 = {"灵石": 大典灵石, "法宝数": 大典法宝, "晋升至": 晋升, "序号": 序号, "评级": 评级}
+	七载大典待展示 = true
+	_加推演条目("【宗门】七载宗门大考礼成，万象更新。", ET_SECT, PRIO_NORMAL, {})
 
 # === S1 端口：俸禄/福利按月结算（当前空操作桩）===
 # 调用位置：推演一月 月循环（紧接 _可能触发特殊登门_S1 之前）。
@@ -635,6 +1038,34 @@ func _结算俸禄_S1() -> void:
 # 依赖：声望系统、命格池（见 §三 特殊登门事件）。状态：空操作，零副作用。
 func _可能触发特殊登门_S1() -> void:
 	pass
+
+# === S1 批5-A：凡人香火月度结算（当前空操作桩）===
+# 调用位置：推演一月 月循环（紧接 _可能触发特殊登门_S1 之后）。
+# 入参：无（读取全局 香火值 / 信徒数 / 凡人城镇）。
+# 返回值：void；S1 实装后：按月累加香火/信徒、重算月产预估与增益档、产出计入 §11.9 财政。
+# 依赖：数值 [PLACEHOLDER]，真机校准。状态：空操作，零副作用。
+func _结算香火_S1() -> void:
+	pass
+
+# === S1 批5-B：字派序列生成（旧档缺字派 → 首次进入生成并持久化）===
+# 调用位置：推演一月 月循环 S1 区（紧接 _结算香火_S1 之后）；新弟子创建（举办测灵根 / 招收弟子）前置调用。
+# 规则：从候选池随机取 5–10 字生成 辈分字派；辈分间隔/顺延规则 [PLACEHOLDER]（GDD §⑨），本批仅落字段+生成。
+func _确保字派_S1() -> void:
+	if not 辈分字派.is_empty():
+		return
+	var 候选池: Array = ["玄", "清", "道", "明", "悟", "真", "常", "寂", "虚", "静", "渊", "徽"]
+	候选池.shuffle()
+	var n: int = randi_range(5, 10)
+	辈分字派.clear()
+	for i in n:
+		辈分字派.append(候选池[i])
+
+# === S1 批5-C：正邪路线解锁检测（双重条件）===
+# 调用位置：推演一月 月循环 S1 区（紧接 _确保字派_S1 之后）。
+# 解锁 = 门派等级 >= 3 且 已完成首次七载大考（用 上次七载日 > 0 近似：七载大典首次结算后该字段非零）。
+# 当前空桩，仅读标记；路线增益/事件权重/专属内容 [PLACEHOLDER]（GDD §⑨）。
+func _检查正邪解锁_S1() -> bool:
+	return 门派等级 >= 3 and 上次七载日 > 0
 
 # 单个弟子月度事件（历练/奇遇，结果按综合实力判定）
 func _弟子月度事件(d: Disciple) -> String:
@@ -699,7 +1130,7 @@ func _尝试触发奇遇(d: Disciple, scene: String, 保底: bool = false) -> Di
 	if _奇遇日标记 != 累计游戏日:
 		_奇遇日标记 = 累计游戏日
 		_今日奇遇次数 = 0
-	if _今日奇遇次数 >= 5:
+	if _今日奇遇次数 >= _校准整("奇遇日上限", 5):
 		可出奇遇 = false
 	if not 可出奇遇 or (not 保底 and randf() >= 奇遇触发概率(d)):
 		return 结果
@@ -1002,6 +1433,7 @@ func 挑战关卡(stage_id: String, 出战弟子: Array = [], mode: String = "fu
 		if 首通:
 			周期评分.记首通()   # P1：首通计入周期评分
 			已通关关卡[stage_id] = true
+			_新手_检测("realm_first_enter")
 			var 首通类型: String = stage.get("first_reward_type", "")
 			var 首通数: int = int(stage.get("first_reward_num", 0))
 			if 首通类型 == "res" and 首通数 > 0:
@@ -1115,8 +1547,11 @@ func _资源建筑产出():
 		var 气运乘: float = (1.0 + 气运产出加成) if (累计游戏日 < 气运到期日) else 1.0
 		# P0-BUILD-4：宗门等级 → 建筑产出乘区（1级无加成，10级 +18%，数值克制）
 		var 等级乘区: float = 1.0 + 0.02 * max(0, 门派等级 - 1)
-		var 产: int = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff + 彩蛋产出加成()) * 等级乘区)
+		var 产: int = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff + 彩蛋产出加成()) * 等级乘区 * _建筑等级_乘区(key))
 		灵石 += 产
+		# S1 批2 D7 解锁①：Lv.2+ 保底津贴（与成员产出叠加，结构性产出）
+		if int(堂.get("等级", 1)) >= 2:
+			灵石 += int(堂.get("等级", 1)) * 建筑保底津贴
 		# 阶段2：记录各资源建筑本月实际产出额，供 _建筑被动结算 概率翻倍（灵草丰收/富矿/额外丹元/器魂）时直接加回
 		# 资源系统补全（偏差#3）：灵田/矿脉除普适灵石外，额外产出专属材料，供 S1 丹器消耗
 		match key:
@@ -1158,7 +1593,8 @@ func 预估建筑产出(key: String) -> int:
 		if 命格数据.get("类型", "") == "经营" and 命格数据.get("维度", "") == "产出":
 			经营加成 += float(命格数据.get("数值", 0)) / 100.0
 	var base: int = 经营基数.get(key, 1)
-	return int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff) * 等级乘区)
+	var 保底: int = int(堂.get("等级", 1)) * 建筑保底津贴 if int(堂.get("等级", 1)) >= 2 else 0
+	return int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff) * 等级乘区 * _建筑等级_乘区(key)) + 保底
 
 func 预估月产出() -> int:
 	var 总: int = 0
@@ -1290,6 +1726,17 @@ func _洗髓机缘():
 	# 注：若弟子已为投放最高品级(极品，天品未投放)且性格非负面，则本次机缘无实质收益（极罕见，不写条目）
 
 # ============ 堂口系统 ============
+# === S1 批2：建筑等级乘区 + 上限 + 升级消耗（清单公式；清单误称"已落"，实际须创建）===
+func _建筑等级_乘区(key: String) -> float:
+	var 等级: int = int(堂口列表.get(key, {}).get("等级", 1))
+	return 1.0 + 0.02 * max(0, 等级 - 1)     # 等级=1 → 1.0（零回归）；每级 +2%
+
+func _建筑等级上限() -> int:
+	return min(门派等级, 7)                   # 门派等级 1~10 封顶 7；凡阶(1)→上限1（不可升）
+
+func _升级消耗_灵石(当前等级: int) -> int:
+	return int(ceil(200.0 * pow(1.5, float(当前等级 - 1))))   # [PLACEHOLDER] 待数值 GDD
+
 func 重建堂口():
 	堂口列表 = {}
 	for key in Lore.堂口定义.keys():
@@ -1308,6 +1755,7 @@ func 重建堂口():
 		if d.堂口 != "":
 			_注册入堂(d)
 	应用负责人存档()
+	应用堂口状态存档()   # S1 批2：回填 等级/政绩（load/新游戏后还原，防重启清零）
 
 func _在堂口(key: String, d: Disciple) -> bool:
 	var 成员 := 堂口列表[key]["成员"] as Array
@@ -1337,13 +1785,25 @@ func _注册入堂(d: Disciple):
 			宗门纪事.append({"日": 累计游戏日, "弟子": 旧负责.姓名, "稀有度": "宗门", "名称": "人事变动", "文案": "【人事】%s主事由 %s 接替 %s" % [堂口列表[d.堂口]["名称"], d.姓名, 旧负责.姓名]})
 
 func _设负责人(key: String, d: Disciple):
+	# S1 批2：仅当主事实际变更（旧主事存在且非同一人）→ 政绩清零 + 里程碑/事件标记重置（新任期）。
+	# 初始任命(旧=null)/应用负责人存档(读档)/解除锁定 不触发清零（EC-P2~P4）。
+	var 旧主事: Variant = 堂口列表[key].get("负责人", null)
 	堂口列表[key]["负责人"] = d
 	堂口负责人存档[key] = d.姓名
+	if 旧主事 != null and 旧主事 != d:
+		堂口列表[key]["政绩"] = 0
+		var _st: Dictionary = 堂口状态存档.get(key, {})
+		_st["里程碑"] = 0
+		_st["高政绩事件"] = false
+		堂口状态存档[key] = _st
 
 # 掌门任命负责人（UI 调用）
 func 任命负责人(key: String, d: Disciple):
 	if not 堂口列表.has(key):
 		return
+	# S1 批1：阶位门槛闸（additive；legacy 阶位已按身份给到对应阶位，veteran 不被误拦，§7.2）
+	if d.阶位索引() < int(堂口阶位门槛.get(key, 0)):
+		return false
 	_设负责人(key, d)
 	堂口列表[key]["负责人锁定"] = true
 	宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": "宗门", "名称": "人事任命", "文案": "【人事】%s 被任命为%s主事" % [d.姓名, 堂口列表[key]["名称"]]})
@@ -1375,7 +1835,7 @@ func 汇总负责人全局buff() -> Dictionary:
 			continue
 		var 维: String = 映射.get(key, "")
 		if 维 != "":
-			buff[维] = float(buff.get(维, 0.0)) + 0.01
+			buff[维] = float(buff.get(维, 0.0)) + (0.02 if int(堂.get("等级", 1)) >= 4 else 0.01)
 	# 阶段2：阵法阁常驻防御 +1%（与「负责人1%」叠加，阵法阁防御贡献 = 负责人1% + 常驻1% = 最多2%）
 	if 堂口列表.has("zhenfa"):
 		buff["防"] = float(buff.get("防", 0.0)) + 0.01
@@ -1387,6 +1847,185 @@ func 解除负责人锁定(key: String):
 		return
 	堂口列表[key]["负责人锁定"] = false
 	宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "人事解锁", "文案": "【人事】解除%s主事锁定" % 堂口列表[key]["名称"]})
+
+# ============ S1 批2：建筑升级 + 任期政绩（§二 / §三）============
+
+func 升级建筑(key: String) -> Dictionary:
+	if not 堂口列表.has(key):
+		return {"ok": false, "msg": "建筑不存在"}
+	var 等级: int = int(堂口列表[key].get("等级", 1))
+	var 上限: int = _建筑等级上限()
+	if 等级 >= 上限:
+		return {"ok": false, "msg": "已达等级上限（需更高宗门品级）"}
+	if 门派等级 < 2:
+		return {"ok": false, "msg": "需灵阶及以上宗门解锁建筑升级"}
+	var 耗: int = _升级消耗_灵石(等级)
+	if 灵石 < 耗:
+		return {"ok": false, "msg": "灵石不足（需 %d）" % 耗}
+	灵石 -= 耗
+	堂口列表[key]["等级"] = 等级 + 1
+	_存堂口状态(key)
+	宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "建筑升级",
+		"文案": "【营建】%s 修缮至 Lv.%d，产出增益。" % [堂口列表[key]["名称"], 等级 + 1]})
+	_加推演条目("【营建】%s 升至 Lv.%d。" % [堂口列表[key]["名称"], 等级 + 1], ET_SECT, PRIO_NORMAL, {"建筑": key})
+	return {"ok": true, "msg": "%s 升至 Lv.%d（-%d灵石）" % [堂口列表[key]["名称"], 等级 + 1, 耗]}
+
+func _存堂口状态(key: String) -> void:
+	var s: Dictionary = 堂口状态存档.get(key, {})
+	s["等级"] = int(堂口列表[key].get("等级", 1))
+	s["政绩"] = int(堂口列表[key].get("政绩", 0))
+	s["里程碑"] = int(s.get("里程碑", 0))
+	s["高政绩事件"] = bool(s.get("高政绩事件", false))
+	堂口状态存档[key] = s
+
+func 应用堂口状态存档() -> void:
+	for key in 堂口状态存档.keys():
+		if 堂口列表.has(key):
+			var s: Dictionary = 堂口状态存档.get(key, {})
+			堂口列表[key]["等级"] = int(s.get("等级", 1))
+			堂口列表[key]["政绩"] = int(s.get("政绩", 0))
+
+# S1 批2：任期政绩月度累积（仅在主事在任时；续任保留手动，不自动到期）
+func _累计任期政绩() -> void:
+	var 政绩基数: Dictionary = {
+		"lingtian": 1, "kuangmai": 1, "yuying": 1,
+		"cangjing": 2, "dantang": 2, "qitang": 2, "zhifa": 2, "gongxun": 2, "tanwei": 2,
+		"zhenfa": 3, "yushou": 3, "xichi": 3, "wudao": 3,
+	}
+	for key in 堂口列表.keys():
+		var 堂: Dictionary = 堂口列表[key]
+		var 负责: Variant = 堂.get("负责人", null)
+		if 负责 == null:
+			continue                              # 无主事 → 不累积（任期空窗）
+		var 月增: int = int(政绩基数.get(key, 1))
+		堂["政绩"] = int(堂.get("政绩", 0)) + 月增
+		_累计政绩奖励(key)
+		_存堂口状态(key)
+
+# S1 批2：政绩里程碑 + 高政绩事件（仅产出/声望，零战力）
+func _累计政绩奖励(key: String) -> void:
+	var 政绩: int = int(堂口列表[key].get("政绩", 0))
+	var s: Dictionary = 堂口状态存档.get(key, {})
+	var 里程碑: int = int(s.get("里程碑", 0))
+	var 阈值: int = 12                              # [PLACEHOLDER]
+	while 政绩 >= (里程碑 + 1) * 阈值 and 里程碑 < 100:
+		里程碑 += 1
+		设置气运buff(0.0, 0.01, 3)                  # 产出+1% ×3日（复用 L774 气运管线）
+		_加推演条目("【政绩】%s 主事治业有成，全宗产出微增。" % 堂口列表[key]["名称"], ET_SECT, PRIO_TRIVIAL, {"建筑": key})
+	s["里程碑"] = 里程碑
+	# 高政绩特殊事件（一次性，防重启刷奖须持久化标记）
+	if not bool(s.get("高政绩事件", false)) and 政绩 >= 36:   # 高阈值 [PLACEHOLDER]
+		s["高政绩事件"] = true
+		声望 += 50                                  # [PLACEHOLDER]
+		宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "政绩卓著",
+			"文案": "【政绩】%s 主事任期政绩卓著，宗门上下称颂（声望+%d）。" % [堂口列表[key]["名称"], 50]})
+		_加推演条目("【政绩】%s 主事政绩卓著，誉满宗门！" % 堂口列表[key]["名称"], ET_SECT, PRIO_HIGH, {"建筑": key})
+	堂口状态存档[key] = s
+
+# ============ S1 批1：阶位轴晋升考核（§四）============
+# 判断某弟子是否满足破格晋升条件（D5）：极品/天品灵根 · 经营命格 · 声望≥阈值且立大功
+func 满足破格条件(d: Disciple) -> bool:
+	if d.灵根品阶 in ["极品", "天品"]:
+		return true
+	if d.有特殊命格():
+		return true
+	if 声望 >= 破格声望阈值 and 立大功标记.has(d.姓名):
+		return true
+	return false
+
+# 某阶位当前占用数（遍历 弟子列表 统计）
+func 阶位名额占用(阶位名: String) -> int:
+	var n: int = 0
+	for x in 弟子列表:
+		if x.阶位 == 阶位名:
+			n += 1
+	return n
+
+# 某阶位名额上限（门派等级 L 驱动，§4.4；全部 [PLACEHOLDER]）
+func 阶位名额上限(阶位名: String) -> int:
+	var L: int = 门派等级
+	match 阶位名:
+		"执事": return 2 + L
+		"堂主": return 1 + int(L / 2)
+		"长老": return int(L / 3)
+		"供奉": return int(L / 5)
+		_: return 0
+
+# 发起单次考核（玩家手动）。成功/失败走掷骰，二次校验名额/冷却/贡献。返回结果 Dict。
+func 发起考核(d: Disciple) -> Dictionary:
+	var 结果: Dictionary = {"ok": false, "成功": false, "原因": "", "贡献扣减": 0}
+	if not d.可授阶():
+		结果["原因"] = "该弟子身份不足（须内门及以上）"
+		return 结果
+	if d.考核冷却剩余 > 0:
+		结果["原因"] = "考核冷却中（剩余 %d 日）" % d.考核冷却剩余
+		return 结果
+	var 破格: bool = 满足破格条件(d)
+	var 上限idx: int = d.阶位上限索引(破格)
+	if d.阶位索引() >= 上限idx:
+		结果["原因"] = "已达该身份可任最高阶位"
+		return 结果
+	var 目标idx: int = d.阶位索引() + 1
+	var 目标阶位: String = d.阶位层级序[目标idx]
+	if 阶位名额占用(目标阶位) >= 阶位名额上限(目标阶位):
+		结果["原因"] = "%s 名额已满" % 目标阶位
+		return 结果
+	if 贡献点 < 考核成本:
+		结果["原因"] = "贡献点不足（需 %d）" % 考核成本
+		return 结果
+	贡献点 -= 考核成本
+	结果["贡献扣减"] += 考核成本
+	if randf() < d.考核成功率():
+		d.阶位 = 目标阶位
+		d.考核心得 = false
+		结果["ok"] = true
+		结果["成功"] = true
+		_晋升仪式感(d)
+	else:
+		d.考核冷却剩余 = 考核冷却日
+		d.考核心得 = true
+		贡献点 -= 考核失败扣减
+		结果["贡献扣减"] += 考核失败扣减
+		宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": "宗门", "名称": "阶位考核", "文案": "【考核】%s 晋阶%s失利，需再磨砺。" % [d.姓名, 目标阶位]})
+	结果["阶位"] = d.阶位
+	return 结果
+
+# 晋升仪式感：纪事永录 + 推演条目 + 全宗士气临时加成（复用 设置气运buff，§4.7）
+func _晋升仪式感(d: Disciple):
+	宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": "宗门", "名称": "阶位晋升", "文案": "【晋升】%s 晋升为 阶位·%s" % [d.姓名, d.阶位]})
+	_加推演条目("【晋升】%s 任 阶位·%s。" % [d.姓名, d.阶位], ET_APPOINT, PRIO_NORMAL, {"弟子": d.姓名, "阶位": d.阶位})
+	match d.阶位:
+		"堂主", "长老": 设置气运buff(0.02, 0.01, 3)
+		"供奉": 设置气运buff(0.03, 0.02, 7)
+
+# 批量考核：逐人独立掷骰，独立判定冷却/名额/贡献（§4.5）
+func 批量考核(list: Array) -> Dictionary:
+	var 汇总: Dictionary = {"成功": [], "失败": [], "跳过": [], "贡献扣减": 0}
+	for d in list:
+		if not (d is Disciple):
+			continue
+		var r: Dictionary = 发起考核(d)
+		汇总["贡献扣减"] += int(r.get("贡献扣减", 0))
+		if r.get("成功"):
+			汇总["成功"].append(d.姓名)
+		elif r.get("ok"):
+			汇总["失败"].append(d.姓名)
+		else:
+			汇总["跳过"].append({"弟子": d.姓名, "原因": r.get("原因", "")})
+	return 汇总
+
+# 罢免阶位（降级一级，不走掷骰、不耗贡献，§4.6）
+func 罢免阶位(d: Disciple) -> Dictionary:
+	var 结果: Dictionary = {"ok": false, "原因": ""}
+	if d.阶位 == "无":
+		结果["原因"] = "该弟子本无阶位"
+		return 结果
+	var idx: int = d.阶位索引()
+	var 新idx: int = idx - 1
+	d.阶位 = ("无" if 新idx < 0 else d.阶位层级序[新idx])
+	结果["ok"] = true
+	宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": "宗门", "名称": "罢免阶位", "文案": "【罢免】%s 被罢去阶位，现任 阶位·%s。" % [d.姓名, d.阶位]})
+	return 结果
 
 func _按姓名找(名: String) -> Disciple:
 	for d in 弟子列表:
@@ -1429,10 +2068,13 @@ func 举办测灵根(强制天品: bool = false) -> Dictionary:
 	N = clamp(N, 5, 20)
 	var 新徒: Array[Disciple] = []
 	var 已强制天品: bool = false
+	# === S1 批5-B：首次确保字派序列已生成（旧档空 → 本次生成并持久化），供新弟子道号取字 ===
+	_确保字派_S1()
 	# P0-BUILD-2：外门接引堂负责人 → 测灵高品质概率 +1%；阶段2：接引堂常驻再 +2%（最多+3%）
 	var 测灵buff: float = 汇总负责人全局buff().get("测灵", 0.0) + _接引堂测灵加()
+	var d: Disciple
 	for i in N:
-		var d := Disciple.new()
+		d = Disciple.new()
 		d.堂口 = "yuying"   # 外门接引堂候补，筑基后转入职能堂
 		d.来源 = Disciple.弟子来源池.pick_random()   # 接引来源标签（纯展示）
 		# 调试：强制天品（保证批次含1名天品弟子，便于验证破格流程）
@@ -1444,13 +2086,24 @@ func 举办测灵根(强制天品: bool = false) -> Dictionary:
 			d.身份 = "核心弟子"
 		elif d.灵根品阶 == "极品":
 			d.身份 = "内门弟子"
+		# D7：全局前 3 名新徒默认内门（防卡进度；仅改创建时初始值，不动身份轴逻辑/存档）
+		if 弟子列表.size() + i < 3 and d.身份 == "外门":
+			d.身份 = "内门弟子"
 		# P0-BUILD-2：外门接引堂负责人 → 测灵高品质概率 +1%（触发时灵根品阶升一档，已为天品则跳过）
 		if 测灵buff > 0.0 and d.灵根品阶 != "天品" and randf() < 测灵buff:
 			_提升灵根品阶一档(d)
-		if d.灵根品阶 in ["天品", "极品", "上品"]:   # P1：高品质新弟子计入周期评分
-			周期评分.记高品质新弟子()
-		弟子列表.append(d)
-		新徒.append(d)
+	if d.灵根品阶 in ["天品", "极品", "上品"]:   # P1：高品质新弟子计入周期评分
+		周期评分.记高品质新弟子()
+	# === S1 批5-B：新弟子道号简化生成（[PLACEHOLDER] 简化版：外门=辈分字派[0]+单字）===
+	d.辈分序 = 0   # 默认开山第1字
+	if d.身份 == "外门" and not 辈分字派.is_empty():
+		d.道号 = 辈分字派[0] + (d.姓名.left(1) if d.姓名.length() > 0 else "尘")
+	# 其余阶位道号暂留空 ""（玩家可改）；[PLACEHOLDER] 命名规则见 GDD §⑤.2
+	弟子列表.append(d)
+	新徒.append(d)
+	# P0 目标链：弟子招收 → recruit_count（newbie_001 主动）/ recruit_count_5（newbie_007 状态）
+	_新手_检测("recruit_count")
+	_新手_评估后续()
 	# === S1 端口：新弟子制式装备/入职包发放 ===
 	# 调用位置：举办测灵根() 弟子创建循环末尾（d 已 append 入 弟子列表/新徒 之后）。
 	# 入参（S1 实装时）：d: Disciple（新弟子）
@@ -1459,15 +2112,16 @@ func 举办测灵根(强制天品: bool = false) -> Dictionary:
 	_加声望(N)
 	上次测灵日 = 累计游戏日   # 更新冷却时间戳
 	# 天品灵根弟子 → 破格：写宗门纪事 + 触发全宗气运 buff（7日 修炼+3%/产出+2%）
-	for d in 新徒:
-		if d.灵根品阶 == "天品":
-			宗门纪事.append({"日": 累计游戏日, "弟子": d.姓名, "稀有度": "天品", "名称": "天品灵根弟子", "文案": "接引大典检出天品灵根弟子【%s】，全宗士气大振。" % d.姓名})
+	for 徒 in 新徒:
+		if 徒.灵根品阶 == "天品":
+			宗门纪事.append({"日": 累计游戏日, "弟子": 徒.姓名, "稀有度": "天品", "名称": "天品灵根弟子", "文案": "接引大典检出天品灵根弟子【%s】，全宗士气大振。" % 徒.姓名})
 			设置气运buff(0.03, 0.02, 7)
+			立大功标记[徒.姓名] = true   # D5：天品接引 = 立大功（运行时态标记，支持声望破格）
 			break
 	_注册全部()
 	var 有天品: bool = false
-	for d in 新徒:
-		if d.灵根品阶 == "天品":
+	for 徒 in 新徒:
+		if 徒.灵根品阶 == "天品":
 			有天品 = true
 			break
 	var 过场: String = Lore.取测灵根过场(N, 新徒, 有天品)
@@ -1488,12 +2142,17 @@ func 更新门派():
 	# P0 等效公式（复用现有字段，零新增底层）：弟子基础 > 战力核心 > 关卡进度 > 声望补充
 	var 新等级: int = 1 + int(弟子列表.size() / 12) + int(总战力 / 20000) + int(已通关关卡.size() / 10) + int(声望 / 500)
 	新等级 = clamp(新等级, 1, 门派等级上限)
-	if 新等级 > 门派等级:
-		# 升级仪式：永久写入宗门纪事 + 推演高优播报（不强制弹窗，不打断推演）
-		宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "宗门晋升",
-			"文案": "太玄宗历经沉淀，宗门品级晋升至 Lv.%d，灵脉愈发醇厚，全宗上下欢欣。" % 新等级})
-		_加推演条目("【宗门】太玄宗晋升至 Lv.%d！灵脉修炼速度 +%d%%" % [新等级, 新等级 * 2], ET_SECT, PRIO_HIGH, {"宗门等级": 新等级})
-	门派等级 = 新等级
+	if not _校准开("双周期评级启用", true):
+		# 回退：原年度实时立即晋升
+		if 新等级 > 门派等级:
+			宗门纪事.append({"日": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "宗门晋升",
+				"文案": "太玄宗历经沉淀，宗门品级晋升至 Lv.%d，灵脉愈发醇厚，全宗上下欢欣。" % 新等级})
+			_加推演条目("【宗门】太玄宗晋升至 Lv.%d！灵脉修炼速度 +%d%%" % [新等级, 新等级 * 2], ET_SECT, PRIO_HIGH, {"宗门等级": 新等级})
+		门派等级 = 新等级
+	else:
+		# 双周期：仅记录「成长目标」，待七载大考才生效（零新增，仅改调用时机）
+		if 新等级 > 门派等级目标:
+			门派等级目标 = 新等级
 	繁荣 = 50 + 弟子列表.size() * 2 + int(灵石 / 100)
 
 # 距下一级信息（主界面展示用）：基于已存储门派等级，计算单靠声望补齐时的缺口
@@ -1621,7 +2280,7 @@ func 推进孵化(日数: int):
 	if 已孵.size() > 0:
 		战报更新.emit("御兽堂有 %d 枚灵兽蛋孵化完成，可前往绑定！" % 已孵.size())
 
-# T03 自动兑换队列：周期结算遍历启用条目，灵石足够则扣费+按偏好生成蛋入孵化列表
+# T03 引育计划队列：周期结算遍历启用条目，灵石足够则拨付经费+按偏好生成兽卵入孵化列表
 func 处理兑换队列():
 	for 条目 in 灵兽兑换队列:
 		if not 条目.get("启用", false):
@@ -1634,7 +2293,9 @@ func 处理兑换队列():
 		var 蛋: Beast = Beast.new()
 		蛋.随机成蛋(偏好.get("品阶", ""), 偏好.get("类型", ""))
 		灵兽蛋列表.append(蛋)
-		战报更新.emit("自动兑换获得灵兽蛋一枚（%s）" % 蛋.种类名)
+		var 引纪: Dictionary = _引育纪事文案(蛋)
+		战报更新.emit(引纪["文案"])
+		宗门纪事.append({"日": 累计游戏日, "稀有度": ("异闻" if 引纪.get("category", "") == "异闻" else "宗门"), "名称": "引育成果", "文案": 引纪["文案"], "category": 引纪.get("category", "")})
 
 # T13+T14 出战灵兽月度养成：出战(主/副宠)+1级(封顶上限)、忠诚+2(封顶100)；库存灵兽忠诚-1(地板0)
 func 出战灵兽月度养成():
@@ -1775,17 +2436,21 @@ func 移除待抉择(条目: Dictionary):
 func save_game():
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
-		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "gongxian": 贡献点, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [], "lingshou_duilie": 灵兽兑换队列,
+		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "gongxian": 贡献点, "xuanyu": 玄玉, "dizi": [], "lingshou_dan": [], "lingshou_kucun": [], "lingshou_duilie": 灵兽兑换队列,
 		"累计游戏日": 累计游戏日, "最后登录": 最后登录, "门派等级": 门派等级, "声望": 声望, "繁荣": 繁荣,
-		"堂口负责人": 堂口负责人存档, "引导阶段": 引导阶段,
+		"香火值": 香火值, "信徒数": 信徒数, "凡人城镇": 凡人城镇, "香火月产预估": 香火月产预估, "信徒增益档": 信徒增益档,
+		"辈分字派": 辈分字派, "门规严格度": 门规严格度, "正邪路线": 正邪路线,
+		"堂口负责人": 堂口负责人存档, "堂口状态": 堂口状态存档, "引导阶段": 引导阶段,
 		"体力": 体力, "已通关关卡": 已通关关卡, "精英每日次数": 精英每日次数,
 		"气运修炼加成": 气运修炼加成, "气运产出加成": 气运产出加成, "气运到期日": 气运到期日,
 		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力,
+		"七载奖励池": 七载奖励池, "七载待发掉落": 七载待发掉落, "门派等级目标": 门派等级目标, "上次七载日": 上次七载日,
 		# S0 任务/商店系统（不升 SAVE_VERSION：load 用 .get 默认兼容老档）
 		"kucun": [], "fangshi": 坊市购买记录, "fs_list": 坊市上架集,
 		"daily": {"当前": 当前日常, "已领": 日常已领, "日": 上次日常日},
 		"weekly": {"当前": 当前周常, "已领": 周常已领, "日": 上次周常日},
 		"randcd": 随机事件冷却, "rtypecd": 随机事件类型冷却, "qcd": quest_cooldown,
+		"newbie_active": 新手目标链激活, "newbie_done": 新手完成列表,
 	}
 	for it in 宗门库房:
 		data["kucun"].append(it.to_dict())
@@ -1829,13 +2494,27 @@ func load_game():
 	矿石 = data.get("kuangshi", 0)
 	灵气 = data.get("lingqi", 0)
 	贡献点 = data.get("gongxian", 0)
+	玄玉 = data.get("xuanyu", 0)
 	累计游戏日 = data.get("累计游戏日", 0)
 	最后登录 = data.get("最后登录", 0)
 	门派等级 = clamp(data.get("门派等级", 1), 1, 门派等级上限)
 	声望 = data.get("声望", 0)
 	繁荣 = data.get("繁荣", 50)
+	香火值 = data.get("香火值", 0)
+	信徒数 = data.get("信徒数", 0)
+	凡人城镇.clear()
+	for 镇 in data.get("凡人城镇", []):
+		凡人城镇.append(镇)
+	香火月产预估 = data.get("香火月产预估", 0)
+	信徒增益档 = data.get("信徒增益档", "未启")
+	辈分字派.clear()
+	for 字 in data.get("辈分字派", []):
+		辈分字派.append(字)
+	门规严格度 = data.get("门规严格度", "中庸")
+	正邪路线 = data.get("正邪路线", "")
 	堂口负责人存档 = data.get("堂口负责人", {})
-	引导阶段 = data.get("引导阶段", 5)   # 老档无此字段 → 默认5（已完成，不强制弹引导）
+	堂口状态存档 = data.get("堂口状态", {})   # S1 批2：等级/政绩持久化（旧档缺键→默认空，零回归）
+	引导阶段 = data.get("引导阶段", 6)   # 老档无此字段 → 默认6（已完成，不强制弹引导；阶段语义见 §5.2）
 	气运修炼加成 = data.get("气运修炼加成", 0.0)
 	气运产出加成 = data.get("气运产出加成", 0.0)
 	气运到期日 = data.get("气运到期日", 0)
@@ -1848,6 +2527,7 @@ func load_game():
 	矿石 = _修正负值(矿石, "矿石")
 	灵气 = _修正负值(灵气, "灵气")
 	贡献点 = _修正负值(贡献点, "贡献点")
+	玄玉 = _修正负值(玄玉, "玄玉")
 	声望 = _修正负值(声望, "声望")
 	繁荣 = _修正区间(繁荣, 0, 100, "繁荣")
 	体力 = _修正区间(体力, 0, 体力上限(), "体力")
@@ -1859,6 +2539,10 @@ func load_game():
 	上次结算年 = data.get("上次结算年", 0)
 	年始灵石 = data.get("年始灵石", 灵石)
 	年始总战力 = data.get("年始总战力", 0)
+	七载奖励池 = data.get("七载奖励池", 0)
+	七载待发掉落 = data.get("七载待发掉落", [])
+	门派等级目标 = data.get("门派等级目标", 门派等级)
+	上次七载日 = data.get("上次七载日", 0)
 	最新周期评级卡 = {}
 	弟子列表.clear()
 	待抉择.clear()
@@ -1866,7 +2550,10 @@ func load_game():
 	宗门纪事.clear()        # 会话瞬时历史，load 时清空
 	灵兽蛋列表.clear()
 	灵兽库存.clear()
-	灵兽兑换队列 = data.get("lingshou_duilie", [])
+	灵兽兑换队列.clear()
+	for _q in data.get("lingshou_duilie", []):
+		if _q is Dictionary:
+			灵兽兑换队列.append(_q)
 	for dd in data.get("dizi", []):
 		var d := Disciple.new()
 		d.from_dict(dd)
@@ -1898,6 +2585,9 @@ func load_game():
 	随机事件冷却 = data.get("randcd", {})
 	随机事件类型冷却 = data.get("rtypecd", {})
 	quest_cooldown = data.get("qcd", {})
+	# P0 目标链：新手阶梯状态（老档默认 false/[]，向后兼容）
+	新手目标链激活 = data.get("newbie_active", false)
+	新手完成列表 = data.get("newbie_done", [])
 	# 老档或空任务：补刷一次，保证面板非空
 	if 当前日常.is_empty():
 		刷新日常任务()
@@ -1983,10 +2673,11 @@ func new_game():
 	矿石 = 0
 	灵气 = 0
 	贡献点 = 0
+	玄玉 = 0
 	弟子列表.clear()
 	灵兽蛋列表.clear()
 	灵兽库存.clear()
-	灵兽兑换队列 = []
+	灵兽兑换队列.clear()
 	待抉择.clear()
 	奇遇待抉择.clear()
 	宗门纪事.clear()
@@ -2002,6 +2693,7 @@ func new_game():
 	引导阶段 = 0
 	堂口列表.clear()
 	堂口负责人存档.clear()
+	堂口状态存档.clear()
 	推演日志.clear()
 	体力 = 50
 	已通关关卡.clear()
@@ -2020,6 +2712,9 @@ func new_game():
 	坊市上架集 = []
 	随机事件类型冷却 = {}
 	quest_cooldown = {}
+	# P0 目标链：新手阶梯复位
+	新手目标链激活 = false
+	新手完成列表 = []
 	当前日常.clear()
 	日常已领.clear()
 	当前周常.clear()

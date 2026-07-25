@@ -50,3 +50,8 @@ pool_random_omens,pool_random_omens_ling,灵石·额外,固定数值,20,5,5,true
 pool_random_urgent,pool_random_urgent_luck,气运·大量,固定数值,45,1,1,true
 pool_random_urgent,pool_random_urgent_def,防御道具·王品下品,王品下品,35,2,2,true
 pool_random_urgent,pool_random_urgent_ling,灵石·额外,固定数值,20,5,5,true
+pool_newbie,pool_newbie_raw,基础材料·凡品下品,凡品下品,50,20,20,true
+pool_newbie,pool_newbie_pill,丹药符箓·凡品中品,凡品中品,25,10,10,true
+pool_newbie,pool_newbie_ling,灵石·额外,固定数值,15,5,5,true
+pool_newbie,pool_newbie_frag,材料碎片·凡品上品,凡品上品,8,3,3,true
+pool_newbie,pool_newbie_luck,气运·微量,固定数值,2,1,1,true

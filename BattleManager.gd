@@ -133,10 +133,31 @@ static func 打印战斗(战报: Dictionary, 标题: String):
 		 int(战报["remaining_hp"]), (战报["battle_log"] as Array).size()])
 	for e in 战报["battle_log"]:
 		var 标记 := ""
-		if e.get("is_crit", false):
-			标记 += "【暴击】"
-		if e.get("is_restrain", false):
-			标记 += "【克制】"
-		print("  R%d  %s → %s  伤害%d%s  (攻方血%d / 守方血%d)" % \
-			[e.get("round", 0), e.get("actor", ""), e.get("target", ""), e.get("damage", 0), 标记,
-			 int(e.get("attacker_hp", 0)), int(e.get("defender_hp", 0))])
+		var 摘要 := ""
+		var lt: String = e.get("log_type", "damage")
+		match lt:
+			"damage":
+				if e.get("is_crit", false):
+					标记 += "【暴击】"
+				if e.get("is_restrain", false):
+					标记 += "【克制】"
+				摘要 = "伤害%d%s  (攻方血%d / 守方血%d)" % [e.get("damage", 0), 标记,
+					int(e.get("attacker_hp", 0)), int(e.get("defender_hp", 0))]
+			"cast_skill":
+				摘要 = "释放技能[%s] 伤害%d  (攻方血%d / 守方血%d)" % [e.get("ref_name", ""), e.get("damage", 0),
+					int(e.get("attacker_hp", 0)), int(e.get("defender_hp", 0))]
+			"buff_apply":
+				摘要 = "施加效果[%s]" % e.get("ref_name", "")
+			"buff_tick":
+				摘要 = "持续效果[%s]  (攻方血%d / 守方血%d)" % [e.get("ref_name", ""),
+					int(e.get("attacker_hp", 0)), int(e.get("defender_hp", 0))]
+			"buff_expire":
+				摘要 = "效果消散[%s]" % e.get("ref_name", "")
+			"control_skip":
+				摘要 = "被控制跳过行动[%s]" % e.get("ref_name", "")
+			"item_use":
+				摘要 = "使用道具[%s]" % e.get("ref_name", "")
+			_:
+				摘要 = "伤害%d%s  (攻方血%d / 守方血%d)" % [e.get("damage", 0), 标记,
+					int(e.get("attacker_hp", 0)), int(e.get("defender_hp", 0))]
+		print("  R%d  %s → %s  %s" % [e.get("round", 0), e.get("actor", ""), e.get("target", ""), 摘要])

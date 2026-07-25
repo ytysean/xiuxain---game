@@ -305,6 +305,75 @@ def test_灵兽行动日志():
     check("守方副宠(无暴击)不出现", len(副宠3) == 0)
 
 
+# ============ 9. S1 批3：增强版 Buff/技能 生命周期（逻辑层真值镜像）============
+# 本批为战斗核心改动但已判定低风险（休眠路径逐字节一致）；以下校验增强路径
+# （携带 技能 快照）在逻辑层的行为正确性，作为无 Godot 运行器下的唯一验证渠道。
+def test_enhanced_buff_skill():
+    print("== 增强版 Buff/技能 生命周期（S1 批3）==")
+
+    def 带技能(技能列表, 名称, 职业="体修", 灵根主="金", 纯度="单"):
+        u = M.make_unit(150, 60, 250, 40, 职业, 灵根主, 纯度, 名称=名称, 闪避=0.0, 暴击=0.0)
+        u["技能"] = 技能列表
+        return u
+
+    # —— 高层：携带技能快照走 _结算_1v1_增强 ——
+    burn = {"skill_id": "sk_fa_02", "skill_name": "烈焰波动", "skill_type": "主动",
+            "damage_rate": 0.05, "cooldown": 2, "mp_cost": 15, "effect_type": "灼烧"}
+    atk = 带技能([burn], "攻")
+    dfn = M.make_unit(70, 35, 200, 25, "道修", "木", "单", 名称="守", 闪避=0.0, 暴击=0.0)
+    r = M.结算_1v1(atk, dfn, "quick", random.Random(20260719))
+    log = r["battle_log"]
+    types = [e.get("log_type", "damage") for e in log]
+    check("增强：含 cast_skill 日志", "cast_skill" in types, str(types[:6]))
+    check("增强：含 buff_tick 日志(bf_burn 持续伤害)", "buff_tick" in types)
+    # 关键回归：log_type 未被 _log_entry 硬编码为 damage（验证修复）
+    check("增强：存在非 damage 的 log_type", any(t != "damage" for t in types))
+    # 非 damage 条目不打 闪避/击败 标签（_log_entry 契约）
+    non_dmg = [e for e in log if e.get("log_type") != "damage"]
+    ok_tag = all("闪避" not in e["tags"] and "击败" not in e["tags"] for e in non_dmg)
+    check("增强：非damage 不打 闪避/击败 标签", ok_tag)
+    # cast_skill 日志携带正确 ref
+    cast = [e for e in log if e.get("log_type") == "cast_skill"]
+    check("增强：cast_skill 带 ref_type=skill", bool(cast) and cast[0]["ref_type"] == "skill")
+    check("增强：cast_skill 带 ref_id=sk_fa_02", bool(cast) and cast[0]["ref_id"] == "sk_fa_02")
+    check("增强：含 buff_apply 日志(§3.3)", "buff_apply" in types)
+
+    # —— 低层：控制技 bf_stun → control_skip 路径 ——
+    stun = {"skill_id": "sk_ti_05", "skill_name": "山岳镇压", "skill_type": "主动",
+            "damage_rate": 0.3, "cooldown": 5, "mp_cost": 40, "effect_type": "伤害+控制"}
+    st_actor = M._build_unit_state(带技能([stun], "A"))
+    st_actor["mp"] = 40.0  # 满足 mp_cost（默认 灵力初始=30 < 40）
+    st_target = M._build_unit_state(M.make_unit(70, 35, 200, 25, "道修", "木", "单", 名称="B"))
+    lg = []
+    M._cast_skill(st_actor, st_target, stun, 1, lg, random.Random(1))
+    check("低层：_cast_skill 对敌施加 bf_stun", any(b["buff_id"] == "bf_stun" for b in st_target["active_buffs"]))
+    check("低层：被控方 _has_control=True", M._has_control(st_target))
+
+    # —— 低层：增益/减益 重算 cur属性 ——
+    st_atk = M._build_unit_state(M.make_unit(100, 50, 200, 30, "道修", "金", "单", 名称="C"))
+    base_atk = st_atk["cur属性"]["攻"]
+    M._apply_buff(st_atk, M._buff模板("bf_atkup"), "skill")
+    M._recompute_attr(st_atk)
+    check("低层：bf_atkup 提升 cur属性.攻 10%", abs(st_atk["cur属性"]["攻"] - base_atk * 1.10) < 1e-6,
+          "%.3f vs %.3f" % (st_atk["cur属性"]["攻"], base_atk * 1.10))
+    st_def = M._build_unit_state(M.make_unit(100, 50, 200, 30, "道修", "金", "单", 名称="D"))
+    base_def = st_def["cur属性"]["防"]
+    M._apply_buff(st_def, M._buff模板("bf_defdown"), "skill")
+    M._recompute_attr(st_def)
+    check("低层：bf_defdown 降低 cur属性.防 20%", abs(st_def["cur属性"]["防"] - base_def * 0.80) < 1e-6,
+          "%.3f vs %.3f" % (st_def["cur属性"]["防"], base_def * 0.80))
+
+    # —— 低层：dot bf_burn 每回合损失 5% 当前气血 + 写 buff_tick ——
+    st_dot = M._build_unit_state(M.make_unit(100, 50, 200, 30, "道修", "金", "单", 名称="E"))
+    M._apply_buff(st_dot, M._buff模板("bf_burn"), "skill")
+    hp0 = st_dot["cur属性"]["血"]
+    lg2 = []
+    M._tick_buffs(st_dot, st_dot, True, 1, lg2)
+    check("低层：bf_burn dot 损失 5% 当前气血", abs(st_dot["cur属性"]["血"] - (hp0 - max(1, int(hp0 * 0.05)))) < 1e-6,
+          "%.3f" % st_dot["cur属性"]["血"])
+    check("低层：bf_burn tick 写 buff_tick 日志", any(e["log_type"] == "buff_tick" for e in lg2))
+
+
 def main():
     print("==== BattleCalculator 数值红线断言 ====")
     test_wuxing_matrix()
@@ -315,6 +384,7 @@ def main():
     test_structured_log_schema()
     test_wheel_3v3()
     test_灵兽行动日志()
+    test_enhanced_buff_skill()
     print("")
     print("通过 %d / 失败 %d" % (PASS, FAIL))
     return FAIL

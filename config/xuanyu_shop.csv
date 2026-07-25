@@ -1,0 +1,7 @@
+id,name,type,price_xuanyu,buy_limit,status
+xuanyu_speed_train,修炼加速,accel,30,3,reserved
+xuanyu_beast_hatch,灵兽孵化加速,accel,20,2,reserved
+xuanyu_shop_refresh,坊市刷新,conv,10,1,reserved
+xuanyu_auto_train,自动突破,conv,50,1,reserved
+xuanyu_auto_li_lian,自动历练,conv,40,1,reserved
+xuanyu_theme_ink,水墨主题皮肤,cosmetic,100,1,reserved

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://tvkn2dhudx26"
+
+[deps]
+
+files=["res://config/xuanyu_shop.name.translation", "res://config/xuanyu_shop.type.translation", "res://config/xuanyu_shop.price.translation", "res://config/xuanyu_shop.buy.translation", "res://config/xuanyu_shop.status.translation"]
+
+source_file="res://config/xuanyu_shop.csv"
+dest_files=["res://config/xuanyu_shop.name.translation", "res://config/xuanyu_shop.type.translation", "res://config/xuanyu_shop.price.translation", "res://config/xuanyu_shop.buy.translation", "res://config/xuanyu_shop.status.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

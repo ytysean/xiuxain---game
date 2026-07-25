@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dfxasq0piksq6"
+
+[deps]
+
+files=["res://config/节奏校准.值.translation", "res://config/节奏校准.说明.translation"]
+
+source_file="res://config/节奏校准.csv"
+dest_files=["res://config/节奏校准.值.translation", "res://config/节奏校准.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://codkiwmb335oq"
+
+[deps]
+
+files=["res://config/resource_flow.产出声明.translation", "res://config/resource_flow.消耗声明.translation", "res://config/resource_flow.状态.translation", "res://config/resource_flow.产出标记.translation", "res://config/resource_flow.消耗标记.translation"]
+
+source_file="res://config/resource_flow.csv"
+dest_files=["res://config/resource_flow.产出声明.translation", "res://config/resource_flow.消耗声明.translation", "res://config/resource_flow.状态.translation", "res://config/resource_flow.产出标记.translation", "res://config/resource_flow.消耗标记.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

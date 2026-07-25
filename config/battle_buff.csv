@@ -1,0 +1,10 @@
+buff_id,buff名,类型,作用属性,数值,数值类型,持续回合,来源类型,可叠加,备注
+bf_burn,灼烧,dot,血,0.05,percent,2,skill,false,每回合损失当前气血的5%
+bf_freeze,冰冻,控制,全,0,none,1,skill,false,冻结1回合，无法行动
+bf_stun,眩晕,控制,全,0,none,1,skill,false,眩晕1回合，无法行动
+bf_shield,护盾,增益,血,0.15,flat,3,skill,false,吸收等同于最大气血15%的伤害
+bf_atkup,攻击增益,增益,攻,0.10,percent,3,skill,true,攻击提升10%
+bf_defdown,破甲,减益,防,0.20,percent,2,skill,false,防御降低20%
+bf_defup,防御增益,增益,防,0.15,percent,3,passive,false,防御提升15%
+bf_spdup,疾行,增益,速,0.15,percent,3,passive,false,速度提升15%
+bf_regen,回春,增益,血,0.08,percent,3,item,false,每回合恢复当前气血的8%
