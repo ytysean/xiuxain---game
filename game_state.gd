@@ -396,6 +396,7 @@ func 坊市实价(原价: int, 类别: String = "") -> int:
 	var 上限 = float(行.get("浮动上限", 1.10))
 	var 浮动 = randf_range(下限, 上限)             # 行情价格乘数摆动（±10%）
 	价 = int(round(价 * 浮动))
+	价 = int(round(价 * _坊市负面卖价下限))
 	return 价
 
 # 库房分类：按商品名关键词推断类别（CSV 无类别列，零字段改动）
@@ -1343,6 +1344,8 @@ func _punish类别(pt: String) -> String:
 			return "弟子人员"
 		"卖价":
 			return "声望外部"
+		"权益回收":
+			return "品级权限"
 		"灵石":
 			return "弟子人员"   # 货币载体，默认归弟子类
 		_:
@@ -1351,6 +1354,7 @@ func _punish类别(pt: String) -> String:
 # —— 月度结算接入点（推演一月 S1 区，紧接 _结算运维成本_S1 之后）——
 func _结算负面事件_S1() -> void:
 	_加载负面开关_S1()
+	_坊市负面卖价下限 = 1.0
 	if not _neg_global:
 		return
 	_本月负面已触发.clear()
@@ -1394,12 +1398,24 @@ func _负面事件结算(行: Dictionary) -> void:
 			"卖价":
 				if _neg_reputation:   # 仅开启时浅联动（P0 默认 0，跳过；D3 不深联动）
 					_坊市负面卖价下限 = min(_坊市负面卖价下限, pv)
+			"权益回收":
+				if _neg_grade_perm:
+					_权益回收惩处(pv, 后果)   # pv = 治理失序罚金（20）
 			"心魔", "修为", "忠诚", "心境", "道心", "气血":
 				_施加弟子属性惩罚(pt, int(pv))   # 纯属性，无经济副作用
 	var eid: String = 行.get("event_id", "")
 	_本月负面已触发[eid] = _本月负面已触发.get(eid, 0) + 1
 	if not 后果.is_empty():
 		_加推演条目("【负面】%s：%s" % [行.get("event_name", eid), "、".join(后果)], ET_SECT, PRIO_NORMAL, {"事件": eid})
+
+# —— 品级权限类惩处（D4 本批：权益回收 = 罢免阶位 + 治理失序罚金）——
+func _权益回收惩处(罚金: float, 后果: Array) -> void:
+	_本月灵石冲击 += 罚金                       # 经 _负面总冲击卡位() 卡位后扣公库
+	后果.append("治理失序罚金-%d" % int(round(罚金)))
+	var 候选: Array = 弟子列表.filter(func(d): return d.阶位 != "无")
+	if not 候选.is_empty():
+		var 目标: Disciple = 候选[randi() % 候选.size()]
+		罢免阶位(目标)                          # 既有 setter（L2676）：降阶位一级 + 纪事
 
 # —— 月度总冲击卡位（硬卡 Σ≤62，不转负盈余）——
 func _负面总冲击卡位() -> void:

@@ -214,7 +214,7 @@ TABLE_RULES = {
     "negative_event": {"required_fields":["event_id","event_name","trigger_condition","base_prob","monthly_limit","punish_type_1","punish_value_1","punish_type_2","punish_value_2","deal_item","deal_effect","recover_day","is_permanent"],
         "primary_key":"event_id",
         "field_rules":{"base_prob":{"type":"float","min":0,"max":1.0},"monthly_limit":{"type":"int","min":0},
-            "punish_type_1":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","矿石","灵草","卖价","丹材","无"]},
+            "punish_type_1":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","矿石","灵草","卖价","丹材","权益回收","无"]},
             "punish_value_1":{"type":"int","min":0},"punish_type_2":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","矿石","灵草","卖价","丹材","无"]},
             "punish_value_2":{"type":"int","min":0},"recover_day":{"type":"int","min":0},"is_permanent":{"type":"bool"}}},
     "morale_loyalty_config": {"required_fields":["config_id","attr_name","full_value","zero_effect","low_threshold","low_effect","high_threshold","high_effect","decay_rate_day","increase_daily_base"],

@@ -339,6 +339,67 @@ def main():
         if abs(负面系数 - 1.0) > 1e-6:
             fail("D3 固定值扣除模型下 event_damage_rate 系数必须=1.0（否则与固定扣除双重惩罚）")
 
+        # ========================================================================
+        # D4 —— 声望外部类 + 品级权限类校验（S1-P0 批次四）三位一体之③ pre_f5 校验
+        #   复用 D3 的 neg_global 守护：本块位于 D3 的 else 分支内，仅当 neg_global
+        #   存在时激活；neg_global 缺席时 D3 已 warn-skip，本块不会执行（绝不 fail）。
+        #   蓝图见 design/08-功能提案/13-D4实现规格_数据对齐版.md §7（Layer A / C / D + 事件存在性）。
+        # ========================================================================
+        # —— D4 Layer A：配置合法性（双槽 punish_type_1/2 逐行）——
+        for r in 负面事件_rows:
+            for slot in ("1", "2"):
+                pt = r.get("punish_type_" + slot, "")
+                pv = fnum(r.get("punish_value_" + slot), 0)
+                if pt in ("无", ""):
+                    continue
+                if pv <= 0:
+                    fail("D4 negative_event %s punish_%s=%s 扣除≤0（配置非法）" % (r["event_id"], slot, pv))
+                if pt == "卖价":
+                    if pv < 0.85 or pv > 1.0:
+                        fail("D4 negative_event %s 卖价=%s 越±15%%红线[0.85,1.0]" % (r["event_id"], pv))
+                elif pt == "权益回收":
+                    if pv <= 0:
+                        fail("D4 negative_event %s 权益回收=%s ≤0（品级类惩罚>0 铁律）" % (r["event_id"], pv))
+                    if pv > 冲击上限:
+                        fail("D4 negative_event %s 权益回收=%s > 冲击上限%s（治理失序罚金超Σ封顶）" % (r["event_id"], pv, 冲击上限))
+                elif pt == "灵石":
+                    if pv > 冲击上限:
+                        fail("D4 negative_event %s 灵石扣除=%s > 冲击上限%s（破封顶）" % (r["event_id"], pv, 冲击上限))
+                    if pv < 0.05 * 标准局月产 or pv > 0.17 * 标准局月产:
+                        warn("D4 negative_event %s 灵石扣除=%s 偏离[5%%,17%%]红线带[%.1f,%.1f]"
+                             % (r["event_id"], pv, 0.05 * 标准局月产, 0.17 * 标准局月产))
+                elif pt in ("矿石", "灵草", "丹材"):
+                    if pv > 50:
+                        fail("D4 negative_event %s 资源扣除=%s > 50（资源破产风险）" % (r["event_id"], pv))
+                # 属性类（心魔/修为/忠诚/心境/道心/气血）：无经济校验
+
+        # —— D4 Layer C：F2 接线守（neg_* 五键存在 + 激活断言）——
+        for k in ("neg_global", "neg_res_build", "neg_disciple", "neg_reputation", "neg_grade_perm"):
+            if k not in 阀门键:
+                fail("config/经济阀门.csv 缺少 %s 行（D4 开关簇接线未配置）" % k)
+        # 额外激活断言：neg_reputation / neg_grade_perm 开关须==1（D4 内容未启用则阻断）
+        for k in ("neg_reputation", "neg_grade_perm"):
+            行 = next((r for r in 阀门表 if r["阀门"] == k), None)
+            开关 = 行.get("开关", "0") if 行 else "0"
+            if 开关 != "1":
+                fail("D4 声望类/品级类未激活：neg_reputation/neg_grade_perm 开关须=1")
+
+        # —— D4 Layer D：红线（冲击上限_灵石 锚定 + 负面系数须==1.0）——
+        if 冲击上限 != 62:
+            warn("D4 冲击上限_灵石=%s 非 62（ECON-02 §2.4 锚定漂移）" % 冲击上限)
+        负面行 = next((r for r in 阀门表 if r["阀门"] == "event_damage_rate"), None)
+        负面系数 = fnum(负面行["系数"], 1.0) if 负面行 else 1.0
+        if abs(负面系数 - 1.0) > 1e-6:
+            fail("D4 固定值扣除模型下 event_damage_rate 系数必须=1.0")
+
+        # —— D4 事件存在性守护：ne_011 / ne_012 / ne_013 须存在 ——
+        ids = {r["event_id"] for r in 负面事件_rows}
+        for need in ("ne_011", "ne_012", "ne_013"):
+            if need not in ids:
+                fail("config/negative_event.csv 缺少事件 %s（D4 声望/品级类事件未落地）" % need)
+
+        print("D4 已激活并通过：声望类/品级类开关=1 · ne_011/012/013 存在 · 负面系数=1.0")
+
     print("ALL ASSERTIONS PASSED · 产耗红线 OK · 系数偏差≤15%% · 公式镜像±15%% · "
           "F2 阀门已接线 · 事件渠道<5%% · 总盘复算=%.1f/基线=%s" % (复算月产, 标准局月产))
     sys.exit(0)
