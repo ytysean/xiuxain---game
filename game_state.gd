@@ -144,6 +144,8 @@ func _引育纪事文案(蛋: Beast) -> Dictionary:
 var 宗门库房: Array = []                 # 坊市购买所得物品（Item 实例）
 var 坊市上架集: Array = []               # 本周上架 shop_id 列表（周刷新随机抽8-12件）
 var 坊市购买记录: Dictionary = {}         # shop_id -> {daily, weekly, week_start}
+var 坊市类别月购: Dictionary = {}         # D2：类别 -> 本月已购数量（月度限购）
+var 坊市月购窗口起始日: int = 0           # D2：类别月度限购 30 天窗口起始日
 var 当前日常: Array = []                  # 当日日常任务（quest_daily 行字典，最多3条）
 var 日常已领: Array = []                  # 与 当前日常 等长，true=已领取
 var 上次日常日: int = 0
@@ -365,6 +367,14 @@ func _坊市表() -> Array:
 			_坊市缓存.append(r)
 	return _坊市缓存
 
+# D2 坊市动态行情：懒加载 坊市行情.csv（类别 -> 行）；文件缺失返回空 dict（No-op 安全）
+var 坊市行情表缓存: Dictionary = {}
+func _坊市行情表() -> Dictionary:
+	if 坊市行情表缓存.is_empty():
+		for r in DestinyDataLoader._read_csv("res://config/坊市行情.csv"):
+			坊市行情表缓存[r.get("类别", "")] = r
+	return 坊市行情表缓存
+
 # 坊市周刷新：从总商品池随机抽 8-12 件上架（S0 P0：保留日/周限购）
 func 刷新坊市上架():
 	var 全部: Array = _坊市表()
@@ -378,9 +388,15 @@ func 刷新坊市上架():
 func 坊市折扣率() -> float:
 	return 声望折扣表[clamp(声望, 0, 声望折扣表.size() - 1)]
 
-# 商品实际价格（折后，向上取整避免0灵石）
-func 坊市实价(原价: int) -> int:
-	return int(ceil(原价 * 坊市折扣率()))
+# 商品实际价格（声望折扣后叠加坊市行情浮动；D2 坊市动态行情）
+func 坊市实价(原价: int, 类别: String = "") -> int:
+	var 价 = ceil(原价 * 坊市折扣率())            # 现有声望折扣
+	var 行 = _坊市行情表().get(类别, {})
+	var 下限 = float(行.get("浮动下限", 0.90))
+	var 上限 = float(行.get("浮动上限", 1.10))
+	var 浮动 = randf_range(下限, 上限)             # 行情价格乘数摆动（±10%）
+	价 = int(round(价 * 浮动))
+	return 价
 
 # 库房分类：按商品名关键词推断类别（CSV 无类别列，零字段改动）
 func _坊市商品类别(行: Dictionary) -> String:
@@ -407,12 +423,22 @@ func 购买坊市物品(shop_id: String) -> Dictionary:
 	if int(行.get("unlock_reputation", "0")) > 声望:
 		return {"ok": false, "msg": "声望不足（需 %d）" % int(行.get("unlock_reputation", "0"))}
 	var 原价: int = int(行.get("price_lingjing", "0"))
-	var 折后: int = 坊市实价(原价)
+	var 类别: String = _坊市商品类别(行)          # D2：提前算类别，供折后行情浮动 + 月度限购共用
+	var 折后: int = 坊市实价(原价, 类别)
 	var 日限: int = int(行.get("limit_daily", "0"))
 	var 周限: int = int(行.get("limit_weekly", "0"))
 	var 记: Dictionary = 坊市购买记录.get(shop_id, {"daily": 0, "weekly": 0, "week_start": 累计游戏日})
 	if 累计游戏日 - int(记.get("week_start", 累计游戏日)) >= 7:
 		记 = {"daily": 0, "weekly": 0, "week_start": 累计游戏日}
+	# D2 坊市动态行情：类别级月度限购（30 天窗口重置，参考 week_start 逻辑）
+	if 累计游戏日 - 坊市月购窗口起始日 >= 30:
+		坊市类别月购.clear()
+		坊市月购窗口起始日 = 累计游戏日
+	var 行行情: Dictionary = _坊市行情表().get(类别, {})
+	if not 行行情.is_empty():
+		var 限额: int = int(行行情.get("限购数量", 0))
+		if 限额 > 0 and int(坊市类别月购.get(类别, 0)) + 1 > 限额:
+			return {"ok": false, "msg": "该类别本月限购已用完"}
 	if 日限 > 0 and int(记.get("daily", 0)) >= 日限:
 		return {"ok": false, "msg": "今日限购已用完"}
 	if 周限 > 0 and int(记.get("weekly", 0)) >= 周限:
@@ -423,11 +449,12 @@ func 购买坊市物品(shop_id: String) -> Dictionary:
 	var it: Item = Item.new()
 	it.名称 = 行.get("item_name", "未知物品")
 	it.品阶 = 行.get("item_grade", "凡品")
-	it.类别 = _坊市商品类别(行)
+	it.类别 = 类别
 	宗门库房.append(it)
 	记["daily"] = int(记.get("daily", 0)) + 1
 	记["weekly"] = int(记.get("weekly", 0)) + 1
 	坊市购买记录[shop_id] = 记
+	坊市类别月购[类别] = int(坊市类别月购.get(类别, 0)) + 1   # D2：月度限购计数 +1
 	var 折扣说明: String = "" if 折后 == 原价 else "（%s%d折）" % [声望等级名[clamp(声望,0,声望等级名.size()-1)], int(坊市折扣率()*100)]
 	return {"ok": true, "msg": "购入 %s（-%d灵石%s）" % [行.get("item_name", ""), 折后, 折扣说明]}
 
@@ -2905,6 +2932,7 @@ func save_game():
 		"七载奖励池": 七载奖励池, "七载待发掉落": 七载待发掉落, "门派等级目标": 门派等级目标, "上次七载日": 上次七载日,
 		# S0 任务/商店系统（不升 SAVE_VERSION：load 用 .get 默认兼容老档）
 		"kucun": [], "fangshi": 坊市购买记录, "fs_list": 坊市上架集,
+		"fangshi_leibie": 坊市类别月购, "fangshi_month_start": 坊市月购窗口起始日,
 		"daily": {"当前": 当前日常, "已领": 日常已领, "日": 上次日常日},
 		"weekly": {"当前": 当前周常, "已领": 周常已领, "日": 上次周常日},
 		"randcd": 随机事件冷却, "rtypecd": 随机事件类型冷却, "qcd": quest_cooldown,
@@ -3036,6 +3064,8 @@ func load_game():
 		宗门库房.append(it)
 	坊市购买记录 = data.get("fangshi", {})
 	坊市上架集 = data.get("fs_list", [])
+	坊市类别月购 = data.get("fangshi_leibie", {})
+	坊市月购窗口起始日 = int(data.get("fangshi_month_start", 0))
 	var djson: Dictionary = data.get("daily", {})
 	当前日常 = djson.get("当前", [])
 	日常已领 = djson.get("已领", [])
@@ -3172,6 +3202,8 @@ func new_game():
 	宗门库房.clear()
 	坊市购买记录.clear()
 	坊市上架集 = []
+	坊市类别月购.clear()
+	坊市月购窗口起始日 = 0
 	随机事件类型冷却 = {}
 	quest_cooldown = {}
 	# P0 目标链：新手阶梯复位
