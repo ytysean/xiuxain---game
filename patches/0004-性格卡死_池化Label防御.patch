@@ -1,0 +1,83 @@
+From a8fc5c4ce7ddff30c8c0375e866b619ac5681049 Mon Sep 17 00:00:00 2001
+From: ytysean <187181923@qq.com>
+Date: Mon, 27 Jul 2026 16:02:13 +0800
+Subject: [PATCH] =?UTF-8?q?=E4=BF=AE=E5=A4=8D=EF=BC=9A=E6=80=A7=E6=A0=BC/?=
+ =?UTF-8?q?=E5=90=8C=E7=B1=BB=E8=AF=A6=E6=83=85=E5=BC=B9=E7=AA=97=20use-af?=
+ =?UTF-8?q?ter-free=EF=BC=88=E6=B1=A0=E5=8C=96Label=E9=98=B2=E5=BE=A1?=
+ =?UTF-8?q?=E6=B6=88=E8=B4=B9=20+=20=E9=97=B8=E8=B7=AF=E5=BE=84=E7=BB=9F?=
+ =?UTF-8?q?=E4=B8=80=E7=BB=8F=E5=85=B3=E9=97=AD=E5=85=A5=E5=8F=A3=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ main.gd | 36 +++++++++++++++++++++++-------------
+ 1 file changed, 23 insertions(+), 13 deletions(-)
+
+diff --git a/main.gd b/main.gd
+index 8115a1b..e0f9655 100644
+--- a/main.gd
++++ b/main.gd
+@@ -1850,20 +1850,24 @@ func _弹出弟子属性弹窗(类型: String, 内容文本: String, _d: Discipl
+ # ===== S1 批4：详情弹窗扩展 + 富文本点击联动（纯 UI 层，不改动战斗结算代码） =====
+ 
+ # 属性行（复用对象池）：优先从 _attr_line_pool 取 Label，否则新建；标记 meta("pooled") 以便回收
++# 防御性消费：池中可能残留失效条目（页面切换/异常时序下子节点被 free）。
++# 必须先以无类型 pop 拿到 Variant，校验 alive + 类型正确，再赋给 typed Label l；
++# 否则 typed-var assign 校验会抛 "Trying to assign invalid previously freed instance"。
+ func _属性行(文本: String, 色: Color) -> Label:
+-	var l: Label
+-	if not _attr_line_pool.is_empty():
+-		l = _attr_line_pool.pop_back()
+-		if is_instance_valid(l):
+-			l.text = 文本
+-			l.visible = true
+-			l.modulate = Color(1, 1, 1, 1)
+-			l.add_theme_color_override("font_color", 色)
+-		else:
+-			l = Label.new()
+-	else:
++	var l: Label = null
++	while not _attr_line_pool.is_empty():
++		var obj = _attr_line_pool.pop_back()
++		if is_instance_valid(obj) and obj is Label:
++			l = obj
++			break
++		# 否则丢弃这条失效条目，继续消费池子
++	if l == null:
+ 		l = Label.new()
+-	if l.get_meta("pooled", false) == false:
++	l.text = 文本
++	l.visible = true
++	l.modulate = Color(1, 1, 1, 1)
++	l.add_theme_color_override("font_color", 色)
++	if not l.has_meta("pooled"):
+ 		l.set_meta("pooled", true)
+ 	return l
+ 
+@@ -1876,6 +1880,10 @@ func _回收详情行(遮: Control) -> void:
+ 		_详情回收站 = Node.new()
+ 		add_child(_详情回收站)
+ 	for c in 遮.get_children():
++		# 防御式：迭代期间子节点可能被外部时序 free；失效引用/已脱离 遮 的子节点直接跳过，
++		# 防止 add_child 抛 previously freed 或重复回收。
++		if c == null or not is_instance_valid(c) or c.get_parent() != 遮:
++			continue
+ 		if c is Label and c.get_meta("pooled", false) == true:
+ 			c.visible = false
+ 			_详情回收站.add_child(c)
+@@ -4509,8 +4517,10 @@ func _执行建筑升级(key: String) -> void:
+ 	var 结果: Dictionary = Game.升级建筑(key)
+ 	_toast(str(结果.get("msg", "升级完成")))
+ 	if bool(结果.get("ok", false)):
++		# 走 _关闭详情 统一入口（先回收 _属性行 池化 Label 到 _详情回收站，再 queue_free，最后清空单实例守卫）；
++		# 避免直接 queue_free 释放含池化 Label 的弹窗导致池子持有将来指向 freed instance 的悬挂引用（typed-var assign 校验会抛）。
+ 		if _当前详情遮 != null and is_instance_valid(_当前详情遮):
+-			_当前详情遮.queue_free()
++			_关闭详情(_当前详情遮)
+ 		_建_二级页("建筑")
+ 
+ # 建筑详情弹窗：等级/上限、任期政绩、当前产出、升级按钮（含消耗与禁用原因）
+-- 
+2.54.0.windows.1
+

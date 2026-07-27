@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bkg7tdya8tm1k"
+
+[deps]
+
+files=["res://config/经济基线.数值.translation", "res://config/经济基线.说明.translation"]
+
+source_file="res://config/经济基线.csv"
+dest_files=["res://config/经济基线.数值.translation", "res://config/经济基线.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
