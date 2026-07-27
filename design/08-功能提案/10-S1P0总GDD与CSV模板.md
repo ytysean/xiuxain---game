@@ -109,22 +109,25 @@ aligned_doc:
 
 ### 1.5 需轻量代码（消费者接线点 · 伪代码级）
 
-> **F2 双兜底架构（方案B·已落地）**：静态闸门（`pre_f5` → `check_resource_redline.py` 第11闸）做 **静态守**（校验 `economy_balance.gd` 引用 `经济阀门.csv` + 含三旋钮键 + ±15% 硬范围 + `period_settlement.gd` 调用 `平衡()`）；运行时由 `economy_balance.gd`（class_name `EconomyBalance`, extends RefCounted, 纯计算外挂中间层）从 `config/经济阀门.csv`（表头 `阀门,系数,开关,说明`）读取三旋钮 `global_cost_rate`/`trade_profit_rate`/`event_damage_rate`（默认 1.0，**熔断 ±15%**），在 `period_settlement.gd` 结算最终输出节点**单次调用 `EconomyBalance.平衡()`**，**核心结算逻辑零侵入**。
+> **F2 双兜底架构（方案B·已落地）**：静态闸门（`pre_f5` → `check_resource_redline.py` 第11闸）做 **静态守**（校验 `economy_balance.gd` 引用 `经济阀门.csv` + 含三旋钮键 + ±15% 硬范围 + `period_settlement.gd` 调用 `平衡()`）；运行时由 `economy_balance.gd`（class_name `EconomyBalance`, extends RefCounted, 纯计算外挂中间层）从 `config/经济阀门.csv`（表头 `阀门,系数,开关,说明`）读取三旋钮 `global_cost_rate`/`trade_profit_rate`/`event_damage_rate`（默认 1.0，**熔断 ±15%**），在 `period_settlement.gd` 结算最终输出节点**调用 `EconomyBalance.平衡(灵石增量)` 作全净盘兜底**，**核心结算逻辑零侵入**；另 game_state `_结算运维成本_S1` 内对 −刚性耗 单点 per-delta 调 平衡()（R2，全场景生效），二者双调用、正常配置下恒等。
 
 ```gdscript
 # —— 新增 _结算运维成本_S1()（紧接 _结算俸禄_S1 之后，推演一月月循环内）——
 func _结算运维成本_S1() -> void:
-    var 率 = EconomyBalance.取系数("global_cost_rate", 1.0)   # F2 阀门：economy_balance.gd 读 经济阀门.csv，运行时±15%钳制
-    var c4 = 0.0
-    for d in 弟子列表:
-        c4 += 4.5 * _身份俸禄倍率(d.身份)               # 普通1.0/执事1.5/长老2.0
-    var c5 = 3.0 * 建筑列表.size()
-    var c6 = 0.73 * 弟子列表.size()
-    var c7 = 0.375 * 弟子列表.size()
-    var 刚性耗 = (c4 + c5 + c6 + c7) * 率
-    # 守恒校验：293 ≤ 刚性耗 ≤ 318（超出则 clamp 并纪事告警，不破比值红线）
-    刚性耗 = clamp(刚性耗, 293.0, 318.0)
-    灵石 -= int(round(刚性耗))
+	var 基线: Dictionary = _读经济基线()
+	var 下限: float = float(基线.get("标准局月耗_下限", "293"))
+	var 上限: float = float(基线.get("标准局月耗_上限", "318"))
+	var c4: float = 0.0
+	for d in 弟子列表:
+		c4 += 4.5 * _身份俸禄倍率(d.身份)	# 普通1.0/执事1.5/长老2.0
+	var c5: float = 3.0 * 建筑列表.size()
+	var c6: float = 0.73 * 弟子列表.size()
+	var c7: float = 0.375 * 弟子列表.size()
+	var 刚性耗: float = c4 + c5 + c6 + c7
+	刚性耗 = clamp(刚性耗, 下限, 上限)	# R5 读 config/经济基线.csv，非硬编码
+	var _平衡器 := EconomyBalance.new()
+	var 实付: float = _平衡器.平衡(-刚性耗)	# R2 per-delta：raw<0 → ×全局消耗系数（±15% 钳制）
+	灵石 -= int(round(-实付))		# 取绝对值扣公库（实付为负）
     # 欠俸/忠诚链路（F6 对冲）：刚性耗 实付 < 应发阈值 → 忠诚↓（引用 GDD-宗门经营 §五.1）
 
 # —— F2 阀门落位（方案B）：config/经济阀门.csv（表头 阀门,系数,开关,说明），由 economy_balance.gd 读取 ——
@@ -132,7 +135,7 @@ func _结算运维成本_S1() -> void:
 # global_cost_rate,1.0,1,宗门运维全局消耗系数(F2)
 # trade_profit_rate,1.0,1,坊市收益总控系数(F2)
 # event_damage_rate,1.0,1,负面事件伤害系数(F2，动态消耗阀门)
-# period_settlement.gd 结算最终输出节点单次调用 EconomyBalance.平衡()，核心结算零侵入
+# period_settlement.gd 结算最终输出节点调用 EconomyBalance.平衡(灵石增量) 作全净盘兜底；game_state._结算运维成本_S1 内 per-delta 调 平衡(-刚性耗)（R2），双调用
 ```
 
 ### 1.6 pre_f5 校验（三位一体 ③）
@@ -180,12 +183,14 @@ func _坊市成交价(基础价: float, 类别: String) -> float:
     var 下限 = _校准浮(类别 + "_浮动下限", 0.90)
     var 上限 = _校准浮(类别 + "_浮动上限", 1.10)
     var 浮动 = randf_range(下限, 上限)                 # 月度摆动 ±10%
-    var 率 = EconomyBalance.取系数("trade_profit_rate", 1.0)        # F2 阀门：economy_balance.gd 读 经济阀门.csv，运行时±15%钳制
-    return 基础价 * 浮动 * 率
+	var 毛收入 = 基础价 * 浮动			# 月度摆动后的毛收入
+	var _平衡器 := EconomyBalance.new()
+	var 实收 = _平衡器.平衡(毛收入)		# raw>=0 → 产出侧 ×trade_profit_rate（R3 全局盈余总控阀，±15% 钳制）
+	return 实收
 
 # —— 限购（购买时）——
 func _坊市购买(商品, 数量):
-    var 限额 = 坊市行情表[商品.类别]["限购数量"]
+    var 限额 = 坊市行情表[商品.类别]["限购数量"]          # 限购=类别级（用户拍板）
     if 本月已购[商品.id] + 数量 > 限额: return FAIL("超限购")
     ...
 ```
@@ -220,7 +225,7 @@ func _坊市购买(商品, 数量):
 - **总灵石冲击硬上限** = **62**（≤17%×366），任何负面组合 Σ(灵石冲击) 不得超此值、不得转负盈余。
 - **产出削减系数（event_damage_rate 乘算）**：
   - 常规档：产出乘数 **0.90**（−10%），仅吃缓冲（共存运维后盈余 8%，不破产）。
-  - 极端档（原 −35% 单档）：**取消单档 −35%**，改为「−17% 档（产出乘数 0.83）后置至高门派等级/稀有事件」+「多档叠加总冲击 ≤62」。
+  - 极端档（原 −35% 单档）：**取消单档 −35%**，改为「−17% 档（产出乘数 0.8299（366×0.8299=62.0 精确≤62）后置至高门派等级/稀有事件」+「多档叠加总冲击 ≤62」。
   - 资源建筑类削减**主要作用于非灵石资源**（灵草/矿石/丹材）；若波及灵石产出，单事件灵石冲击 ≤62 且总冲击不转负盈余。
 - **坊市价差（声望外部类）**：卖价乘数下限 **0.92**（−8%），作为间接灵石冲击，计入 ≤62 总帽。
 - **额外消耗增加（弟子人员类）**：单事件额外灵石耗 ≤ **30**。
@@ -243,11 +248,12 @@ func _坊市购买(商品, 数量):
 # —— 负面事件管理器（激活 negative_event.csv）——
 func _负面事件结算(事件ID, punish_type, punish_value):
     if not _负面效果是否生效(_类别_of(punish_type), 事件ID): return   # 总闸/分闸优先
-    var 率 = EconomyBalance.取系数("event_damage_rate", 1.0)                       # F2 阀门：economy_balance.gd 读 经济阀门.csv，运行时±15%钳制
+	var _平衡器 := EconomyBalance.new()
+	var 灵石冲击 = _平衡器.平衡(-punish_value)	# raw<0 → ×event_damage_rate（动态消耗阀门，R3/R7）
     # 资源建筑类：非灵石资源削减 ×率；灵石侧单事件≤62
     # 弟子人员类：状态/流失按 punish_value×率 应用
     # 声望外部类：坊市价差 ×率（卖价下限 0.92）
-    _记灵石冲击(punish_type, punish_value * 率)                       # 累入月度总冲击
+	_记灵石冲击(punish_type, -灵石冲击)		# 取绝对值累入月度总冲击（单事件≤62）
     # 建筑被动_负面事件减免 参与（DORMANT→接线）
 
 # —— 总闸优先判定 ——
@@ -678,6 +684,10 @@ func 随机生成():
 | F2 风控层级 | 仅静态校验（pre_f5） | 静态(pre_f5 第11闸) + 运行时(±15% 钳制) 双兜底 | 风控增强 | 无需回退 |
 | F2 旋钮数 | 三旋钮（global_cost_rate/trade_profit_rate/event_damage_rate） | 同三旋钮 | 一致 | — |
 | 经济基线 F2_阀门_接线 | `经济基线.csv` 标志位驱动 pre_f5 升级 | 同（第11闸仍读该标志） | 一致 | — |
+| 消费者 API 写法 | `EconomyBalance.取系数(...)` 伪代码（§1.5/2.5/3.5） | 实际 `EconomyBalance.平衡(原始值)`：per-delta（game_state `_结算运维成本_S1` 对 −刚性耗）+ period_settlement 末次 平衡(灵石增量) 兜底，双调用 | 已闭合（commit f18b990） | — |
+| R2 per-delta 接线 | 初版仅「赤字局思路」，无单点调用 | `game_state._结算运维成本_S1` 内对 −刚性耗 单点调 平衡()（raw<0→×全局消耗系数），全场景生效 | 已落地（f18b990） | — |
+| R5 刚性耗 clamp 数据源 | 硬编码 293/318 | 读 `config/经济基线.csv`（`标准局月耗_下限/上限`）| 已落地（f18b990） | — |
+| R6 global_enable 总开关 | 初版 GDD 未含 | `economy_balance.gd` 增 `var global_enable: bool = true`，false 时 平衡() 直接放行（无发版秒级回滚）| 已落地（f18b990） | — |
 
 > 登记目的：供后续版本（S2 产业链、评级持续迭代）统一对齐，避免实现与初版 GDD 表述混淆。ECON-01 §4.8 Layer C / §203 / §362 同步已对齐方案B。
 
