@@ -45,7 +45,14 @@ const TABLE_RULES := {
             "passive_value": {"type": "percent", "max": 50.0, "tip": "被动增益超出50%全局上限（双值取主值校验）"},
             "max_level": {"type": "int", "min": 1, "tip": "最高等级必须大于0"},
             "feed_cost_per_day": {"type": "int", "min": 0, "tip": "每日喂养消耗不能为负数"},
-            "base_lifespan_year": {"type": "int", "min": 1, "tip": "基础寿命必须大于0"}
+            "base_lifespan_year": {"type": "int", "min": 1, "tip": "基础寿命必须大于0"},
+            # ---- S1 预留：灵宠护主技能字段（默认关闭，不参与任何逻辑，仅配置预留）----
+            "skill_effect_type": {"type": "string", "tip": "护主技能类型（S1 预留，默认关闭）"},
+            "skill_trigger_rate": {"type": "float", "tip": "护主触发概率 0-1（S1 预留）"},
+            "skill_cooldown": {"type": "float", "tip": "护主技能冷却回合（S1 预留）"},
+            "skill_effect_value": {"type": "float", "tip": "护主技能效果数值（S1 预留）"},
+            "is_skill_active": {"type": "bool", "tip": "是否启用护主技能（S1 预留，默认 false）"},
+            "fallback_defense_bonus": {"type": "string", "tip": "护主兜底防御加成描述（S1 预留，默认空）"}
         }
     },
     "puppet": {
@@ -64,7 +71,15 @@ const TABLE_RULES := {
             "daily_maintain_cost": {"type": "int", "min": 0, "tip": "维护消耗不能为负数"},
             "craft_time_sec": {"type": "int", "min": 1, "tip": "制作时长必须大于0"},
             "base_success_rate": {"type": "percent", "min": MIN_SUCCESS_RATE, "max": MAX_SUCCESS_RATE, "tip": "成功率必须在5%-95%区间内"},
-            "sell_price_ling": {"type": "int", "min": 0, "tip": "售价不能为负数"}
+            "sell_price_ling": {"type": "int", "min": 0, "tip": "售价不能为负数"},
+            # ---- S1 预留：傀儡挡刀战斗效果字段（默认关闭，不参与任何逻辑，仅配置预留）----
+            "battle_effect_type": {"type": "string", "tip": "傀儡挡刀战斗效果类型（S1 预留，默认关闭）"},
+            "trigger_condition": {"type": "string", "tip": "触发条件（S1 预留，默认空）"},
+            "effect_value_1": {"type": "float", "tip": "效果数值1（S1 预留）"},
+            "effect_value_2": {"type": "float", "tip": "效果数值2（S1 预留）"},
+            "consume_on_trigger": {"type": "bool", "tip": "触发后是否消耗傀儡（S1 预留，默认 false）"},
+            "is_battle_effect_active": {"type": "bool", "tip": "是否启用战斗效果（S1 预留，默认 false）"},
+            "fallback_attr_bonus": {"type": "string", "tip": "兜底属性加成描述（S1 预留，默认空）"}
         }
     },
     "item_pill": {
@@ -142,7 +157,15 @@ const TABLE_RULES := {
             "base_def": {"type": "int", "min": 0, "tip": "防御不能为负"},
             "base_hp": {"type": "int", "min": 0, "tip": "气血不能为负"},
             "effect_value": {"type": "percent", "max": 200.0, "tip": "法宝效果超出合理上限"},
-            "sell_price": {"type": "int", "min": 0, "tip": "售价不能为负数"}
+            "sell_price": {"type": "int", "min": 0, "tip": "售价不能为负数"},
+            # ---- S1 预留：替死法宝战斗效果字段（默认关闭，不参与任何逻辑，仅配置预留）----
+            "battle_effect_type": {"type": "string", "tip": "替死法宝战斗效果类型（S1 预留，默认关闭）"},
+            "trigger_condition": {"type": "string", "tip": "触发条件（S1 预留，默认空）"},
+            "effect_value_1": {"type": "float", "tip": "效果数值1（S1 预留）"},
+            "effect_value_2": {"type": "float", "tip": "效果数值2（S1 预留）"},
+            "consume_on_trigger": {"type": "bool", "tip": "触发后是否消耗法宝（S1 预留，默认 false）"},
+            "is_battle_effect_active": {"type": "bool", "tip": "是否启用战斗效果（S1 预留，默认 false）"},
+            "fallback_attr_bonus": {"type": "string", "tip": "兜底属性加成描述（S1 预留，默认空）"}
         }
     },
     "treasure_innate": {
@@ -153,7 +176,15 @@ const TABLE_RULES := {
             "sub_grade": {"type": "enum", "values": VALID_SUB_GRADES, "tip": "细分品级非法"},
             "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用职业非法"},
             "growth_value": {"type": "percent", "max": 200.0, "tip": "成长数值超出合理上限"},
-            "max_level": {"type": "int", "min": 1, "tip": "最高等级必须大于0"}
+            "max_level": {"type": "int", "min": 1, "tip": "最高等级必须大于0"},
+            # ---- S1 预留：本命法宝战斗效果字段（默认关闭，不参与任何逻辑，仅配置预留）----
+            "battle_effect_type": {"type": "string", "tip": "本命法宝战斗效果类型（S1 预留，默认关闭）"},
+            "trigger_condition": {"type": "string", "tip": "触发条件（S1 预留，默认空）"},
+            "effect_value_1": {"type": "float", "tip": "效果数值1（S1 预留）"},
+            "effect_value_2": {"type": "float", "tip": "效果数值2（S1 预留）"},
+            "consume_on_trigger": {"type": "bool", "tip": "触发后是否消耗法宝（S1 预留，默认 false）"},
+            "is_battle_effect_active": {"type": "bool", "tip": "是否启用战斗效果（S1 预留，默认 false）"},
+            "fallback_attr_bonus": {"type": "string", "tip": "兜底属性加成描述（S1 预留，默认空）"}
         }
     },
     "equip_set": {
@@ -329,10 +360,10 @@ const TABLE_RULES := {
         "required_fields": ["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance","trigger_type"],
         "primary_key": "event_id",
         "field_rules": {
-            "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属","征伐"], "tip": "奇遇大类非法"},
+            "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属","征伐","奇遇机遇"], "tip": "奇遇大类非法"},
             "rarity": {"type": "enum", "values": ["普通","优秀","稀有","传说"], "tip": "稀有度非法（四档：普通/优秀/稀有/传说）"},
             "trigger_type": {"type": "enum", "values": ["monthly","login","adventure_return","breakthrough","building_up"], "tip": "奇遇触发类型非法（S0 仅 monthly 生效，其余预埋）"},
-            "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"], "tip": "触发场景非法"},
+            "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录","机缘"], "tip": "触发场景非法"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体"], "tip": "境界非法"},
             "trigger_weight": {"type": "int", "min": 0, "tip": "触发权重不能为负"},
@@ -342,6 +373,10 @@ const TABLE_RULES := {
         # 奖励倍率软告警（P0 拍板，实装在 validate_all.py 镜像）：
         #   普通1x / 优秀2x / 稀有5x / 传说12x，基准 REWARD_BASE=200（灵石当量）。
         #   解析 opt*_reward 中 `资源key:数量` 数值，超对应品阶软上限即软告警（不阻断闸门）。
+        # D5④ 事件奖励落地：item: 跨表校验规则（仅注释；运行期由 pre_f5_check.py::check_event_reward_item_ref 执行）
+        #   event_quest.opt*_reward 支持 `item:item_id:count` 语法（具名物品经 _按id造 造入背包，含 unlock_array 闭环）；
+        #   item_id 必须存在于 config/array_items.csv（或 config/item_id_registry.csv），count 须为正整数（>0）。
+        #   机缘类事件（event_type=奇遇机遇 / trigger_scene=机缘）走独立 roll 语义，豁免 check_event_weight_sum 的=100 加权约定。
     },
     "faction_base": {
         "required_fields": ["faction_id","faction_name","reputation_level","need_reputation","global_buff_1","global_buff_2","unlock_content","shop_unlock_grade"],
@@ -519,6 +554,68 @@ const TABLE_RULES := {
             "reward_num": {"type": "float", "min": 0, "tip": "奖励数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
             "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数不能为负"},
             "reward_id": {"type": "string", "tip": "意图指向全局道具/称号/外观/功能ID；本批次[PL]不做跨表存在性校验，缺口见GDD §17.8"}
+        }
+    },
+    "array_config": {
+        "required_fields": ["array_id","array_name","array_type","rank","core_effect","eff_dim","eff_val_base","trigger","level_growth_coef","max_level","unlock_realm","unlock_sect_rank","match_element","people_required","cost_base","cost_growth","icon_path","description"],
+        "primary_key": "array_id",
+        "field_rules": {
+            "array_type": {"type": "enum", "values": ["person","team","sect"], "tip": "阵法类型非法（person 单人/team 组队/sect 宗门）"},
+            "rank": {"type": "enum", "values": ["common","spirit","treasure"], "tip": "阵法品阶非法（common 凡/spirit 灵/treasure 宝）"},
+            "trigger": {"type": "enum", "values": ["passive","post_battle","pre_round"], "tip": "触发类型非法（passive 常驻/post_battle 结算后/pre_round 每回合，S1 仅启用 passive）"},
+            "match_element": {"type": "enum", "values": ["earth","water","metal","wood","fire","fire_water","all_five","none"], "tip": "灵根匹配元素非法"},
+            "eff_val_base": {"type": "float", "tip": "基准效果百分比（浮点；入侵/心魔类可为负，如 -0.20；护盾等正向为正）"},
+            "level_growth_coef": {"type": "float", "min": 0, "tip": "每级成长系数须≥0"},
+            "max_level": {"type": "int", "min": 1, "tip": "最高等级须>0（宗门/单人=10，组队=1）"},
+            "unlock_sect_rank": {"type": "int", "min": 1, "tip": "解锁所需门派等级须≥1"},
+            "people_required": {"type": "int", "min": 0, "tip": "所需人数须≥0（宗门=0/单人=1/组队≥2）"},
+            "cost_base": {"type": "int", "min": 0, "tip": "升级基础消耗须≥0"},
+            "cost_growth": {"type": "float", "min": 0, "tip": "升级消耗成长系数须≥0"},
+            "unlock_realm": {"type": "string", "tip": "解锁境界（字符串；宗门阵主要由 unlock_sect_rank 控制）"}
+        }
+    },
+    "array_items": {
+        "required_fields": ["item_id","item_name","item_grade","item_type","use_type","unlock_array_id","dismantle_reward_id","icon_path","描述"],
+        "primary_key": "item_id",
+        "field_rules": {
+            "item_grade": {"type": "string", "tip": "道具品阶（阵图/碎片通用，字符串宽松校验）"},
+            "item_type": {"type": "enum", "values": ["array_book","array_material"], "tip": "阵法物品类型非法（array_book 阵图 consumable/array_material 阵纹碎片）"},
+            "use_type": {"type": "enum", "values": ["unlock_array","upgrade"], "tip": "使用类型非法（unlock_array 解锁阵法/upgrade 升级材料）"},
+            "unlock_array_id": {"type": "string", "tip": "解锁对应阵法 array_id（材料类留空；须与 array_config.array_id 关联，D5）"},
+            "dismantle_reward_id": {"type": "string", "tip": "拆解产出物品 item_id（阵图→item_015 阵纹碎片，比例随阵阶 [PLACEHOLDER]）"}
+        }
+    },
+    # ---------- 器堂赠宝梯度池（Task #28 P0，对应 器堂赠宝_优化GDD §1.1）----------
+    # 本块仅做单列 schema 校验（同 array_items 仅单行规则）；外键（gen→fabao 等 / id→array_items.item_id）
+    # 与 count_min<=count_max / level_min<=level_max 由调用方 validate_all.py 跨表层强制。
+    # 主键含 count_min+count_max：Band 7 故意存在两行 item_015（灵阶炼器材料缺独立 item，暂代 item_015，
+    # 见回传待 design 确认），仅靠 (level_min,level_max,pool_type,item_ref) 会误判重复，故并入 count 区分。
+    "craft_hall_reward": {
+        "required_fields": ["level_min","level_max","pool_type","item_ref","ref_type","item_name","grade","weight","count_min","count_max","policy_multiplier"],
+        "primary_key": "level_min+level_max+pool_type+item_ref+count_min+count_max",
+        "field_rules": {
+            "level_min": {"type": "int", "min": 1, "tip": "等级区间下界须≥1"},
+            "level_max": {"type": "int", "min": 1, "tip": "等级区间上界须≥level_min（引擎按区间筛器堂等级）"},
+            "pool_type": {"type": "enum", "values": ["common","rare"], "tip": "池类型非法（common 普通/rare 稀有，触发后 90%/10% 二选一）"},
+            "ref_type": {"type": "enum", "values": ["gen","id"], "tip": "引擎解析方式非法（gen→_造低阶物品 / id→_按id造）"},
+            "grade": {"type": "string", "tip": "品阶（宽松字符串；gen 行用品阶 vocab 凡阶…，id 行引擎忽略改读 array_items 真值）"},
+            "weight": {"type": "int", "min": 0, "tip": "权重须≥0；引擎按 (level×pool) 内 Σweight 归一化，不强制=100"},
+            "count_min": {"type": "int", "min": 1, "tip": "数量下界须≥1"},
+            "count_max": {"type": "int", "min": 1, "tip": "数量上界须≥count_min"},
+            "policy_multiplier": {"type": "float", "min": 0, "tip": "S2 政策乘区占位，S1 引擎忽略（默认 1.0）"}
+        }
+    },
+    # ---------- F2 全局调节阀门配置（IMPL-ENG-01 · ECON-02 跨功能强约束）----------
+    # 表头 阀门,系数,开关,说明（独立表头，刻意区别于 评级节奏.csv / 节奏校准.csv 的 参数,值,说明，
+    # 避免 identify_table 误识别）。系数±15%硬范围由 economy_balance.gd 载入时强校验；
+    # 本表仅做 schema 层守门（validate_all.py 镜像同表）。
+    "经济阀门": {
+        "required_fields": ["阀门","系数","开关","说明"],
+        "primary_key": "阀门",
+        "field_rules": {
+            "阀门": {"type": "enum", "values": ["global_income_rate","global_cost_rate","trade_profit_rate","event_damage_rate","熔断阈值","基准值"], "tip": "F2 阀门参数名非法（应为四个阀门 + 熔断阈值 + 基准值）"},
+            "系数": {"type": "float", "min": 0.0, "tip": "阀门系数须为非负浮点；±15% 硬范围由 economy_balance.gd 载入时强校验"},
+            "开关": {"type": "float", "min": 0.0, "max": 1.0, "tip": "开关须为 0/1（off/on）"}
         }
     }
 }

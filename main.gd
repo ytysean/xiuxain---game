@@ -181,6 +181,7 @@ var 御兽区: VBoxContainer
 var 纪事区: VBoxContainer
 var 当前选中: Disciple = null
 var 装备面板节点: Control = null   # A5 装备面板当前实例，重建前先释放避免叠加
+var 法阵面板节点: Control = null   # S1 批6-B 法阵面板当前实例，重建前先释放避免叠加
 var 历练滚动列: VBoxContainer = null  # 历练关卡列表（战斗胜利后需刷新）
 # 新手引导系统（A 包：单线性五步，纯灰模）：阶段 0序章/1-5五步/6完成（Game.引导阶段 为事实源）
 var 引导_建筑按钮: Button = null
@@ -2145,7 +2146,8 @@ func _弟子卡(d: Disciple) -> Control:
 	var 性格按钮 := Button.new(); 性格按钮.text = "性格"; 性格按钮.pressed.connect(_on_性格.bind(d))
 	var 职业按钮 := Button.new(); 职业按钮.text = "职业"; 职业按钮.pressed.connect(_on_职业.bind(d))
 	var 装备按钮 := Button.new(); 装备按钮.text = "法宝"; 装备按钮.pressed.connect(_装备面板.bind(d))
-	详情行.add_child(命格按钮); 详情行.add_child(灵根按钮); 详情行.add_child(性格按钮); 详情行.add_child(职业按钮); 详情行.add_child(装备按钮)
+	var 法阵按钮 := Button.new(); 法阵按钮.text = "法阵"; 法阵按钮.pressed.connect(_法阵面板.bind(d))
+	详情行.add_child(命格按钮); 详情行.add_child(灵根按钮); 详情行.add_child(性格按钮); 详情行.add_child(职业按钮); 详情行.add_child(装备按钮); 详情行.add_child(法阵按钮)
 	vb.add_child(详情行)
 	# S1 批1：阶位操作入口（考核晋升 / 罢免阶位），仅在可授阶/有阶位时可用
 	var 阶位行 := HBoxContainer.new()
@@ -3379,6 +3381,8 @@ func _装备面板(d: Disciple):
 			信息.fit_content = true
 			if it.可穿戴():
 				信息.append_text("%s［%s］·%s·[color=#%s]+%d[/color]" % [it.名称, it.品阶, Item.槽显示.get(it.穿戴位, it.穿戴位), 颜色_良品.to_html(false), it.战力加成])
+			elif _是阵图物品(it):
+				信息.append_text("%s［%s］[color=#%s]（阵图·可使用）[/color]" % [it.名称, it.品阶, 次墨.to_html(false)])
 			else:
 				信息.append_text("%s［%s］[color=#%s]（不可穿戴）[/color]" % [it.名称, it.品阶, 次墨.to_html(false)])
 			行.add_child(信息)
@@ -3387,7 +3391,13 @@ func _装备面板(d: Disciple):
 				穿.text = "穿戴"
 				穿.pressed.connect(_穿戴装备.bind(d, it))
 				行.add_child(穿)
-			列.add_child(行)
+				列.add_child(行)
+			elif _是阵图物品(it):
+				var 用 := Button.new()
+				用.text = "使用"
+				用.pressed.connect(_使用阵图.bind(d, it))
+				行.add_child(用)
+				列.add_child(行)
 
 	var 最优 := Button.new()
 	最优.text = "一键最优穿戴"
@@ -3400,6 +3410,233 @@ func _装备面板(d: Disciple):
 			装备面板节点.queue_free()
 		装备面板节点 = null)
 	内容.add_child(关)
+
+# ============ S1 批6-B：单人法阵面板（Layer2 常驻属性；独立字段 当前法阵，不入 装备 Dictionary）============
+func _法阵面板(d: Disciple):
+	if 法阵面板节点 != null:
+		法阵面板节点.queue_free()
+	var 遮 := ColorRect.new()
+	遮.color = 墨底
+	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮.mouse_filter = Control.MOUSE_FILTER_STOP
+	遮.name = "法阵面板"
+	add_child(遮)
+	法阵面板节点 = 遮
+	var 大 := PanelContainer.new()
+	大.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	大.offset_left = 12; 大.offset_right = -12; 大.offset_top = 36; 大.offset_bottom = -12
+	大.add_theme_stylebox_override("panel", _暗墨面板())
+	遮.add_child(大)
+	var 内容 := VBoxContainer.new()
+	大.add_child(内容)
+	var 头 := Label.new()
+	头.text = "☯ 法阵 · %s" % d.姓名
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(头)
+	# 当前装备法阵
+	var 当前id: String = d.当前法阵.get("array_id", "")
+	if 当前id != "":
+		var 当前cfg: Dictionary = Game.阵法配置表.get(当前id, {})
+		var 当前级: int = int(d.当前法阵.get("等级", 1))
+		var 行 := Label.new()
+		行.text = "当前：%s · %d级\n%s" % [当前cfg.get("array_name", 当前id), 当前级, _法阵效果文案(当前cfg, 当前级, d)]
+		行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		行.add_theme_color_override("font_color", 玉石绿)
+		内容.add_child(行)
+	else:
+		var 空 := Label.new()
+		空.text = "— 未布阵 —"
+		空.add_theme_color_override("font_color", 次墨)
+		内容.add_child(空)
+	var 滚 := ScrollContainer.new()
+	滚.custom_minimum_size = Vector2(0, 420)
+	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	内容.add_child(滚)
+	var 列 := VBoxContainer.new()
+	列.add_theme_constant_override("separation", 4)
+	滚.add_child(列)
+	列.add_child(小标题("—— 可布法阵（按身份阶别） ——", 15))
+	# 遍历阵法配置表 person 行（身份阶别锁：外门禁 / 内门·核心凡阶 / 亲传灵阶+ / 长老无限制，D6）
+	for aid in Game.阵法配置表.keys():
+		var row: Dictionary = Game.阵法配置表[aid]
+		if row.get("array_type", "") != "person":
+			continue
+		var 阶: String = row.get("rank", "")
+		var 可装备: bool = _法阵可装备身份(d.身份, 阶)
+		var 行2 := HBoxContainer.new()
+		行2.add_theme_constant_override("separation", 6)
+		var 名 := Label.new()
+		名.text = "%s［%s］" % [row.get("array_name", aid), 阶]
+		名.custom_minimum_size.x = 130
+		名.add_theme_color_override("font_color", 青灰 if 可装备 else 按钮禁用)
+		行2.add_child(名)
+		var 效 := Label.new()
+		效.text = _法阵效果文案(row, 1, d)
+		效.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		效.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		效.add_theme_color_override("font_color", 青灰 if 可装备 else 按钮禁用)
+		行2.add_child(效)
+		if 可装备:
+			if aid == 当前id:
+				var 升级钮 := Button.new(); 升级钮.text = "升级"
+				升级钮.pressed.connect(_法阵升级.bind(d, aid))
+				行2.add_child(升级钮)
+				var 拆解钮 := Button.new(); 拆解钮.text = "拆解"
+				拆解钮.pressed.connect(_法阵拆解.bind(d, aid))
+				行2.add_child(拆解钮)
+			else:
+				if Game._弟子已解锁法阵(d.姓名, aid):
+					var 装备钮 := Button.new(); 装备钮.text = "装备"
+					装备钮.pressed.connect(_法阵装备.bind(d, aid))
+					行2.add_child(装备钮)
+				else:
+					var 需解 := Label.new()
+					需解.text = "（需使用%s解锁）" % Game.阵法_按阵法.get(aid, "对应阵图")
+					需解.add_theme_color_override("font_color", 按钮禁用)
+					行2.add_child(需解)
+		else:
+			var 需求 := Label.new()
+			需求.text = "（%s）" % _法阵需求身份(阶)
+			需求.add_theme_color_override("font_color", 按钮禁用)
+			行2.add_child(需求)
+		列.add_child(行2)
+	var 关 := Button.new()
+	关.text = "归藏"
+	关.pressed.connect(func():
+		if 法阵面板节点 != null:
+			法阵面板节点.queue_free()
+		法阵面板节点 = null)
+	内容.add_child(关)
+
+# 身份阶别锁（D6，对齐真实 5 级 身份层级序）：common→内门弟子(idx1) / spirit→亲传弟子(idx3) / treasure→无限制
+func _法阵可装备身份(身份: String, 阶: String) -> bool:
+	var idx: int = Disciple.身份层级序.find(身份)
+	if idx < 0:
+		return false
+	if 阶 == "common":
+		return idx >= 1         # 外门禁；内门弟子/核心弟子=凡阶
+	if 阶 == "spirit":
+		return idx >= 3         # 亲传弟子及以上（核心弟子与内门同档，仅凡阶）
+	return true                # treasure → 长老无限制
+
+func _法阵需求身份(阶: String) -> String:
+	if 阶 == "common":
+		return "需内门弟子+"
+	if 阶 == "spirit":
+		return "需亲传弟子+"
+	return "需长老"
+
+# 法阵效果文案（百分比加成 + 灵根契合标识）；基数取自 arm 等级，[PLACEHOLDER] 真机校准
+# S2 占位标记：战后触发类（回血/回蓝）S1 属性等效或纯占位，面板须明示未激活，避免玩家预期落差（R1 文案铺垫）
+func _法阵效果文案(row: Dictionary, 级: int, d: Disciple) -> String:
+	var dim: String = row.get("eff_dim", "")
+	var trigger: String = row.get("trigger", "")
+	var base: float = float(row.get("eff_val_base", "0")) * (1.0 + (级 - 1) * float(row.get("level_growth_coef", "0")))
+	base = clamp(base, 0.0, 0.15)
+	var 匹配: String = ""
+	if d._灵根匹配法阵(row):
+		匹配 = "（灵根契合+5%）"
+	# 战后触发类：S1 未接线，文案明示 S2 开放，不显示虚假加成（回血 S1 数值=0）
+	if trigger == "post_battle":
+		if dim == "血":
+			return "（战后回血·S2开放）%s" % 匹配
+		return "%s上限 %+.1f%%（战后恢复·S2开放）%s" % [dim, base * 100.0, 匹配]
+	return "%s %+.1f%%%s" % [dim, base * 100.0, 匹配]
+
+func _法阵装备(d: Disciple, aid: String):
+	if not Game._弟子已解锁法阵(d.姓名, aid):
+		_toast("需先使用对应阵图解锁后方可布阵")
+		return
+	d.当前法阵 = {"array_id": aid, "等级": 1}
+	_toast("%s 已布阵" % Game.阵法配置表.get(aid, {}).get("array_name", aid))
+	_法阵面板(d)   # 重建刷新
+
+func _法阵升级(d: Disciple, aid: String):
+	if d.当前法阵.get("array_id", "") != aid:
+		return
+	var 当前级: int = int(d.当前法阵.get("等级", 1))
+	var cfg: Dictionary = Game.阵法配置表.get(aid, {})
+	var 上限: int = int(cfg.get("max_level", 10))
+	if 当前级 >= 上限:
+		_toast("%s 已达法阵上限" % cfg.get("array_name", aid))
+		return
+	var 消耗: int = Game._阵法升级消耗(aid, 当前级)
+	var 现有: int = Game._统计阵纹碎片(d)
+	if 现有 < 消耗:
+		_toast("阵纹碎片不足：升级至 %d 级需 %d，现有 %d" % [当前级 + 1, 消耗, 现有])
+		return
+	Game._扣除阵纹碎片(d, 消耗)
+	d.当前法阵["等级"] = 当前级 + 1
+	_toast("%s 升至 %d 级（消耗阵纹碎片 %d）" % [cfg.get("array_name", aid), d.当前法阵["等级"], 消耗])
+	_法阵面板(d)
+
+func _法阵拆解(d: Disciple, aid: String):
+	if d.当前法阵.get("array_id", "") != aid:
+		return
+	var 当前级: int = int(d.当前法阵.get("等级", 1))
+	if 当前级 < 2:
+		_toast("一级法阵无需拆解")
+		return
+	var 返: int = Game._阵法拆解返还数(aid, 当前级)
+	Game._发放阵纹碎片(d, 返)
+	d.当前法阵 = {}
+	_toast("%s 已拆解，返还阵纹碎片×%d" % [Game.阵法配置表.get(aid, {}).get("array_name", aid), 返])
+	_法阵面板(d)
+
+# ============ S1 批6-D5：阵图使用流（D5 闭环入口）============
+# 背包内 Item 仅携带 名称，故按 名称 命中 阵法物品名表 识别阵图类（use_type=unlock_array）
+func _是阵图物品(it: Item) -> bool:
+	if it == null:
+		return false
+	var row: Dictionary = Game.阵法物品名表.get(it.名称, {})
+	return not row.is_empty() and row.get("use_type", "") == "unlock_array"
+
+# 阵图使用：校验 unlock_array_id ↔ array_config；未解锁→消耗并解锁；已解锁→折算碎片返还
+func _使用阵图(d: Disciple, it: Item):
+	if it == null:
+		return
+	var row: Dictionary = Game.阵法物品名表.get(it.名称, {})
+	if row.is_empty() or row.get("use_type", "") != "unlock_array":
+		_toast("该物品暂不可使用")
+		return
+	var aid: String = row.get("unlock_array_id", "")
+	if aid == "" or not Game.阵法配置表.has(aid):
+		_toast("阵图数据异常：未找到对应阵法")
+		return
+	var cfg: Dictionary = Game.阵法配置表[aid]
+	var atype: String = cfg.get("array_type", "")
+	# 宗门大阵（品级解锁）/ 组队结阵（S2 开放）阵图：不直接解锁，折算为阵纹碎片返还
+	if atype != "person":
+		var 级: int = 1
+		if d.当前法阵.get("array_id", "") == aid:
+			级 = int(d.当前法阵.get("等级", 1))
+		var 返: int = Game._阵法拆解返还数(aid, 级)
+		d.背包.erase(it)
+		Game._发放阵纹碎片(d, 返)
+		if atype == "sect":
+			_toast("%s 由宗门品级解锁，阵图折算为阵纹碎片×%d" % [cfg.get("array_name", aid), 返])
+		else:
+			_toast("%s（组队结阵 S2 开放）阵图折算为阵纹碎片×%d" % [cfg.get("array_name", aid), 返])
+		_装备面板(d)
+		return
+	# 单人法阵：已解锁→折算碎片（不重复解锁）；未解锁→消耗阵图并解锁
+	if Game._弟子已解锁法阵(d.姓名, aid):
+		var 级: int = 1
+		if d.当前法阵.get("array_id", "") == aid:
+			级 = int(d.当前法阵.get("等级", 1))
+		var 返: int = Game._阵法拆解返还数(aid, 级)
+		d.背包.erase(it)
+		Game._发放阵纹碎片(d, 返)
+		_toast("%s 已解锁，阵图折算为阵纹碎片×%d" % [cfg.get("array_name", aid), 返])
+		_装备面板(d)
+		return
+	# 未解锁：消耗阵图，加入已解锁集合
+	d.背包.erase(it)
+	Game._解锁弟子法阵(d.姓名, aid)
+	_toast("已解锁单人法阵：%s（可前往法阵面板布阵）" % cfg.get("array_name", aid))
+	_装备面板(d)
 
 # ============ S0 坊市（商店）：消耗灵石出口 ============
 func _on_坊市():
@@ -3888,6 +4125,63 @@ func _填_建筑页(内容: Control):
 	tb.tab_changed.connect(func(idx):
 		_建筑总览_填充(列表列, 建筑类别序[idx])
 	)
+	刷新()
+	内容.add_child(_宗门大阵面板())   # S1 批6-A：宗门大阵面板挂建筑二级页
+
+# === S1 批6-A：宗门大阵面板（挂「建筑」二级页，纯经营展示 · 零战斗触碰）===
+func _宗门大阵面板() -> Control:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _暗墨面板())
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	p.add_child(vb)
+	var 标题 := Label.new()
+	标题.text = "宗门大阵"
+	标题.add_theme_font_size_override("font_size", FONT_PANEL)
+	标题.add_theme_color_override("font_color", 暗金)
+	vb.add_child(标题)
+	var 主阵: String = Game.宗门大阵.get("当前主阵", "")
+	var 主阵名: String = "（未启用）"
+	if 主阵 != "":
+		主阵名 = str(Game.阵法配置表.get(主阵, {}).get("array_name", 主阵))
+	var 当前 := Label.new()
+	当前.text = "当前主阵：%s" % 主阵名
+	当前.add_theme_font_size_override("font_size", FONT_BODY)
+	当前.add_theme_color_override("font_color", 次墨)
+	vb.add_child(当前)
+	# 三阵预览（护山/聚灵/镇煞：arr_s_001/002/003）
+	for aid in ["arr_s_001", "arr_s_002", "arr_s_003"]:
+		var 配置: Dictionary = Game.阵法配置表.get(aid, {})
+		var 名: String = str(配置.get("array_name", aid))
+		var 等级: int = int(Game.宗门大阵.get("等级", {}).get(aid, 0))
+		var 耐久: int = int(Game.宗门大阵.get("耐久", {}).get(aid, 0))
+		var 行 := Label.new()
+		行.text = "%s  Lv.%d  耐久 %d" % [名, 等级, 耐久]
+		行.add_theme_font_size_override("font_size", FONT_AUX)
+		行.add_theme_color_override("font_color", 玉石绿)
+		vb.add_child(行)
+	# 启用/切换主阵钮（BTN_主* 风格）
+	var 切换 := Button.new()
+	切换.text = "切换主阵（循环）"
+	切换.add_theme_stylebox_override("normal", _主按钮样式())
+	切换.add_theme_color_override("font_color", BTN_主字)
+	切换.pressed.connect(_on_切换宗门大阵)
+	vb.add_child(切换)
+	return p
+
+# 切换宗门大阵主阵（循环：护山→聚灵→镇煞→玄空→关闭）
+func _on_切换宗门大阵():
+	var 序: Array = ["arr_s_001", "arr_s_002", "arr_s_003", "arr_s_004", ""]
+	var 现: String = Game.宗门大阵.get("当前主阵", "")
+	var i: int = 序.find(现)
+	i = (i + 1) % 序.size()
+	var 新: String = 序[i]
+	Game.宗门大阵["当前主阵"] = 新
+	if 新 == "":
+		_toast("宗门大阵已关闭")
+	else:
+		var 名: String = str(Game.阵法配置表.get(新, {}).get("array_name", 新))
+		_toast("已启用主阵：%s" % 名)
 	刷新()
 
 func _建筑点击彩蛋(key: String):

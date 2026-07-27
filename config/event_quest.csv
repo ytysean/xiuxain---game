@@ -202,3 +202,5 @@ F025,阵营抉择,阵营专属,稀有,宗门内,3,练气,正邪同时向宗门�
 T_ZF_01,山贼征伐,征伐,普通,战斗胜利,1,练气,【测试用征伐】山贼来袭，验证征伐战斗结算路径,迎战围剿,测试奖励=灵石[PLACEHOLDER],无,暂避锋芒,无,无,,,,10,2160,false,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],,,monthly
 T_ZF_02,妖兽征伐,征伐,普通,战斗胜利,1,练气,【测试用征伐】低阶妖兽出没，验证征伐战斗结算路径,猎杀妖兽,测试奖励=妖兽材料[PLACEHOLDER],无,绕道规避,无,无,,,,10,2160,false,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],,,monthly
 T_ZF_03,散修征伐,征伐,普通,战斗胜利,1,练气,【测试用征伐】敌对散修挑衅，验证征伐战斗结算路径,出手镇压,测试奖励=修为[PLACEHOLDER],无,隐忍退让,无,无,,,,10,2160,false,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],,,
+JIYUAN_01,残阵感悟,奇遇机遇,普通,机缘,1,练气,游历间拾得前人布阵残稿，隐约有阵纹流转之意,研习残稿,item:item_015:3,无,,,,,,,15,2160,true,20,0.15,10,30,2,0.7,monthly
+JIYUAN_02,古阵遗图,奇遇机遇,稀有,机缘,1,练气,秘境遗墟石壁拓印的古阵全图，似可研习成阵,拓印阵图,item:item_016:1,无,,,,,,,5,2160,true,30,0.15,15,40,2,0.7,monthly

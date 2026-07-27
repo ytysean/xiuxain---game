@@ -55,7 +55,7 @@ _WHITELIST_CORE = {
     "GridContainer", "ScrollContainer", "TextureRect", "TextureButton", "MarginContainer",
     "CenterContainer", "AspectRatioContainer", "BoxContainer", "Container", "Window",
     "Popup", "PopupPanel", "PopupMenu", "AcceptDialog", "ConfirmationDialog", "LineEdit",
-    "TextEdit", "RichTextLabel", "OptionButton", "ItemList", "Tree", "TabContainer",
+    "TextEdit", "RichTextLabel", "OptionButton", "ItemList", "Tree", "TabContainer", "TabBar",
     "ColorRect", "GraphNode", "GraphEdit", "MenuButton", "CheckButton", "ColorPicker",
     "ColorPickerButton", "FileDialog", "HSplitContainer", "VSplitContainer", "SplitContainer",
     "SpinBox", "Slider", "HSlider", "VSlider", "TextureProgressBar", "ProgressBar",

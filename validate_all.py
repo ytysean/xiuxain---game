@@ -158,9 +158,9 @@ TABLE_RULES = {
             "weight":{"type":"int","min":0},"drop_limit":{"type":"int","min":0},"daily_max":{"type":"int","min":0},"is_counted_in_balance":{"type":"bool"}}},
     "event_quest": {"required_fields":["event_id","event_name","event_type","rarity","trigger_scene","unlock_sect_level","unlock_realm","event_content","opt1_desc","opt1_reward","opt1_punish","opt2_desc","opt2_reward","opt2_punish","opt3_desc","opt3_reward","opt3_punish","trigger_weight","cooldown_hour","is_counted_in_balance","trigger_type"],
         "primary_key":"event_id",
-        "field_rules":{"event_type":{"type":"enum","values":["宗门常驻","野外历练","昼夜专属","阵营专属","征伐"]},
+        "field_rules":{"event_type":{"type":"enum","values":["宗门常驻","野外历练","昼夜专属","阵营专属","征伐","奇遇机遇"]},
             "rarity":{"type":"enum","values":["普通","优秀","稀有","传说"]},
-            "trigger_scene":{"type":"enum","values":["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录"]},
+            "trigger_scene":{"type":"enum","values":["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录","机缘"]},
             "unlock_sect_level":{"type":"int","min":1,"max":10},
             "unlock_realm":{"type":"enum","values":["练气","筑基","金丹","元婴","化神","炼虚","合体"]},
             "trigger_weight":{"type":"int","min":0},"cooldown_hour":{"type":"int","min":0},"is_counted_in_balance":{"type":"bool"}}},
@@ -259,6 +259,46 @@ TABLE_RULES = {
         "primary_key":"pool_id+item_id",
         "field_rules":{"weight":{"type":"int","min":1},"min_count":{"type":"int","min":0},"max_count":{"type":"int","min":0},
             "quality":{"type":"enum","values":["凡品","良品","上品","极品"]}}},
+    "array_config": {"required_fields":["array_id","array_name","array_type","rank","core_effect","eff_dim","eff_val_base","trigger","level_growth_coef","max_level","unlock_realm","unlock_sect_rank","match_element","people_required","cost_base","cost_growth","icon_path","description"],
+        "primary_key":"array_id",
+        "field_rules":{"array_type":{"type":"enum","values":["person","team","sect"]},
+            "rank":{"type":"enum","values":["common","spirit","treasure"]},
+            "trigger":{"type":"enum","values":["passive","post_battle","pre_round"]},
+            "match_element":{"type":"enum","values":["earth","water","metal","wood","fire","fire_water","all_five","none"]},
+            "eff_val_base":{"type":"float"},
+            "level_growth_coef":{"type":"float","min":0},
+            "max_level":{"type":"int","min":1},
+            "unlock_sect_rank":{"type":"int","min":1},
+            "people_required":{"type":"int","min":0},
+            "cost_base":{"type":"int","min":0},
+            "cost_growth":{"type":"float","min":0},
+            "unlock_realm":{"type":"string"}}},
+    "array_items": {"required_fields":["item_id","item_name","item_grade","item_type","use_type","unlock_array_id","dismantle_reward_id","icon_path","描述"],
+        "primary_key":"item_id",
+        "field_rules":{"item_grade":{"type":"string"},
+            "item_type":{"type":"enum","values":["array_book","array_material"]},
+            "use_type":{"type":"enum","values":["unlock_array","upgrade"]},
+            "unlock_array_id":{"type":"string"},
+            "dismantle_reward_id":{"type":"string"}}},
+    "craft_hall_reward": {"required_fields":["level_min","level_max","pool_type","item_ref","ref_type","item_name","grade","weight","count_min","count_max","policy_multiplier"],
+        "primary_key":"level_min+level_max+pool_type+item_ref+count_min+count_max",
+        "field_rules":{"level_min":{"type":"int","min":1},
+            "level_max":{"type":"int","min":1},
+            "pool_type":{"type":"enum","values":["common","rare"]},
+            "ref_type":{"type":"enum","values":["gen","id"]},
+            "grade":{"type":"string"},
+            "weight":{"type":"int","min":0},
+            "count_min":{"type":"int","min":1},
+            "count_max":{"type":"int","min":1},
+            "policy_multiplier":{"type":"float","min":0}}},
+    # ---------- F2 全局调节阀门配置（IMPL-ENG-01 · ECON-02 跨功能强约束）----------
+    # 表头 阀门,系数,开关,说明（独立表头，区别于 评级节奏.csv/节奏校准.csv 的 参数,值,说明）。
+    # 系数±15%硬范围由 economy_balance.gd 载入时强校验；本表仅做 schema 层守门。
+    "经济阀门": {"required_fields":["阀门","系数","开关","说明"],
+        "primary_key":"阀门",
+        "field_rules":{"阀门":{"type":"enum","values":["global_income_rate","global_cost_rate","trade_profit_rate","event_damage_rate","熔断阈值","基准值"]},
+            "系数":{"type":"float","min":0.0},
+            "开关":{"type":"float","min":0.0,"max":1.0}}},
 }
 
 GRADE_RANK = {"凡品":0,"灵品":1,"宝品":2,"王品":3,"圣品":4,"仙品":5,"道品":6}
@@ -545,6 +585,41 @@ def main():
         report.append("- [CHECK] 战斗关卡跨表校验完成（怪物引用/掉落池/前置关卡/掉落物存在性/min-max）")
     else:
         report.append("- [SKIP] stage_main/monster_main/drop_pool 未全部加载，跳过跨表校验")
+
+    # ---------- 器堂赠宝配置跨表校验（craft_hall_reward）----------
+    report.append("")
+    report.append("# 器堂赠宝配置跨表校验（craft_hall_reward）")
+    _chr = rows_of("craft_hall_reward")
+    if _chr:
+        _array_loaded = "array_items" in tables_loaded
+        _array_ids = {r["item_id"] for r in rows_of("array_items")} if _array_loaded else set()
+        for i, r in enumerate(_chr, 1):
+            _rt = (r.get("ref_type") or "").strip()
+            _ref = (r.get("item_ref") or "").strip()
+            # 1. item_ref 外键：gen 仅允许 fabao（→ _造低阶物品 残破铜镜）；id 须存在于 array_items.csv（→ _按id造 经阵法物品表命中）
+            if _rt == "gen":
+                if _ref != "fabao":
+                    errors.append(("craft_hall_reward.csv", "craft_hall_reward", i, "ref_type=gen 但 item_ref=%s 非 fabao（gen 仅允许 fabao→残破铜镜）" % _ref))
+            elif _rt == "id":
+                if _array_loaded:
+                    if _ref not in _array_ids:
+                        errors.append(("craft_hall_reward.csv", "craft_hall_reward", i, "ref_type=id 但 item_ref=%s 不存在于 array_items.csv" % _ref))
+                else:
+                    warns.append("craft_hall_reward.csv: ref_type=id 外键校验跳过（array_items 未加载）")
+            # 2. 边界：count_min <= count_max
+            _cmn = int(get_first_num(r.get("count_min", "1")) or 1)
+            _cmx = int(get_first_num(r.get("count_max", "1")) or 1)
+            if _cmn > _cmx:
+                errors.append(("craft_hall_reward.csv", "craft_hall_reward", i, "count_min=%d > count_max=%d" % (_cmn, _cmx)))
+            # 3. 边界：level_min <= level_max
+            _lmn = int(get_first_num(r.get("level_min", "1")) or 1)
+            _lmx = int(get_first_num(r.get("level_max", "1")) or 1)
+            if _lmn > _lmx:
+                errors.append(("craft_hall_reward.csv", "craft_hall_reward", i, "level_min=%d > level_max=%d" % (_lmn, _lmx)))
+        report.append("- [CHECK] craft_hall_reward: item_ref 外键（gen→fabao / id→array_items）+ count/level 边界校验完成（加权池，不强制 weight-sum=100）")
+    else:
+        report.append("- [SKIP] craft_hall_reward 未加载，跳过跨表校验")
+
     # 4. faction_base monotonic need_reputation
     d = rows_of("faction_base")
     if d:

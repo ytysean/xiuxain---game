@@ -29,6 +29,7 @@ game_core_ip: 太玄宗
 | `design/05-内容图鉴/` | 道具/装备/灵兽图鉴（数据层引 config/） | 图鉴-道具.md · 图鉴-装备.md（灵兽图鉴待补） |
 | `design/06-角色与UI/` | 角色规范、UI美术规范、美术资产规格、可访问性 | 太玄宗门录_角色与UI美术规范.md · ASSET-装备穿戴 · ASSET-奇遇弹窗 · ASSET-战斗 · ASSET-新手引导接入点 · ASSET-降级开关 · ACCESSIBILITY |
 | `design/07-裁决与变更/` | 口径裁决、CHANGELOG、复盘报告 | DESIGN-RULINGS-P5.md · DESIGN-RULINGS-P6 · DESIGN-RULINGS（§19 冲突归档已归位） · REPORT-方案评审.md · REPORT-一致性优化.md · REPORT-数值平衡优化.md · **REPORT-架构复盘与稳定性体检.md（七大.gd 静态走查：崩溃/性能/功能缺口/文案深化）** · REPORT-架构整改路线图.md（P0红线修复+分阶段落地路线，P0-1/P0-2代码已落地） |
+| `design/08-功能提案/` | 三份设计提案（A 赠送 / B 模拟人生 10 项 / C 动态关系·居所·寿元）正式归档 GDD；13 功能全覆盖；战斗联动标 `[S2-战斗放开]`；诚实标注（纯配置/轻代码/受控产出） | 00-提案索引.md · 01-赠送系统GDD（F1/F2/F3） · 02-弟子特质与状态GDD（F4/F5/F8/F9） · 03-动态关系GDD（F6/F11/F13） · 04-居所GDD（F7） · 05-副职业GDD（F10） · 06-寿元传承GDD（F12） |
 
 ## 二、工程过程文档（dev process，不在 design/ 内）
 
