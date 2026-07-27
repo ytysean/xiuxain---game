@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bqpu7hfn8nluu"
+
+[deps]
+
+files=["res://config/新功能冲击声明.值.translation", "res://config/新功能冲击声明.说明.translation"]
+
+source_file="res://config/新功能冲击声明.csv"
+dest_files=["res://config/新功能冲击声明.值.translation", "res://config/新功能冲击声明.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

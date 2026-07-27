@@ -1,0 +1,126 @@
+From f18b990bd6edf161956e6cacc84f42a1d252c744 Mon Sep 17 00:00:00 2001
+From: ytysean <187181923@qq.com>
+Date: Mon, 27 Jul 2026 13:24:33 +0800
+Subject: [PATCH 2/2] =?UTF-8?q?S1-P0=20=E9=98=B6=E6=AE=B5=E4=BA=8C?=
+ =?UTF-8?q?=EF=BC=9AD1=20=E5=AE=97=E9=97=A8=E8=BF=90=E7=BB=B4=E6=88=90?=
+ =?UTF-8?q?=E6=9C=AC=EF=BC=88=E9=97=AD=E7=8E=AF=E9=92=A5=E5=8C=99=EF=BC=8C?=
+ =?UTF-8?q?pre=5Ff5=2025=E9=97=B8=E5=85=A8=E7=BB=BF=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- economy_balance.gd：补 var global_enable: bool = true；平衡() 首行 if not global_enable: return 原始值（R6 全局开关，无发版秒级回滚）
+
+- game_state.gd：新增 _结算运维成本_S1()（插于 推演一月 S1区 _结算俸禄_S1 之后），刚性耗 = 4.5*Σ身份倍率 + 3.0*建筑数 + 0.73*弟子数 + 0.375*弟子数，按 R5 读 经济基线.csv 下限/上限 clamp，按 R2 per-delta 对 -刚性耗 单独调 EconomyBalance.平衡() 扣公库；period_settlement.gd 末次 final 平衡() 双调用，正常配置恒等
+
+- 配套：_身份俸禄倍率(身份)->float（普通1.0/执事1.5/长老2.0）、_读经济基线()（读 config/经济基线.csv，R5 非硬编码）、_经济基线缓存 缓存
+
+- config/经济阀门.csv global_cost_rate 开关=1（前序已开），本阶段实现真实消费者
+
+- 修复 gdscript_type_check 闸门：D1 两处 := 推断改为显式类型注解（Dictionary/float），消除 METHOD_CALL/UNKNOWN 误报
+
+- 三位一体交付：①配置表(经济阀门.csv 开关=1) + ②运行时消费者(game_state.gd 接线) + ③pre_f5 校验(25闸全绿，比值红线 366/305∈[1.15,1.25] 硬断言 PASS，零战斗触碰 PASS)；标准局月耗≈305
+---
+ economy_balance.gd |  3 +++
+ game_state.gd      | 57 ++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 60 insertions(+)
+
+diff --git a/economy_balance.gd b/economy_balance.gd
+index 5c3a246..982ee28 100644
+--- a/economy_balance.gd
++++ b/economy_balance.gd
+@@ -35,6 +35,7 @@ var 熔断阈值: float = 红线         # 默认 ±15%
+ var 基准值: float = 366.0          # 标准局月产（ECON-01 §三，供参考 / 测试）
+ 
+ var _已加载: bool = false
++var global_enable: bool = true    # R6：全局总开关（ECON-02）；false 时 平衡() 直接放行原始值，无发版秒级回滚
+ 
+ 
+ func _init(路径: String = ""):
+@@ -108,6 +109,8 @@ func _取系数(键: String, 值: String) -> float:
+ # 单周期阀门总效应 > ±15% 时强制拉回 raw（杜绝单周期 >±15% 跳变）。
+ # ----------------------------------------------------------------------------
+ func 平衡(原始值: float) -> float:
++	if not global_enable:
++		return 原始值   # R6：全局开关关闭时直接放行（秒级回滚，不施加任何阀门）
+ 	if not _已加载:
+ 		_加载配置(配置路径)
+ 	var 基准: float = 原始值                     # 本周期基准 = 原始值（零跳变保证）
+diff --git a/game_state.gd b/game_state.gd
+index 32e84f5..96c6929 100644
+--- a/game_state.gd
++++ b/game_state.gd
+@@ -1049,6 +1049,7 @@ func 推演一月(日: int):
+ 	更新门派()
+ 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清单.md）===
+ 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
++	_结算运维成本_S1()        # D1 宗门运维成本（刚性耗），接线 global_cost_rate 阀门
+ 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
+ 	_结算香火_S1()            # 凡人香火月度结算（当前空桩，S1 批5-A）
+ 	_确保字派_S1()            # S1 批5-B：旧档首次进入自动生成字派序列并持久化
+@@ -1179,6 +1180,62 @@ func _七载大考():
+ func _结算俸禄_S1() -> void:
+ 	pass
+ 
++var _经济基线缓存: Dictionary = {}   # D1：经济基线.csv 缓存（clamp 边界来源，R5 非硬编码）
++
++# === S1 批6-D1：宗门运维成本（刚性耗；ECON-02 §2.2 校准，标准局≈305）===
++# 接线 global_cost_rate 阀门：对 -刚性耗 单独调 EconomyBalance.平衡()（per-delta 施加，
++# 全场景生效，不只赤字局；与 period_settlement.gd 末次 final 平衡() 双调用，正常配置下均恒等）。
++# R5：下限/上限从 config/经济基线.csv 读（非硬编码 293/318）。
++# 欠俸/忠诚链路：本阶段留 stub（引用 GDD-宗门经营 §五.1），不强制实现。
++func _结算运维成本_S1() -> void:
++	var 基线: Dictionary = _读经济基线()
++	var 下限: float = float(基线.get("标准局月耗_下限", "293"))
++	var 上限: float = float(基线.get("标准局月耗_上限", "318"))
++	var c4: float = 0.0
++	for d in 弟子列表:
++		c4 += 4.5 * _身份俸禄倍率(d.身份)   # 普通1.0 / 执事1.5 / 长老2.0
++	var c5: float = 3.0 * 堂口列表.size()
++	var c6: float = 0.73 * 弟子列表.size()
++	var c7: float = 0.375 * 弟子列表.size()
++	var 刚性耗: float = c4 + c5 + c6 + c7          # 标准局≈305
++	# R5：clamp 到 [下限, 上限]（读 CSV，非硬编码）
++	刚性耗 = clamp(刚性耗, 下限, 上限)
++	# R2 per-delta：对 -刚性耗 单独调 平衡()（raw<0 → ×全局消耗系数，±15% 钳制）
++	var _平衡器 := EconomyBalance.new()
++	var 实付: float = _平衡器.平衡(-刚性耗)             # 实付为负
++	灵石 -= int(round(-实付))                      # 取绝对值扣公库
++
++# D1 运维成本：弟子身份→俸禄倍率（普通1.0 / 执事1.5 / 长老2.0）
++func _身份俸禄倍率(身份: String) -> float:
++	match 身份:
++		"长老":
++			return 2.0
++		"执事":
++			return 1.5
++		_:
++			return 1.0   # 普通 / 外门 / 内门弟子 / 核心弟子 / 亲传弟子 / 堂主 / 供奉 → 1.0
++
++# 读取 config/经济基线.csv 为 {锚点: 数值}（D1 运维成本 clamp 边界来源，R5 非硬编码）
++func _读经济基线() -> Dictionary:
++	if not _经济基线缓存.is_empty():
++		return _经济基线缓存
++	var 路径 := "res://config/经济基线.csv"
++	if not FileAccess.file_exists(路径):
++		return {}
++	var f: FileAccess = FileAccess.open(路径, FileAccess.READ)
++	if f == null:
++		return {}
++	f.get_line()   # 跳表头（含可能的 BOM，数据行不含）
++	while not f.eof_reached():
++		var 行: String = f.get_line().strip_edges()
++		if 行 == "":
++			continue
++		var 列: PackedStringArray = 行.split(",")
++		if 列.size() >= 2:
++			_经济基线缓存[列[0].strip_edges()] = 列[1].strip_edges()
++	f.close()
++	return _经济基线缓存
++
+ # === S1 端口：声望阈值触发特殊弟子主动投奔（当前空操作桩）===
+ # 调用位置：推演一月 月循环（紧接 _结算俸禄_S1 之后）。
+ # 入参：无（读取全局 声望 / 弟子列表 / 命格池）
+-- 
+2.54.0.windows.1
+

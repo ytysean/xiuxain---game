@@ -1,0 +1,44 @@
+From 61a3cfc1c085d15da2ddd26f3ea613badd26d292 Mon Sep 17 00:00:00 2001
+From: ytysean <187181923@qq.com>
+Date: Mon, 27 Jul 2026 15:48:25 +0800
+Subject: [PATCH] =?UTF-8?q?=E4=BF=AE=E5=A4=8D=EF=BC=9A=E5=BC=9F=E5=AD=90?=
+ =?UTF-8?q?=E8=AF=A6=E6=83=85=E5=BC=B9=E7=AA=97=E3=80=8E=E7=9F=A5=E6=82=89?=
+ =?UTF-8?q?=E3=80=8F=E5=8D=A1=E6=AD=BB=EF=BC=88=E6=83=B0=E6=80=A7=E5=88=9B?=
+ =?UTF-8?q?=E5=BB=BA=5F=E8=AF=A6=E6=83=85=E5=9B=9E=E6=94=B6=E7=AB=99?=
+ =?UTF-8?q?=EF=BC=8C=E6=8C=89GDD=E8=A7=84=E8=8C=83=EF=BC=89?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ main.gd | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/main.gd b/main.gd
+index 7a112b2..8115a1b 100644
+--- a/main.gd
++++ b/main.gd
+@@ -1871,6 +1871,10 @@ func _属性行(文本: String, 色: Color) -> Label:
+ func _回收详情行(遮: Control) -> void:
+ 	if 遮 == null or not is_instance_valid(遮):
+ 		return
++	# 惰性创建回收站（GDD-详情弹窗扩展_S1批4 §规格）：纯 Node 保活池化 Label，不渲染
++	if _详情回收站 == null:
++		_详情回收站 = Node.new()
++		add_child(_详情回收站)
+ 	for c in 遮.get_children():
+ 		if c is Label and c.get_meta("pooled", false) == true:
+ 			c.visible = false
+@@ -1885,6 +1889,9 @@ func _关闭详情(遮: Control) -> void:
+ 		return
+ 	_回收详情行(遮)
+ 	遮.queue_free()
++	# 关闭的是当前单实例遮罩时同步清空守卫，避免单实例守卫误判已释放遮罩导致重复关闭/层叠
++	if 遮 == _当前详情遮:
++		_当前详情遮 = null
+ 
+ func _弹出功法详情(id: String) -> void:
+ 	var g: Dictionary = SkillCultivationLoader.get_skill(id)
+-- 
+2.54.0.windows.1
+
