@@ -31,7 +31,7 @@
 ## map_config.csv  →  识别为 `map_config` (4 行数据)
 ## monster_main.csv  →  识别为 `monster_main` (12 行数据)
 ## morale_loyalty_config.csv  →  识别为 `morale_loyalty_config` (2 行数据)
-## negative_event.csv  →  识别为 `negative_event` (12 行数据)
+## negative_event.csv  →  识别为 `negative_event` (13 行数据)
 ## npc_config.csv  →  识别为 `npc_config` (23 行数据)
 ## output_daily.csv  →  识别为 `output_daily` (45 行数据)
 ## path_config.csv  →  识别为 `path_config` (5 行数据)
@@ -93,7 +93,7 @@
 
 # 汇总
 - 校验 CSV 表数: 46
-- 校验数据行数: 1265
+- 校验数据行数: 1266
 - 错误数: 0
 - 警告数: 21
 
