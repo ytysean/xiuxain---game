@@ -1203,6 +1203,24 @@ func _弹七载大典():
 	铭.add_theme_color_override("font_color", 次墨)
 	内容.add_child(铭)
 
+	# WAVE-A #5：七载盛事风物（按 触发周期=七载 过滤展示，纯氛围，零数值）
+	var 七载风物: Array = Quest._取周期事件("七载")
+	if not 七载风物.is_empty():
+		var 盛块 := VBoxContainer.new()
+		盛块.add_theme_constant_override("separation", 2)
+		var 盛标 := Label.new()
+		盛标.text = "〔七载盛事风物〕"
+		盛标.add_theme_font_size_override("font_size", FONT_AUX)
+		盛标.add_theme_color_override("font_color", 暗金)
+		盛块.add_child(盛标)
+		for e in 七载风物:
+			var 盛名 := Label.new()
+			盛名.text = "· " + e.get("event_name", "")
+			盛名.add_theme_font_size_override("font_size", FONT_AUX)
+			盛名.add_theme_color_override("font_color", 次墨)
+			盛块.add_child(盛名)
+		内容.add_child(盛块)
+
 func _构建离山内容(数据: Dictionary):
 	# 清空旧内容；关闭弹窗后异步重建可能遇到已释放节点，跳过无效实例
 	for c in 离山内容区.get_children():
@@ -1330,6 +1348,18 @@ func _构建离山内容(数据: Dictionary):
 		倒.add_theme_font_size_override("font_size", FONT_AUX)
 		倒.add_theme_color_override("font_color", 次墨)
 		评级卡.add_child(倒)
+		
+		# WAVE-A #5：当年风物（按 触发周期=年度 过滤展示，纯氛围，零数值）
+		var 当年风物: Array = Quest._取周期事件("年度")
+		if not 当年风物.is_empty():
+			var 风名: String = ""
+			for e in 当年风物:
+				风名 += ("、" if 风名 != "" else "") + e.get("event_name", "")
+			var 风 := Label.new()
+			风.text = "〔当年风物〕" + 风名
+			风.add_theme_font_size_override("font_size", FONT_AUX)
+			风.add_theme_color_override("font_color", 次墨)
+			评级卡.add_child(风)
 		离山内容区.add_child(评级卡)
 		var 分隔顶 := HSeparator.new(); 分隔顶.modulate.a = 0.35; 离山内容区.add_child(分隔顶)
 

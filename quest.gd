@@ -137,6 +137,7 @@ static func _确保csv加载() -> void:
 			"max_value": max_value,
 			"display_level": display_level,
 			"weight_decay": weight_decay,
+			"触发周期": parts[27].strip_edges() if (parts.size() >= 28 and parts[27] != null) else "",
 		}
 		_csv事件池.append(evt)
 	
@@ -170,6 +171,11 @@ static func _抽csv事件(d: Disciple, scene: String = "") -> Dictionary:
 	var 候选: Array = []
 	var 总权重 := 0
 	for evt in _csv事件池:
+		# WAVE-A #5：触发周期 分级；年度/七载 事件不进日常随机池
+		# （由岁末考评/七载大典钩子按 触发周期 过滤展示；日常/空 仍照常进池）
+		var 周期_过滤: String = evt.get("触发周期", "")
+		if 周期_过滤 != "" and 周期_过滤 != "日常":
+			continue
 		var e_idx: int = _境界序.find(evt["unlock_realm"])
 		if e_idx >= 0 and e_idx <= d_idx:
 			# 按场景路由过滤（Step 1 三场景接入）：scene 非空时仅取匹配 trigger_scene 的事件
@@ -196,6 +202,16 @@ static func _抽csv事件(d: Disciple, scene: String = "") -> Dictionary:
 		if 抽 < 0:
 			return evt
 	return 候选[0]
+
+# WAVE-A #5：按 触发周期 取事件（岁末考评/七载大典钩子展示用；纯查询，零数值）。
+# 周期 ∈ {"日常","年度","七载"}；返回匹配的事件字典数组（可能为空）。
+static func _取周期事件(周期: String) -> Array:
+	_确保csv加载()
+	var 结果: Array = []
+	for evt in _csv事件池:
+		if evt.get("触发周期", "") == 周期:
+			结果.append(evt)
+	return 结果
 
 # 奇遇抽取（ADR-002 D2）。
 # 数据源切换：CSV 200则到位后走 CSV 按境界过滤+权重抽取；
