@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bthc5id8lhgk3"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/弟子特质.特质名.translation", "res://design/08-功能提案/appendix-csv/弟子特质.效果类型.translation", "res://design/08-功能提案/appendix-csv/弟子特质.作用属性.translation", "res://design/08-功能提案/appendix-csv/弟子特质.乘区登记.translation", "res://design/08-功能提案/appendix-csv/弟子特质.系数形式.translation", "res://design/08-功能提案/appendix-csv/弟子特质.系数值.translation", "res://design/08-功能提案/appendix-csv/弟子特质.生成权重.translation", "res://design/08-功能提案/appendix-csv/弟子特质.突破相关.translation", "res://design/08-功能提案/appendix-csv/弟子特质.战斗标记.translation", "res://design/08-功能提案/appendix-csv/弟子特质.说明.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/弟子特质.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/弟子特质.特质名.translation", "res://design/08-功能提案/appendix-csv/弟子特质.效果类型.translation", "res://design/08-功能提案/appendix-csv/弟子特质.作用属性.translation", "res://design/08-功能提案/appendix-csv/弟子特质.乘区登记.translation", "res://design/08-功能提案/appendix-csv/弟子特质.系数形式.translation", "res://design/08-功能提案/appendix-csv/弟子特质.系数值.translation", "res://design/08-功能提案/appendix-csv/弟子特质.生成权重.translation", "res://design/08-功能提案/appendix-csv/弟子特质.突破相关.translation", "res://design/08-功能提案/appendix-csv/弟子特质.战斗标记.translation", "res://design/08-功能提案/appendix-csv/弟子特质.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

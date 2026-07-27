@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cs6nejxn5kh7p"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/宗门运维成本.耗项名.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.类别.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.计费基数.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.单价.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.计倍公式.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.标准局值.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.关联F2阀门.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.说明.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/宗门运维成本.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/宗门运维成本.耗项名.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.类别.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.计费基数.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.单价.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.计倍公式.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.标准局值.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.关联F2阀门.translation", "res://design/08-功能提案/appendix-csv/宗门运维成本.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

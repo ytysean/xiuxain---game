@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dsdfyd5eleag"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/负面影响经济参数.参数名.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.数值.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.单位.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.关联F2阀门.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.说明.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/负面影响经济参数.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/负面影响经济参数.参数名.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.数值.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.单位.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.关联F2阀门.translation", "res://design/08-功能提案/appendix-csv/负面影响经济参数.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

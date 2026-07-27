@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c4pv7v7bhfsmm"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/负面影响开关.开关名.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.类别.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.启用.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.影响范围说明.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.关联负面事件或逻辑点.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.审计标记.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/负面影响开关.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/负面影响开关.开关名.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.类别.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.启用.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.影响范围说明.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.关联负面事件或逻辑点.translation", "res://design/08-功能提案/appendix-csv/负面影响开关.审计标记.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
