@@ -1077,6 +1077,7 @@ func 推演一月(日: int):
 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清单.md）===
 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
 	_结算运维成本_S1()        # D1 宗门运维成本（刚性耗），接线 global_cost_rate 阀门
+	_结算负面事件_S1()        # D3 负面影响经济侧（S1-P0 批次三）：negative_event.csv + 经济阀门.csv neg_*
 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
 	_结算香火_S1()            # 凡人香火月度结算（当前空桩，S1 批5-A）
 	_确保字派_S1()            # S1 批5-B：旧档首次进入自动生成字派序列并持久化
@@ -1209,6 +1210,21 @@ func _结算俸禄_S1() -> void:
 
 var _经济基线缓存: Dictionary = {}   # D1：经济基线.csv 缓存（clamp 边界来源，R5 非硬编码）
 
+# ============ D3 负面影响经济侧（S1-P0 批次三 · 数据对齐版）============
+# 轻量管理器状态（运行时瞬时，不持久化；规格 design/08-功能提案/12-D3实现规格_数据对齐版.md §8）
+var _经济阀门缓存: Dictionary = {}      # 经济阀门.csv → {阀门: {系数,开关,说明}}（懒加载）
+var _负面事件缓存: Array = []           # negative_event.csv 行缓存（懒加载）
+var _本月负面已触发: Dictionary = {}     # 本月各 event_id 触发次数（月度重置）
+var _本月灵石冲击: float = 0.0          # 本月负面事件灵石冲击累计（月末截断至 62）
+var _弟子负面属性累计: Dictionary = {}   # 纯属性惩罚累计（零副作用占位；键=弟子姓名）
+var _坊市负面卖价下限: float = 1.0       # 声望外部类浅联动下限（P0 neg_reputation=0，默认不触发）
+# D3 开关缓存（由 _加载负面开关_S1 从 经济阀门.csv 读取；默认值对齐规格 §6 默认安全态）
+var _neg_global: bool = false
+var _neg_res_build: bool = false
+var _neg_disciple: bool = false
+var _neg_reputation: bool = false
+var _neg_grade_perm: bool = false
+
 # === S1 批6-D1：宗门运维成本（刚性耗；ECON-02 §2.2 校准，标准局≈305）===
 # 接线 global_cost_rate 阀门：对 -刚性耗 单独调 EconomyBalance.平衡()（per-delta 施加，
 # 全场景生效，不只赤字局；与 period_settlement.gd 末次 final 平衡() 双调用，正常配置下均恒等）。
@@ -1262,6 +1278,164 @@ func _读经济基线() -> Dictionary:
 			_经济基线缓存[列[0].strip_edges()] = 列[1].strip_edges()
 	f.close()
 	return _经济基线缓存
+
+# ============ D3 负面影响经济侧（S1-P0 批次三）运行时管理器 ============
+# 消费 config/negative_event.csv（_读负面事件表）+ config/经济阀门.csv（neg_* 开关簇 + event_damage_rate）
+# 激活 DORMANT：建筑被动_负面事件减免（L247，仅 res_build 灵石扣除处乘 (1+本值)）
+# 灵石流向：与 _结算运维成本_S1 一致（经 EconomyBalance.平衡() 后扣公库；平衡() 消费 event_damage_rate=1.0）
+# 规格锚：design/08-功能提案/12-D3实现规格_数据对齐版.md §8 伪代码落地
+
+# —— UTF-8 BOM 容错（DestinyDataLoader._read_csv 用 get_csv_line，首列键/值可能带 \ufeff）——
+func _CSV去BOM(路径: String) -> Array:
+	var out: Array = []
+	for r in DestinyDataLoader._read_csv(路径):
+		var d: Dictionary = {}
+		for k in r.keys():
+			var nk: String = str(k).replace("\ufeff", "")
+			var v = r[k]
+			if v is String:
+				v = v.replace("\ufeff", "")
+			d[nk] = v
+		out.append(d)
+	return out
+
+# —— 配置懒加载（复用项目现有 CSV 解析惯例；_坊市表() 风格）——
+func _读经济阀门表() -> Dictionary:
+	if not _经济阀门缓存.is_empty():
+		return _经济阀门缓存
+	for r in _CSV去BOM("res://config/经济阀门.csv"):
+		var 名: String = r.get("阀门", "")
+		if 名 != "":
+			_经济阀门缓存[名] = r
+	return _经济阀门缓存
+
+func _读负面事件表() -> Array:
+	if not _负面事件缓存.is_empty():
+		return _负面事件缓存
+	_负面事件缓存 = _CSV去BOM("res://config/negative_event.csv")
+	return _负面事件缓存
+
+func _阀门开关(表: Dictionary, 键: String, 默认: int) -> bool:
+	var r: Dictionary = 表.get(键, {})
+	return int(r.get("开关", 默认)) != 0
+
+# —— 总闸优先判定（neg_global 一键回退纯正向，即便分闸=1）——
+func _负面类别生效(类别: String) -> bool:
+	if not _neg_global:
+		return false
+	match 类别:
+		"资源建筑":
+			return _neg_res_build
+		"弟子人员":
+			return _neg_disciple
+		"声望外部":
+			return _neg_reputation
+		"品级权限":
+			return _neg_grade_perm
+	return false
+
+# —— punish_type → 四分类（兜底归类；规格 §1/§8）——
+func _punish类别(pt: String) -> String:
+	match pt:
+		"矿石", "灵草", "丹材":
+			return "资源建筑"
+		"心魔", "修为", "忠诚", "心境", "道心", "气血":
+			return "弟子人员"
+		"卖价":
+			return "声望外部"
+		"灵石":
+			return "弟子人员"   # 货币载体，默认归弟子类
+		_:
+			return ""
+
+# —— 月度结算接入点（推演一月 S1 区，紧接 _结算运维成本_S1 之后）——
+func _结算负面事件_S1() -> void:
+	_加载负面开关_S1()
+	if not _neg_global:
+		return
+	_本月负面已触发.clear()
+	_本月灵石冲击 = 0.0
+	for 行 in _读负面事件表():
+		var 概率: float = float(行.get("base_prob", "0"))
+		if randf() >= 概率:
+			continue
+		var eid: String = 行.get("event_id", "")
+		var 上限次: int = int(行.get("monthly_limit", "1"))
+		if _本月负面已触发.get(eid, 0) >= 上限次:
+			continue
+		_负面事件结算(行)
+	_负面总冲击卡位()
+
+# —— 单事件结算（双槽 punish_type/punish_value）——
+func _负面事件结算(行: Dictionary) -> void:
+	var 后果: Array = []
+	var 属资源建筑: bool = (行.get("punish_type_1", "") in ["矿石", "灵草", "丹材"]) or (行.get("punish_type_2", "") in ["矿石", "灵草", "丹材"])
+	for slot in ["1", "2"]:
+		var 类别: String = _punish类别(行.get("punish_type_" + slot, ""))
+		if not _负面类别生效(类别):
+			continue
+		var pt: String = 行.get("punish_type_" + slot, "")
+		var pv: float = float(行.get("punish_value_" + slot, "0"))
+		if pt == "无" or pv <= 0:
+			continue
+		match pt:
+			"灵石":
+				var 扣: float = pv
+				if 属资源建筑:   # 激活 DORMANT 建筑被动_负面事件减免（资源建筑类事件，含其灵石机会成本）
+					扣 = max(0.0, 扣 * (1.0 + 建筑被动_负面事件减免))
+				_本月灵石冲击 += 扣
+				后果.append("灵石-%d" % int(round(扣)))
+			"矿石":
+				矿石 = max(0, 矿石 - int(pv))
+				后果.append("矿石-%d" % int(pv))
+			"灵草":
+				灵草 = max(0, 灵草 - int(pv))
+				后果.append("灵草-%d" % int(pv))
+			"卖价":
+				if _neg_reputation:   # 仅开启时浅联动（P0 默认 0，跳过；D3 不深联动）
+					_坊市负面卖价下限 = min(_坊市负面卖价下限, pv)
+			"心魔", "修为", "忠诚", "心境", "道心", "气血":
+				_施加弟子属性惩罚(pt, int(pv))   # 纯属性，无经济副作用
+	var eid: String = 行.get("event_id", "")
+	_本月负面已触发[eid] = _本月负面已触发.get(eid, 0) + 1
+	if not 后果.is_empty():
+		_加推演条目("【负面】%s：%s" % [行.get("event_name", eid), "、".join(后果)], ET_SECT, PRIO_NORMAL, {"事件": eid})
+
+# —— 月度总冲击卡位（硬卡 Σ≤62，不转负盈余）——
+func _负面总冲击卡位() -> void:
+	# 62 = 经济基线.csv 冲击上限_灵石 = floor(17%×366)（ECON-02 §2.4；镜像 pre_f5 Layer B3/D）
+	var 上限: float = 62.0
+	_本月灵石冲击 = min(_本月灵石冲击, 上限)
+	if _本月灵石冲击 <= 0.0:
+		return
+	# 灵石流向与 _结算运维成本_S1 一致：经 EconomyBalance.平衡()（消费 event_damage_rate=1.0）后扣公库
+	var _平衡器 := EconomyBalance.new()
+	var 实付: float = _平衡器.平衡(-_本月灵石冲击)
+	灵石 -= int(round(-实付))
+
+# —— 纯属性惩罚：无经济副作用；记入 Game 级按弟子累计字典（零副作用占位，规格 §8）——
+# 当前 Disciple 未建模 心魔/忠诚/心境/道心/气血 独立字段，故以累计字典承载，不影响经济/存档结构。
+func _施加弟子属性惩罚(pt: String, pv: int) -> void:
+	if 弟子列表.is_empty() or pv <= 0:
+		return
+	var 目标: Disciple = 弟子列表[randi() % 弟子列表.size()]
+	var 名: String = ""
+	if 目标.姓名 != "":
+		名 = 目标.姓名
+	else:
+		名 = str(目标.get_instance_id())
+	if not _弟子负面属性累计.has(名):
+		_弟子负面属性累计[名] = {}
+	_弟子负面属性累计[名][pt] = int(_弟子负面属性累计[名].get(pt, 0)) - pv
+
+# —— 从 经济阀门.csv 加载 D3 开关簇（neg_*；event_damage_rate 由平衡() 读取，本处不重复）——
+func _加载负面开关_S1() -> void:
+	var 表: Dictionary = _读经济阀门表()
+	_neg_global     = _阀门开关(表, "neg_global", 0)
+	_neg_res_build  = _阀门开关(表, "neg_res_build", 1)
+	_neg_disciple   = _阀门开关(表, "neg_disciple", 1)
+	_neg_reputation = _阀门开关(表, "neg_reputation", 0)
+	_neg_grade_perm = _阀门开关(表, "neg_grade_perm", 0)
 
 # === S1 端口：声望阈值触发特殊弟子主动投奔（当前空操作桩）===
 # 调用位置：推演一月 月循环（紧接 _结算俸禄_S1 之后）。

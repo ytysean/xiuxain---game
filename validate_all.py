@@ -214,8 +214,8 @@ TABLE_RULES = {
     "negative_event": {"required_fields":["event_id","event_name","trigger_condition","base_prob","monthly_limit","punish_type_1","punish_value_1","punish_type_2","punish_value_2","deal_item","deal_effect","recover_day","is_permanent"],
         "primary_key":"event_id",
         "field_rules":{"base_prob":{"type":"float","min":0,"max":1.0},"monthly_limit":{"type":"int","min":0},
-            "punish_type_1":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","无"]},
-            "punish_value_1":{"type":"int","min":0},"punish_type_2":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","无"]},
+            "punish_type_1":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","矿石","灵草","卖价","丹材","无"]},
+            "punish_value_1":{"type":"int","min":0},"punish_type_2":{"type":"enum","values":["心魔","忠诚","道心","修为","气血","心境","灵石","矿石","灵草","卖价","丹材","无"]},
             "punish_value_2":{"type":"int","min":0},"recover_day":{"type":"int","min":0},"is_permanent":{"type":"bool"}}},
     "morale_loyalty_config": {"required_fields":["config_id","attr_name","full_value","zero_effect","low_threshold","low_effect","high_threshold","high_effect","decay_rate_day","increase_daily_base"],
         "primary_key":"config_id",
@@ -296,7 +296,7 @@ TABLE_RULES = {
     # 系数±15%硬范围由 economy_balance.gd 载入时强校验；本表仅做 schema 层守门。
     "经济阀门": {"required_fields":["阀门","系数","开关","说明"],
         "primary_key":"阀门",
-        "field_rules":{"阀门":{"type":"enum","values":["global_income_rate","global_cost_rate","trade_profit_rate","event_damage_rate","熔断阈值","基准值"]},
+        "field_rules":{"阀门":{"type":"enum","values":["global_income_rate","global_cost_rate","trade_profit_rate","event_damage_rate","neg_global","neg_res_build","neg_disciple","neg_reputation","neg_grade_perm","熔断阈值","基准值"]},
             "系数":{"type":"float","min":0.0},
             "开关":{"type":"float","min":0.0,"max":1.0}}},
 }
