@@ -35,6 +35,7 @@ var 熔断阈值: float = 红线         # 默认 ±15%
 var 基准值: float = 366.0          # 标准局月产（ECON-01 §三，供参考 / 测试）
 
 var _已加载: bool = false
+var global_enable: bool = true    # R6：全局总开关（ECON-02）；false 时 平衡() 直接放行原始值，无发版秒级回滚
 
 
 func _init(路径: String = ""):
@@ -108,6 +109,8 @@ func _取系数(键: String, 值: String) -> float:
 # 单周期阀门总效应 > ±15% 时强制拉回 raw（杜绝单周期 >±15% 跳变）。
 # ----------------------------------------------------------------------------
 func 平衡(原始值: float) -> float:
+	if not global_enable:
+		return 原始值   # R6：全局开关关闭时直接放行（秒级回滚，不施加任何阀门）
 	if not _已加载:
 		_加载配置(配置路径)
 	var 基准: float = 原始值                     # 本周期基准 = 原始值（零跳变保证）
