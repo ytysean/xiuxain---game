@@ -1049,6 +1049,7 @@ func 推演一月(日: int):
 	更新门派()
 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清单.md）===
 	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
+	_结算运维成本_S1()        # D1 宗门运维成本（刚性耗），接线 global_cost_rate 阀门
 	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
 	_结算香火_S1()            # 凡人香火月度结算（当前空桩，S1 批5-A）
 	_确保字派_S1()            # S1 批5-B：旧档首次进入自动生成字派序列并持久化
@@ -1178,6 +1179,62 @@ func _七载大考():
 # 依赖：货币/贡献系统（见 §二 俸禄福利）。状态：空操作，零副作用，八道闸门安全。
 func _结算俸禄_S1() -> void:
 	pass
+
+var _经济基线缓存: Dictionary = {}   # D1：经济基线.csv 缓存（clamp 边界来源，R5 非硬编码）
+
+# === S1 批6-D1：宗门运维成本（刚性耗；ECON-02 §2.2 校准，标准局≈305）===
+# 接线 global_cost_rate 阀门：对 -刚性耗 单独调 EconomyBalance.平衡()（per-delta 施加，
+# 全场景生效，不只赤字局；与 period_settlement.gd 末次 final 平衡() 双调用，正常配置下均恒等）。
+# R5：下限/上限从 config/经济基线.csv 读（非硬编码 293/318）。
+# 欠俸/忠诚链路：本阶段留 stub（引用 GDD-宗门经营 §五.1），不强制实现。
+func _结算运维成本_S1() -> void:
+	var 基线: Dictionary = _读经济基线()
+	var 下限: float = float(基线.get("标准局月耗_下限", "293"))
+	var 上限: float = float(基线.get("标准局月耗_上限", "318"))
+	var c4: float = 0.0
+	for d in 弟子列表:
+		c4 += 4.5 * _身份俸禄倍率(d.身份)   # 普通1.0 / 执事1.5 / 长老2.0
+	var c5: float = 3.0 * 堂口列表.size()
+	var c6: float = 0.73 * 弟子列表.size()
+	var c7: float = 0.375 * 弟子列表.size()
+	var 刚性耗: float = c4 + c5 + c6 + c7          # 标准局≈305
+	# R5：clamp 到 [下限, 上限]（读 CSV，非硬编码）
+	刚性耗 = clamp(刚性耗, 下限, 上限)
+	# R2 per-delta：对 -刚性耗 单独调 平衡()（raw<0 → ×全局消耗系数，±15% 钳制）
+	var _平衡器 := EconomyBalance.new()
+	var 实付: float = _平衡器.平衡(-刚性耗)             # 实付为负
+	灵石 -= int(round(-实付))                      # 取绝对值扣公库
+
+# D1 运维成本：弟子身份→俸禄倍率（普通1.0 / 执事1.5 / 长老2.0）
+func _身份俸禄倍率(身份: String) -> float:
+	match 身份:
+		"长老":
+			return 2.0
+		"执事":
+			return 1.5
+		_:
+			return 1.0   # 普通 / 外门 / 内门弟子 / 核心弟子 / 亲传弟子 / 堂主 / 供奉 → 1.0
+
+# 读取 config/经济基线.csv 为 {锚点: 数值}（D1 运维成本 clamp 边界来源，R5 非硬编码）
+func _读经济基线() -> Dictionary:
+	if not _经济基线缓存.is_empty():
+		return _经济基线缓存
+	var 路径 := "res://config/经济基线.csv"
+	if not FileAccess.file_exists(路径):
+		return {}
+	var f: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if f == null:
+		return {}
+	f.get_line()   # 跳表头（含可能的 BOM，数据行不含）
+	while not f.eof_reached():
+		var 行: String = f.get_line().strip_edges()
+		if 行 == "":
+			continue
+		var 列: PackedStringArray = 行.split(",")
+		if 列.size() >= 2:
+			_经济基线缓存[列[0].strip_edges()] = 列[1].strip_edges()
+	f.close()
+	return _经济基线缓存
 
 # === S1 端口：声望阈值触发特殊弟子主动投奔（当前空操作桩）===
 # 调用位置：推演一月 月循环（紧接 _结算俸禄_S1 之后）。
