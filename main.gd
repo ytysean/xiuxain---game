@@ -1850,20 +1850,24 @@ func _弹出弟子属性弹窗(类型: String, 内容文本: String, _d: Discipl
 # ===== S1 批4：详情弹窗扩展 + 富文本点击联动（纯 UI 层，不改动战斗结算代码） =====
 
 # 属性行（复用对象池）：优先从 _attr_line_pool 取 Label，否则新建；标记 meta("pooled") 以便回收
+# 防御性消费：池中可能残留失效条目（页面切换/异常时序下子节点被 free）。
+# 必须先以无类型 pop 拿到 Variant，校验 alive + 类型正确，再赋给 typed Label l；
+# 否则 typed-var assign 校验会抛 "Trying to assign invalid previously freed instance"。
 func _属性行(文本: String, 色: Color) -> Label:
-	var l: Label
-	if not _attr_line_pool.is_empty():
-		l = _attr_line_pool.pop_back()
-		if is_instance_valid(l):
-			l.text = 文本
-			l.visible = true
-			l.modulate = Color(1, 1, 1, 1)
-			l.add_theme_color_override("font_color", 色)
-		else:
-			l = Label.new()
-	else:
+	var l: Label = null
+	while not _attr_line_pool.is_empty():
+		var obj = _attr_line_pool.pop_back()
+		if is_instance_valid(obj) and obj is Label:
+			l = obj
+			break
+		# 否则丢弃这条失效条目，继续消费池子
+	if l == null:
 		l = Label.new()
-	if l.get_meta("pooled", false) == false:
+	l.text = 文本
+	l.visible = true
+	l.modulate = Color(1, 1, 1, 1)
+	l.add_theme_color_override("font_color", 色)
+	if not l.has_meta("pooled"):
 		l.set_meta("pooled", true)
 	return l
 
@@ -1876,6 +1880,10 @@ func _回收详情行(遮: Control) -> void:
 		_详情回收站 = Node.new()
 		add_child(_详情回收站)
 	for c in 遮.get_children():
+		# 防御式：迭代期间子节点可能被外部时序 free；失效引用/已脱离 遮 的子节点直接跳过，
+		# 防止 add_child 抛 previously freed 或重复回收。
+		if c == null or not is_instance_valid(c) or c.get_parent() != 遮:
+			continue
 		if c is Label and c.get_meta("pooled", false) == true:
 			c.visible = false
 			_详情回收站.add_child(c)
@@ -4509,8 +4517,10 @@ func _执行建筑升级(key: String) -> void:
 	var 结果: Dictionary = Game.升级建筑(key)
 	_toast(str(结果.get("msg", "升级完成")))
 	if bool(结果.get("ok", false)):
+		# 走 _关闭详情 统一入口（先回收 _属性行 池化 Label 到 _详情回收站，再 queue_free，最后清空单实例守卫）；
+		# 避免直接 queue_free 释放含池化 Label 的弹窗导致池子持有将来指向 freed instance 的悬挂引用（typed-var assign 校验会抛）。
 		if _当前详情遮 != null and is_instance_valid(_当前详情遮):
-			_当前详情遮.queue_free()
+			_关闭详情(_当前详情遮)
 		_建_二级页("建筑")
 
 # 建筑详情弹窗：等级/上限、任期政绩、当前产出、升级按钮（含消耗与禁用原因）
