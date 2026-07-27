@@ -1871,6 +1871,10 @@ func _属性行(文本: String, 色: Color) -> Label:
 func _回收详情行(遮: Control) -> void:
 	if 遮 == null or not is_instance_valid(遮):
 		return
+	# 惰性创建回收站（GDD-详情弹窗扩展_S1批4 §规格）：纯 Node 保活池化 Label，不渲染
+	if _详情回收站 == null:
+		_详情回收站 = Node.new()
+		add_child(_详情回收站)
 	for c in 遮.get_children():
 		if c is Label and c.get_meta("pooled", false) == true:
 			c.visible = false
@@ -1885,6 +1889,9 @@ func _关闭详情(遮: Control) -> void:
 		return
 	_回收详情行(遮)
 	遮.queue_free()
+	# 关闭的是当前单实例遮罩时同步清空守卫，避免单实例守卫误判已释放遮罩导致重复关闭/层叠
+	if 遮 == _当前详情遮:
+		_当前详情遮 = null
 
 func _弹出功法详情(id: String) -> void:
 	var g: Dictionary = SkillCultivationLoader.get_skill(id)
