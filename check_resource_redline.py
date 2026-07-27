@@ -35,6 +35,43 @@ def read_kv_csv(path):
     return d
 
 
+def read_table_csv(path):
+    """读取 表头式 CSV（首行为列名），返回 list[dict]，每行为 {列名: 值字符串}。
+    容错 UTF-8 BOM（utf-8-sig）；空行跳过；列数不足按表头对齐，缺失列取空串。"""
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8-sig") as f:
+        lines = [l.rstrip("\n") for l in f if l.strip()]
+    if len(lines) < 2:
+        return []
+    header = [h.strip() for h in lines[0].split(",")]
+    rows = []
+    for line in lines[1:]:
+        parts = [p.strip() for p in line.split(",")]
+        row = {}
+        for i, col in enumerate(header):
+            row[col] = parts[i] if i < len(parts) else ""
+        rows.append(row)
+    return rows
+
+
+def parse_positive_int(s):
+    """将字符串解析为严格正整数；容错 '5.0' 这类整型浮点写法。
+    解析失败（非整数 / 空）返回 None；合法时返回 int。"""
+    s = (s or "").strip()
+    try:
+        return int(s)
+    except (ValueError, TypeError):
+        pass
+    try:
+        f = float(s)
+        if f == int(f):
+            return int(f)
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 def fnum(s, default):
     try:
         return float(s)
@@ -198,6 +235,55 @@ def main():
     if 全月 > 0 and 事件月 / 全月 >= 上限:
         fail("事件渠道占比=%.2f%% ≥ %.0f%% 上限，违反§4.7 经济轴硬上限"
              % (事件月 / 全月 * 100, 上限 * 100))
+
+    # ========================================================================
+    # D2 —— 坊市动态行情校验（S1-P0 批次二）三位一体之③ pre_f5 校验
+    #   文件存在性守护：坊市行情.csv 未落地则整体 skip + warn，绝不 FAIL。
+    #   蓝图见 design/08-功能提案/11-D类实现计划.md §2.2.4（Layer A / C / D）。
+    #     · Layer A：浮动下限≥0.85 且 浮动上限≤1.15（±15% 红线）+ 限购数量>0
+    #     · Layer C：config/经济阀门.csv 含 trade_profit_rate 行（F2 接线守，键存在即可）
+    #     · Layer D：事件联动标记 全 0（守 <5% 事件渠道；含 1 须回算，D2 不开启）
+    # ========================================================================
+    坊市行情_path = os.path.join(ROOT, "config", "坊市行情.csv")
+    if not os.path.exists(坊市行情_path):
+        warn("D2 坊市行情.csv 未落地，跳过 D2 校验")
+    else:
+        坊市行情_rows = read_table_csv(坊市行情_path)
+
+        # —— D2 Layer A：系数±15% 红线 + 配置合法性 ——
+        for r in 坊市行情_rows:
+            类别 = r.get("类别", "")
+            浮下 = fnum(r.get("浮动下限"), None)
+            浮上 = fnum(r.get("浮动上限"), None)
+            if 浮下 is None or 浮上 is None:
+                fail("坊市行情.csv 类别[%s] 浮动下限/浮动上限 缺失或非数值" % 类别)
+            if 浮下 < 0.85:
+                fail("坊市行情.csv 类别[%s] 浮动下限=%s < 0.85（击穿±15%%红线）" % (类别, 浮下))
+            if 浮上 > 1.15:
+                fail("坊市行情.csv 类别[%s] 浮动上限=%s > 1.15（击穿±15%%红线）" % (类别, 浮上))
+            # 限购数量：int 且 > 0（防 0/空无限刷取 → 通胀 broken）
+            限购 = r.get("限购数量", "")
+            n = parse_positive_int(限购)
+            if n is None:
+                fail("坊市行情.csv 类别[%s] 限购数量=%r 非整数（配置非法）" % (类别, 限购))
+            if n <= 0:
+                fail("坊市行情.csv 类别[%s] 限购数量=%d ≤ 0（防无限刷取，须>0）" % (类别, n))
+
+        # —— D2 Layer C：F2 接线守（trade_profit_rate 行键存在即可；具体开关值运行时守）——
+        阀门 = read_kv_csv(os.path.join(ROOT, "config", "经济阀门.csv"))
+        if not 阀门:
+            fail("config/经济阀门.csv 缺失（D2 接线守：F2 阀门未落地）")
+        if "trade_profit_rate" not in 阀门:
+            fail("config/经济阀门.csv 缺少 trade_profit_rate 行（D2 坊市系数接线未配置）")
+
+        # —— D2 Layer D：事件渠道<5%（事件联动标记 全 0）——
+        for r in 坊市行情_rows:
+            类别 = r.get("类别", "")
+            联动 = (r.get("事件联动标记", "") or "").strip()
+            if 联动 == "1":
+                fail("坊市行情.csv 类别[%s] 事件联动标记=1（开启联动须回算守<5%%事件渠道，D2 不开启）" % 类别)
+            if 联动 != "0":
+                fail("坊市行情.csv 类别[%s] 事件联动标记=%r 非法（须为 0/1）" % (类别, 联动))
 
     print("ALL ASSERTIONS PASSED · 产耗红线 OK · 系数偏差≤15%% · 公式镜像±15%% · "
           "F2 阀门已接线 · 事件渠道<5%% · 总盘复算=%.1f/基线=%s" % (复算月产, 标准局月产))
