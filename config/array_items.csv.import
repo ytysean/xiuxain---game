@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dctpgdg3okul7"
+
+[deps]
+
+files=["res://config/array_items.item.translation", "res://config/array_items.item.translation", "res://config/array_items.item.translation", "res://config/array_items.use.translation", "res://config/array_items.unlock.translation", "res://config/array_items.dismantle.translation", "res://config/array_items.icon.translation", "res://config/array_items.描述.translation"]
+
+source_file="res://config/array_items.csv"
+dest_files=["res://config/array_items.item.translation", "res://config/array_items.item.translation", "res://config/array_items.item.translation", "res://config/array_items.use.translation", "res://config/array_items.unlock.translation", "res://config/array_items.dismantle.translation", "res://config/array_items.icon.translation", "res://config/array_items.描述.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

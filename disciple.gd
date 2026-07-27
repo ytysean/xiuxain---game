@@ -180,6 +180,7 @@ var 副宠灵兽: Beast = null
 var 属性: Dictionary = {}
 var 履历: Array = []        # [ADR-002 D5] 奇遇/历练摘要；§11.21 三原则新增字段（默认 []）
 var 已修功法: Array[String] = []   # S1 批3：已修功法 skill_cultivation.skill_id 列表（默认 []，现役战斗零变化）
+var 当前法阵: Dictionary = {}        # S1 批6-B：当前单人法阵 {"array_id": String, "等级": int}；空 {} = 未装备（独立字段，非 装备 Dictionary，D2 强约束）
 
 func _init():
 	随机生成()
@@ -427,6 +428,14 @@ func 总修炼速度倍率() -> float:
 	var 命格数据: Dictionary = DestinyDataLoader.get_destiny(destiny_id)
 	if 命格数据.get("类型", "") == "修行" and 命格数据.get("维度", "") == "修炼":
 		倍率 *= (1.0 + float(命格数据.get("数值", 0)) / 100.0)
+	# S1 批6-B：当前单人法阵·修炼辅助（乘性并入；宗门大阵聚灵走 推演一月 宗门加成pct，不在此）
+	if not 当前法阵.is_empty():
+		var 阵cfg: Dictionary = Game.阵法配置表.get(当前法阵.get("array_id", ""), {})
+		if not 阵cfg.is_empty() and "修炼" in 阵cfg.get("eff_dim", ""):
+			var 阵eff: float = float(阵cfg.get("eff_val_base", "0")) * (1.0 + (int(当前法阵.get("等级", 1)) - 1) * float(阵cfg.get("level_growth_coef", "0")))
+			if _灵根匹配法阵(阵cfg):
+				阵eff *= 1.05
+			倍率 *= (1.0 + clamp(阵eff, 0.0, 0.15))   # 单源子帽 ≤15%（[PLACEHOLDER] 真机校准）
 	return 倍率
 
 # 基础修炼速度（灵根主导；旧规则回退资质速度）
@@ -940,6 +949,21 @@ func get_final_combat_attr() -> Dictionary:
 	var 闪避率: float = clamp(float(属性.get("速", 0)) * 0.003, 0.0, 1.0)
 	if 灵根 in ["风", "水"]:
 		闪避率 += 0.05
+	# S1 批6-B：法阵暴击/闪避等效（常驻；当前法阵 eff_dim 含 暴击/闪避 时累加 eff_val×匹配；[PLACEHOLDER] 真机校准）
+	# 注：投稿部分阵以「提升暴击/闪避几率」命名但数据 eff_dim 实为 攻/速，本批严格按 eff_dim 含 暴击/闪避 判定
+	if not 当前法阵.is_empty():
+		var 阵cfg: Dictionary = Game.阵法配置表.get(当前法阵.get("array_id", ""), {})
+		var 阵dim: String = 阵cfg.get("eff_dim", "")
+		if "暴击" in 阵dim:
+			var 暴eff: float = float(阵cfg.get("eff_val_base", "0")) * (1.0 + (int(当前法阵.get("等级", 1)) - 1) * float(阵cfg.get("level_growth_coef", "0")))
+			if _灵根匹配法阵(阵cfg):
+				暴eff *= 1.05
+			暴击率 += clamp(暴eff, 0.0, 0.15)
+		if "闪避" in 阵dim:
+			var 闪eff: float = float(阵cfg.get("eff_val_base", "0")) * (1.0 + (int(当前法阵.get("等级", 1)) - 1) * float(阵cfg.get("level_growth_coef", "0")))
+			if _灵根匹配法阵(阵cfg):
+				闪eff *= 1.05
+			闪避率 += clamp(闪eff, 0.0, 0.15)
 	var 战斗属性: Dictionary = {"攻": int(属性.get("攻", 0)), "防": int(属性.get("防", 0)), "血": int(属性.get("血", 0)), "速": int(属性.get("速", 0))}
 	# 战斗型命格常驻加成（攻防血速等比例乘性，低于装备贡献占比）
 	# 装备加成映射到战斗属性（解决总战力与实战属性脱钩问题）
@@ -1024,7 +1048,7 @@ func to_dict() -> Dictionary:
 		"灵根品阶": 灵根品阶, "身份": 身份, "来源": 来源,
 		"阶位": 阶位, "考核冷却剩余": 考核冷却剩余, "考核心得": 考核心得,
 		"层数": 层数, "突破冷却剩余": 突破冷却剩余,
-		"属性": 属性, "背包": 背包列表, "装备": 装备字典, "履历": 履历, "已修功法": 已修功法,
+		"属性": 属性, "背包": 背包列表, "装备": 装备字典, "履历": 履历, "已修功法": 已修功法, "当前法阵": 当前法阵,
 		"辈分序": 辈分序, "道号": 道号,
 		"主宠灵兽": (主宠灵兽.to_dict() if 主宠灵兽 != null else null),
 		"副宠灵兽": (副宠灵兽.to_dict() if 副宠灵兽 != null else null)
@@ -1114,6 +1138,8 @@ func from_dict(d: Dictionary):
 	for gid in d.get("已修功法", []):
 		if typeof(gid) == TYPE_STRING:
 			已修功法.append(gid)
+	# S1 批6-B：当前单人法阵（旧档缺键→默认空 Dict {}，零回归，照 L1062 .get 默认范式；不升 SAVE_VERSION）
+	当前法阵 = d.get("当前法阵", {})
 	_修复装备一致性()
 	一键最优穿戴()        # 旧档迁移：背包物按 战力加成 贪心回填各槽（受 品阶≤境界 限制），使旧存档在新模型下战力不丢
 	主宠灵兽 = null
@@ -1143,13 +1169,84 @@ func _聚合未来战力来源() -> Dictionary:
 	var 功法: Dictionary = SkillCultivationLoader.功法被动加成(已修功法)
 	for _st in ["攻", "防", "血", "速"]:
 		聚合[_st] += 功法.get(_st, 0)
-	# TODO(S1): 阵法加成 = 当前阵法.群体属性
+	# S1 批6-B：法阵战斗属性聚合（铁律入口，零战斗触碰；与 功法/灵兽 同链路）
+	# 宗门大阵防御类（批6-A 推迟接线，本批补）：当前主阵 eff_dim 含 防/血/速 → 等效进四维
+	var 宗门主阵: String = Game.宗门大阵.get("当前主阵", "")
+	if 宗门主阵 != "":
+		var 宗门等级: int = int(Game.宗门大阵.get("等级", {}).get(宗门主阵, 1))
+		var 增量甲: Dictionary = _法阵战斗增量(宗门主阵, 宗门等级, false)
+		for _st in ["攻", "防", "血", "速"]:
+			聚合[_st] += 增量甲.get(_st, 0)
+	# 当前单人法阵常驻（含 灵根匹配 + 护盾→血 + 回蓝端口）
+	if not 当前法阵.is_empty():
+		var 阵id: String = 当前法阵.get("array_id", "")
+		var 阵级: int = int(当前法阵.get("等级", 1))
+		if 阵id != "":
+			var 增量乙: Dictionary = _法阵战斗增量(阵id, 阵级, true)
+			for _st in ["攻", "防", "血", "速"]:
+				聚合[_st] += 增量乙.get(_st, 0)
+			# 灵气上限+X%（D4 方案A，回蓝等效）：仅 eff_dim=灵气 时 增量乙 含 灵气 键（真实每回合回蓝回调 S2 [PLACEHOLDER]）
+			var 灵气增量: int = 增量乙.get("灵气", 0)
+			if 灵气增量 != 0:
+				聚合["灵气"] = 聚合.get("灵气", 0) + 灵气增量
 	# S1 战斗生效·优先级1：灵兽实战属性映射（与 灵兽契约战力() 共用同一因子，加法叠加进四维，不新增乘区）
 	var 兽: Dictionary = 灵兽属性加成()
 	for _st in ["攻", "防", "血", "速"]:
 		聚合[_st] += 兽.get(_st, 0)
 	# TODO(S1): 道心增益 = 道心等级.四维系数
 	return 聚合
+
+# ===== S1 批6-B：单人法阵（Layer2 常驻属性）辅助 =====
+# 灵根匹配（D7）：match_element → 弟子灵根（单灵根模型）。
+#   earth→土 / water→水 / metal→金 / wood→木 / fire→火；
+#   fire_water→{火,水}；all_five→恒匹配；none→不判；
+#   变异灵根（雷/冰/风/光/暗）无五行对应→不匹配（无惩罚）。
+func _灵根匹配法阵(cfg_row: Dictionary) -> bool:
+	var me: String = cfg_row.get("match_element", "none")
+	if me == "none":
+		return false
+	if me == "all_five":
+		return true
+	if me == "fire_water":
+		return 灵根 in ["火", "水"]
+	var 元素表: Dictionary = {"earth": "土", "water": "水", "metal": "金", "wood": "木", "fire": "火"}
+	var 元素: String = 元素表.get(me, "")
+	return 元素 != "" and 灵根 == 元素
+
+# 法阵战斗属性增量（攻防血速 + 护盾→血 + 灵气上限→灵气端口），零战斗触碰。
+# 含匹配=true 时应用灵根匹配 ×1.05；单源子帽 ≤15%（[PLACEHOLDER] 真机校准）。
+# 返回 {攻,防,血,速[,灵气]}；触发类·回血(post_battle & 血) 仅记录不实现回调（S2 端口）。
+func _法阵战斗增量(array_id: String, 等级: int, 含匹配: bool) -> Dictionary:
+	var r: Dictionary = {"攻": 0, "防": 0, "血": 0, "速": 0}
+	var cfg_row: Dictionary = Game.阵法配置表.get(array_id, {})
+	if cfg_row.is_empty():
+		return r
+	var eff_val: float = float(cfg_row.get("eff_val_base", "0")) * (1.0 + (等级 - 1) * float(cfg_row.get("level_growth_coef", "0")))
+	if 含匹配 and _灵根匹配法阵(cfg_row):
+		eff_val *= 1.05
+	eff_val = clamp(eff_val, 0.0, 0.15)   # 单源子帽 ≤15%
+	var core_eff: String = cfg_row.get("core_effect", "")
+	var trigger: String = cfg_row.get("trigger", "")
+	var dim: String = cfg_row.get("eff_dim", "")
+	# 护盾（D4 属性等效）：最大生命+X% → 加 血（无护盾条视觉，R1）
+	if "护盾" in core_eff:
+		var 最大生命: int = int(属性.get("血", 0))
+		r["血"] += int(最大生命 * eff_val)
+		return r
+	# 回蓝（D4 方案A 灵气上限+X% 端口）：eff_dim=灵气 → 灵气上限+X%（真实每回合回蓝 S2 [PLACEHOLDER]）
+	if dim == "灵气":
+		var 灵气底: int = int(Game.灵气)
+		r["灵气"] = int(灵气底 * eff_val)
+		return r
+	# 触发类·回血（post_battle & 血）：仅记录，S2 结算后回调，本批不实现
+	if trigger == "post_battle" and dim == "血":
+		return r
+	# 常驻攻防血速（百分比加成，基数为弟子自身基础属性）
+	for _st in ["攻", "防", "血", "速"]:
+		if dim.contains(_st):
+			var base: int = int(属性.get(_st, 0))
+			r[_st] += int(base * eff_val)
+	return r
 
 # ============ 实时战力度量（界面战力/推荐战力同口径，区别于 总战力() 乘性虚高值）============
 # 用于弟子卡/出战列表显示，使玩家能用战力数字与关卡推荐战力直接对比（关卡设计对齐需求）。

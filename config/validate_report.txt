@@ -3,22 +3,25 @@
 
 ## achievement_config.csv  →  识别为 `achievement_config` (164 行数据)
 ## area_stay_weight.csv  →  识别为 `area_stay_weight` (5 行数据)
+## array_config.csv  →  识别为 `array_config` (20 行数据)
+## array_items.csv  →  识别为 `array_items` (21 行数据)
 ## battle_buff.csv  →  识别为 `battle_buff` (9 行数据)
 ## caravan_member_data.csv  [未识别-跳过]
 ## caravan_post_config.csv  [未识别-跳过]
 ## caravan_vehicle_config.csv  [未识别-跳过]
+## craft_hall_reward.csv  →  识别为 `craft_hall_reward` (12 行数据)
 ## defense_array_config.csv  →  识别为 `defense_array_config` (8 行数据)
 ## destiny_main.csv  →  识别为 `destiny_main` (20 行数据)
 ## disciple_interact.csv  →  识别为 `disciple_interact` (10 行数据)
 ## drop_common.csv  →  识别为 `drop_common` (19 行数据)
-## drop_pool.csv  →  识别为 `drop_pool` (27 行数据)
+## drop_pool.csv  →  识别为 `drop_pool` (55 行数据)
 ## easter_egg_config.csv  [未识别-跳过]
 ## equip_blueprint.csv  →  识别为 `equip_blueprint` (19 行数据)
 ## equip_main.csv  →  识别为 `equip_main` (45 行数据)
 ## equip_set.csv  →  识别为 `equip_set` (36 行数据)
-## event_quest.csv  →  识别为 `event_quest` (203 行数据)
+## event_quest.csv  →  识别为 `event_quest` (205 行数据)
 ## faction_base.csv  →  识别为 `faction_base` (25 行数据)
-## faction_shop.csv  →  识别为 `faction_shop` (10 行数据)
+## faction_shop.csv  →  识别为 `faction_shop` (17 行数据)
 ## flying_beast_config.csv  [未识别-跳过]
 ## inner_demon.csv  →  识别为 `inner_demon` (4 行数据)
 ## item_id_registry.csv  [未识别-跳过]
@@ -59,6 +62,9 @@
 ## tribulation_item.csv  →  识别为 `tribulation_item` (4 行数据)
 ## xuanyu_shop.csv  [未识别-跳过]
 ## 引育纪事.csv  [未识别-跳过]
+## 新功能冲击声明.csv  [未识别-跳过]
+## 经济基线.csv  [未识别-跳过]
+## 经济阀门.csv  →  识别为 `经济阀门` (6 行数据)
 ## 节奏校准.csv  [未识别-跳过]
 ## 评级节奏.csv  [未识别-跳过]
 
@@ -66,11 +72,14 @@
 - [OK] drop_common: 各 drop_id 池内 drop_weight 和=100
 - [OK] quest_reward_pool: 各 pool_id 池内 weight 和=100
 - [OK] event_quest: 各 event_type 池内均含正向 trigger_weight（按档权重 普通10/优秀6/稀有2/传说0.5 抽取）
-- event_quest 品阶分布: 普通=74 优秀=89 稀有=30 传说=10 (总计203)
+- event_quest 品阶分布: 普通=75 优秀=89 稀有=31 传说=10 (总计205)
 - [OK] event_quest: 单条奖励倍率软告警扫描完成（基准200，超倍率即告警不阻断）
 
 # 战斗关卡跨表校验（stage_main / monster_main / drop_pool）
 - [CHECK] 战斗关卡跨表校验完成（怪物引用/掉落池/前置关卡/掉落物存在性/min-max）
+
+# 器堂赠宝配置跨表校验（craft_hall_reward）
+- [CHECK] craft_hall_reward: item_ref 外键（gen→fabao / id→array_items）+ count/level 边界校验完成（加权池，不强制 weight-sum=100）
 - [CHECK] faction_base: 声望等级 need_reputation 严格递增校验完成
 - [CHECK] faction_shop: item_grade 品阶阈值校验完成
 - [OK] personality_config: 行为权重 权重和=1
@@ -82,10 +91,10 @@
 - [OK] 根目录 .gd 与 config/*.csv 中无残留「剑修」，职业枚举已统一为「道修」
 
 # 汇总
-- 校验 CSV 表数: 42
-- 校验数据行数: 1159
+- 校验 CSV 表数: 46
+- 校验数据行数: 1255
 - 错误数: 0
-- 警告数: 18
+- 警告数: 20
 
 ## 警告
 - caravan_member_data.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
@@ -104,6 +113,8 @@
 - tribulation_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - xuanyu_shop.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 引育纪事.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 新功能冲击声明.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 经济基线.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 节奏校准.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 评级节奏.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 

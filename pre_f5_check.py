@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# pre_f5_check.py —— 《太玄宗门录》F5 前必跑检查（一键编排 · 十九道闸门）
+# pre_f5_check.py —— 《太玄宗门录》F5 前必跑检查（一键编排 · 二十四道闸门）
 #
-# 把十九道验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
+# 把验证闸门串起来，输出一份统一总判定，让你 F5 之前一眼看清能不能放心开：
 #   1) GDScript 4.x 类型推断扫描  (gdscript_type_check.py)
 #   2) 配置表全量校验             (validate_all.py)
 #   3) 战斗数值红线断言           (tests/combat/test_combat.py)
@@ -18,6 +18,11 @@
 #   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","御兽","历练","纪事"] 且长度 5)
 #   18) 按钮色值/裸 hex 校验        (内联：全文件裸 #xxxxxx 比对顶部常量+四类锁定 hex，未定义即 FAIL)
 #   19) 背景透明度校验             (内联：BG_SCENE_ALPHA≤0.35 / BG_OVERLAY_ALPHA==0.50 / #16221D)
+#   20) 阵法拆解经济校验           (内联：复刻 `_阵法拆解返还数`，拆解产出≤投入 且 L1=0，防零投入白嫖漏洞)
+#   21) Python 工具脚本编译检查     (内联：py_compile 全量编译所有 *.py，任一 SyntaxError 直接 FAIL)
+#   22) GDScript 存档键名对称检查   (内联：抓 `目标 = data.get("_键")` 目标缺前导下划线的反模式)
+#   23) 事件奖励 item 引用校验      (内联：event_quest opt1/2/3_reward 的 item:item_id:count，断言 item_id ∈ array_items.csv|item_id_registry.csv 且 count>0)
+#   24) 零战斗触碰红线校验         (内联：git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动)
 #
 # 用法（在项目根目录执行）：
 #   python pre_f5_check.py
@@ -29,6 +34,8 @@ import os
 import re
 import sys
 import subprocess
+import py_compile
+import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,6 +51,7 @@ CHECKS = [
     ("资源产耗闭环断言",     "tests/resource_flow/test_resource_flow.py", ROOT),
     ("增益数值红线断言",     "tests/buff_redline/test_buff_redline.py", ROOT),
     ("七载奖励零通胀校验",   "check_rating_inflation.py", ROOT),
+    ("产耗±15%红线校验",     "check_resource_redline.py", ROOT),   # ECON-01 新增：零通胀基线锁（第11道 subprocess 闸）
 ]
 
 # 第九道闸门依赖 gdtoolkit（真实 GDScript parser），它装在 managed Python venv 里，
@@ -64,8 +72,8 @@ DEPRECATED_FIELD_ACCESS = [
     ("命格", "destiny_id", "命格重构：字段改名 destiny_id（2026-07-19）"),
 ]
 
-PASS_MARK = "\033[92m✅ PASS\033[0m"
-FAIL_MARK = "\033[91m❌ FAIL\033[0m"
+PASS_MARK = "\033[92m[PASS]\033[0m"
+FAIL_MARK = "\033[91m[FAIL]\033[0m"
 LINE_W = 60  # 名称与判定之间的填充宽度
 
 
@@ -131,7 +139,7 @@ def check_deprecated_fields():
     if not hits:
         return True, "未检出废弃字段属性访问", ""
     detail = "\n".join(
-        "%s:%d  .%s → 应改为 .%s  | %s" % (rel, ln, old, new, text.strip())
+        "%s:%d  .%s -> 应改为 .%s  | %s" % (rel, ln, old, new, text.strip())
         for rel, ln, text, old, new in hits
     )
     return False, "检出 %d 处废弃字段属性访问" % len(hits), detail
@@ -340,6 +348,236 @@ def check_bg_alpha():
     return True, "BG_SCENE_ALPHA=%.2f(≤0.35) / BG_OVERLAY_ALPHA=%.2f / #16221D" % (scene_a, overlay_a), ""
 
 
+def check_array_disassemble_economy():
+    """闸门20：阵法拆解经济校验（P0 防通胀修复 P2-D5-①）。
+    纯静态复刻 GDScript `_阵法拆解返还数` / `_阵法升级总耗`，断言对所有
+    可拆解阵法（array_type ∈ {person,sect,team}）：
+      1) 任意 L1 阵法拆解产出恒为 0 —— 对应公式层 `投入<=0 → 0` 堵死；
+      2) 级 >= 2 时 拆解返还 <= 升级总耗（防净赚 / 同类零投入白嫖漏洞）。
+    不依赖 Godot，直接读 config/array_config.csv。返回 (ok, summary, detail)。"""
+    import csv
+    import math
+    csv_path = os.path.join(ROOT, "config", "array_config.csv")
+    if not os.path.exists(csv_path):
+        return False, "array_config.csv 缺失", ""
+    # rank -> (比值, 阶底) 须与 game_state.gd `_阵法拆解返还数` 完全同步
+    RANK_MAP = {"common": (0.40, 3), "spirit": (0.50, 6), "treasure": (0.60, 8)}
+
+    def 升级消耗(cost_base, cost_growth, lv):
+        return max(1, int(math.ceil(cost_base * (cost_growth ** (lv - 1)))))
+
+    def 升级总耗(cost_base, cost_growth, 至级):
+        return sum(升级消耗(cost_base, cost_growth, lv) for lv in range(1, max(1, 至级)))
+
+    def 拆解返还(总耗, 比值, 阶底):
+        if 总耗 <= 0:
+            return 0
+        return int(math.floor(总耗 * 比值)) + 阶底
+
+    violations = []
+    try:
+        with open(csv_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                atype = (row.get("array_type") or "").strip()
+                if atype not in ("person", "sect", "team"):
+                    continue
+                aid = (row.get("array_id") or "").strip()
+                rank = (row.get("rank") or "common").strip()
+                比值, 阶底 = RANK_MAP.get(rank, RANK_MAP["common"])
+                try:
+                    cost_base = float(row.get("cost_base") or 0)
+                    cost_growth = float(row.get("cost_growth") or 1.0)
+                    max_level = int(float(row.get("max_level") or 1))
+                except (ValueError, TypeError):
+                    violations.append("FAIL %s 数值解析失败 rank=%s cost_base=%s cost_growth=%s max_level=%s"
+                                      % (aid, rank, row.get("cost_base"), row.get("cost_growth"), row.get("max_level")))
+                    continue
+                for 级 in range(1, max_level + 1):
+                    总耗 = 升级总耗(cost_base, cost_growth, 级)
+                    返 = 拆解返还(总耗, 比值, 阶底)
+                    if 级 == 1:
+                        if 返 != 0:
+                            violations.append("FAIL %s 级=1 拆解返还=%d 应=0（L1 零投入白嫖漏洞）" % (aid, 返))
+                    else:
+                        if 返 > 总耗:
+                            violations.append("FAIL %s 级=%d 拆解返还=%d > 升级总耗=%d（净赚漏洞）" % (aid, 级, 返, 总耗))
+    except Exception as e:
+        return False, "校验异常: %s" % e, ""
+    if violations:
+        detail = "\n".join(violations)
+        return False, "检出 %d 处拆解净赚/白嫖漏洞" % len(violations), detail
+    return True, "全部可拆解阵法 拆解返还≤投入 且 L1 产出=0", ""
+
+
+def check_python_compile():
+    """闸门21：项目内全部工具 .py 编译检查（py_compile）。
+    覆盖 pre_f5_check.py / validate_all.py 等所有 *.py（递归子目录，排除 .git/__pycache__）。
+    任一 SyntaxError → 该 gate FAIL，打印具体文件名 + 错误行。
+    这比「等 pre_f5 跑 validate_all 时再崩」更早、更广——任何 .py 语法错都直接 FAIL，
+    不依赖运行时才发现（2026-07 曾因残留花括号致 validate_all.py SyntaxError）。
+    返回 (ok, summary, detail)。"""
+    bad = []      # (loc, msg)
+    scanned = 0
+    for root, dirs, files in os.walk(ROOT):
+        # 排除 .git / __pycache__ 及所有隐藏目录，避免扫缓存副本误报
+        dirs[:] = [d for d in dirs if d not in (".git", "__pycache__") and not d.startswith(".")]
+        for fn in files:
+            if not fn.endswith(".py"):
+                continue
+            fp = os.path.join(root, fn)
+            rel = os.path.relpath(fp, ROOT)
+            scanned += 1
+            # 编译产物写到系统临时目录，避免往项目里生成 __pycache__ 污染
+            cfile = os.path.join(tempfile.gettempdir(), os.path.basename(fp) + ".pre_f5_compile")
+            try:
+                py_compile.compile(fp, cfile=cfile, doraise=True)
+            except py_compile.PyCompileError as e:
+                syn = getattr(e, "__cause__", None)
+                if isinstance(syn, SyntaxError) and syn.lineno:
+                    bad.append(("%s:%d" % (rel, syn.lineno), syn.msg or "SyntaxError"))
+                else:
+                    bad.append((rel, str(e).strip()))
+            except SyntaxError as e:  # 兜底（doraise 通常抛 PyCompileError）
+                bad.append(("%s:%d" % (rel, e.lineno or 0), e.msg or "SyntaxError"))
+    if bad:
+        detail = "\n".join("%s  %s" % (loc, msg) for loc, msg in bad)
+        return False, "检出 %d 个 .py 存在 SyntaxError" % len(bad), detail
+    return True, "编译通过：%d 个 .py 全部无语法错误" % scanned, ""
+
+
+def check_save_key_symmetry():
+    r"""闸门22：GDScript 存档键名对称检查（反模式抓取）。
+    扫描 game_state.gd（及 main.gd）的 load 段，正则找 `目标 = data.get("_键")` 写法：
+        (\w+)\s*=\s*data\.get\(\s*"_(\w+)"
+    判定违规：若「赋值目标名」≠ "_" + 键名（即目标少了前导下划线，
+    如 `上次出战弟子 = data.get("_上次出战弟子"`），→ 该 gate FAIL，
+    打印 `文件:行号 目标=XXX 但键=_XXX（缺少前导下划线，与模块变量不匹配）`。
+    不误杀：正常非下划线键（如 data.get("门派等级")）不匹配此正则，不检查；
+    仅抓「load 目标与键名的前导下划线不一致」这一明确反模式（2026-07 game_state.gd
+    存档 load 误用 `上次出战弟子 = data.get("_上次出战弟子"` 致读不回/建局部变量）。
+    返回 (ok, summary, detail)。"""
+    targets = ["game_state.gd", "main.gd"]
+    pat = re.compile(r'(\w+)\s*=\s*data\.get\(\s*"_(\w+)"')
+    hits = []
+    scanned = 0
+    for fn in targets:
+        fp = os.path.join(ROOT, fn)
+        if not os.path.exists(fp):
+            continue
+        scanned += 1
+        try:
+            lines = open(fp, "r", encoding="utf-8").readlines()
+        except Exception:
+            continue
+        for idx, raw in enumerate(lines, 1):
+            m = pat.search(raw)
+            if not m:
+                continue
+            target, key = m.group(1), m.group(2)
+            if target != ("_" + key):
+                hits.append((fn, idx, target, key))
+    if hits:
+        detail = "\n".join(
+            "%s:%d 目标=%s 但键=_%s（缺少前导下划线，与模块变量不匹配）" % (fn, ln, t, k)
+            for fn, ln, t, k in hits
+        )
+        return False, "检出 %d 处存档键名不对称（load 目标缺前导下划线）" % len(hits), detail
+    return True, "存档 load 键名对称（目标均含前导下划线，%d 文件已扫）" % scanned, ""
+
+
+def check_event_reward_item_ref():
+    """闸门23：事件奖励 item 引用校验（D5④ 新增 item:item_id:count 奖励语义）。
+    event_quest.csv 的 opt1/2/3_reward 列若出现 `item:item_id:count` 形式奖励，必须断言：
+      1) item_id 存在于 array_items.csv 或 item_id_registry.csv（跨表引用合法性）；
+      2) count 为正整数（count>0）。
+    缺失/非正的 count 视为 count=1（与 game_state.gd `_解析并发放奇遇奖励` 的 item: 分支默认一致）。
+    任一不合法即 FAIL，打印 event_id/行号 + 违规明细。返回 (ok, summary, detail)。"""
+    import csv as _csv
+    eq_path = os.path.join(ROOT, "config", "event_quest.csv")
+    ai_path = os.path.join(ROOT, "config", "array_items.csv")
+    reg_path = os.path.join(ROOT, "config", "item_id_registry.csv")
+
+    # 1) 收集合法 item_id 集合（两表主键列均为 item_id）
+    valid_ids = set()
+    def _collect(path, id_cols):
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                reader = _csv.DictReader(f)
+                for row in reader:
+                    for col in id_cols:
+                        v = (row.get(col) or "").strip()
+                        if v:
+                            valid_ids.add(v)
+        except Exception:
+            return
+    _collect(ai_path, ("item_id", "id", "item"))
+    _collect(reg_path, ("item_id", "id", "item"))
+
+    if not os.path.exists(eq_path):
+        return False, "event_quest.csv 缺失", ""
+    if not valid_ids:
+        return False, "array_items.csv / item_id_registry.csv 均未提供合法 item_id", ""
+
+    # 2) 扫描奖励列中的 item: 引用
+    OPT_COLS = ("opt1_reward", "opt2_reward", "opt3_reward")
+    violations = []
+    scanned = 0
+    try:
+        with open(eq_path, "r", encoding="utf-8-sig") as f:
+            reader = _csv.DictReader(f)
+            for ln, row in enumerate(reader, start=2):  # 标题行占 1
+                eid = (row.get("event_id") or "").strip()
+                for col in OPT_COLS:
+                    val = (row.get(col) or "").strip()
+                    if not val.startswith("item:"):
+                        continue
+                    scanned += 1
+                    parts = val.split(":")
+                    item_id = parts[1].strip() if len(parts) > 1 else ""
+                    cnt = 1
+                    if len(parts) > 2:
+                        try:
+                            cnt = int(parts[2].strip())
+                        except ValueError:
+                            cnt = -1  # 标记为非法
+                    if item_id == "" or item_id not in valid_ids:
+                        violations.append("FAIL %s 行%d [%s] item_id=%r 不在 array_items.csv/registry" % (eid, ln, col, item_id))
+                    elif cnt <= 0:
+                        violations.append("FAIL %s 行%d [%s] count=%s 须为正整数" % (eid, ln, col, cnt))
+    except Exception as e:
+        return False, "校验异常: %s" % e, ""
+    if violations:
+        detail = "\n".join(violations)
+        return False, "检出 %d 处 item 奖励引用不合法" % len(violations), detail
+    return True, "事件奖励 item 引用全部合法（扫描 %d 处 item: 奖励，均存在且 count>0）" % scanned, ""
+
+
+def check_zero_battle_touch():
+    """闸门24：零战斗触碰红线校验（D5④ 铁律）。
+    D5④ 事件奖励落地的所有改动必须在经营/配置层，严禁触碰战斗结算：
+    BattleCalculator.gd / BattleManager.gd。
+    运行 `git diff --name-only HEAD`（cwd=ROOT）取改动清单，按 basename 比对；
+    若任一战斗文件被改 → FAIL，打印其相对路径。返回 (ok, summary, detail)。"""
+    forbidden = {"BattleCalculator.gd", "BattleManager.gd"}
+    try:
+        proc = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD"],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+        )
+    except Exception as e:
+        return False, "git diff 启动失败: %s" % e, ""
+    changed = [l.strip().replace("\\", "/") for l in (proc.stdout or "").splitlines() if l.strip()]
+    hit = [c for c in changed if c.rsplit("/", 1)[-1] in forbidden]
+    if hit:
+        # 明细行以 FAIL 开头，确保落入 main() 失败明细打印分支
+        detail = "\n".join("FAIL 检测到战斗结算文件被改动（铁律红线）：%s" % h for h in hit)
+        return False, "检出 %d 个战斗结算文件改动（铁律红线）" % len(hit), detail
+    return True, "零战斗触碰：BattleCalculator.gd / BattleManager.gd 均未改动", ""
+
+
 def main():
     print("=" * 64)
     print("  太玄宗门录 · F5 前必跑检查（一键编排 · 必跑闸门）")
@@ -471,7 +709,7 @@ def main():
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 类型名存在性扫描", " " * pad, mark, tr_sum))
     if tr_ok and "WARN" in tr_full:
-        print("    \033[93m⚠ 存在未知类型名（WARN），请人工确认是否拼错/为内部类型，不阻断 F5\033[0m")
+        print("    \033[93m[WARN] 存在未知类型名（WARN），请人工确认是否拼错/为内部类型，不阻断 F5\033[0m")
 
     # 第十七~十九道：UI 整改「三」新增校验（Tab 数 / 按钮裸色 / 背景透明度）
     for fn, name in (
@@ -488,6 +726,67 @@ def main():
             pad = 1
         print("  [%d/%d] %s%s %s  %s" % (total, total, name, " " * pad, mark, summary))
 
+    # 第二十道：阵法拆解经济校验（P0 防通胀修复 P2-D5-①）
+    #   复刻 GDScript `_阵法拆解返还数`，断言拆解产出价值 <= 投入物品价值，且 L1 产出恒为 0，
+    #   覆盖所有可拆解阵法物品（person/sect/team），防同类零投入白嫖漏洞。
+    ec_ok, ec_sum, ec_detail = check_array_disassemble_economy()
+    total = total + 1
+    results.append(("阵法拆解经济校验", ec_ok, ec_sum, ec_detail))
+    mark = PASS_MARK if ec_ok else FAIL_MARK
+    pad = LINE_W - len("阵法拆解经济校验")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "阵法拆解经济校验", " " * pad, mark, ec_sum))
+
+    # 第二十一道：Python 工具脚本编译检查（py_compile 全量覆盖，防 SyntaxError 漏网）
+    #   2026-07 validate_all.py 曾因残留花括号致 SyntaxError，pre_f5 执行它才抓到；
+    #   本道显式对所有 *.py（含 pre_f5_check.py 自身）做 py_compile，任何语法错直接 FAIL，
+    #   不依赖运行时才发现，覆盖更广。
+    pc_ok, pc_sum, pc_detail = check_python_compile()
+    total = total + 1
+    results.append(("Python 工具脚本编译检查", pc_ok, pc_sum, pc_detail))
+    mark = PASS_MARK if pc_ok else FAIL_MARK
+    pad = LINE_W - len("Python 工具脚本编译检查")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "Python 工具脚本编译检查", " " * pad, mark, pc_sum))
+
+    # 第二十二道：GDScript 存档键名对称检查（反模式抓取）
+    #   抓 `目标 = data.get("_键")` 中目标缺前导下划线的反模式（如 game_state.gd 曾误写
+    #   `上次出战弟子 = data.get("_上次出战弟子"` → 新建局部变量、存档读不回）。当前代码已修，须 PASS。
+    sk_ok, sk_sum, sk_detail = check_save_key_symmetry()
+    total = total + 1
+    results.append(("GDScript 存档键名对称检查", sk_ok, sk_sum, sk_detail))
+    mark = PASS_MARK if sk_ok else FAIL_MARK
+    pad = LINE_W - len("GDScript 存档键名对称检查")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 存档键名对称检查", " " * pad, mark, sk_sum))
+
+    # 第二十三道：事件奖励 item 引用校验（D5④ 新增 item:item_id:count 奖励语义）
+    #   断言 event_quest opt1/2/3_reward 的 item:item_id:count 中 item_id 合法且 count>0，
+    #   防止跨表引用悬空 / 非法 count 在 F5 运行期炸（_按id造 找不到 item_id）。
+    ir_ok, ir_sum, ir_detail = check_event_reward_item_ref()
+    total = total + 1
+    results.append(("事件奖励 item 引用校验", ir_ok, ir_sum, ir_detail))
+    mark = PASS_MARK if ir_ok else FAIL_MARK
+    pad = LINE_W - len("事件奖励 item 引用校验")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "事件奖励 item 引用校验", " " * pad, mark, ir_sum))
+
+    # 第二十四道：零战斗触碰红线校验（D5④ 铁律）
+    #   git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动；
+    #   任一被改即判定违规，守住「经营/配置层零战斗触碰」铁律。
+    zb_ok, zb_sum, zb_detail = check_zero_battle_touch()
+    total = total + 1
+    results.append(("零战斗触碰红线校验", zb_ok, zb_sum, zb_detail))
+    mark = PASS_MARK if zb_ok else FAIL_MARK
+    pad = LINE_W - len("零战斗触碰红线校验")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "零战斗触碰红线校验", " " * pad, mark, zb_sum))
+
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)
     if not all_ok:
@@ -502,6 +801,11 @@ def main():
                     if line.strip():
                         print("    \033[91m%s\033[0m" % line.strip())
                 continue
+            if name in ("Python 工具脚本编译检查", "GDScript 存档键名对称检查"):
+                for line in full.splitlines():
+                    if line.strip():
+                        print("    \033[91m%s\033[0m" % line.strip())
+                continue
             for line in full.splitlines():
                 s = line.strip()
                 if not s:
@@ -512,7 +816,7 @@ def main():
                     print("    \033[91m%s\033[0m" % s)
                 elif s.startswith("ERR") or "FAIL" in s or "Error" in s or "AssertionError" in s:
                     print("    \033[91m%s\033[0m" % s)
-                elif "→ 应改为" in s:   # 废弃字段护栏的明细行
+                elif "-> 应改为" in s:   # 废弃字段护栏的明细行
                     print("    \033[91m%s\033[0m" % s)
                 elif "开块缩进" in s or "开块:" in s or "后继:" in s:  # 缩进结构扫描明细
                     print("    \033[91m%s\033[0m" % s)
@@ -524,10 +828,10 @@ def main():
                     print("    \033[91m%s\033[0m" % s)
         print("")
     if all_ok:
-        print("  \033[92m总判定: ✅ 全部通过，可放心 F5\033[0m")
+        print("  \033[92m总判定: [PASS] 全部通过，可放心 F5\033[0m")
     else:
         failed = [n for n, ok, _, _ in results if not ok]
-        print("  \033[91m总判定: ❌ 有 %d 项未通过，先修再 F5：%s\033[0m" % (len(failed), "、".join(failed)))
+        print("  \033[91m总判定: [FAIL] 有 %d 项未通过，先修再 F5：%s\033[0m" % (len(failed), "、".join(failed)))
     print("=" * 64)
 
     return 0 if all_ok else 1

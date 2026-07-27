@@ -9,3 +9,10 @@ shop_yz_001,fz_yaozu,item_yz_001,妖兽精血,灵品,320,18,4,12,1000
 shop_yz_002,fz_yaozu,item_yz_002,古妖遗骨,宝品,1500,60,1,5,3000
 shop_dq_001,fz_danqi,item_dq_001,炼丹秘术,宝品,1300,55,2,6,3000
 shop_dq_002,fz_danqi,item_dq_002,器道图谱,王品,4800,110,1,3,8000
+shop_zt_001,fz_zhongli,item_016,五行聚灵阵图,凡品,450,30,1,2,0
+shop_zt_002,fz_zhongli,item_017,金锋御敌阵图,凡品,450,30,1,2,0
+shop_zt_003,fz_zhongli,item_018,玄龟守元阵图,凡品,450,30,1,2,0
+shop_zt_004,fz_zhongli,item_019,疾风掠影阵图,凡品,450,30,1,2,0
+shop_zt_005,fz_zhongli,item_020,太虚护体阵图,灵品,600,40,1,1,1000
+shop_zt_006,fz_zhongli,item_021,破妄锐金阵图,灵品,600,40,1,1,1000
+shop_zt_007,fz_zhongli,item_022,迷踪幻影阵图,灵品,600,40,1,1,1000

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://244tx6hbvgbf"
+
+[deps]
+
+files=["res://config/array_config.array.translation", "res://config/array_config.array.translation", "res://config/array_config.rank.translation", "res://config/array_config.core.translation", "res://config/array_config.eff.translation", "res://config/array_config.eff.translation", "res://config/array_config.trigger.translation", "res://config/array_config.level.translation", "res://config/array_config.max.translation", "res://config/array_config.unlock.translation", "res://config/array_config.unlock.translation", "res://config/array_config.match.translation", "res://config/array_config.people.translation", "res://config/array_config.cost.translation", "res://config/array_config.cost.translation", "res://config/array_config.icon.translation", "res://config/array_config.description.translation"]
+
+source_file="res://config/array_config.csv"
+dest_files=["res://config/array_config.array.translation", "res://config/array_config.array.translation", "res://config/array_config.rank.translation", "res://config/array_config.core.translation", "res://config/array_config.eff.translation", "res://config/array_config.eff.translation", "res://config/array_config.trigger.translation", "res://config/array_config.level.translation", "res://config/array_config.max.translation", "res://config/array_config.unlock.translation", "res://config/array_config.unlock.translation", "res://config/array_config.match.translation", "res://config/array_config.people.translation", "res://config/array_config.cost.translation", "res://config/array_config.cost.translation", "res://config/array_config.icon.translation", "res://config/array_config.description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,6 @@
+﻿开关ID,开关名,类别,启用,影响范围说明,关联负面事件或逻辑点,审计标记
+neg_global,负面影响总闸,总闸,1,0=全部负面不生效(一键回退纯正向),所有负面判定点,D-审计
+neg_res_build,资源建筑类负面,资源建筑,1,建筑产出降/资源损耗类debuff,negative_event(punish=灵石);建筑被动_负面事件减免,D-审计
+neg_disciple,弟子人员类负面,弟子人员,1,流失/叛逃/招徒概率下调/心境损伤,negative_event(忠诚/心境/道心/气血/修为/心魔);game_state流失判定,B
+neg_reputation,声望外部类负面,声望外部,1,坊市价差/声望降,坊市折扣;声望系统,D-审计
+neg_grade_perm,品级权限类负面,品级权限,1,门派等级降级/权益回收,period_settlement降级;权益回收,B
