@@ -6,10 +6,10 @@ uid="uid://bj74ip0rgyxje"
 
 [deps]
 
-files=["res://config/treasure_innate.innate.translation", "res://config/treasure_innate.grade.translation", "res://config/treasure_innate.sub.translation", "res://config/treasure_innate.apply.translation", "res://config/treasure_innate.active.translation", "res://config/treasure_innate.passive.translation", "res://config/treasure_innate.growth.translation", "res://config/treasure_innate.max.translation", "res://config/treasure_innate.sacrifice.translation"]
+files=["res://config/treasure_innate.innate.translation", "res://config/treasure_innate.grade.translation", "res://config/treasure_innate.sub.translation", "res://config/treasure_innate.apply.translation", "res://config/treasure_innate.active.translation", "res://config/treasure_innate.passive.translation", "res://config/treasure_innate.growth.translation", "res://config/treasure_innate.max.translation", "res://config/treasure_innate.sacrifice.translation", "res://config/treasure_innate.effect.translation", "res://config/treasure_innate.effect.translation", "res://config/treasure_innate.consume.translation", "res://config/treasure_innate.is.translation"]
 
 source_file="res://config/treasure_innate.csv"
-dest_files=["res://config/treasure_innate.innate.translation", "res://config/treasure_innate.grade.translation", "res://config/treasure_innate.sub.translation", "res://config/treasure_innate.apply.translation", "res://config/treasure_innate.active.translation", "res://config/treasure_innate.passive.translation", "res://config/treasure_innate.growth.translation", "res://config/treasure_innate.max.translation", "res://config/treasure_innate.sacrifice.translation"]
+dest_files=["res://config/treasure_innate.innate.translation", "res://config/treasure_innate.grade.translation", "res://config/treasure_innate.sub.translation", "res://config/treasure_innate.apply.translation", "res://config/treasure_innate.active.translation", "res://config/treasure_innate.passive.translation", "res://config/treasure_innate.growth.translation", "res://config/treasure_innate.max.translation", "res://config/treasure_innate.sacrifice.translation", "res://config/treasure_innate.effect.translation", "res://config/treasure_innate.effect.translation", "res://config/treasure_innate.consume.translation", "res://config/treasure_innate.is.translation"]
 
 [params]
 

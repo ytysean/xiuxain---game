@@ -6,10 +6,10 @@ uid="uid://emrmljw606no"
 
 [deps]
 
-files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation"]
+files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.consume.translation", "res://config/treasure_normal.is.translation"]
 
 source_file="res://config/treasure_normal.csv"
-dest_files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation"]
+dest_files=["res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.grade.translation", "res://config/treasure_normal.sub.translation", "res://config/treasure_normal.treasure.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.base.translation", "res://config/treasure_normal.passive.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.sell.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.effect.translation", "res://config/treasure_normal.consume.translation", "res://config/treasure_normal.is.translation"]
 
 [params]
 

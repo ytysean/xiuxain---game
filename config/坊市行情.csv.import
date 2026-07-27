@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b67d4ys8b0vsy"
+
+[deps]
+
+files=["res://config/坊市行情.浮动下限.translation", "res://config/坊市行情.浮动上限.translation", "res://config/坊市行情.限购数量.translation", "res://config/坊市行情.事件联动标记.translation", "res://config/坊市行情.备注.translation"]
+
+source_file="res://config/坊市行情.csv"
+dest_files=["res://config/坊市行情.浮动下限.translation", "res://config/坊市行情.浮动上限.translation", "res://config/坊市行情.限购数量.translation", "res://config/坊市行情.事件联动标记.translation", "res://config/坊市行情.备注.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

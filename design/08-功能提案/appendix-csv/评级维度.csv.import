@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dkx6sss4citko"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/评级维度.维度名.translation", "res://design/08-功能提案/appendix-csv/评级维度.权重.translation", "res://design/08-功能提案/appendix-csv/评级维度.组成子指标.translation", "res://design/08-功能提案/appendix-csv/评级维度.子指标权重.translation", "res://design/08-功能提案/appendix-csv/评级维度.指标来源.translation", "res://design/08-功能提案/appendix-csv/评级维度.归一化期望key.translation", "res://design/08-功能提案/appendix-csv/评级维度.维度评级阈值.translation", "res://design/08-功能提案/appendix-csv/评级维度.是否启用.translation", "res://design/08-功能提案/appendix-csv/评级维度.说明.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/评级维度.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/评级维度.维度名.translation", "res://design/08-功能提案/appendix-csv/评级维度.权重.translation", "res://design/08-功能提案/appendix-csv/评级维度.组成子指标.translation", "res://design/08-功能提案/appendix-csv/评级维度.子指标权重.translation", "res://design/08-功能提案/appendix-csv/评级维度.指标来源.translation", "res://design/08-功能提案/appendix-csv/评级维度.归一化期望key.translation", "res://design/08-功能提案/appendix-csv/评级维度.维度评级阈值.translation", "res://design/08-功能提案/appendix-csv/评级维度.是否启用.translation", "res://design/08-功能提案/appendix-csv/评级维度.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

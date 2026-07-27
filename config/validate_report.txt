@@ -61,6 +61,7 @@
 ## tribulation_config.csv  [未识别-跳过]
 ## tribulation_item.csv  →  识别为 `tribulation_item` (4 行数据)
 ## xuanyu_shop.csv  [未识别-跳过]
+## 坊市行情.csv  [未识别-跳过]
 ## 引育纪事.csv  [未识别-跳过]
 ## 新功能冲击声明.csv  [未识别-跳过]
 ## 经济基线.csv  [未识别-跳过]
@@ -94,7 +95,7 @@
 - 校验 CSV 表数: 46
 - 校验数据行数: 1255
 - 错误数: 0
-- 警告数: 20
+- 警告数: 21
 
 ## 警告
 - caravan_member_data.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
@@ -112,6 +113,7 @@
 - teleport_array_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - tribulation_config.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - xuanyu_shop.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
+- 坊市行情.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 引育纪事.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 新功能冲击声明.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验
 - 经济基线.csv: 无法识别表类型(表头不匹配任何 TABLE_RULES)，跳过校验

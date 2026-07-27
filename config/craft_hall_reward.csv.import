@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://103q1a7n6pe1"
+
+[deps]
+
+files=["res://config/craft_hall_reward.level.translation", "res://config/craft_hall_reward.pool.translation", "res://config/craft_hall_reward.item.translation", "res://config/craft_hall_reward.ref.translation", "res://config/craft_hall_reward.item.translation", "res://config/craft_hall_reward.grade.translation", "res://config/craft_hall_reward.weight.translation", "res://config/craft_hall_reward.count.translation", "res://config/craft_hall_reward.count.translation", "res://config/craft_hall_reward.policy.translation"]
+
+source_file="res://config/craft_hall_reward.csv"
+dest_files=["res://config/craft_hall_reward.level.translation", "res://config/craft_hall_reward.pool.translation", "res://config/craft_hall_reward.item.translation", "res://config/craft_hall_reward.ref.translation", "res://config/craft_hall_reward.item.translation", "res://config/craft_hall_reward.grade.translation", "res://config/craft_hall_reward.weight.translation", "res://config/craft_hall_reward.count.translation", "res://config/craft_hall_reward.count.translation", "res://config/craft_hall_reward.policy.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b6vpwfldo4h3n"
+
+[deps]
+
+files=["res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.rarity.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.unlock.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.unlock.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.cooldown.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.is.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.触发周期.translation"]
+
+source_file="res://design/08-功能提案/appendix-csv/事件分级_扩展.csv"
+dest_files=["res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.rarity.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.unlock.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.unlock.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.event.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt1.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.opt2.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.cooldown.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.is.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.trigger.translation", "res://design/08-功能提案/appendix-csv/事件分级_扩展.触发周期.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bgv236h0d0wc2"
+
+[deps]
+
+files=["res://config/经济阀门.系数.translation", "res://config/经济阀门.开关.translation", "res://config/经济阀门.说明.translation"]
+
+source_file="res://config/经济阀门.csv"
+dest_files=["res://config/经济阀门.系数.translation", "res://config/经济阀门.开关.translation", "res://config/经济阀门.说明.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
