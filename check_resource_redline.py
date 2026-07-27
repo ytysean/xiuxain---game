@@ -285,6 +285,60 @@ def main():
             if 联动 != "0":
                 fail("坊市行情.csv 类别[%s] 事件联动标记=%r 非法（须为 0/1）" % (类别, 联动))
 
+    # ========================================================================
+    # D3 —— 负面影响经济侧校验（S1-P0 批次三）三位一体之③ pre_f5 校验
+    #   文件/键存在性守护：经济阀门.csv 不含 neg_global 键则整体 skip + warn，绝不 FAIL。
+    #   蓝图见 design/08-功能提案/12-D3实现规格_数据对齐版.md §9（Layer A / C / D）。
+    #     · 守护：neg_global 未落地 → warn-skip（D3 未声明，闸门保持 25 绿）
+    #     · Layer A：negative_event.csv 扣除>0、灵石封顶不破、资源/价差边界
+    #     · Layer C：经济阀门.csv 含 neg_* 五键（F2 接线守，键存在即可）
+    #     · Layer D：冲击上限_灵石==62 锚定 + event_damage_rate 系数须==1.0
+    # ========================================================================
+    阀门表 = read_table_csv(os.path.join(ROOT, "config", "经济阀门.csv"))
+    阀门键 = {r["阀门"] for r in 阀门表}
+    if "neg_global" not in 阀门键:
+        warn("D3 负面开关簇未落地，跳过 D3 校验")   # 当前状态：跳过 → 25 绿（绝不 fail）
+    else:
+        # —— D3 Layer A：配置合法性（扣除>0、封顶不破、资源/价差边界）——
+        冲击上限 = fnum(kv.get("冲击上限_灵石"), 62)
+        资源上限 = 50
+        标准局月产 = fnum(kv.get("标准局月产"), 366)
+        负面事件_rows = read_table_csv(os.path.join(ROOT, "config", "negative_event.csv"))
+        for r in 负面事件_rows:
+            for slot in ("1", "2"):
+                pt = r.get("punish_type_" + slot, "")
+                pv = fnum(r.get("punish_value_" + slot), 0)
+                if pt in ("无", ""):
+                    continue
+                if pv <= 0:
+                    fail("negative_event %s punish_%s=%s 扣除≤0（配置非法）" % (r["event_id"], slot, pv))
+                if pt == "灵石":
+                    if pv > 冲击上限:
+                        fail("negative_event %s 灵石扣除=%s > 冲击上限%s（破封顶）" % (r["event_id"], pv, 冲击上限))
+                    if pv < 0.05 * 标准局月产 or pv > 0.17 * 标准局月产:
+                        warn("negative_event %s 灵石扣除=%s 偏离[5%%,17%%]红线带[%.1f,%.1f]"
+                             % (r["event_id"], pv, 0.05 * 标准局月产, 0.17 * 标准局月产))
+                elif pt in ("矿石", "灵草", "丹材"):
+                    if pv > 资源上限:
+                        fail("negative_event %s 资源扣除=%s > %s（资源破产风险）" % (r["event_id"], pv, 资源上限))
+                elif pt == "卖价":
+                    if pv < 0.85 or pv > 1.0:
+                        fail("negative_event %s 卖价=%s 越±15%%红线[0.85,1.0]" % (r["event_id"], pv))
+                # 属性类（心魔/修为/忠诚/心境/道心/气血）：无经济校验
+
+        # —— D3 Layer C：F2 接线守（neg_* 五键存在即可；event_damage_rate 已由既有 Layer C0 守护）——
+        for k in ("neg_global", "neg_res_build", "neg_disciple", "neg_reputation", "neg_grade_perm"):
+            if k not in 阀门键:
+                fail("config/经济阀门.csv 缺少 %s 行（D3 开关簇接线未配置）" % k)
+
+        # —— D3 Layer D：红线（Σ封顶锚定 62 + 负面系数须==1.0）——
+        if 冲击上限 != 62:
+            warn("冲击上限_灵石=%s 非 62（ECON-02 §2.4 锚定漂移）" % 冲击上限)
+        负面行 = next((r for r in 阀门表 if r["阀门"] == "event_damage_rate"), None)
+        负面系数 = fnum(负面行["系数"], 1.0) if 负面行 else 1.0
+        if abs(负面系数 - 1.0) > 1e-6:
+            fail("D3 固定值扣除模型下 event_damage_rate 系数必须=1.0（否则与固定扣除双重惩罚）")
+
     print("ALL ASSERTIONS PASSED · 产耗红线 OK · 系数偏差≤15%% · 公式镜像±15%% · "
           "F2 阀门已接线 · 事件渠道<5%% · 总盘复算=%.1f/基线=%s" % (复算月产, 标准局月产))
     sys.exit(0)

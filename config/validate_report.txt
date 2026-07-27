@@ -31,7 +31,7 @@
 ## map_config.csv  →  识别为 `map_config` (4 行数据)
 ## monster_main.csv  →  识别为 `monster_main` (12 行数据)
 ## morale_loyalty_config.csv  →  识别为 `morale_loyalty_config` (2 行数据)
-## negative_event.csv  →  识别为 `negative_event` (7 行数据)
+## negative_event.csv  →  识别为 `negative_event` (12 行数据)
 ## npc_config.csv  →  识别为 `npc_config` (23 行数据)
 ## output_daily.csv  →  识别为 `output_daily` (45 行数据)
 ## path_config.csv  →  识别为 `path_config` (5 行数据)
@@ -65,7 +65,7 @@
 ## 引育纪事.csv  [未识别-跳过]
 ## 新功能冲击声明.csv  [未识别-跳过]
 ## 经济基线.csv  [未识别-跳过]
-## 经济阀门.csv  →  识别为 `经济阀门` (6 行数据)
+## 经济阀门.csv  →  识别为 `经济阀门` (11 行数据)
 ## 节奏校准.csv  [未识别-跳过]
 ## 评级节奏.csv  [未识别-跳过]
 
@@ -93,7 +93,7 @@
 
 # 汇总
 - 校验 CSV 表数: 46
-- 校验数据行数: 1255
+- 校验数据行数: 1265
 - 错误数: 0
 - 警告数: 21
 
