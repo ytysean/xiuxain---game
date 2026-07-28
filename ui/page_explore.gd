@@ -108,7 +108,7 @@ func _build_scroll(parent: Control) -> void:
 	daily_vbox.add_child(daily_title)
 	_daily_vbox = VBoxContainer.new()
 	_daily_vbox.name = "DailyCards"
-	_daily_vbox.add_theme_constant_override("separation", 0)
+	_daily_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	daily_vbox.add_child(_daily_vbox)
 	inner.add_child(daily_panel)
 
@@ -124,7 +124,7 @@ func _build_scroll(parent: Control) -> void:
 	weekly_vbox.add_child(weekly_title)
 	_weekly_vbox = VBoxContainer.new()
 	_weekly_vbox.name = "WeeklyCards"
-	_weekly_vbox.add_theme_constant_override("separation", 0)
+	_weekly_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	weekly_vbox.add_child(_weekly_vbox)
 	inner.add_child(weekly_panel)
 
@@ -208,6 +208,7 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 	var 名称 := Label.new()
 	名称.text = str(q.get("quest_name", "—"))
 	名称.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	名称.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font(名称)
 	l1.add_child(名称)
 	var 类型 := Label.new()
@@ -226,6 +227,8 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 		目标文本 = str(q.get("target_desc", "—")) + "×" + str(int(数量))
 	var 目标 := Label.new()
 	目标.text = 目标文本
+	目标.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	目标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)
 
@@ -282,6 +285,7 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	var 名称 := Label.new()
 	名称.text = str(q.get("quest_name", "—"))
 	名称.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	名称.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font(名称)
 	l1.add_child(名称)
 	var 类型 := Label.new()
@@ -300,6 +304,8 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 		目标文本 = str(q.get("target_desc", "—")) + "×" + str(int(数量))
 	var 目标 := Label.new()
 	目标.text = 目标文本
+	目标.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	目标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)
 

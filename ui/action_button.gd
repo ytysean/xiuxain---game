@@ -37,10 +37,11 @@ func _build() -> void:
 	_icon.name = "Icon"
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var isz: int = UITheme.SIZE_SM if big else 24
+	# 大按钮图标降到 32px、小按钮 20px；统一走 load_icon_sized 光栅化固定尺寸，
+	# 避免原始 SVG 尺寸过大撑爆按钮（§2.4 / §3.1）。
+	var isz: int = 32 if big else 20
 	_icon.custom_minimum_size = Vector2(isz, isz)
-	# 取古风线稿图标（§3.1 修真器物映射）；图标缺失时静默隐藏，不破坏布局
-	var tex: Texture2D = UITheme.load_icon(action_id)
+	var tex: Texture2D = UITheme.load_icon_sized(action_id, isz)
 	if tex != null:
 		_icon.texture = tex
 	vbox.add_child(_icon)
@@ -52,7 +53,8 @@ func _build() -> void:
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(_label)
 
-	var h: int = UITheme.BTN_H_PRIMARY if big else UITheme.BTN_H_SECONDARY
+	# 大按钮最小高度提到 80（GRID*10），给 图标(32)+分隔(8)+文字 留出余量，文字不再被挤出。
+	var h: int = UITheme.GRID * 10 if big else UITheme.BTN_H_SECONDARY
 	custom_minimum_size = Vector2(0, h)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
