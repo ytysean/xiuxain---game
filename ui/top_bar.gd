@@ -76,8 +76,8 @@ func _build() -> void:
 	_time_btn.name = "TimeAdvance"
 	_time_btn.text = "推演时日"
 	# 推演时日 按钮挂线稿图标（§2.4 / §7.4）；缺失静默仅文字。图标尺寸受控 ~22px。
-	_time_btn.icon = UITheme.load_icon("推演时日")
-	_time_btn.icon_max_width = 22
+	# 用 load_icon_sized 预缩放，绕过部分 Godot 4.7 build 中 Button.icon_max_width 不可用的问题。
+	_time_btn.icon = UITheme.load_icon_sized("推演时日", 22)
 	_time_btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_time_btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	_time_btn.custom_minimum_size = Vector2(72, 32)
