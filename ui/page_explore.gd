@@ -137,8 +137,10 @@ func _is_locked() -> bool:
 	var 等级 := 1
 	var 引导 := 0
 	if is_instance_valid(Game):
-		等级 = int(Game.get("门派等级", 1))
-		引导 = int(Game.get("引导阶段", 0))
+		var 等级v = Game.get("门派等级")
+		等级 = int(等级v) if 等级v != null else 1
+		var 引导v = Game.get("引导阶段")
+		引导 = int(引导v) if 引导v != null else 0
 	return (等级 < 3 and 引导 < 6)
 
 func _奖励系数() -> float:
@@ -159,7 +161,8 @@ func _progress_summary() -> String:
 			for b in 已领:
 				if bool(b):
 					日常已领数 += 1
-		周常状态 = "已领" if bool(Game.get("周常已领", false)) else "未领"
+		var 周常已领v = Game.get("周常已领")
+		周常状态 = "已领" if bool(周常已领v) else "未领"
 	return "日常 %d/%d  周常 %s" % [日常已领数, 日常总数, 周常状态]
 
 func _populate() -> void:
@@ -320,7 +323,7 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	UITheme.apply_primary_button_style(领取)
 	var 已领 := false
 	if is_instance_valid(Game):
-		已领 = bool(Game.get("周常已领", false))
+		已领 = bool(Game.get("周常已领"))
 	if 已领:
 		领取.text = "已领"
 		领取.disabled = true
