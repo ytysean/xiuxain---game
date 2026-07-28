@@ -41,12 +41,11 @@ func _build_header(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Header"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 7)
-	UITheme.apply_panel_style(panel)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
 
-	var 图标 = UITheme.load_icon("历练")
+	var 图标 = UITheme.load_icon_sized("历练", UITheme.SIZE_SM)
 	if 图标 != null:
 		var tr := TextureRect.new()
 		tr.texture = 图标
@@ -72,7 +71,6 @@ func _build_lock_bar(parent: Control) -> void:
 	_lock_bar.name = "LockBar"
 	_lock_bar.custom_minimum_size = Vector2(0, UITheme.GRID * 6)
 	_lock_bar.visible = false
-	UITheme.apply_panel_style(_lock_bar)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	_lock_bar.add_child(hb)
@@ -98,7 +96,6 @@ func _build_scroll(parent: Control) -> void:
 
 	var daily_panel := PanelContainer.new()
 	daily_panel.name = "DailyPanel"
-	UITheme.apply_panel_style(daily_panel)
 	var daily_vbox := VBoxContainer.new()
 	daily_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	daily_panel.add_child(daily_vbox)
@@ -114,7 +111,6 @@ func _build_scroll(parent: Control) -> void:
 
 	var weekly_panel := PanelContainer.new()
 	weekly_panel.name = "WeeklyPanel"
-	UITheme.apply_panel_style(weekly_panel)
 	var weekly_vbox := VBoxContainer.new()
 	weekly_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	weekly_panel.add_child(weekly_vbox)
@@ -198,7 +194,6 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 	var card := PanelContainer.new()
 	card.name = "Daily_%d" % i
 	card.custom_minimum_size = Vector2(0, UITheme.GRID * 9)
-	UITheme.apply_panel_style(card)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	card.add_child(vbox)
@@ -249,7 +244,6 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 	var 领取 := Button.new()
 	领取.name = "ClaimDaily_%d" % i
 	领取.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_primary_button_style(领取)
 	var 已领 := false
 	if is_instance_valid(Game):
 		var 已领列表 = Game.get("日常已领")
@@ -275,7 +269,6 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	var card := PanelContainer.new()
 	card.name = "Weekly"
 	card.custom_minimum_size = Vector2(0, UITheme.GRID * 9)
-	UITheme.apply_panel_style(card)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	card.add_child(vbox)
@@ -326,7 +319,6 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	var 领取 := Button.new()
 	领取.name = "ClaimWeekly"
 	领取.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_primary_button_style(领取)
 	var 已领 := false
 	if is_instance_valid(Game):
 		已领 = bool(Game.get("周常已领"))
