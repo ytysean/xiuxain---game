@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 山洞 / Mountain Cave — 核心宫格"洞府"图标。圆顶山丘下开拱门，取洞天福地之象。-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(-2.909, -10.545) scale(1.090909)" stroke-width="3.667">
   <!-- 圆顶山丘 -->
   <path d="M10 50 Q32 28 54 50"/>
   <!-- 地平线 -->
   <line x1="10" y1="50" x2="54" y2="50"/>
   <!-- 拱形洞门（左柱 + 拱顶 + 右柱） -->
   <path d="M26 50 L26 42 Q26 34 32 34 Q38 34 38 42 L38 50"/>
+  </g>
 </svg>

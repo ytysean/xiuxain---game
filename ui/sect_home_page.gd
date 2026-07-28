@@ -3,6 +3,10 @@ extends Control
 # 宗门页骨架（导航骨架 C）。组合：经营概览占位(§2.2 120dp) + CoreActionGrid(240dp)
 # + 可滚动次功能区（3 个 CollapsibleCategory + 御兽通用占位槽）。
 # 本骨架仅搭建结构并发信号，不连玩法。
+#
+# 次功能区直接用 VBoxContainer（不套 ScrollContainer）：S1 内容
+# （概览120 + 宫格 + 3 折叠分类 + 御兽占位）在 854 高屏内可完整容纳，
+# 无需滚动，从而避免 ScrollContainer 在右侧露出竖线/滚动条。
 
 const CoreActionGridScene: PackedScene = preload("res://ui/core_action_grid.tscn")
 const CollapsibleScene: PackedScene = preload("res://ui/collapsible_category.tscn")
@@ -46,18 +50,13 @@ func _build() -> void:
 	grid.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	vbox.add_child(grid)
 
-	# 次功能滚动区
-	var scroll := ScrollContainer.new()
-	scroll.name = "SecondaryArea"
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vbox.add_child(scroll)
-
+	# 次功能区：直接用 VBoxContainer（不依赖 ScrollContainer），避免右侧露出滚动条/竖线。
 	var inner := VBoxContainer.new()
-	inner.name = "Inner"
+	inner.name = "SecondaryArea"
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	inner.add_theme_constant_override("separation", UITheme.GRID * 2)
-	scroll.add_child(inner)
+	vbox.add_child(inner)
 
 	for cat in CATEGORIES:
 		var c := CollapsibleScene.instantiate() as Control
