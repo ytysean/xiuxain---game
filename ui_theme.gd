@@ -108,33 +108,33 @@ func _ensure_fonts() -> void:
 	if FileAccess.file_exists(FONT_BODY_PATH):
 		_font_body_res = load(FONT_BODY_PATH) as FontFile
 
-func apply_title_font(label: Label) -> void:
+func apply_title_font(control: Control) -> void:
 	_ensure_fonts()
-	label.add_theme_font_size_override("font_size", FONT_TITLE)
-	label.add_theme_color_override("font_color", COLOR_BORDER_GOLD)
+	control.add_theme_font_size_override("font_size", FONT_TITLE)
+	control.add_theme_color_override("font_color", COLOR_BORDER_GOLD)
 	if _font_title_res != null:
-		label.add_theme_font_override("font", _font_title_res)
+		control.add_theme_font_override("font", _font_title_res)
 
-func apply_value_font(label: Label, abnormal: bool = false) -> void:
+func apply_value_font(control: Control, abnormal: bool = false) -> void:
 	_ensure_fonts()
-	label.add_theme_font_size_override("font_size", FONT_VALUE)
-	label.add_theme_color_override("font_color", color_value(abnormal))
+	control.add_theme_font_size_override("font_size", FONT_VALUE)
+	control.add_theme_color_override("font_color", color_value(abnormal))
 	if _font_body_res != null:
-		label.add_theme_font_override("font", _font_body_res)
+		control.add_theme_font_override("font", _font_body_res)
 
-func apply_body_font(label: Label) -> void:
+func apply_body_font(control: Control) -> void:
 	_ensure_fonts()
-	label.add_theme_font_size_override("font_size", FONT_BODY)
-	label.add_theme_color_override("font_color", COLOR_TEXT_BODY)
+	control.add_theme_font_size_override("font_size", FONT_BODY)
+	control.add_theme_color_override("font_color", COLOR_TEXT_BODY)
 	if _font_body_res != null:
-		label.add_theme_font_override("font", _font_body_res)
+		control.add_theme_font_override("font", _font_body_res)
 
-func apply_aux_font(label: Label) -> void:
+func apply_aux_font(control: Control) -> void:
 	_ensure_fonts()
-	label.add_theme_font_size_override("font_size", FONT_AUX)
-	label.add_theme_color_override("font_color", COLOR_TEXT_AUX)
+	control.add_theme_font_size_override("font_size", FONT_AUX)
+	control.add_theme_color_override("font_color", COLOR_TEXT_AUX)
 	if _font_body_res != null:
-		label.add_theme_font_override("font", _font_body_res)
+		control.add_theme_font_override("font", _font_body_res)
 
 # 落盘探测：返回是否两套字体均就位（用于启动日志 / 降级提示，不阻断）。
 func apply_fonts() -> bool:
