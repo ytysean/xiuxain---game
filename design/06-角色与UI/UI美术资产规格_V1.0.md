@@ -263,6 +263,33 @@ const ICON_BY_LABEL: Dictionary = {
 
 ---
 
+## 十、S1 决策裁定（v1.1）
+
+> 由 art-director 于 v1.1 美术收尾轮追加；本节点仅记录已落定的两项裁定，**不影响组件代码（零改动）**。
+
+### 10.1 面板描边裁定（INTENTIONAL DEVIATION）
+
+- **裁定**：S1 默认面板蒙皮统一走 `UITheme.make_panel_stylebox(use_ink=true)` → 自包含 `panel_ink.svg` 蒙皮，描边随 9-slice 等比缩放约 **2–3px 暗金描边**。
+- **与 V1.0 §2.4 的关系**：这是**对 V1.0 §2.4 字面"1px 暗金描边"的有意偏离（intentional deviation）**，非疏漏。偏离理由：手机竖屏（480×854）下 2–3px 暗金的可见性与可读性显著优于严格 1px；且 PanelContainer 仅支持单 `"panel"` stylebox slot，无法在同一 slot 内叠加"精确 1px 边框 + 暗纹贴图"，取舍上以**视觉一致性优先**于规范字面。
+- **回退路径保留**：严格 1px 仍需时，调用方显式传 `make_panel_stylebox(false)`（或 `apply_panel_style(control, false)`）即获 `StyleBoxFlat` 严格 1px 暗金描边作兜底（§4.1、§7.1 红线自检第 5 行已记录）。
+- **结论**：S1 全量面板默认 2–3px 暗金蒙皮；本裁定自 v1.1 起为正式美术基线，V1.0 §2.4 的 1px 仅作 fallback 语义保留。
+
+### 10.2 字体集成状态（v1.1 已落盘）
+
+- **落盘结果**：两套字体已于 v1.1 轮下载至 `ui/assets/fonts/`，精确匹配 `ui_theme.gd` 的 `FONT_TITLE_PATH` / `FONT_BODY_PATH`：
+
+  | 文件 | 落盘路径 | 体积 | 字体魔数 | 状态 |
+  |---|---|---|---|---|
+  | `MaShanZheng-Regular.ttf`（标题书法） | `res://ui/assets/fonts/MaShanZheng-Regular.ttf` | 5,857,936 B（≈5.59 MB） | `00 01 00 00`（TrueType） | ✅ 已落盘 |
+  | `NotoSerifSC-Regular.otf`（正文宋体 · SC 子集） | `res://ui/assets/fonts/NotoSerifSC-Regular.otf` | 11,625,800 B（≈11.09 MB） | `OTTO`（CFF/OpenType） | ✅ 已落盘 |
+
+- **拾取机制**：`UITheme._ensure_fonts()` 在首次 `apply_*_font` / `apply_fonts()` 调用时按 `FONT_TITLE_PATH` / `FONT_BODY_PATH` 探测；两文件就位后 `apply_fonts()` 返回 `true`，`apply_title_font` / `apply_value_font` / `apply_body_font` / `apply_aux_font` 自动将字体 override 叠加到对应 Label（缺失时退回 `font_size` + `font_color` override，不阻断）。**组件零改动即可生效。**
+- **来源说明**：`MaShanZheng-Regular.ttf` 取自 Google Fonts（`ofl/mashanzheng`）。`NotoSerifSC-Regular.otf` 原 `google/fonts/main/ofl/notoserifsc/NotoSerifSC-Regular.otf` 路径经实测返回 **404**，故改用 `notofonts/noto-cjk` 的 `Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf`（OFL 1.1，SC 子集覆盖简体，体积更省）；经 jsDelivr 镜像断点续传补全，魔数 `OTTO` 校验通过，与 `FONT_BODY_PATH` 完全对齐。
+- **已知限制 / 待验证**：本环境仅做**落盘与魔数校验**，真实 in-editor 字体加载（字形光栅、CJK 覆盖、`.import` 生成）留待 Godot F5 冒烟测试确认；即便缺失，`ui_theme.gd` 已优雅降级（不崩溃、不刷错误日志）。§九第 1 条「字体落盘」本轮回执行为**已完成**。
+
+---
+
 ## 文档版本
 
 - v1.0 · 2026-07-28 · 初版 · art-director · 与 S1 UI 重构第三条线落地配套
+- v1.1 · 2026-07-28 · 美术收尾轮 · art-director · 追加 §十 S1 决策裁定（面板描边有意偏离 V1.0 §2.4 1px；两套字体已落盘，apply_fonts() 现可于盘上成功）
