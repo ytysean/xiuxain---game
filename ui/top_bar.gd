@@ -124,12 +124,7 @@ func _apply_theme() -> void:
 		var lbl: Label = _res_labels.get(id, null)
 		if lbl != null:
 			UITheme.apply_value_font(lbl, false)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = UITheme.COLOR_BORDER_GOLD
-	_progress.add_theme_stylebox_override("fill", fill)
-	var bg_sb := StyleBoxFlat.new()
-	bg_sb.bg_color = UITheme.COLOR_BTN_DISABLED
-	_progress.add_theme_stylebox_override("background", bg_sb)
+	# 等级进度条填充/底由 main_theme.tres 的 ProgressBar 默认提供（令牌 success 绿 #7ED39A，D2 拍板）。
 	UITheme.apply_primary_button_style(_time_btn)
 
 func set_time(text: String) -> void:
