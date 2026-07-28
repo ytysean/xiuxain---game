@@ -54,7 +54,6 @@ func _build_header(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Header"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 7)
-	UITheme.apply_panel_style(panel)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(vbox)
@@ -63,7 +62,7 @@ func _build_header(parent: Control) -> void:
 	top.add_theme_constant_override("separation", UITheme.GRID)
 	vbox.add_child(top)
 
-	var 图标 = UITheme.load_icon("纪事")
+	var 图标 = UITheme.load_icon_sized("纪事", UITheme.SIZE_SM)
 	if 图标 != null:
 		var tr := TextureRect.new()
 		tr.texture = 图标
@@ -148,7 +147,6 @@ func _add_entry_row(e: Dictionary, idx: int) -> void:
 	row.name = "Entry_%d" % idx
 	row.custom_minimum_size = Vector2(0, UITheme.GRID * 8)
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	UITheme.apply_panel_style(row)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
 	row.add_child(vbox)
