@@ -7,6 +7,7 @@ extends Control
 
 const DiscipleData := preload("res://disciple.gd")
 const DestinyLoader := preload("res://DestinyDataLoader.gd")
+const ListItemScene: PackedScene = preload("res://components/ListItem.tscn")
 
 signal 弟子详情请求(弟子ID: int)
 signal 弟子排序请求(模式: String)
@@ -62,12 +63,11 @@ func _build_list_header() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Header"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 7)
-	UITheme.apply_panel_style(panel)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
 
-	var 图标 = UITheme.load_icon("弟子")
+	var 图标 = UITheme.load_icon_sized("弟子", UITheme.SIZE_SM)
 	if 图标 != null:
 		var tr := TextureRect.new()
 		tr.texture = 图标
@@ -100,7 +100,6 @@ func _build_list_header() -> void:
 	sort_btn.text = "排序"
 	sort_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	sort_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-	UITheme.apply_secondary_button_style(sort_btn)
 	sort_btn.pressed.connect(_on_sort_pressed)
 	hb.add_child(sort_btn)
 
@@ -123,7 +122,6 @@ func _build_decision_area() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "DecisionPanel"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 15)
-	UITheme.apply_panel_style(panel)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(vbox)
@@ -147,7 +145,6 @@ func _build_detail_root() -> void:
 	back_btn.name = "BackBtn"
 	back_btn.text = "返回"
 	back_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_secondary_button_style(back_btn)
 	back_btn.pressed.connect(_on_back_pressed)
 	bar.add_child(back_btn)
 	var title := Label.new()
@@ -203,47 +200,31 @@ func _populate_list() -> void:
 	_power_value.text = str(power)
 
 func _add_disciple_row(d: Object, 索引: int) -> void:
-	var row := PanelContainer.new()
-	row.name = "Row_%d" % 索引
-	row.custom_minimum_size = Vector2(0, UITheme.GRID * 9)
-	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	UITheme.apply_panel_style(row)
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", UITheme.GRID)
-	row.add_child(hb)
-
-	var 姓名 := Label.new()
-	姓名.text = str(_safe_get(d, "姓名", "—"))
-	姓名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	姓名.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UITheme.apply_body_font(姓名)
-	hb.add_child(姓名)
-
-	var 境界 := Label.new()
-	境界.text = str(_safe_get(d, "境界", "—"))
-	UITheme.apply_aux_font(境界)
-	hb.add_child(境界)
-
 	var 战力v = _safe_get(d, "战力", null)
-	var 战力文本 := "战力 —"
 	var 战力异常 := false
+	var 战力文本 := "战力 —"
 	if 战力v != null and (typeof(战力v) == TYPE_INT or typeof(战力v) == TYPE_FLOAT):
 		战力异常 = int(战力v) < 0
 		战力文本 = "战力 " + str(int(战力v))
-	var 战力标签 := Label.new()
-	战力标签.text = 战力文本
-	UITheme.apply_value_font(战力标签, 战力异常)
-	hb.add_child(战力标签)
+	var 境界 = str(_safe_get(d, "境界", "—"))
+	var 状态 = _derive_status(d)
 
-	var 状态 := Label.new()
-	状态.text = _derive_status(d)
-	UITheme.apply_aux_font(状态)
-	hb.add_child(状态)
-
-	_list_vbox.add_child(row)
+	# 改用通用组件 ListItem（令牌 flat 面板 + 单行 title/subtitle/value/icon）。
+	# 原行「境界」「状态」两字段合并进 subtitle；战力为负经 value_abnormal 标红。
+	var 行 = ListItemScene.instantiate() as PanelContainer
+	行.name = "Row_%d" % 索引
+	行.custom_minimum_size = Vector2(0, UITheme.GRID * 9)
+	行.set_data({
+		"title": str(_safe_get(d, "姓名", "—")),
+		"subtitle": "%s · %s" % [境界, 状态],
+		"value": 战力文本,
+		"icon": "弟子",
+		"index": 索引,
+		"value_abnormal": 战力异常,
+	})
+	行.item_selected.connect(_on_disciple_item_selected)
+	_list_vbox.add_child(行)
 	_list_vbox.add_child(UITheme.make_divider_control())
-	_pass_through(row)
-	row.gui_input.connect(_on_row_gui_input.bind(索引))
 
 func _derive_status(d: Object) -> String:
 	var 堂口 = _safe_get(d, "堂口", "")
@@ -259,12 +240,12 @@ func _derive_status(d: Object) -> String:
 			return "考核冷却"
 	return "在岗"
 
-func _on_row_gui_input(event: InputEvent, 索引: int) -> void:
-	if event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			弟子详情请求.emit(索引)
-			_show_detail(索引)
+func _on_disciple_item_selected(data: Dictionary) -> void:
+	var 索引 = int(data.get("index", -1))
+	if 索引 < 0:
+		return
+	弟子详情请求.emit(索引)
+	_show_detail(索引)
 
 func _show_detail(索引: int) -> void:
 	var d = _row_map.get(索引, null)
@@ -322,7 +303,6 @@ func _add_decision_card(entry: Dictionary, 索引: int, parent: Control) -> void
 	var card := PanelContainer.new()
 	card.name = "Card_%d" % 索引
 	card.custom_minimum_size = Vector2(120, 200)
-	UITheme.apply_panel_style(card)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	card.add_child(vbox)
@@ -358,7 +338,6 @@ func _add_decision_card(entry: Dictionary, 索引: int, parent: Control) -> void
 	交宗.name = "Accept_%d" % 索引
 	交宗.text = "交宗"
 	交宗.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_secondary_button_style(交宗)
 	交宗.pressed.connect(_on_待抉择_交宗.bind(索引))
 	vbox.add_child(交宗)
 
@@ -366,7 +345,6 @@ func _add_decision_card(entry: Dictionary, 索引: int, parent: Control) -> void
 	自留.name = "Keep_%d" % 索引
 	自留.text = "自留"
 	自留.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_secondary_button_style(自留)
 	自留.pressed.connect(_on_待抉择_自留.bind(索引))
 	vbox.add_child(自留)
 
@@ -484,7 +462,6 @@ func _attr(属性, key: String) -> String:
 func _add_section(标题: String, 行: Array) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Section_%s" % 标题
-	UITheme.apply_panel_style(panel)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(vbox)

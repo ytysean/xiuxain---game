@@ -34,7 +34,10 @@ func set_data(data: Dictionary) -> void:
 	if data.has("subtitle"):
 		_subtitle.text = str(data["subtitle"])
 	if data.has("value"):
+		# 战力为负/异常标红：set_data 可选键 value_abnormal（默认 false），由页面侧传入。
+		var abnormal: bool = data.get("value_abnormal", false)
 		_value.text = str(data["value"])
+		UITheme.apply_value_font(_value, abnormal)
 	if data.has("icon") and data["icon"] is String:
 		var tex: Texture2D = UITheme.load_icon_sized(data["icon"], UITheme.SIZE_SM)
 		if tex != null:
