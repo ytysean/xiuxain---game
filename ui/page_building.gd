@@ -232,7 +232,6 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	升级.name = "Upgrade_%s" % key
 	升级.text = "修葺"
 	升级.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	UITheme.apply_primary_button_style(升级)
 	升级.pressed.connect(_on_升级_pressed.bind(key))
 	l3.add_child(升级)
 	vbox.add_child(l3)
