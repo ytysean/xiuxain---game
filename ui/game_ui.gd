@@ -9,10 +9,13 @@ extends Control
 const TopBarScene: PackedScene = preload("res://ui/top_bar.tscn")
 const BottomTabBarScene: PackedScene = preload("res://ui/bottom_tab_bar.tscn")
 const SectHomePageScene: PackedScene = preload("res://ui/sect_home_page.tscn")
+const PageDiscipleScene: PackedScene = preload("res://ui/page_disciple.tscn")
+const PageBuildingScene: PackedScene = preload("res://ui/page_building.tscn")
+const PageExploreScene: PackedScene = preload("res://ui/page_explore.tscn")
+const PageChronicleScene: PackedScene = preload("res://ui/page_chronicle.tscn")
 
 # 与 BottomTabBar.TABS 保持一致（§7.1）；首位 宗门 为已建成页。
 const PAGE_IDS: Array = ["宗门", "弟子", "建筑", "历练", "纪事"]
-const PLACEHOLDER_TEXT: String = "建设中"
 
 var _top_bar: Control
 var _bottom_bar: Control
@@ -50,28 +53,25 @@ func _build() -> void:
 	_bottom_bar.name = "BottomTabBar"
 	add_child(_bottom_bar)
 
-	# 预建页面：仅 宗门 为真实页，其余为轻量占位（不建真页面）。
+	# 预建页面：宗门 为真实页；其余四页实例化真实只读页场景（接 建设中 占位）。
 	for id in PAGE_IDS:
-		if id == "宗门":
-			var page := SectHomePageScene.instantiate() as Control
-			page.name = "Page_" + id
-			_pages[id] = page
-		else:
-			_pages[id] = _make_placeholder(id)
+		match id:
+			"宗门":
+				_pages[id] = _make_real_page(SectHomePageScene, id)
+			"弟子":
+				_pages[id] = _make_real_page(PageDiscipleScene, id)
+			"建筑":
+				_pages[id] = _make_real_page(PageBuildingScene, id)
+			"历练":
+				_pages[id] = _make_real_page(PageExploreScene, id)
+			"纪事":
+				_pages[id] = _make_real_page(PageChronicleScene, id)
 
-# 轻量「建设中」占位页（不建真页面，待后续接入）。
-func _make_placeholder(id: String) -> Control:
-	var c := Control.new()
-	c.name = "Page_" + id
-	var label := Label.new()
-	label.name = "Hint"
-	label.text = PLACEHOLDER_TEXT
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	UITheme.apply_aux_font(label)
-	c.add_child(label)
-	return c
+# 实例化真实页场景（仅占位 Control，子节点由各自脚本 _ready 内建）。
+func _make_real_page(scene: PackedScene, id: String) -> Control:
+	var page := scene.instantiate() as Control
+	page.name = "Page_" + id
+	return page
 
 # ───────── 信号接线 ─────────
 func _wire() -> void:
@@ -87,10 +87,9 @@ func _apply_safe_defaults() -> void:
 	_top_bar.set_resource("灵石", "—", false)
 	_top_bar.set_resource("灵气", "—", false)
 	_top_bar.set_resource("弟子", "—", false)
-	# 宗门页首屏概览刷新（只读 Game，sect_home_page 内部已做 null 守卫）。
-	var home: Control = _pages.get("宗门", null)
-	if home != null and home.has_method("refresh_overview"):
-		home.refresh_overview()
+	# 首屏刷新：所有真实页统一 refresh()（宗门页提供 refresh_overview()，其余提供 refresh()）。
+	# 全部只读 Game，内部已做 null 守卫；绝不写 GameState / 玩法。
+	_refresh_all_pages()
 
 func _select_initial() -> void:
 	_show_page("宗门")
@@ -114,3 +113,16 @@ func _on_tab_selected(tab_id: String) -> void:
 # 推演时日：时间推进待玩法侧接入；当前仅占位日志，不写任何玩法/战斗逻辑。
 func _on_time_advance_requested() -> void:
 	print("[GameUI] 推演时日 触发（时间推进待玩法侧接入，当前仅占位日志，未触碰玩法/战斗）")
+	# 推演后重拉各只读页数据（read-only refresh，不写玩法）。
+	_refresh_all_pages()
+
+# 对所有真实页触发只读刷新（宗门→refresh_overview，其余→refresh）。
+func _refresh_all_pages() -> void:
+	for id in PAGE_IDS:
+		var page: Control = _pages.get(id, null)
+		if page == null:
+			continue
+		if page.has_method("refresh"):
+			page.refresh()
+		elif page.has_method("refresh_overview"):
+			page.refresh_overview()
