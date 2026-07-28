@@ -25,7 +25,6 @@ func _build() -> void:
 	var frame := PanelContainer.new()
 	frame.name = "Frame"
 	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_panel_style(frame)
 	add_child(frame)
 
 	var inner := VBoxContainer.new()
