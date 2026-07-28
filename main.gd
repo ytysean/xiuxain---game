@@ -49,6 +49,7 @@ const BTN_危险底 := Color(0.361, 0.200, 0.200)  # 暗红棕 5C3333 (危险底
 const BTN_危险边 := Color(0.545, 0.353, 0.353)  # 8B5A5A (危险边)
 const BTN_危险字 := Color(0.910, 0.784, 0.784)  # E8C8C8 (危险字)
 const 启用皮肤纹理: bool = false           # 一键回退：false→纯扁平 v2.0 风（不挂载 AI 方向稿纹理）
+const 启用新UI := true
 
 # ── UI 整改「三」参数层收敛（§2.2 背景 / §3.1·§3.4 字号 / §3.5 裸色转正）──
 # 背景两层（§2.2）：远景 modulate alpha + 暗叠层颜色/alpha，统一收口
@@ -218,6 +219,7 @@ var 内容区: Control = null            # 固定内容区锚点（顶栏下/底
 var 当前页容器: ScrollContainer = null  # 当前整页根（ScrollContainer+VBox），切换时 queue_free
 var 当前页名: String = ""              # 当前核心 Tab 名（用于刷新/引导判定）
 var 当前页持久节点: Array = []          # 当前页持有的持久 VBox（切换前先卸下，避免被 queue_free 误杀）
+var 新UI: Control = null
 var _二级页: String = ""                # 当前二级页名（""=核心页；非空前主导航仍高亮宗门）
 var _弟子二级tab: int = 0               # 弟子页二级 Tab：0=名录 / 1=接引（跨切换保留）
 var 调试图标: Button = null             # 顶栏角落：推演中心（Debug 可见）
@@ -252,130 +254,137 @@ func _ready():
 	暗罩.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	背景层.add_child(暗罩)
 
-	# 主垂直布局：占满目标条以下、屏幕底部边距区域
-	var 主布局 := VBoxContainer.new()
-	主布局.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	主布局.offset_top = 48    # 顶部预留 48px 给常驻目标条（§5.1）
-	主布局.offset_left = 8
-	主布局.offset_right = -8
-	主布局.offset_bottom = -8
-	主布局.add_theme_constant_override("separation", 6)
-	add_child(主布局)
-
-	# 顶栏（固定，不随页面切换销毁）：掌教标题 + 状态带 + 角落图标
-	var 顶栏 := VBoxContainer.new()
-	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	顶栏.add_theme_constant_override("separation", 4)
-	主布局.add_child(顶栏)
-
-	# 内容区锚点（固定）：顶栏下、底栏上，承载当前整页容器
-	内容区 = VBoxContainer.new()
-	内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	内容区.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	主布局.add_child(内容区)
-
-	# 底部固定栏：TabBar + 详情面板（不再随中部内容滚动）
-	var 底部区 := VBoxContainer.new()
-	底部区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	底部区.custom_minimum_size = Vector2(0, 180)
-	主布局.add_child(底部区)
-
-	# 顶栏：掌教标题 + 别名 + 状态带（固定不滚动）
-	var 掌教标题 := Button.new()
-	掌教标题.text = "《太玄宗门录》· 掌教治宗"
-	掌教标题.flat = true
-	掌教标题.add_theme_font_size_override("font_size", FONT_PANEL_B)
-	掌教标题.add_theme_color_override("font_color", 暗金)
-	掌教标题.pressed.connect(_on_掌教点击彩蛋)
-	顶栏.add_child(掌教标题)
-	var 别名 := Label.new()
-	别名.text = "又名：开局接手太玄宗"
-	别名.add_theme_font_size_override("font_size", FONT_AUX)
-	别名.add_theme_color_override("font_color", 宣纸亮)
-	顶栏.add_child(别名)
-	状态栏 = Label.new()
-	状态栏.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	状态栏.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 让点击穿透到状态面板，供引导步骤①Hook
-	var 状态面板: PanelContainer = 新面板("")
-	状态面板.get_child(0).add_child(状态栏)
-	状态面板.add_theme_stylebox_override("panel", _暗墨面板())
-	状态栏.add_theme_color_override("font_color", 暗金)
-	顶栏.add_child(状态面板)
-	引导_状态面板 = 状态面板
-
-	# 顶栏角落图标：设置（存读/新游戏，常驻）+ 调试（推演中心，Debug 可见）
-	var 顶栏角 := HBoxContainer.new()
-	顶栏角.alignment = BoxContainer.ALIGNMENT_END
-	顶栏角.add_theme_constant_override("separation", 6)
-	顶栏.add_child(顶栏角)
-	设置图标 = Button.new(); 设置图标.text = "⚙"
-	设置图标.tooltip_text = "设置（存读 / 新游戏）"
-	设置图标.pressed.connect(_弹_设置)
-	顶栏角.add_child(设置图标)
-	if OS.is_debug_build():
-		调试图标 = Button.new(); 调试图标.text = "🐞"
-		调试图标.tooltip_text = "推演中心（调试）"
-		调试图标.pressed.connect(_弹_推演中心)
-		顶栏角.add_child(调试图标)
-		引导_推演按钮 = 调试图标
-
-	# 离山汇总（离线收益简报）：建为独立弹窗，不内联首页（§1.2 B3）
-	离山面板 = 新面板("✦ 离山汇总（你离开期间）")
-	var 离山根: VBoxContainer = 离山面板.get_child(0)
-	离山内容区 = VBoxContainer.new()
-	离山内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	离山内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	离山根.add_child(离山内容区)
-	离山面板.custom_minimum_size = Vector2(0, 140)
-	离山面板.gui_input.connect(_on_离山面板_点击)
-	var 离山关 := Button.new(); 离山关.text = "归藏"; 离山关.custom_minimum_size = Vector2(0, 44)
-	离山关.pressed.connect(_关_离山简报)
-	离山根.add_child(离山关)
-	# 战报 Label 保留作兼容降级显示（旧存档/无结构化数据时用）
-	战报 = Label.new()
-	战报.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	战报.visible = false   # 默认隐藏，新UI优先
-
-	# 底部主导航：复用 标签栏(TabBar)，5 核心 Tab 常驻、跨页不释放（§1.4）
-	var tb := TabBar.new()
-	for n in 页名:
-		tb.add_tab(n)
-	tb.tab_changed.connect(_on_主导航切换)
-	底部区.add_child(tb)
-	标签栏 = tb
-	标签栏.custom_minimum_size = Vector2(0, 56)  # 底部主导航 tab 触摸高度>=44 (§1 ⑩ ACCESSIBILITY Standard)
-
-	# 持久内容 VBox（跨页不销毁，仅随整页切换重挂载/卸载；刷新逻辑直接复用）
-	列表 = VBoxContainer.new(); 列表.add_theme_constant_override("separation", 6); 列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 列表.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	抉择区 = VBoxContainer.new(); 抉择区.add_theme_constant_override("separation", 6); 抉择区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 抉择区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	御兽区 = VBoxContainer.new(); 御兽区.add_theme_constant_override("separation", 4); 御兽区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 御兽区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	纪事区 = VBoxContainer.new(); 纪事区.add_theme_constant_override("separation", 4); 纪事区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 纪事区.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# 弟子页头（总战力+排序+提示）持久，跨切换保留
-	_建_弟子页头()
-
-	# 弟子页头由 _建_弟子页头() 持久构建（见下方整页切换区块）
-
-	# 详情面板（底部常驻，固定不滚动）
-	详情 = Label.new()
-	详情.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var 详情面板: PanelContainer = 新面板("🔍 详情")
-	详情面板.custom_minimum_size = Vector2(0, 110)
-	详情面板.get_child(0).add_child(详情)
-	底部区.add_child(详情面板)
-
-	Game.弟子变动.connect(刷新, CONNECT_DEFERRED)   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
-	Game.新手目标更新.connect(_刷新_新手UI, CONNECT_DEFERRED)   # P0 目标链：玉牌/Tab 红点/跳字刷新   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
-	Game.战报更新.connect(_on_战报)
-	Game.奇遇发生.connect(_on_奇遇发生)   # Step 2：奇遇三场景触发后展示调度
-	# 引导步骤①的点击 Hook：点状态栏→资源（离山面板 Hook 在离山面板创建处绑定）
-	引导_状态面板.gui_input.connect(_on_状态面板_点击)
-
-	# 构建默认首页（宗门），整页切换机制启动
-	_on_主导航切换(0)
+	if not 启用新UI:
+		# 主垂直布局：占满目标条以下、屏幕底部边距区域
+		var 主布局 := VBoxContainer.new()
+		主布局.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		主布局.offset_top = 48    # 顶部预留 48px 给常驻目标条（§5.1）
+		主布局.offset_left = 8
+		主布局.offset_right = -8
+		主布局.offset_bottom = -8
+		主布局.add_theme_constant_override("separation", 6)
+		add_child(主布局)
+	
+		# 顶栏（固定，不随页面切换销毁）：掌教标题 + 状态带 + 角落图标
+		var 顶栏 := VBoxContainer.new()
+		顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		顶栏.add_theme_constant_override("separation", 4)
+		主布局.add_child(顶栏)
+	
+		# 内容区锚点（固定）：顶栏下、底栏上，承载当前整页容器
+		内容区 = VBoxContainer.new()
+		内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		内容区.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		主布局.add_child(内容区)
+	
+		# 底部固定栏：TabBar + 详情面板（不再随中部内容滚动）
+		var 底部区 := VBoxContainer.new()
+		底部区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		底部区.custom_minimum_size = Vector2(0, 180)
+		主布局.add_child(底部区)
+	
+		# 顶栏：掌教标题 + 别名 + 状态带（固定不滚动）
+		var 掌教标题 := Button.new()
+		掌教标题.text = "《太玄宗门录》· 掌教治宗"
+		掌教标题.flat = true
+		掌教标题.add_theme_font_size_override("font_size", FONT_PANEL_B)
+		掌教标题.add_theme_color_override("font_color", 暗金)
+		掌教标题.pressed.connect(_on_掌教点击彩蛋)
+		顶栏.add_child(掌教标题)
+		var 别名 := Label.new()
+		别名.text = "又名：开局接手太玄宗"
+		别名.add_theme_font_size_override("font_size", FONT_AUX)
+		别名.add_theme_color_override("font_color", 宣纸亮)
+		顶栏.add_child(别名)
+		状态栏 = Label.new()
+		状态栏.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		状态栏.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 让点击穿透到状态面板，供引导步骤①Hook
+		var 状态面板: PanelContainer = 新面板("")
+		状态面板.get_child(0).add_child(状态栏)
+		状态面板.add_theme_stylebox_override("panel", _暗墨面板())
+		状态栏.add_theme_color_override("font_color", 暗金)
+		顶栏.add_child(状态面板)
+		引导_状态面板 = 状态面板
+	
+		# 顶栏角落图标：设置（存读/新游戏，常驻）+ 调试（推演中心，Debug 可见）
+		var 顶栏角 := HBoxContainer.new()
+		顶栏角.alignment = BoxContainer.ALIGNMENT_END
+		顶栏角.add_theme_constant_override("separation", 6)
+		顶栏.add_child(顶栏角)
+		设置图标 = Button.new(); 设置图标.text = "⚙"
+		设置图标.tooltip_text = "设置（存读 / 新游戏）"
+		设置图标.pressed.connect(_弹_设置)
+		顶栏角.add_child(设置图标)
+		if OS.is_debug_build():
+			调试图标 = Button.new(); 调试图标.text = "🐞"
+			调试图标.tooltip_text = "推演中心（调试）"
+			调试图标.pressed.connect(_弹_推演中心)
+			顶栏角.add_child(调试图标)
+			引导_推演按钮 = 调试图标
+	
+		# 离山汇总（离线收益简报）：建为独立弹窗，不内联首页（§1.2 B3）
+		离山面板 = 新面板("✦ 离山汇总（你离开期间）")
+		var 离山根: VBoxContainer = 离山面板.get_child(0)
+		离山内容区 = VBoxContainer.new()
+		离山内容区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		离山内容区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		离山根.add_child(离山内容区)
+		离山面板.custom_minimum_size = Vector2(0, 140)
+		离山面板.gui_input.connect(_on_离山面板_点击)
+		var 离山关 := Button.new(); 离山关.text = "归藏"; 离山关.custom_minimum_size = Vector2(0, 44)
+		离山关.pressed.connect(_关_离山简报)
+		离山根.add_child(离山关)
+		# 战报 Label 保留作兼容降级显示（旧存档/无结构化数据时用）
+		战报 = Label.new()
+		战报.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		战报.visible = false   # 默认隐藏，新UI优先
+	
+		# 底部主导航：复用 标签栏(TabBar)，5 核心 Tab 常驻、跨页不释放（§1.4）
+		var tb := TabBar.new()
+		for n in 页名:
+			tb.add_tab(n)
+		tb.tab_changed.connect(_on_主导航切换)
+		底部区.add_child(tb)
+		标签栏 = tb
+		标签栏.custom_minimum_size = Vector2(0, 56)  # 底部主导航 tab 触摸高度>=44 (§1 ⑩ ACCESSIBILITY Standard)
+	
+		# 持久内容 VBox（跨页不销毁，仅随整页切换重挂载/卸载；刷新逻辑直接复用）
+		列表 = VBoxContainer.new(); 列表.add_theme_constant_override("separation", 6); 列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 列表.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		抉择区 = VBoxContainer.new(); 抉择区.add_theme_constant_override("separation", 6); 抉择区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 抉择区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		御兽区 = VBoxContainer.new(); 御兽区.add_theme_constant_override("separation", 4); 御兽区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 御兽区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		纪事区 = VBoxContainer.new(); 纪事区.add_theme_constant_override("separation", 4); 纪事区.size_flags_horizontal = Control.SIZE_EXPAND_FILL; 纪事区.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# 弟子页头（总战力+排序+提示）持久，跨切换保留
+		_建_弟子页头()
+	
+		# 弟子页头由 _建_弟子页头() 持久构建（见下方整页切换区块）
+	
+		# 详情面板（底部常驻，固定不滚动）
+		详情 = Label.new()
+		详情.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var 详情面板: PanelContainer = 新面板("🔍 详情")
+		详情面板.custom_minimum_size = Vector2(0, 110)
+		详情面板.get_child(0).add_child(详情)
+		底部区.add_child(详情面板)
+	
+		Game.弟子变动.connect(刷新, CONNECT_DEFERRED)   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
+		Game.新手目标更新.connect(_刷新_新手UI, CONNECT_DEFERRED)   # P0 目标链：玉牌/Tab 红点/跳字刷新   # 延后到 idle 帧执行：避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃
+		Game.战报更新.connect(_on_战报)
+		Game.奇遇发生.connect(_on_奇遇发生)   # Step 2：奇遇三场景触发后展示调度
+		# 引导步骤①的点击 Hook：点状态栏→资源（离山面板 Hook 在离山面板创建处绑定）
+		引导_状态面板.gui_input.connect(_on_状态面板_点击)
+	
+		# 构建默认首页（宗门），整页切换机制启动
+		_on_主导航切换(0)
 
 	# 标题屏拦截：自动推演延后到标题屏关闭（点或继续）之后，避免新档一开机空推一天
+	Game.弟子变动.connect(_on_弟子变动刷新新UI, CONNECT_DEFERRED)
+
 	_显示标题()
+
+func _on_弟子变动刷新新UI() -> void:
+	if is_instance_valid(新UI):
+		新UI.refresh_all()
 
 func _on_主导航切换(i: int):
 	if _导航切换中:
@@ -993,14 +1002,18 @@ func _on_快进():
 
 func _on_存档():
 	Game.save_game()
-	详情.text = "已存档（user://save.json）"
+	if not 启用新UI:
+		详情.text = "已存档（user://save.json）"
 
 func _on_读档():
 	Game.load_game()
-	详情.text = "已读档"
-	刷新()
-	_引导_初始化()   # 读档后续接引导（按引导阶段恢复气泡/目标条/灰锁，或清场）
-	_弹_离山简报()   # 读档上线弹离线收益简报
+	if not 启用新UI:
+		详情.text = "已读档"
+		刷新()
+		_引导_初始化()   # 读档后续接引导（按引导阶段恢复气泡/目标条/灰锁，或清场）
+		_弹_离山简报()   # 读档上线弹离线收益简报
+	if is_instance_valid(新UI):
+		新UI.refresh_all()
 
 # 调试战斗入口（灰模）：用真实弟子最终属性快照触发 1v1 与 3v3 车轮战，
 # 结构化战斗日志打印至控制台（ADR-003 D7）。属性全部取自 get_final_combat_attr()，无硬编码。
@@ -1104,11 +1117,14 @@ func _on_新游戏():
 	_首推演已保底 = false
 	_招徒后_弟子高亮中 = false
 	_弟子详情_已自动展开 = false
-	引导_跳过按钮.visible = true
-	_引导_清除()
-	_清除招徒高亮()
-	刷新()
-	_引导_初始化()
+	if not 启用新UI:
+		引导_跳过按钮.visible = true
+		_引导_清除()
+		_清除招徒高亮()
+		刷新()
+		_引导_初始化()
+	if is_instance_valid(新UI):
+		新UI.refresh_all()
 
 # 推演一年（调试专用）：快进365天，方便测试长期推演/奇遇/突破
 func _on_推荐一年():
@@ -2152,6 +2168,8 @@ func _弹出纪事详情(记: Dictionary) -> void:
 	弹["内容"].add_child(弹["关"])
 
 func 刷新():
+	if 启用新UI:
+		return   # 新UI模式下旧灰模刷新无意义（旧节点已不构建），避免空节点崩溃；新UI 改用 新UI.refresh_all()
 	var _升级: Dictionary = Game.距下一级信息()
 	var _升级提示 := ""
 	if _升级["已满"]:
@@ -3240,6 +3258,24 @@ func _标题_关闭():
 		引导_标题层 = null
 
 func _进入主界面():
+	if 启用新UI:
+		var g := preload("res://ui/game_ui.tscn").instantiate()
+		g.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(g)
+		新UI = g
+		新UI.refresh_all()
+		# 顶右角 设置/调试 入口（新UI下原顶栏设置入口被 gate，此处补一个常驻角标）
+		var 角标 := HBoxContainer.new()
+		角标.anchor_left = 1.0; 角标.anchor_top = 0.0; 角标.anchor_right = 1.0; 角标.anchor_bottom = 0.0
+		角标.offset_left = -92; 角标.offset_top = 6; 角标.offset_right = -8; 角标.offset_bottom = 38
+		设置图标 = Button.new(); 设置图标.text = "⚙"; 设置图标.tooltip_text = "设置（存读 / 新游戏）"; 设置图标.pressed.connect(_弹_设置)
+		角标.add_child(设置图标)
+		if OS.is_debug_build():
+			调试图标 = Button.new(); 调试图标.text = "🐞"; 调试图标.tooltip_text = "推演中心（调试）"; 调试图标.pressed.connect(_弹_推演中心)
+			角标.add_child(调试图标)
+		add_child(角标)
+		return
+	# else：原逻辑（启用新UI = false 时保留旧灰模 UI）
 	var 报: String = Game.推演至现在()   # 自动推演：加载时推进到当前时刻
 	# FTUE 保底：新档真实流逝≈0，保底推进 1 游戏日，确保离线简报有内容、引导有正反馈
 	if Game.引导阶段 >= 1 and Game.引导阶段 <= 5 and Game.累计游戏日 == 0:

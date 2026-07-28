@@ -126,3 +126,7 @@ func _refresh_all_pages() -> void:
 			page.refresh()
 		elif page.has_method("refresh_overview"):
 			page.refresh_overview()
+
+# 对外只读刷新入口：main.gd 在 弟子变动 / 读档 / 新游戏 后调用，重拉各只读页数据，零玩法/战斗触碰
+func refresh_all() -> void:
+	_refresh_all_pages()
