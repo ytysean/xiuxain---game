@@ -195,7 +195,7 @@ func _populate_list() -> void:
 		var d = 列表[i]
 		if d == null:
 			continue
-		var 战力值 = d.get("战力", null)
+		var 战力值 = _safe_get(d, "战力", null)
 		if typeof(战力值) == TYPE_INT or typeof(战力值) == TYPE_FLOAT:
 			power += int(战力值)
 		_row_map[i] = d
@@ -213,17 +213,17 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	row.add_child(hb)
 
 	var 姓名 := Label.new()
-	姓名.text = str(d.get("姓名", "—"))
+	姓名.text = str(_safe_get(d, "姓名", "—"))
 	姓名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_body_font(姓名)
 	hb.add_child(姓名)
 
 	var 境界 := Label.new()
-	境界.text = str(d.get("境界", "—"))
+	境界.text = str(_safe_get(d, "境界", "—"))
 	UITheme.apply_aux_font(境界)
 	hb.add_child(境界)
 
-	var 战力v = d.get("战力", null)
+	var 战力v = _safe_get(d, "战力", null)
 	var 战力文本 := "战力 —"
 	var 战力异常 := false
 	if 战力v != null and (typeof(战力v) == TYPE_INT or typeof(战力v) == TYPE_FLOAT):
@@ -245,14 +245,14 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	row.gui_input.connect(_on_row_gui_input.bind(索引))
 
 func _derive_status(d: Object) -> String:
-	var 堂口 = d.get("堂口", "")
+	var 堂口 = _safe_get(d, "堂口", "")
 	if 堂口 == "" or 堂口 == null:
 		return "未入门"
-	var 突破 = d.get("突破冷却剩余", 0)
+	var 突破 = _safe_get(d, "突破冷却剩余", 0)
 	if typeof(突破) == TYPE_FLOAT or typeof(突破) == TYPE_INT:
 		if float(突破) > 0.0:
 			return "闭关养伤"
-	var 考核 = d.get("考核冷却剩余", 0)
+	var 考核 = _safe_get(d, "考核冷却剩余", 0)
 	if typeof(考核) == TYPE_INT or typeof(考核) == TYPE_FLOAT:
 		if int(考核) > 0:
 			return "考核冷却"
@@ -329,7 +329,7 @@ func _add_decision_card(entry: Dictionary, 索引: int, parent: Control) -> void
 	var 弟子obj = entry.get("弟子", null)
 	var 弟子名 := "—"
 	if 弟子obj != null and 弟子obj is Object:
-		弟子名 = str(弟子obj.get("姓名", "—"))
+		弟子名 = str(_safe_get(弟子obj, "姓名", "—"))
 	var 名 := Label.new()
 	名.text = 弟子名
 	UITheme.apply_body_font(名)
@@ -338,7 +338,7 @@ func _add_decision_card(entry: Dictionary, 索引: int, parent: Control) -> void
 	var 物品obj = entry.get("物品", null)
 	var 物品名 := "—"
 	if 物品obj != null and 物品obj is Object:
-		物品名 = str(物品obj.get("名称", "—"))
+		物品名 = str(_safe_get(物品obj, "名称", "—"))
 	var 物 := Label.new()
 	物.text = "得【%s】" % 物品名
 	UITheme.apply_aux_font(物)
@@ -389,16 +389,16 @@ func _populate_detail(d: Object, 索引: int) -> void:
 		child.queue_free()
 
 	var 基本信息: Array = [
-		["姓名", str(d.get("姓名", "—"))],
-		["道号", str(d.get("道号", "—"))],
-		["身份", str(d.get("身份", "—"))],
-		["阶位", str(d.get("阶位", "—"))],
-		["来源", str(d.get("来源", "—"))],
-		["备注", str(d.get("备注", "—"))],
+		["姓名", str(_safe_get(d, "姓名", "—"))],
+		["道号", str(_safe_get(d, "道号", "—"))],
+		["身份", str(_safe_get(d, "身份", "—"))],
+		["阶位", str(_safe_get(d, "阶位", "—"))],
+		["来源", str(_safe_get(d, "来源", "—"))],
+		["备注", str(_safe_get(d, "备注", "—"))],
 	]
 	_add_section("基本信息", 基本信息)
 
-	var 资质key = d.get("资质", "")
+	var 资质key = _safe_get(d, "资质", "")
 	var 资质文本 := "—"
 	if 资质key != "" and 资质key != null:
 		资质文本 = str(资质key)
@@ -406,7 +406,7 @@ func _populate_detail(d: Object, 索引: int) -> void:
 			var 映射 = DiscipleData.资质显示
 			if 映射 is Dictionary:
 				资质文本 = str(映射.get(资质key, 资质key))
-	var did = d.get("destiny_id", "")
+	var did = _safe_get(d, "destiny_id", "")
 	var 命格文本 := "—"
 	if did != "" and did != null:
 		if DestinyLoader != null and DestinyLoader.has_method("get_destiny"):
@@ -415,48 +415,48 @@ func _populate_detail(d: Object, 索引: int) -> void:
 				命格文本 = str(dt.get("名称", did))
 		else:
 			命格文本 = str(did)
-	var 职业v = d.get("职业", "")
+	var 职业v = _safe_get(d, "职业", "")
 	var 职业文本 = "未入门" if (职业v == "" or 职业v == null) else str(职业v)
 	var 资质灵根: Array = [
 		["资质", 资质文本],
-		["灵根", str(d.get("灵根", "—"))],
-		["灵根品阶", str(d.get("灵根品阶", "—"))],
+		["灵根", str(_safe_get(d, "灵根", "—"))],
+		["灵根品阶", str(_safe_get(d, "灵根品阶", "—"))],
 		["命格", 命格文本],
-		["性格", str(d.get("性格", "—"))],
+		["性格", str(_safe_get(d, "性格", "—"))],
 		["职业", 职业文本],
 	]
 	_add_section("资质灵根", 资质灵根)
 
-	var 进度v = d.get("修炼进度", 0.0)
+	var 进度v = _safe_get(d, "修炼进度", 0.0)
 	var 进度文本 := "—"
 	if typeof(进度v) == TYPE_FLOAT or typeof(进度v) == TYPE_INT:
 		进度文本 = "%d%%" % int(float(进度v) * 100.0)
-	var 年龄v = d.get("年龄", 0.0)
+	var 年龄v = _safe_get(d, "年龄", 0.0)
 	var 年龄文本 := "—"
 	if typeof(年龄v) == TYPE_FLOAT or typeof(年龄v) == TYPE_INT:
 		年龄文本 = "%.0f岁" % float(年龄v)
 	var 修炼状态: Array = [
-		["境界", str(d.get("境界", "—"))],
-		["层数", str(d.get("层数", "—"))],
+		["境界", str(_safe_get(d, "境界", "—"))],
+		["层数", str(_safe_get(d, "层数", "—"))],
 		["修炼进度", 进度文本],
-		["寿元", str(d.get("寿元", "—"))],
+		["寿元", str(_safe_get(d, "寿元", "—"))],
 		["年龄", 年龄文本],
-		["突破冷却剩余", str(d.get("突破冷却剩余", "—"))],
-		["瓶颈打磨值", str(d.get("瓶颈打磨值", "—"))],
-		["稳固期剩余", str(d.get("稳固期剩余", "—"))],
-		["丹毒", str(d.get("丹毒", "—"))],
+		["突破冷却剩余", str(_safe_get(d, "突破冷却剩余", "—"))],
+		["瓶颈打磨值", str(_safe_get(d, "瓶颈打磨值", "—"))],
+		["稳固期剩余", str(_safe_get(d, "稳固期剩余", "—"))],
+		["丹毒", str(_safe_get(d, "丹毒", "—"))],
 	]
 	_add_section("修炼状态", 修炼状态)
 
 	var 任职: Array = [
-		["堂口", str(d.get("堂口", "—"))],
-		["阶位", str(d.get("阶位", "—"))],
-		["考核冷却剩余", str(d.get("考核冷却剩余", "—"))],
-		["考核心得", str(d.get("考核心得", "—"))],
+		["堂口", str(_safe_get(d, "堂口", "—"))],
+		["阶位", str(_safe_get(d, "阶位", "—"))],
+		["考核冷却剩余", str(_safe_get(d, "考核冷却剩余", "—"))],
+		["考核心得", str(_safe_get(d, "考核心得", "—"))],
 	]
 	_add_section("任职", 任职)
 
-	var 属性 = d.get("属性", {})
+	var 属性 = _safe_get(d, "属性", {})
 	var 四维: Array = [
 		["攻", _attr(属性, "攻")],
 		["防", _attr(属性, "防")],
@@ -467,7 +467,7 @@ func _populate_detail(d: Object, 索引: int) -> void:
 
 	var 纪事行: Array = []
 	if is_instance_valid(Game) and Game.has_method("取弟子纪事"):
-		var 姓名v = str(d.get("姓名", ""))
+		var 姓名v = str(_safe_get(d, "姓名", ""))
 		var 纪事条目 = Game.取弟子纪事(索引, 姓名v)
 		if 纪事条目 is Array and 纪事条目.size() > 0:
 			for e in 纪事条目:
@@ -520,6 +520,16 @@ func _add_kv(parent: Control, caption: String, value: String, abnormal: bool) ->
 		UITheme.apply_body_font(v)
 	hb.add_child(v)
 	parent.add_child(hb)
+
+func _safe_get(obj: Variant, prop: String, default: Variant = null) -> Variant:
+	if obj == null:
+		return default
+	if obj is Dictionary:
+		return obj.get(prop, default)
+	if obj is Object:
+		var v = obj.get(prop)
+		return v if v != null else default
+	return default
 
 # 让 PanelContainer 行整体可点：除 Button 外所有子节点设为 IGNORE，事件穿透到 PanelContainer。
 func _pass_through(node: Node) -> void:
