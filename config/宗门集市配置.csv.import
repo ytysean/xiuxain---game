@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://cqij1k4c8vjgw"
+
+[deps]
+
+files=["res://config/宗门集市配置.持续天数.translation", "res://config/宗门集市配置.商品倍率.translation", "res://config/宗门集市配置.稀有权重.translation", "res://config/宗门集市配置.手续费系数.translation", "res://config/宗门集市配置.声望系数.translation"]
+
+source_file="res://config/宗门集市配置.csv"
+dest_files=["res://config/宗门集市配置.持续天数.translation", "res://config/宗门集市配置.商品倍率.translation", "res://config/宗门集市配置.稀有权重.translation", "res://config/宗门集市配置.手续费系数.translation", "res://config/宗门集市配置.声望系数.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
