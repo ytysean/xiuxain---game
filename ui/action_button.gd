@@ -53,17 +53,15 @@ func _build() -> void:
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vbox.add_child(_label)
 
-	# 大按钮最小高度提到 80（GRID*10），给 图标(32)+分隔(8)+文字 留出余量，文字不再被挤出。
-	var h: int = UITheme.GRID * 10 if big else UITheme.BTN_H_SECONDARY
+	# 大按钮最小高度对齐令牌 BTN_H_PRIMARY=64（D3 拍板）：图标(32)+分隔(8)+文字(~16) 实测 ≤56 < 64，不挤出。
+	var h: int = UITheme.BTN_H_PRIMARY if big else UITheme.BTN_H_SECONDARY
 	custom_minimum_size = Vector2(0, h)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _apply_theme() -> void:
 	if big:
-		UITheme.apply_primary_button_style(_btn)
 		UITheme.apply_body_font(_label)
 	else:
-		UITheme.apply_secondary_button_style(_btn)
 		UITheme.apply_aux_font(_label)
 	_label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 
