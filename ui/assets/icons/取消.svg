@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 取消 / Cancel — 左向箭头带尾栓，取取消/放弃之象，与「确认」✓ 明确区分。统一暗金描边 #C8A86A，线稿，无填充。viewBox 64×64，stroke-width 4。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 22 V42"/>
+  <path d="M18 32 H42"/>
+  <path d="M34 24 L42 32 L34 40"/>
+</svg>

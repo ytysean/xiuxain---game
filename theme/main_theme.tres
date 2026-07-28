@@ -1,0 +1,244 @@
+; main_theme.tres — 《太玄宗门录》S1 UI 重架构 · 基础原生控件样式（仅此）
+; 数据源：design/06-角色与UI/UI设计令牌v1.0.md（所有色值/圆角/间距/字号唯一来源）
+; 双轨职责：本 .tres 只放「原生控件基础样式」(StyleBox + 默认文字色)，不放业务/组件特殊样式、不放动态色。
+; 字体：暂不绑定字体文件（用户字体已移出项目，避免引用缺失资源报错）→ 用 Godot 默认回退。
+;       字体恢复后由 ui_theme.gd 的 apply_*_font helper 另行处理（见 §2.4 字体绑定规则）。
+; 加载步数 = 13 个子资源 + 1 个主资源 = 14。
+
+[gd_resource type="Theme" load_steps=14 format=3]
+
+; ───────── Button 四态 ─────────
+[sub_resource type="StyleBoxFlat" id="sb_btn_normal"]
+bg_color = Color(0.1412, 0.2039, 0.2235, 1)        ; bg.panel #243439
+border_color = Color(0.7882, 0.6588, 0.3961, 1)    ; border.gold #C9A865
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+[sub_resource type="StyleBoxFlat" id="sb_btn_hover"]
+bg_color = Color(0.1412, 0.2039, 0.2235, 1)        ; bg.panel
+border_color = Color(0.9020, 0.7804, 0.4706, 1)    ; hover 边框提亮到 title1 #E6C778
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+[sub_resource type="StyleBoxFlat" id="sb_btn_pressed"]
+bg_color = Color(0.0784, 0.1059, 0.1098, 1)        ; control.pressed #141B1C
+border_color = Color(0.9020, 0.7804, 0.4706, 1)    ; 提亮到 title1
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+[sub_resource type="StyleBoxFlat" id="sb_btn_disabled"]
+bg_color = Color(0.1804, 0.1961, 0.1961, 1)        ; control.disabled #2E3232
+border_color = Color(0.7882, 0.6588, 0.3961, 1)    ; border.gold
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+; ───────── PanelContainer ─────────
+[sub_resource type="StyleBoxFlat" id="sb_panel"]
+bg_color = Color(0.1412, 0.2039, 0.2235, 1)        ; bg.panel #243439
+border_color = Color(0.7882, 0.6588, 0.3961, 1)    ; border.gold
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 16
+content_margin_top = 16
+content_margin_right = 16
+content_margin_bottom = 16
+
+; ───────── TabBar ─────────
+[sub_resource type="StyleBoxFlat" id="sb_tab_selected"]
+bg_color = Color(0.1412, 0.2039, 0.2235, 1)        ; bg.panel
+border_color = Color(0.7882, 0.6588, 0.3961, 1)    ; 选中态底部 2px 金线 (border.gold)
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 2
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+content_margin_left = 12
+content_margin_top = 12
+content_margin_right = 12
+content_margin_bottom = 12
+
+[sub_resource type="StyleBoxFlat" id="sb_tab_unselected"]
+bg_color = Color(0.1059, 0.1529, 0.1686, 1)        ; bg.page #1B272B
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+content_margin_left = 12
+content_margin_top = 12
+content_margin_right = 12
+content_margin_bottom = 12
+
+; ───────── ScrollBar（宽 8px：grabber/scroll 内容边距各 4 → 最小宽 8）─────────
+[sub_resource type="StyleBoxFlat" id="sb_scroll"]
+bg_color = Color(0.0549, 0.0824, 0.0902, 1)        ; 轨道深青 bg.immersive #0E1517
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 4
+content_margin_top = 4
+content_margin_right = 4
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_grabber"]
+bg_color = Color(0.7882, 0.6588, 0.3961, 1)        ; 滑块淡金 border.gold #C9A865
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 4
+content_margin_top = 4
+content_margin_right = 4
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_grabber_hover"]
+bg_color = Color(1.0, 0.8431, 0.4784, 1)           ; 悬浮提亮 accent #FFD77A
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 4
+content_margin_top = 4
+content_margin_right = 4
+content_margin_bottom = 4
+
+[sub_resource type="StyleBoxFlat" id="sb_grabber_pressed"]
+bg_color = Color(0.9020, 0.7804, 0.4706, 1)        ; 按下 title1 #E6C778
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 4
+content_margin_top = 4
+content_margin_right = 4
+content_margin_bottom = 4
+
+; ───────── ProgressBar ─────────
+[sub_resource type="StyleBoxFlat" id="sb_pbar_bg"]
+bg_color = Color(0.1725, 0.2392, 0.2627, 1)        ; bg.content #2C3D43
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+
+[sub_resource type="StyleBoxFlat" id="sb_pbar_fill"]
+bg_color = Color(0.4941, 0.8275, 0.6039, 1)        ; 进度条 success #7ED39A
+border_width_left = 0
+border_width_top = 0
+border_width_right = 0
+border_width_bottom = 0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 0
+content_margin_top = 0
+content_margin_right = 0
+content_margin_bottom = 0
+
+[resource]
+; ── Button ──
+Button/styles/normal = SubResource("sb_btn_normal")
+Button/styles/hover = SubResource("sb_btn_hover")
+Button/styles/pressed = SubResource("sb_btn_pressed")
+Button/styles/disabled = SubResource("sb_btn_disabled")
+Button/colors/font_color = Color(0.8784, 0.8353, 0.7451, 1)        ; body #E0D5BE
+Button/colors/font_hover_color = Color(0.9412, 0.9020, 0.8235, 1)  ; title2 #F0E6D2
+Button/colors/font_pressed_color = Color(0.9020, 0.7804, 0.4706, 1) ; title1 #E6C778
+Button/colors/font_disabled_color = Color(0.3333, 0.3333, 0.3098, 1) ; disabled-text #55554F
+
+; ── PanelContainer ──
+PanelContainer/styles/panel = SubResource("sb_panel")
+
+; ── Label（默认色；字号由 ui_theme.gd 的 apply_*_font 控制）──
+Label/colors/font_color = Color(0.8784, 0.8353, 0.7451, 1)        ; body #E0D5BE
+
+; ── TabBar ──
+TabBar/styles/tab_selected = SubResource("sb_tab_selected")
+TabBar/styles/tab_unselected = SubResource("sb_tab_unselected")
+TabBar/colors/font_color = Color(0.5412, 0.4941, 0.4078, 1)        ; 未选中 hint 色 → aux #8A7E68
+TabBar/colors/font_selected_color = Color(0.9020, 0.7804, 0.4706, 1) ; 选中 title1 #E6C778
+TabBar/colors/font_hover_color = Color(0.7843, 0.7216, 0.5882, 1)  ; 悬浮略提亮 body-dim #C8B896
+
+; ── ScrollBar ──
+ScrollBar/styles/scroll = SubResource("sb_scroll")
+ScrollBar/styles/grabber = SubResource("sb_grabber")
+ScrollBar/styles/grabber_hover = SubResource("sb_grabber_hover")
+ScrollBar/styles/grabber_pressed = SubResource("sb_grabber_pressed")
+
+; ── ProgressBar ──
+ProgressBar/styles/background = SubResource("sb_pbar_bg")
+ProgressBar/styles/fill = SubResource("sb_pbar_fill")
