@@ -227,7 +227,7 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 		目标文本 = str(q.get("target_desc", "—")) + "×" + str(int(数量))
 	var 目标 := Label.new()
 	目标.text = 目标文本
-	目标.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	目标.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	目标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)
@@ -304,7 +304,7 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 		目标文本 = str(q.get("target_desc", "—")) + "×" + str(int(数量))
 	var 目标 := Label.new()
 	目标.text = 目标文本
-	目标.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	目标.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	目标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)

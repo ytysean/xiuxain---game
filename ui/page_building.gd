@@ -182,7 +182,7 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l1.add_child(名称)
 	var 职能 := Label.new()
 	职能.text = "职能:" + str(entry.get("职能", "—"))
-	职能.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	职能.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	职能.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	职能.custom_minimum_size = Vector2(UITheme.GRID * 8, 0)
 	UITheme.apply_aux_font(职能)
@@ -197,7 +197,7 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l2.add_theme_constant_override("separation", UITheme.GRID)
 	var 产出 := Label.new()
 	产出.text = "产出:" + str(entry.get("产出", "—"))
-	产出.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	产出.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	产出.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	产出.custom_minimum_size = Vector2(UITheme.GRID * 10, 0)
 	UITheme.apply_aux_font(产出)
@@ -226,7 +226,7 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l3.add_theme_constant_override("separation", UITheme.GRID)
 	var 被动 := Label.new()
 	被动.text = "被动:" + str(entry.get("加成维度", "—"))
-	被动.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	被动.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	被动.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	被动.custom_minimum_size = Vector2(UITheme.GRID * 12, 0)
 	UITheme.apply_aux_font(被动)
