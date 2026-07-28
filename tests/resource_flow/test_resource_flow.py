@@ -5,7 +5,7 @@
 import os, sys, csv
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CSV_PATH = os.path.join(ROOT, "config", "resource_flow.csv")
+CSV_PATH = os.path.join(ROOT, "tools", "config", "resource_flow.csv")
 GD_FILES = ["game_state.gd", "disciple.gd"]
 
 

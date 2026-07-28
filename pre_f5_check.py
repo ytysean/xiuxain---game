@@ -22,7 +22,10 @@
 #   21) Python 工具脚本编译检查     (内联：py_compile 全量编译所有 *.py，任一 SyntaxError 直接 FAIL)
 #   22) GDScript 存档键名对称检查   (内联：抓 `目标 = data.get("_键")` 目标缺前导下划线的反模式)
 #   23) 事件奖励 item 引用校验      (内联：event_quest opt1/2/3_reward 的 item:item_id:count，断言 item_id ∈ array_items.csv|item_id_registry.csv 且 count>0)
-#   24) 零战斗触碰红线校验         (内联：git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动)
+#   24) 零战斗触碰红线校验
+#   25) CSV 消费链路校验           (subprocess：check_csv_consumer.py；CSV-GOV-GATE-002，当前非阻断·报告模式)
+#                                  摆设型 CSV 自动校验：逐 config/*.csv 检索业务代码字面引用，
+#                                  输出 OK/RESERVED/BAK/ORPHAN 报告；当前非阻断，永远 [PASS]，不改退出码。         (内联：git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动)
 #
 # 用法（在项目根目录执行）：
 #   python pre_f5_check.py
@@ -496,7 +499,7 @@ def check_event_reward_item_ref():
     import csv as _csv
     eq_path = os.path.join(ROOT, "config", "event_quest.csv")
     ai_path = os.path.join(ROOT, "config", "array_items.csv")
-    reg_path = os.path.join(ROOT, "config", "item_id_registry.csv")
+    reg_path = os.path.join(ROOT, "tools", "config", "item_id_registry.csv")
 
     # 1) 收集合法 item_id 集合（两表主键列均为 item_id）
     valid_ids = set()
@@ -576,6 +579,34 @@ def check_zero_battle_touch():
         detail = "\n".join("FAIL 检测到战斗结算文件被改动（铁律红线）：%s" % h for h in hit)
         return False, "检出 %d 个战斗结算文件改动（铁律红线）" % len(hit), detail
     return True, "零战斗触碰：BattleCalculator.gd / BattleManager.gd 均未改动", ""
+
+
+def run_csv_consumer_gate():
+    """第 25 闸：CSV 消费链路校验（CSV-GOV-GATE-002，摆设型 CSV 自动治理）。
+
+    调用 check_csv_consumer.py（纯标准库静态扫描，无 Godot 依赖），打印其完整报告。
+    该脚本默认「报告模式」exit 0，本闸额外强制 ok=True 双重保险。
+
+    ⚠️ 非阻断保护（主理人游承峰裁定）：本闸当前永远返回 ok=True，
+       无论 ORPHAN 多少都【不改变 pre_f5 的退出码】——pre_f5 始终 exit 0。
+       待白名单与消费者映射表经主理人批准后，移除非阻断保护、改为 ORPHAN 即 fail：
+       届时此处改为 ok = (proc.returncode == 0)，并以 --strict 调用脚本
+       （check_csv_consumer.py 在 --strict 下 ORPHAN>0 即 exit 1）。"""
+    script = os.path.join(ROOT, "check_csv_consumer.py")
+    if not os.path.exists(script):
+        # 脚本缺失也不阻断（仅警告），保持 pre_f5 退出码不变
+        return True, "check_csv_consumer.py 缺失（跳过，不阻断）", ""
+    try:
+        proc = subprocess.run(
+            [sys.executable, script],   # 注意：不带 --strict，故脚本必 exit 0（报告模式）
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+        )
+    except Exception as e:
+        return True, "启动失败，跳过: %s" % e, ""
+    out = (proc.stdout or "") + (proc.stderr or "")
+    # 非阻断：即便未来脚本在 --strict 下 exit 1，本闸也强制 PASS，绝不污染 pre_f5 退出码
+    return True, "报告模式·非阻断（ORPHAN 仅提醒，不阻断 F5）", out
+
 
 
 def main():
@@ -786,6 +817,24 @@ def main():
     if pad < 1:
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "零战斗触碰红线校验", " " * pad, mark, zb_sum))
+
+    # 第二十五道：CSV 消费链路校验（CSV-GOV-GATE-002，摆设型 CSV 自动治理）
+    #   调用 check_csv_consumer.py（报告模式，不带 --strict），打印其完整报告。
+    #   ★ 非阻断保护：本闸 ok 恒为 True，无论 ORPHAN 多少都绝不改变 pre_f5 退出码（保持当前全绿不变）。
+    #     待白名单与映射表经主理人批准后，移除非阻断保护、改为 ORPHAN 即 fail（见 run_csv_consumer_gate 注释）。
+    cc_ok, cc_sum, cc_full = run_csv_consumer_gate()
+    total = total + 1
+    results.append(("CSV 消费链路校验", cc_ok, cc_sum, cc_full))
+    mark = PASS_MARK if cc_ok else FAIL_MARK
+    pad = LINE_W - len("CSV 消费链路校验")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "CSV 消费链路校验", " " * pad, mark, cc_sum))
+    if cc_full.strip():
+        print("")  # 空行分隔，下面原样打印 check_csv_consumer.py 的完整报告
+        for line in cc_full.splitlines():
+            if line.strip():
+                print("    " + line)
 
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)
