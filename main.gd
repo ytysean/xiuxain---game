@@ -773,6 +773,15 @@ func _建_纪事页():
 	先贤入口.custom_minimum_size = Vector2(0, 44)
 	先贤入口.pressed.connect(func(): _进_二级页("先贤祠"))
 	内容.add_child(先贤入口)
+	# WAVE-D #6/#8：图鉴 / 传承史册 入口（B2 二级下沉：不新增一级导航按钮，5 Tab 不变）
+	var 图鉴入口 := Button.new(); 图鉴入口.text = "收藏图鉴"
+	图鉴入口.custom_minimum_size = Vector2(0, 44)
+	图鉴入口.pressed.connect(func(): _进_二级页("图鉴"))
+	内容.add_child(图鉴入口)
+	var 史册入口 := Button.new(); 史册入口.text = "传承史册"
+	史册入口.custom_minimum_size = Vector2(0, 44)
+	史册入口.pressed.connect(func(): _进_二级页("史册"))
+	内容.add_child(史册入口)
 	内容.add_child(纪事区)   # 持久（刷新纪事在其内建分类 Tab）
 	刷新纪事()
 	当前页持久节点 = [纪事区]
@@ -796,6 +805,8 @@ func _建_二级页(名: String):
 		"洞府": _填_洞府页(内容)
 		"修炼": _填_修炼页(内容)
 		"先贤祠": _填_先贤祠页(内容)
+		"图鉴": _填_图鉴页(内容)       # WAVE-D #6
+		"史册": _填_史册页(内容)       # WAVE-D #8
 	当前页名 = "宗门"   # 主导航仍高亮宗门
 	当前页持久节点 = []
 
@@ -3818,6 +3829,90 @@ func _填_先贤祠页(内容: Control):
 		)
 		文.add_child(查)
 		列.add_child(卡)
+
+# WAVE-D #6：宗门收藏图鉴（B2 二级页，5 Tab 不变；纯展示 + 稀有捐赠藏宝库换声望）
+func _填_图鉴页(内容: Control):
+	var 头 := Label.new()
+	头.text = "宗门收藏图鉴"
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(头)
+	var 概 := Label.new()
+	概.text = "首次获得即收录；集齐整套解锁永久产出增益（产出池轴，单条≤5%）。稀有藏品可捐藏宝库换声望。"
+	概.add_theme_color_override("font_color", 次墨)
+	概.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内容.add_child(概)
+	var 类别序: Array[String] = ["灵草图鉴", "妖兽图鉴", "功法残卷", "阵法图谱", "天材地宝", "先贤事迹"]
+	for 类别 in 类别序:
+		var 全部: Array = []
+		var 增益值: float = 0.0
+		for r in Game.图鉴配置:
+			if r.get("类别", "") == 类别:
+				全部.append(r)
+				if 增益值 <= 0.0:
+					增益值 = float(r.get("增益值", 0.0))
+		var 已收: Array = Game.收藏图鉴_已收集.get(类别, [])
+		var 集齐: bool = 全部.size() > 0 and 已收.size() >= 全部.size()
+		var 卡 := PanelContainer.new()
+		卡.add_theme_stylebox_override("panel", _暗墨面板())
+		var 文: VBoxContainer = 卡.get_child(0)
+		var 标题 := Label.new()
+		标题.text = "〔%s〕 %d/%d  %s" % [类别, 已收.size(), 全部.size(), ("✓ 已集齐（产出 +%d%%）" % int(增益值 * 100)) if 集齐 else ""]
+		标题.add_theme_color_override("font_color", 暗金 if 集齐 else 次墨)
+		文.add_child(标题)
+		for r in 全部:
+			var 名: String = r.get("匹配名", "")
+			var 有: bool = 已收.has(名)
+			var 稀有: bool = r.get("是否稀有", "否") == "是"
+			var 捐: String = "（已捐）" if Game.捐赠记录.has(r.get("图鉴ID", "")) else ""
+			var 行 := Label.new()
+			行.text = "%s %s%s%s" % ["●" if 有 else "○", 名, (" ★" if 稀有 else ""), 捐]
+			行.add_theme_color_override("font_color", 暗金 if 有 else 青灰)
+			文.add_child(行)
+			if 稀有 and 有 and not Game.捐赠记录.has(r.get("图鉴ID", "")):
+				var 钮 := Button.new(); 钮.text = "捐藏宝库（+%d 声望）" % int(r.get("捐赠声望", 0))
+				钮.custom_minimum_size = Vector2(0, 32)
+				var ID: String = r.get("图鉴ID", "")
+				钮.pressed.connect(func():
+					Game.捐赠图鉴(ID)
+					_进_二级页("图鉴")   # 重建本页，刷新捐赠态
+				)
+				文.add_child(钮)
+		内容.add_child(卡)
+
+# WAVE-D #8：宗门里程碑与传承树（B2 二级页；里程碑进度 + 传承时间线）
+func _填_史册页(内容: Control):
+	var 头 := Label.new()
+	头.text = "宗门传承史册"
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(头)
+	var 概 := Label.new()
+	概.text = "里程碑与图鉴集齐皆记于此；当前产出池轴加成 +%d%%。" % int(Game.产出池加成 * 100)
+	概.add_theme_color_override("font_color", 次墨)
+	内容.add_child(概)
+	var 里程碑头 := Label.new(); 里程碑头.text = "— 里程碑 —"; 里程碑头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(里程碑头)
+	for m in Game.里程碑配置:
+		var 达成: bool = Game.里程碑_已达成.has(m.get("里程碑ID", ""))
+		var 行 := Label.new()
+		行.text = "%s %s%s" % ["✓" if 达成 else "○", m.get("名称", ""), ("（已达成）" if 达成 else "")]
+		行.add_theme_color_override("font_color", 暗金 if 达成 else 青灰)
+		内容.add_child(行)
+	var 史头 := Label.new(); 史头.text = "— 传承时间线 —"; 史头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(史头)
+	if Game.传承史册.is_empty():
+		var 空 := Label.new(); 空.text = "（暂无传承事迹）"; 空.add_theme_color_override("font_color", 青灰)
+		内容.add_child(空)
+	else:
+		for 记 in Game.传承史册:
+			var 行 := Label.new()
+			var 日: int = int(记.get("日", 0))
+			var 文: String = 记.get("文案", "")
+			行.text = "· 第%d日 %s" % [日, 文]
+			行.add_theme_color_override("font_color", 次墨)
+			行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			内容.add_child(行)
 
 # WAVE-C #3：先贤纪事时间线弹窗（复用 _new_detail_popup；纯展示）
 func _弹_先贤纪事(姓名: String, 纪: Array):
