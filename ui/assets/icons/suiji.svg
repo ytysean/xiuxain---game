@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 岁纪 / Chronicle — 日历，取纪年之象。统一暗金描边 #C8A86A，线稿，无填充。viewBox 64×64，stroke-width 4。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 日历页 -->
+  <rect x="12" y="16" width="40" height="36" rx="3"/>
+  <!-- 表头分隔 -->
+  <line x1="12" y1="26" x2="52" y2="26"/>
+  <!-- 装订环 -->
+  <line x1="24" y1="11" x2="24" y2="20"/>
+  <line x1="40" y1="11" x2="40" y2="20"/>
+</svg>

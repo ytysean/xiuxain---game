@@ -64,6 +64,16 @@ const ICON_BY_LABEL: Dictionary = {
 	"时辰": "shichen",
 	"推演时日": "rili",
 	"折叠": "chevron",
+	"大事件": "dashi",
+	"返回": "fanhui",
+	"领取": "lingqu",
+	"排序": "paixu",
+	"庶务": "shuwu",
+	"岁纪": "suiji",
+	"锁": "suod",
+	"详情": "xiangqing",
+	"异闻": "yiwen",
+	"战力": "zhanli",
 }
 
 # 字体缓存（首次探测后缓存，避免对缺失文件重复 load 刷错误日志）
