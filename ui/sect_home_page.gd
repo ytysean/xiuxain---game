@@ -40,7 +40,6 @@ func _build() -> void:
 	var overview := PanelContainer.new()
 	overview.name = "OverviewPlaceholder"
 	overview.custom_minimum_size = Vector2(0, UITheme.OVERVIEW_H)
-	UITheme.apply_panel_style(overview)
 	_build_overview_content(overview)
 	vbox.add_child(overview)
 
@@ -68,7 +67,6 @@ func _build() -> void:
 	var beast_slot := PanelContainer.new()
 	beast_slot.name = "BeastSlot"
 	beast_slot.custom_minimum_size = Vector2(0, UITheme.SIZE_LG)
-	UITheme.apply_panel_style(beast_slot)
 	var bs_label := Label.new()
 	bs_label.text = "御兽（通用占位槽 · 非宫格模块）"
 	bs_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
