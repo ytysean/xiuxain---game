@@ -434,6 +434,7 @@ func _建_宗门页():
 	内容.add_child(_宗门谱系面板())
 	内容.add_child(_宗门路线面板())   # S1 批5-C：正邪路线抉择面板（挂宗门页，不新开 Tab）
 	内容.add_child(_建_玉牌())
+	内容.add_child(_品级权益总览面板())   # WAVE-B #4：当前品级权益总览（读 门派等级→映射品级权益；复用本页，不新增按钮）
 	# W4 快捷入口网格（受控，禁止滚动按钮墙）
 	var 网格 := GridContainer.new()
 	网格.columns = 3
@@ -1029,7 +1030,7 @@ func _on_强制征伐():
 	Game.结算征伐奇遇(当前选中, 征伐事件)
 	# 补写宗门纪事（强制征伐绕过了 _尝试触发奇遇 的纪事写入路径）
 	Game.宗门纪事.append({
-		"日": Game.累计游戏日, "弟子": 当前选中.姓名,
+		"日": Game.累计游戏日, "弟子": 当前选中.姓名, "弟子ID": 当前选中.弟子ID,
 		"稀有度": 征伐事件.get("稀有度", "普通"),
 		"名称": 征伐事件.get("event_name", "强制征伐"),
 		"文案": 征伐事件.get("文案", "") + " [调试]",
@@ -1060,7 +1061,7 @@ func _on_强制聚气丹():
 		_toast("（无弟子可承载聚气丹奇遇）")
 		return
 	var 摘要: String = Game._解析并发放奇遇奖励(d, "dan_low:2")
-	Game.宗门纪事.append({"日": Game.累计游戏日, "弟子": d.姓名, "稀有度": "普通", "名称": "调试·聚气丹", "文案": "获得奖励：%s" % 摘要.strip_edges()})
+	Game.宗门纪事.append({"日": Game.累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "普通", "名称": "调试·聚气丹", "文案": "获得奖励：%s" % 摘要.strip_edges()})
 	if 当前页名 == "纪事":
 		刷新纪事()
 	_toast("（已强制触发聚气丹奇遇，见「纪事」页签点击验证）")
@@ -1160,6 +1161,61 @@ func _评级色(评级: String) -> Color:
 			return 评级_默认
 
 # P1：七载大典仪式弹窗（双周期评级收口庆典，零数值，纯展示）
+# WAVE-B #4：品级权益映射表（config/品级权益映射.csv）→ 等级→权益行（懒加载，缺表回退空）
+var _品级权益缓存: Array = []
+var _品级权益已加载: bool = false
+
+func _品级权益表() -> Array:
+	if _品级权益已加载:
+		return _品级权益缓存
+	_品级权益已加载 = true
+	var file: FileAccess = FileAccess.open("res://config/品级权益映射.csv", FileAccess.READ)
+	if file == null:
+		return _品级权益缓存
+	file.get_csv_line()  # 跳过 header
+	while not file.eof_reached():
+		var parts: PackedStringArray = file.get_csv_line()
+		if parts.size() < 6:
+			continue
+		_品级权益缓存.append({
+			"品级": parts[0].strip_edges(),
+			"门派等级阈值": int(parts[1].strip_edges()),
+			"编制上限": parts[2].strip_edges(),
+			"解锁功能": parts[3].strip_edges(),
+			"弹窗标题": parts[4].strip_edges(),
+			"弹窗文案": parts[5].strip_edges(),
+		})
+	return _品级权益缓存
+
+# WAVE-B #4：门派等级 → 权益行（取 门派等级阈值 <= 等级 的最高档；缺表回退空字典）
+func _门派等级到品级权益(等级: int) -> Dictionary:
+	var 表: Array = _品级权益表()
+	var 命中: Dictionary = {}
+	for r in 表:
+		if r["门派等级阈值"] <= 等级:
+			if 命中.is_empty() or r["门派等级阈值"] > 命中["门派等级阈值"]:
+				命中 = r
+	return 命中
+
+# WAVE-B #4：宗门设置页——当前品级权益总览（读 门派等级→映射品级权益；纯展示，不新增按钮）
+func _品级权益总览面板() -> PanelContainer:
+	var 卡: PanelContainer = 新面板("—— 宗门品级权益 ——")
+	卡.add_theme_stylebox_override("panel", _暗墨面板())
+	var 文: VBoxContainer = 卡.get_child(0)
+	var 当前: Dictionary = _门派等级到品级权益(Game.门派等级)
+	var 当前品级名: String = 当前.get("品级", "九品") if not 当前.is_empty() else "九品"
+	var 当前行 := Label.new()
+	当前行.text = "当前品级：%s（门派 Lv%d）" % [当前品级名, Game.门派等级]
+	当前行.add_theme_color_override("font_color", 暗金)
+	文.add_child(当前行)
+	for r in _品级权益表():
+		var 已达: bool = r["门派等级阈值"] <= Game.门派等级
+		var 行 := Label.new()
+		行.text = "%s　编制上限 %s　解锁：%s%s" % [r["品级"], r["编制上限"], r["解锁功能"], ("" if 已达 else "（未达门槛）")]
+		行.add_theme_color_override("font_color", 暗金 if 已达 else 次墨)
+		文.add_child(行)
+	return 卡
+
 func _弹七载大典():
 	var 弹: Dictionary = _new_detail_popup("太玄宗·七载宗门大考")
 	var 内容: VBoxContainer = 弹["内容"]
@@ -1195,7 +1251,14 @@ func _弹七载大典():
 		if 晋升至 > 0:
 			var l := Label.new(); l.text = "〔宗门品阶跃迁〕晋至 Lv.%d" % 晋升至
 			l.add_theme_font_size_override("font_size", FONT_AUX); l.add_theme_color_override("font_color", 次墨); 块.add_child(l)
-		内容.add_child(块)
+			# WAVE-B #4：本次解锁权益（按晋升至映射品级，查 品级权益映射.csv 取标题+文案；晋升至==0 不显示，无空块）
+			var 权益: Dictionary = _门派等级到品级权益(晋升至)
+			if not 权益.is_empty():
+				var 标 := Label.new(); 标.text = "〔本次解锁权益〕" + 权益.get("弹窗标题", "")
+				标.add_theme_font_size_override("font_size", FONT_AUX); 标.add_theme_color_override("font_color", 暗金); 块.add_child(标)
+				var 案 := Label.new(); 案.text = 权益.get("弹窗文案", "")
+				案.add_theme_font_size_override("font_size", FONT_AUX); 案.add_theme_color_override("font_color", 次墨); 块.add_child(案)
+			内容.add_child(块)
 	# 收尾纪年
 	var 铭 := Label.new()
 	铭.text = (文["收尾"] % 序号) + "\n—— 太玄宗·七载大典 ——"
@@ -2508,8 +2571,8 @@ func 刷新纪事():
 	if Game.宗门纪事.is_empty():
 		var 空 := Label.new(); 空.text = "（宗门纪事暂无记录，奇遇触发后于此回看）"; 纪事区.add_child(空)
 		return
-	# 分类筛选标签栏（全部 / 宗门大事件 / 宗门岁纪 / 日常庶务 / 异闻）
-	var 分类表: Array = ["全部", "宗门大事件", "宗门岁纪", "日常庶务", "异闻"]
+	# 分类筛选标签栏（全部 / 宗门大事件 / 宗门岁纪 / 日常庶务 / 异闻 / 先贤缅怀 / 大典盛事；后二者为 WAVE-B #2 按需扩展，纯文案）
+	var 分类表: Array = ["全部", "宗门大事件", "宗门岁纪", "日常庶务", "异闻", "先贤缅怀", "大典盛事"]
 	var 计数: Dictionary = {}
 	for 分类 in 分类表:
 		计数[分类] = 0
