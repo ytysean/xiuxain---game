@@ -125,7 +125,7 @@ func _apply_theme() -> void:
 		if lbl != null:
 			UITheme.apply_value_font(lbl, false)
 	# 等级进度条填充/底由 main_theme.tres 的 ProgressBar 默认提供（令牌 success 绿 #7ED39A，D2 拍板）。
-	UITheme.apply_primary_button_style(_time_btn)
+	# 推演按钮（_time_btn）四态改由 main_theme.tres Button 默认提供（阶段4 收口）。
 
 func set_time(text: String) -> void:
 	_time_label.text = text
