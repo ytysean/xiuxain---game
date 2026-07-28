@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7")
 [autoload]
 
 Game="*res://game_state.gd"
+UITheme="*res://ui_theme.gd"
 
 [display]
 
