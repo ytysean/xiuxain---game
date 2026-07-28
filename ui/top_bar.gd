@@ -75,6 +75,11 @@ func _build() -> void:
 	_time_btn = Button.new()
 	_time_btn.name = "TimeAdvance"
 	_time_btn.text = "推演时日"
+	# 推演时日 按钮挂线稿图标（§2.4 / §7.4）；缺失静默仅文字。图标尺寸受控 ~22px。
+	_time_btn.icon = UITheme.load_icon("推演时日")
+	_time_btn.icon_max_width = 22
+	_time_btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_time_btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	_time_btn.custom_minimum_size = Vector2(72, 32)
 	_time_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	hbox.add_child(_time_btn)

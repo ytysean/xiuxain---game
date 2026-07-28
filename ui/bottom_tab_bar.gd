@@ -31,6 +31,11 @@ func _build() -> void:
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, UITheme.TAB_H)
 		btn.set_meta("tab_id", id)
+		# §2.4：竖排（图标在上、文字在下）；图标尺寸受控 ~28px 以适配 64dp 高
+		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.icon_max_width = 28
 		# 古风线稿 Tab 图标（§2.4 图标+文字）；缺失时仅文字
 		var tab_tex: Texture2D = UITheme.load_icon(id)
 		if tab_tex != null:
