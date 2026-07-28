@@ -153,7 +153,7 @@ func make_panel_stylebox(use_ink: bool = true) -> StyleBox:
 			var sb_t := StyleBoxTexture.new()
 			sb_t.texture = tex
 			# 9-slice：锁定四角圆角区（与 panel_ink.svg 的 rx=16 对齐），中间拉伸
-			sb_t.set_margin_all(RADIUS_PANEL + 8)
+			sb_t.set_texture_margin_all(RADIUS_PANEL + 8)
 			sb_t.set_content_margin_all(PAD_PANEL)
 			return sb_t
 	var sb := StyleBoxFlat.new()
@@ -239,7 +239,7 @@ func make_divider_stylebox() -> StyleBox:
 		var sb_t := StyleBoxTexture.new()
 		sb_t.texture = tex
 		# 9-slice 锁定细线主体（4px 高 + 左右各扩 2px 防云纹拉伸变形）
-		sb_t.set_margin_all(2)
+		sb_t.set_texture_margin_all(2)
 		return sb_t
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = COLOR_BORDER_GOLD
@@ -276,6 +276,18 @@ func load_icon(label: String) -> Texture2D:
 	if stem == "":
 		return null
 	return load(ICON_DIR + stem + ".svg") as Texture2D
+
+# 按 label 取图标并光栅化缩放到指定尺寸（正方形）。
+# 用于绕过某些 Godot 4.7 build 中 Button.icon_max_width 不可用的问题。
+func load_icon_sized(label: String, size: int) -> Texture2D:
+	var tex: Texture2D = load_icon(label)
+	if tex == null or size <= 0:
+		return tex
+	var img: Image = tex.get_image()
+	if img == null:
+		return tex
+	img.resize(size, size, Image.INTERPOLATE_LANCZOS)
+	return ImageTexture.create_from_image(img)
 
 # 加载面板暗纹贴图；缺失返 null（make_panel_stylebox 退化为 StyleBoxFlat）。
 func load_panel_ink() -> Texture2D:

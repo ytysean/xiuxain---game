@@ -35,11 +35,8 @@ func _build() -> void:
 		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		btn.icon_max_width = 28
-		# 古风线稿 Tab 图标（§2.4 图标+文字）；缺失时仅文字
-		var tab_tex: Texture2D = UITheme.load_icon(id)
-		if tab_tex != null:
-			btn.icon = tab_tex
+		# 用 load_icon_sized 预缩放，绕过部分 Godot 4.7 build 中 Button.icon_max_width 不可用的问题。
+		btn.icon = UITheme.load_icon_sized(id, 28)
 		var ul := ColorRect.new()
 		ul.name = "Underline"
 		ul.color = UITheme.COLOR_BORDER_GOLD
