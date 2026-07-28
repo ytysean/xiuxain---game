@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://wvnhngktua8h"
+
+[deps]
+
+files=["res://config/品级权益映射.门派等级阈值.translation", "res://config/品级权益映射.编制上限.translation", "res://config/品级权益映射.解锁功能.translation", "res://config/品级权益映射.弹窗标题.translation", "res://config/品级权益映射.弹窗文案.translation"]
+
+source_file="res://config/品级权益映射.csv"
+dest_files=["res://config/品级权益映射.门派等级阈值.translation", "res://config/品级权益映射.编制上限.translation", "res://config/品级权益映射.解锁功能.translation", "res://config/品级权益映射.弹窗标题.translation", "res://config/品级权益映射.弹窗文案.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

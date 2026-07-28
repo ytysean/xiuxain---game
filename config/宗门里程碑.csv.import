@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dcemvxhi8wnje"
+
+[deps]
+
+files=["res://config/宗门里程碑.名称.translation", "res://config/宗门里程碑.触发类型.translation", "res://config/宗门里程碑.触发事件.translation", "res://config/宗门里程碑.触发阈值.translation", "res://config/宗门里程碑.奖励增益类型.translation", "res://config/宗门里程碑.奖励增益值.translation", "res://config/宗门里程碑.史册文案.translation"]
+
+source_file="res://config/宗门里程碑.csv"
+dest_files=["res://config/宗门里程碑.名称.translation", "res://config/宗门里程碑.触发类型.translation", "res://config/宗门里程碑.触发事件.translation", "res://config/宗门里程碑.触发阈值.translation", "res://config/宗门里程碑.奖励增益类型.translation", "res://config/宗门里程碑.奖励增益值.translation", "res://config/宗门里程碑.史册文案.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

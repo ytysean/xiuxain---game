@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ce2ja231v47l"
+
+[deps]
+
+files=["res://config/收藏图鉴分类.类别.translation", "res://config/收藏图鉴分类.匹配名.translation", "res://config/收藏图鉴分类.名称.translation", "res://config/收藏图鉴分类.描述.translation", "res://config/收藏图鉴分类.增益类型.translation", "res://config/收藏图鉴分类.增益值.translation", "res://config/收藏图鉴分类.是否稀有.translation", "res://config/收藏图鉴分类.捐赠声望.translation"]
+
+source_file="res://config/收藏图鉴分类.csv"
+dest_files=["res://config/收藏图鉴分类.类别.translation", "res://config/收藏图鉴分类.匹配名.translation", "res://config/收藏图鉴分类.名称.translation", "res://config/收藏图鉴分类.描述.translation", "res://config/收藏图鉴分类.增益类型.translation", "res://config/收藏图鉴分类.增益值.translation", "res://config/收藏图鉴分类.是否稀有.translation", "res://config/收藏图鉴分类.捐赠声望.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

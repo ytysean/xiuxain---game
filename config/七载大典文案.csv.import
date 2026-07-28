@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://sjogoeyy2knb"
+
+[deps]
+
+files=["res://config/七载大典文案.标题.translation", "res://config/七载大典文案.开篇.translation", "res://config/七载大典文案.收尾.translation", "res://config/七载大典文案.评语.translation"]
+
+source_file="res://config/七载大典文案.csv"
+dest_files=["res://config/七载大典文案.标题.translation", "res://config/七载大典文案.开篇.translation", "res://config/七载大典文案.收尾.translation", "res://config/七载大典文案.评语.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

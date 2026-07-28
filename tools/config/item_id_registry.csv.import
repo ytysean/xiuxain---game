@@ -6,10 +6,10 @@ uid="uid://ndkyasnoftl5"
 
 [deps]
 
-files=["res://config/item_id_registry.source.translation"]
+files=["res://tools/config/item_id_registry.source.translation"]
 
-source_file="res://config/item_id_registry.csv"
-dest_files=["res://config/item_id_registry.source.translation"]
+source_file="res://tools/config/item_id_registry.csv"
+dest_files=["res://tools/config/item_id_registry.source.translation"]
 
 [params]
 

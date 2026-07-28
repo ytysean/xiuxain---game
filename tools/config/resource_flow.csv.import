@@ -6,10 +6,10 @@ uid="uid://codkiwmb335oq"
 
 [deps]
 
-files=["res://config/resource_flow.产出声明.translation", "res://config/resource_flow.消耗声明.translation", "res://config/resource_flow.状态.translation", "res://config/resource_flow.产出标记.translation", "res://config/resource_flow.消耗标记.translation"]
+files=["res://tools/config/resource_flow.产出声明.translation", "res://tools/config/resource_flow.消耗声明.translation", "res://tools/config/resource_flow.状态.translation", "res://tools/config/resource_flow.产出标记.translation", "res://tools/config/resource_flow.消耗标记.translation"]
 
-source_file="res://config/resource_flow.csv"
-dest_files=["res://config/resource_flow.产出声明.translation", "res://config/resource_flow.消耗声明.translation", "res://config/resource_flow.状态.translation", "res://config/resource_flow.产出标记.translation", "res://config/resource_flow.消耗标记.translation"]
+source_file="res://tools/config/resource_flow.csv"
+dest_files=["res://tools/config/resource_flow.产出声明.translation", "res://tools/config/resource_flow.消耗声明.translation", "res://tools/config/resource_flow.状态.translation", "res://tools/config/resource_flow.产出标记.translation", "res://tools/config/resource_flow.消耗标记.translation"]
 
 [params]
 
