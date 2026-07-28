@@ -4,16 +4,42 @@
 extends Node
 
 # ───────── 色彩 token ─────────
-const COLOR_BG_BASE: Color = Color(0.110, 0.149, 0.157)       # 暗青黛 底色
-const COLOR_PANEL_BG: Color = Color(0.137, 0.176, 0.180)      # 面板暗纹底（占位色，待美术暗纹贴图）
+const COLOR_BG_BASE: Color = Color(0.106, 0.153, 0.169)       # 暗青黛 底色
+const COLOR_PANEL_BG: Color = Color(0.141, 0.204, 0.224)      # 面板暗纹底（占位色，待美术暗纹贴图）
 const COLOR_STATUSBAR_BG: Color = Color(0.055, 0.082, 0.090)  # 状态栏/墨底
-const COLOR_BORDER_GOLD: Color = Color(0.784, 0.659, 0.416)   # 暗金 描边/标题
-const COLOR_TEXT_GOLD: Color = Color(0.941, 0.808, 0.420)     # 亮金 核心数值（正常）
-const COLOR_TEXT_RED: Color = Color(0.545, 0.227, 0.227)      # 暗红 异常（负值/预警）
-const COLOR_TEXT_BODY: Color = Color(0.910, 0.878, 0.808)     # 浅米 正文
-const COLOR_TEXT_AUX: Color = Color(0.659, 0.659, 0.627)      # 浅灰 辅助
+const COLOR_BORDER_GOLD: Color = Color(0.788, 0.659, 0.396)   # 暗金 描边/标题
+const COLOR_TEXT_GOLD: Color = Color(1.000, 0.843, 0.478)     # 亮金 核心数值（正常）
+const COLOR_TEXT_RED: Color = Color(0.878, 0.471, 0.471)      # color.status.danger #E07878 警示/异常（负值/预警）
+const COLOR_TEXT_BODY: Color = Color(0.878, 0.835, 0.745)     # 浅米 正文
+const COLOR_TEXT_AUX: Color = Color(0.541, 0.494, 0.408)      # 浅灰 辅助
 const COLOR_BTN_PRESSED: Color = Color(0.078, 0.106, 0.110)   # 主按钮按下态 底色加深
-const COLOR_BTN_DISABLED: Color = Color(0.180, 0.196, 0.196)  # 主按钮禁用态
+const COLOR_BTN_DISABLED: Color = Color(0.180, 0.196, 0.196)
+
+# ── S1 重架构：按《UI设计令牌v1.0》补齐的色常量（视觉基线；业务色最终收口 UIThemeConfig）──
+# 背景分层（内嵌内容面）
+const COLOR_BG_CONTENT: Color = Color(0.173, 0.239, 0.263)    # color.bg.content* #2C3D43 面板内嵌内容面
+# 文字分层
+const COLOR_TEXT_TITLE1: Color = Color(0.902, 0.780, 0.471)   # color.text.title1 #E6C778 一级标题
+const COLOR_TEXT_TITLE2: Color = Color(0.941, 0.902, 0.824)   # color.text.title2 #F0E6D2 二级标题
+const COLOR_TEXT_BODY_DIM: Color = Color(0.784, 0.722, 0.588) # color.text.body-dim* #C8B896 弱化正文
+const COLOR_TEXT_DISABLED: Color = Color(0.333, 0.333, 0.310) # color.text.disabled #55554F 禁用灰
+# 功能色
+const COLOR_STATUS_SUCCESS: Color = Color(0.494, 0.827, 0.604)# color.status.success #7ED39A 成功/增益
+# 业务色 — 品级（物品/装备 8 档）· 视觉基线
+const COLOR_TIER_FAN: Color = Color(0.839, 0.839, 0.839)      # tier.fan 凡品 #D6D6D6
+const COLOR_TIER_LIANG: Color = Color(0.298, 0.686, 0.478)    # tier.liang 良品 #4CAF7A
+const COLOR_TIER_LING: Color = Color(0.247, 0.663, 0.788)     # tier.ling 灵品 #3FA9C9（主理人裁定-升档区分）
+const COLOR_TIER_BAO: Color = Color(0.357, 0.545, 0.851)      # tier.bao 宝品 #5B8BD9
+const COLOR_TIER_WANG: Color = Color(0.851, 0.627, 0.298)     # tier.wang 王品 #D9A04C
+const COLOR_TIER_SHENG: Color = Color(0.690, 0.298, 0.851)    # tier.sheng 圣品 #B04CD9
+const COLOR_TIER_XIAN: Color = Color(0.941, 0.902, 0.690)     # tier.xian 仙品 #F0E6B0
+const COLOR_TIER_DAO: Color = Color(0.910, 0.941, 1.000)      # tier.dao 道品 #E8F0FF
+# 业务色 — 境界（5 档）· 视觉基线
+const COLOR_REALM_LIANQI: Color = Color(0.784, 0.722, 0.588)  # realm.lianqi 练气 #C8B896
+const COLOR_REALM_ZHUJI: Color = Color(0.298, 0.686, 0.478)   # realm.zhuji 筑基 #4CAF7A
+const COLOR_REALM_JINDAN: Color = Color(0.357, 0.545, 0.851)  # realm.jindan 金丹 #5B8BD9
+const COLOR_REALM_YUANYING: Color = Color(0.851, 0.627, 0.298)# realm.yuanying 元婴 #D9A04C
+const COLOR_REALM_HUASHEN: Color = Color(0.690, 0.298, 0.851) # realm.huashen 化神 #B04CD9
 
 # ───────── 8px 栅格常量 ─────────
 const GRID: int = 8
@@ -35,6 +61,12 @@ const FONT_TITLE: int = 24
 const FONT_VALUE: int = 18
 const FONT_BODY: int = 16
 const FONT_AUX: int = 12
+
+# 令牌 §2.2 字号阶梯（迁移目标-非破坏性新增，组件逐步采用；现有 4 档暂不放大以免 5 页文字溢出）
+const FONT_DISPLAY: int = 40   # font.size.display 巨号/大标题
+const FONT_H1: int = 32        # font.size.h1 一级标题
+const FONT_H2: int = 26        # font.size.h2 二级标题
+const FONT_DENSE: int = 18     # font.size.dense 密集数值
 
 # ───────── 美术资产路径（图标 / 贴图 / 字体 · 集中管理）─────────
 # 集中管理 res:// 资源位置；改皮 / 换套仅动本节，组件零硬编码（保持单文件样式管理）。
@@ -74,6 +106,10 @@ const ICON_BY_LABEL: Dictionary = {
 	"详情": "xiangqing",
 	"异闻": "yiwen",
 	"战力": "zhanli",
+	"关闭": "关闭",
+	"确认": "确认",
+	"取消": "取消",
+	"箭头": "箭头",
 }
 
 # 字体缓存（首次探测后缓存，避免对缺失文件重复 load 刷错误日志）
@@ -97,6 +133,15 @@ func color_text_aux() -> Color: return COLOR_TEXT_AUX
 # 核心数值：正常亮金 / 异常暗红
 func color_value(abnormal: bool) -> Color: return COLOR_TEXT_RED if abnormal else COLOR_TEXT_GOLD
 
+# ── 令牌色 getter（对齐 UI设计令牌v1.0，供组件按需取色）──
+func color_bg_content() -> Color: return COLOR_BG_CONTENT
+func color_text_title1() -> Color: return COLOR_TEXT_TITLE1
+func color_text_title2() -> Color: return COLOR_TEXT_TITLE2
+func color_text_body_dim() -> Color: return COLOR_TEXT_BODY_DIM
+func color_text_disabled() -> Color: return COLOR_TEXT_DISABLED
+func color_status_success() -> Color: return COLOR_STATUS_SUCCESS
+func color_status_danger() -> Color: return COLOR_TEXT_RED
+
 # ───────── 字体 helper ─────────
 # 优先取 FONT_TITLE_PATH / FONT_BODY_PATH 已落盘的字体文件，落盘缺失时退回字号+颜色 override（不阻断运行）。
 func _ensure_fonts() -> void:
@@ -111,7 +156,7 @@ func _ensure_fonts() -> void:
 func apply_title_font(control: Control) -> void:
 	_ensure_fonts()
 	control.add_theme_font_size_override("font_size", FONT_TITLE)
-	control.add_theme_color_override("font_color", COLOR_BORDER_GOLD)
+	control.add_theme_color_override("font_color", COLOR_TEXT_TITLE1)
 	if _font_title_res != null:
 		control.add_theme_font_override("font", _font_title_res)
 

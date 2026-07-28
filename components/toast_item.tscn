@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="sb_toast"]
+bg_color = Color(0.1412, 0.2039, 0.2235, 0.88)
+border_color = Color(0.7882, 0.6588, 0.3961, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12
+content_margin_top = 12
+content_margin_right = 12
+content_margin_bottom = 12
+
+[node name="toast_item" type="PanelContainer"]
+theme_override_styles/panel = SubResource("sb_toast")
+
+[node name="label" type="Label" parent="."]
+layout_mode = 2
+text = "提示"
+horizontal_alignment = 1
+vertical_alignment = 1

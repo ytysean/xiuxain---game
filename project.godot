@@ -18,9 +18,16 @@ config/features=PackedStringArray("4.7")
 
 Game="*res://game_state.gd"
 UITheme="*res://ui_theme.gd"
+UIThemeConfig="*res://ui_theme_config.gd"
+UITween="*res://ui_tween.gd"
+ToastManager="*res://components/ToastManager.gd"
 
 [display]
 
 window/size/viewport_width=480
 window/size/viewport_height=854
 window/handheld/orientation="portrait"
+
+[gui]
+
+theme="res://theme/main_theme.tres"
