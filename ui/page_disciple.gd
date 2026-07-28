@@ -291,9 +291,9 @@ func _populate_decision() -> void:
 	if 待抉择 == null or not (待抉择 is Array) or 待抉择.size() == 0:
 		_add_decision_empty()
 		return
-	var hscroll := HScrollContainer.new()
+	var hscroll := ScrollContainer.new()
 	hscroll.name = "Cards"
-	hscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_ENABLED
+	hscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	hscroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	hscroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hscroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -402,17 +402,15 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	var 资质文本 := "—"
 	if 资质key != "" and 资质key != null:
 		资质文本 = str(资质key)
-		if DiscipleData != null and DiscipleData.get("资质显示") != null:
-			var 映射 = DiscipleData.资质显示
-			if 映射 is Dictionary:
-				资质文本 = str(映射.get(资质key, 资质key))
+		var 映射 = DiscipleData.资质显示
+		if 映射 is Dictionary:
+			资质文本 = str(映射.get(资质key, 资质key))
 	var did = _safe_get(d, "destiny_id", "")
 	var 命格文本 := "—"
 	if did != "" and did != null:
-		if DestinyLoader != null and DestinyLoader.has_method("get_destiny"):
-			var dt = DestinyLoader.get_destiny(str(did))
-			if dt is Dictionary:
-				命格文本 = str(dt.get("名称", did))
+		var dt = DestinyLoader.get_destiny(str(did))
+		if dt is Dictionary:
+			命格文本 = str(dt.get("名称", did))
 		else:
 			命格文本 = str(did)
 	var 职业v = _safe_get(d, "职业", "")

@@ -138,7 +138,7 @@ func _populate() -> void:
 
 	var 减免 = 0.0
 	if is_instance_valid(Game):
-		减免 = Game.get("建筑被动_负面事件减免", 0.0)
+		减免 = Game.get("建筑被动_负面事件减免")
 		if typeof(减免) != TYPE_FLOAT and typeof(减免) != TYPE_INT:
 			减免 = 0.0
 	_passive_label.text = "负面事件减免 %d%%" % int(abs(减免))
@@ -197,7 +197,9 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	var 主事obj = entry.get("负责人", null)
 	var 主事文本 := "主事:缺"
 	if 主事obj != null and 主事obj is Object:
-		主事文本 = "主事:" + str(主事obj.get("姓名", "缺"))
+		var 主事名 = 主事obj.get("姓名")
+		if 主事名 != null:
+			主事文本 = "主事:" + str(主事名)
 	var 主事 := Label.new()
 	主事.text = 主事文本
 	UITheme.apply_aux_font(主事)
