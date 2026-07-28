@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 算盘 / Abacus — 核心宫格"坊市"图标。规治府国以衡平，坊市以算盘取象。统一暗金线稿。-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(-6.4, -6.4) scale(1.2)" stroke-width="3.333">
   <!-- 框 -->
   <rect x="12" y="18" width="40" height="28" rx="2"/>
   <!-- 中档横梁 -->
@@ -20,4 +21,5 @@
   <circle cx="29" cy="36" r="1.8"/>
   <circle cx="38" cy="36" r="1.8"/>
   <circle cx="47" cy="36" r="1.8"/>
+  </g>
 </svg>

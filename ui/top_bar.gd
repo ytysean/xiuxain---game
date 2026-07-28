@@ -1,8 +1,14 @@
 extends Control
 
 # 顶部状态栏（§2.2：固定顶部 48dp）。仅发信号，不连玩法/时间逻辑。
-# 左：时辰占位；中：宗门等级 + 微型进度条；右：3 核心资源槽（含异常红 hook）；
+# 左：时辰占位；中：宗门等级 + 微型进度条（展开填充、内容居中）；
+# 右：3 核心资源槽（图标16×16 + 紧贴数值标签）；
 # 最右：「推演时日」按钮 -> 信号 time_advance_requested。
+#
+# 布局采用单 HBoxContainer，顺序固定为：
+#   time(SHRINK_BEGIN) | mid(EXPAND_FILL) | res(SHRINK_END) | btn(SHRINK_END)
+# 该结构保证 480 竖屏下元素不重叠、不被挤出：mid 吸收多余宽度，
+# 末端元素（res / btn）固定靠右、time 固定靠左；资源槽紧凑（图标16 + 间距4 + 标签）。
 
 signal time_advance_requested
 
@@ -38,21 +44,25 @@ func _build() -> void:
 	add_child(hbox)
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+	# 左：时辰占位（固定左对齐，不展开）
 	_time_label = Label.new()
 	_time_label.name = "Time"
 	_time_label.text = "时辰 · —"
+	_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_time_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	hbox.add_child(_time_label)
 
+	# 中：宗门等级 + 微型进度条（展开填充，内容垂直/水平居中）
 	var mid := VBoxContainer.new()
 	mid.name = "Mid"
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.alignment = BoxContainer.ALIGNMENT_CENTER
+	mid.add_theme_constant_override("separation", 2)
 	hbox.add_child(mid)
 
 	_level_label = Label.new()
 	_level_label.name = "Level"
-	_level_label.text = "宗门 Lv?"
+	_level_label.text = "宗门 Lv —"
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mid.add_child(_level_label)
 
@@ -64,6 +74,7 @@ func _build() -> void:
 	_progress.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	mid.add_child(_progress)
 
+	# 右：3 核心资源槽（图标 16×16 + 紧贴数值标签）
 	var res := HBoxContainer.new()
 	res.name = "Resources"
 	res.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -72,11 +83,10 @@ func _build() -> void:
 	for id in RESOURCES:
 		res.add_child(_make_slot(id))
 
+	# 最右：推演时日 按钮（已由工程侧处理为 图标+文字）
 	_time_btn = Button.new()
 	_time_btn.name = "TimeAdvance"
 	_time_btn.text = "推演时日"
-	# 推演时日 按钮挂线稿图标（§2.4 / §7.4）；缺失静默仅文字。图标尺寸受控 ~22px。
-	# 用 load_icon_sized 预缩放，绕过部分 Godot 4.7 build 中 Button.icon_max_width 不可用的问题。
 	_time_btn.icon = UITheme.load_icon_sized("推演时日", 22)
 	_time_btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_time_btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -92,8 +102,8 @@ func _make_slot(id: String) -> Control:
 	icon.name = "Icon"
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	# 古风资源图标（灵石/灵气/弟子/时辰）；缺失静默隐藏
 	var tex: Texture2D = UITheme.load_icon(id)
 	if tex != null:
 		icon.texture = tex
@@ -102,6 +112,7 @@ func _make_slot(id: String) -> Control:
 	var lbl := Label.new()
 	lbl.name = "Value"
 	lbl.text = "—"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	slot.add_child(lbl)
 	_res_labels[id] = lbl
 	return slot

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 簿册 / Ledger — 核心宫格"账册"图标。左右翻页式古籍账本，与卷轴区分。-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(-16, -16) scale(1.5)" stroke-width="2.667">
   <!-- 左页 -->
   <path d="M32 20 L16 24 L16 44 L32 42 Z"/>
   <!-- 右页 -->
@@ -13,4 +14,5 @@
   <!-- 右页正文 -->
   <line x1="36" y1="28" x2="44" y2="29"/>
   <line x1="36" y1="33" x2="44" y2="34"/>
+  </g>
 </svg>
