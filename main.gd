@@ -768,6 +768,11 @@ func _建_历练页():
 func _建_纪事页():
 	var 页: ScrollContainer = _新页容器()
 	var 内容: Control = 页.get_child(0)
+	# WAVE-C #3：先贤祠入口（B2 二级下沉：不新增一级导航按钮，仅纪事页内跳转二级页）
+	var 先贤入口 := Button.new(); 先贤入口.text = "先贤祠"
+	先贤入口.custom_minimum_size = Vector2(0, 44)
+	先贤入口.pressed.connect(func(): _进_二级页("先贤祠"))
+	内容.add_child(先贤入口)
 	内容.add_child(纪事区)   # 持久（刷新纪事在其内建分类 Tab）
 	刷新纪事()
 	当前页持久节点 = [纪事区]
@@ -790,6 +795,7 @@ func _建_二级页(名: String):
 		"账册": _填_账册页(内容)
 		"洞府": _填_洞府页(内容)
 		"修炼": _填_修炼页(内容)
+		"先贤祠": _填_先贤祠页(内容)
 	当前页名 = "宗门"   # 主导航仍高亮宗门
 	当前页持久节点 = []
 
@@ -1258,6 +1264,11 @@ func _弹七载大典():
 				标.add_theme_font_size_override("font_size", FONT_AUX); 标.add_theme_color_override("font_color", 暗金); 块.add_child(标)
 				var 案 := Label.new(); 案.text = 权益.get("弹窗文案", "")
 				案.add_theme_font_size_override("font_size", FONT_AUX); 案.add_theme_color_override("font_color", 次墨); 块.add_child(案)
+			else:
+				# O3-D1 修复：权益映射缺失（CSV 缺行/无匹配）时补默认文案（GDD §4.8 EC-4）
+				var 默 := Label.new(); 默.text = "宗门更上一层"
+				默.add_theme_font_size_override("font_size", FONT_AUX); 默.add_theme_color_override("font_color", 次墨); 块.add_child(默)
+			# O3-D1 修复：将 内容.add_child(块) 移出 权益 守卫，使「品阶跃迁」行在 晋升至>0 时恒显示（权益子块仍按非空条件渲染）
 			内容.add_child(块)
 	# 收尾纪年
 	var 铭 := Label.new()
@@ -3760,9 +3771,95 @@ func _玄玉占位按钮() -> Button:
 	b.modulate.a = 0.6
 	return b
 
+# WAVE-C #3：先贤祠二级页（纯展示，读取 Game.先贤堂；零数值，传承 deferred；B2 二级下沉，无新一级按钮）
+func _填_先贤祠页(内容: Control):
+	var 头 := Label.new()
+	头.text = "先贤祠"
+	头.add_theme_font_size_override("font_size", FONT_PANEL_B)
+	头.add_theme_color_override("font_color", 暗金)
+	内容.add_child(头)
+	var 概 := Label.new()
+	概.text = "魂归山门，英名长存——坐化弟子于此留名（纯展示，不触发任何数值）。"
+	概.add_theme_color_override("font_color", 次墨)
+	内容.add_child(概)
+	if Game.先贤堂.is_empty():
+		var 空 := Label.new(); 空.text = "（尚无先贤入册）"
+		空.add_theme_color_override("font_color", 青灰)
+		内容.add_child(空)
+		return
+	var 列 := VBoxContainer.new()
+	列.add_theme_constant_override("separation", 6)
+	列.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	内容.add_child(列)
+	for 贤 in Game.先贤堂:
+		var 卡 := PanelContainer.new()
+		卡.add_theme_stylebox_override("panel", _暗墨面板())
+		var 文: VBoxContainer = 卡.get_child(0)
+		var 名: String = 贤.get("姓名", "无名")
+		var 境: String = 贤.get("境界", "")
+		var 日: int = int(贤.get("坐化日", 0))
+		var 摘: String = 贤.get("事迹摘要", "")
+		var 标题 := Label.new()
+		标题.text = "〔先贤〕%s（%s）· 坐化于第%d日" % [名, 境, 日]
+		标题.add_theme_color_override("font_color", 暗金)
+		文.add_child(标题)
+		var 摘要 := Label.new()
+		摘要.text = 摘
+		摘要.add_theme_color_override("font_color", 次墨)
+		摘要.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		文.add_child(摘要)
+		# 点击查看该先贤的宗门纪事时间线（复用 #2 取弟子纪事）
+		var 查 := Button.new(); 查.text = "查看%s的纪事" % 名
+		查.custom_minimum_size = Vector2(0, 36)
+		var ID: int = int(贤.get("弟子ID", 0))
+		查.pressed.connect(func():
+			var 纪: Array = Game.取弟子纪事(ID, 名)
+			_弹_先贤纪事(名, 纪)
+		)
+		文.add_child(查)
+		列.add_child(卡)
+
+# WAVE-C #3：先贤纪事时间线弹窗（复用 _new_detail_popup；纯展示）
+func _弹_先贤纪事(姓名: String, 纪: Array):
+	var 弹: Dictionary = _new_detail_popup("先贤·%s 的纪事" % 姓名)
+	var 内容: VBoxContainer = 弹["内容"]
+	if 纪.is_empty():
+		var 空 := Label.new(); 空.text = "（暂无该先贤的纪事）"
+		空.add_theme_color_override("font_color", 青灰)
+		内容.add_child(空)
+		return
+	for 记 in 纪:
+		var 行 := Label.new()
+		var 日: int = int(记.get("日", 0))
+		var 文: String = 记.get("文案", "")
+		var 类: String = 记.get("category", "")
+		var 标: String = ("〔%s〕" % 类) if 类 != "" else ""
+		行.text = "· 第%d日 %s%s" % [日, 标, 文]
+		行.add_theme_color_override("font_color", 次墨)
+		行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		内容.add_child(行)
+
 func _填_坊市页(内容: Control):
+	# WAVE-C #7：集市状态一致性——若当前窗口状态与已上架标记不符，强制刷新（仅刷新规则，零经济）
+	if Game.宗门集市_激活中() != Game.坊市上架_集市标记:
+		Game.刷新坊市上架()
 	if Game.坊市上架集.is_empty():
 		Game.刷新坊市上架()
+	# WAVE-C #7：宗门集市状态面板（叠加展示，不新增一级按钮；手续费/声望为显示态，价格/限购通道不变）
+	if Game.宗门集市_激活中():
+		var 配: Dictionary = Game.宗门集市_配置()
+		var 状态 := PanelContainer.new()
+		状态.add_theme_stylebox_override("panel", _暗墨面板())
+		var 状文: VBoxContainer = 状态.get_child(0)
+		var 状标 := Label.new(); 状标.text = "宗门集市·开启中（每月 %d-%d 日）" % [int(配.get("激活日", 15)), int(配.get("激活日", 15)) + int(配.get("持续天数", 3)) - 1]
+		状标.add_theme_color_override("font_color", 暗金)
+		状文.add_child(状标)
+		var 状描 := Label.new()
+		状描.text = "商品数量×%s；稀有商队入驻；手续费系数 %s、声望系数 %s（集市特惠·显示态）" % [配.get("商品倍率", 2.0), 配.get("手续费系数", 0.9), 配.get("声望系数", 1.2)]
+		状描.add_theme_color_override("font_color", 次墨)
+		状描.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		状文.add_child(状描)
+		内容.add_child(状态)
 	var 结果 := Label.new(); 结果.text = _坊市提示; 内容.add_child(结果)
 	var 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(380, 400); 内容.add_child(滚)
 	var 列 := VBoxContainer.new(); 滚.add_child(列)
@@ -3786,13 +3883,15 @@ func _刷新坊市列表(列: VBoxContainer, 结果: Label):
 		if not (r.get("shop_id", "") in Game.坊市上架集):
 			continue
 		var 名: String = r.get("item_name", "")
+		var 稀有: bool = Game.坊市稀有标记.get(r.get("shop_id", ""), false)
+		var 名显: String = ("〔稀有商队〕" + 名) if 稀有 else 名
 		var 原价: int = int(r.get("price_lingjing", "0"))
 		var 折后: int = Game.坊市实价(原价)
 		var 折扣说明: String = "" if 折后 == 原价 else "（%s%d折）" % [等级名, int(Game.坊市折扣率() * 100)]
 		var 限: String = "日%d/周%d" % [int(r.get("limit_daily", "0")), int(r.get("limit_weekly", "0"))]
 		var 行 := HBoxContainer.new()
 		var 原价文本: String = "" if 折后 == 原价 else "原价%d " % 原价
-		var 标 := Label.new(); 标.text = "%s %s%d灵石 [%s]" % [名, 原价文本, 折后, 限]
+		var 标 := Label.new(); 标.text = "%s %s%d灵石 [%s]" % [名显, 原价文本, 折后, 限]
 		var 买 := Button.new(); 买.text = "购买"
 		买.pressed.connect(func():
 			var res: Dictionary = Game.购买坊市物品(r.get("shop_id", ""))
