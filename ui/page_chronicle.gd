@@ -47,7 +47,7 @@ func _build() -> void:
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.name = "ListVBox"
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 0)
+	_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_list_vbox)
 
 func _build_header(parent: Control) -> void:
@@ -170,6 +170,7 @@ func _add_entry_row(e: Dictionary, idx: int) -> void:
 	var 名称 := Label.new()
 	名称.text = str(e.get("名称", "—"))
 	名称.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	名称.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font(名称)
 	l1.add_child(名称)
 	vbox.add_child(l1)

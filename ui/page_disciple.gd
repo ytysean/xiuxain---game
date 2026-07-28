@@ -116,7 +116,7 @@ func _build_list_scroll() -> void:
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.name = "ListVBox"
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 0)
+	_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_list_vbox)
 
 func _build_decision_area() -> void:
@@ -215,6 +215,7 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	var 姓名 := Label.new()
 	姓名.text = str(_safe_get(d, "姓名", "—"))
 	姓名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	姓名.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font(姓名)
 	hb.add_child(姓名)
 

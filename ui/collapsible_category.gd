@@ -20,7 +20,18 @@ func _ready() -> void:
 
 func _build() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_theme_constant_override("separation", 0)
+
+	# 整组件包一层 PanelContainer，给分类一个清晰可见的容器边界（§2.2 收纳区）。
+	var frame := PanelContainer.new()
+	frame.name = "Frame"
+	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_panel_style(frame)
+	add_child(frame)
+
+	var inner := VBoxContainer.new()
+	inner.name = "Inner"
+	inner.add_theme_constant_override("separation", 0)
+	frame.add_child(inner)
 
 	_header = Button.new()
 	_header.name = "Header"
@@ -29,14 +40,14 @@ func _build() -> void:
 	_header.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_header.custom_minimum_size = Vector2(0, UITheme.SIZE_MD)
 	_header.pressed.connect(_on_header_pressed)
-	add_child(_header)
+	inner.add_child(_header)
 
 	# 折叠状态指示（右侧 chevron：可展开 ↓ / 可收起 ↑）
 	_chevron = TextureRect.new()
 	_chevron.name = "Chevron"
 	_chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_chevron.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var cv_tex: Texture2D = UITheme.load_icon("折叠")
+	var cv_tex: Texture2D = UITheme.load_icon_sized("折叠", 24)
 	if cv_tex != null:
 		_chevron.texture = cv_tex
 	_chevron.custom_minimum_size = Vector2(24, 24)
@@ -53,10 +64,13 @@ func _build() -> void:
 	_chevron.pivot_offset = Vector2(12, 12)
 	_header.add_child(_chevron)
 
+	# header 下方加一条细分隔线，明确标题与内容的分界（§2.2）。
+	inner.add_child(UITheme.make_divider_control())
+
 	_content = VBoxContainer.new()
 	_content.name = "Content"
 	_content.add_theme_constant_override("separation", UITheme.GRID)
-	add_child(_content)
+	inner.add_child(_content)
 
 func _apply_theme() -> void:
 	UITheme.apply_title_font(_header)

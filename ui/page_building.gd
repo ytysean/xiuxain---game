@@ -96,7 +96,7 @@ func _build_list_scroll(parent: Control) -> void:
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.name = "ListVBox"
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 0)
+	_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_list_vbox)
 
 func _build_passive_bar(parent: Control) -> void:
@@ -164,7 +164,9 @@ func _populate_list() -> void:
 func _add_hall_row(key: String, entry: Dictionary) -> void:
 	var row := PanelContainer.new()
 	row.name = "Hall_%s" % key
-	row.custom_minimum_size = Vector2(0, UITheme.GRID * 12)
+	# 卡片高度提到 GRID*16，足以容纳 名称/职能/等级 + 产出/主事/成员 + 被动/修葺 三行；
+	# 内容更高时 PanelContainer 会自动撑高，custom_minimum_size 仅作下限防贴边。
+	row.custom_minimum_size = Vector2(0, UITheme.GRID * 16)
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
 	UITheme.apply_panel_style(row)
 	var vbox := VBoxContainer.new()
@@ -180,6 +182,9 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l1.add_child(名称)
 	var 职能 := Label.new()
 	职能.text = "职能:" + str(entry.get("职能", "—"))
+	职能.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	职能.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	职能.custom_minimum_size = Vector2(UITheme.GRID * 8, 0)
 	UITheme.apply_aux_font(职能)
 	l1.add_child(职能)
 	var 等级 := Label.new()
@@ -192,6 +197,9 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l2.add_theme_constant_override("separation", UITheme.GRID)
 	var 产出 := Label.new()
 	产出.text = "产出:" + str(entry.get("产出", "—"))
+	产出.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	产出.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	产出.custom_minimum_size = Vector2(UITheme.GRID * 10, 0)
 	UITheme.apply_aux_font(产出)
 	l2.add_child(产出)
 	var 主事obj = entry.get("负责人", null)
@@ -218,7 +226,9 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	l3.add_theme_constant_override("separation", UITheme.GRID)
 	var 被动 := Label.new()
 	被动.text = "被动:" + str(entry.get("加成维度", "—"))
-	被动.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	被动.horizontal_size_flags = Control.SIZE_EXPAND_FILL
+	被动.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	被动.custom_minimum_size = Vector2(UITheme.GRID * 12, 0)
 	UITheme.apply_aux_font(被动)
 	l3.add_child(被动)
 	var 升级 := Button.new()
