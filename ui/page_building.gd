@@ -40,12 +40,11 @@ func _build_overview(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Overview"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 7)
-	UITheme.apply_panel_style(panel)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
 
-	var 图标 = UITheme.load_icon("建筑")
+	var 图标 = UITheme.load_icon_sized("建筑", UITheme.SIZE_SM)
 	if 图标 != null:
 		var tr := TextureRect.new()
 		tr.texture = 图标
@@ -103,7 +102,6 @@ func _build_passive_bar(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "PassiveBar"
 	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 6)
-	UITheme.apply_panel_style(panel)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
@@ -168,7 +166,6 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	# 内容更高时 PanelContainer 会自动撑高，custom_minimum_size 仅作下限防贴边。
 	row.custom_minimum_size = Vector2(0, UITheme.GRID * 16)
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
-	UITheme.apply_panel_style(row)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
 	row.add_child(vbox)
