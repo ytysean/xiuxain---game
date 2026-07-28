@@ -3268,10 +3268,10 @@ func _进入主界面():
 		var 角标 := HBoxContainer.new()
 		角标.anchor_left = 1.0; 角标.anchor_top = 0.0; 角标.anchor_right = 1.0; 角标.anchor_bottom = 0.0
 		角标.offset_left = -92; 角标.offset_top = 6; 角标.offset_right = -8; 角标.offset_bottom = 38
-		设置图标 = Button.new(); 设置图标.text = "⚙"; 设置图标.tooltip_text = "设置（存读 / 新游戏）"; 设置图标.pressed.connect(_弹_设置)
+		设置图标 = Button.new(); 设置图标.text = "设置"; 设置图标.tooltip_text = "设置（存读 / 新游戏）"; 设置图标.pressed.connect(_弹_设置)
 		角标.add_child(设置图标)
 		if OS.is_debug_build():
-			调试图标 = Button.new(); 调试图标.text = "🐞"; 调试图标.tooltip_text = "推演中心（调试）"; 调试图标.pressed.connect(_弹_推演中心)
+			调试图标 = Button.new(); 调试图标.text = "调试"; 调试图标.tooltip_text = "推演中心（调试）"; 调试图标.pressed.connect(_弹_推演中心)
 			角标.add_child(调试图标)
 		add_child(角标)
 		return
