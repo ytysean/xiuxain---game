@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 折叠指示 / Chevron — 可折叠分类标题用（CollapsibleCategory）。open 时旋转 180°。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M20 26 L32 38 L44 26"/>
+</svg>

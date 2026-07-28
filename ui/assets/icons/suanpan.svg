@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 算盘 / Abacus — 核心宫格"坊市"图标。规治府国以衡平，坊市以算盘取象。统一暗金线稿。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 框 -->
+  <rect x="12" y="18" width="40" height="28" rx="2"/>
+  <!-- 中档横梁 -->
+  <line x1="12" y1="30" x2="52" y2="30"/>
+  <!-- 4 根竖档 -->
+  <line x1="20" y1="20" x2="20" y2="44"/>
+  <line x1="29" y1="20" x2="29" y2="44"/>
+  <line x1="38" y1="20" x2="38" y2="44"/>
+  <line x1="47" y1="20" x2="47" y2="44"/>
+  <!-- 上珠（梁上）各档一颗 -->
+  <circle cx="20" cy="24" r="1.8"/>
+  <circle cx="29" cy="24" r="1.8"/>
+  <circle cx="38" cy="24" r="1.8"/>
+  <circle cx="47" cy="24" r="1.8"/>
+  <!-- 下珠（梁下）各档一颗 -->
+  <circle cx="20" cy="36" r="1.8"/>
+  <circle cx="29" cy="36" r="1.8"/>
+  <circle cx="38" cy="36" r="1.8"/>
+  <circle cx="47" cy="36" r="1.8"/>
+</svg>

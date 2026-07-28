@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 分割线细云纹（Divider Cloud · 1px 暗金细线 + 云纹意象）—— viewBox 0 0 256 4，
+     横向 64px 一组云纹单元循环（4 组/256），配合 UITheme._divider_cloud 默认 STRETCH_TILE 横铺。
+     Godot 导入时建议开启 Texture2D.repeat = true 以无缝平铺；不开启则横向拉伸，
+     云纹意象仍以淡描边保留。线主体 1.5px 暗金（V1.0 规范 1px，0.5px 提升至云纹辨识度，
+     占用单行 ≤ 5px 高度，仍属极细装饰）。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 4">
+  <!-- 主细线（贯穿） -->
+  <line x1="0" y1="2" x2="256" y2="2" stroke="#C8A86A" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 云纹意象单元 4 组（中心 24 / 88 / 152 / 216），每组轻微上下波动的薄云卷 -->
+  <path d="M16 2 Q20 0.5 24 2 Q28 3.5 32 2" fill="none" stroke="#C8A86A" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+  <path d="M80 2 Q84 0.5 88 2 Q92 3.5 96 2" fill="none" stroke="#C8A86A" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+  <path d="M144 2 Q148 0.5 152 2 Q156 3.5 160 2" fill="none" stroke="#C8A86A" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+  <path d="M208 2 Q212 0.5 216 2 Q220 3.5 224 2" fill="none" stroke="#C8A86A" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+</svg>

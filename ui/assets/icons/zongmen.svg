@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 宗门牌坊 / Paifang Gate — 底部 Tab"宗门"图标。两柱 + 庑殿顶 + 匾额，宗门门楣之象。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 庑殿顶（弧顶屋檐） -->
+  <path d="M14 26 Q32 12 50 26"/>
+  <!-- 中枋 -->
+  <line x1="16" y1="34" x2="48" y2="34"/>
+  <!-- 左柱 + 右柱 -->
+  <line x1="20" y1="26" x2="20" y2="50"/>
+  <line x1="44" y1="26" x2="44" y2="50"/>
+  <!-- 柱础 -->
+  <rect x="16" y="50" width="8" height="4" rx="1"/>
+  <rect x="40" y="50" width="8" height="4" rx="1"/>
+  <!-- 匾额 -->
+  <rect x="26" y="28" width="12" height="10" rx="1"/>
+</svg>

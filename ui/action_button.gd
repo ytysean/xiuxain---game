@@ -11,7 +11,7 @@ signal pressed(action_id: String)
 
 var _btn: Button
 var _label: Label
-var _icon: ColorRect
+var _icon: TextureRect
 
 func _ready() -> void:
 	_build()
@@ -33,12 +33,16 @@ func _build() -> void:
 	_btn.add_child(vbox)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	_icon = ColorRect.new()
+	_icon = TextureRect.new()
 	_icon.name = "Icon"
-	_icon.color = UITheme.COLOR_BORDER_GOLD
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	var isz: int = UITheme.SIZE_SM if big else 24
 	_icon.custom_minimum_size = Vector2(isz, isz)
+	# 取古风线稿图标（§3.1 修真器物映射）；图标缺失时静默隐藏，不破坏布局
+	var tex: Texture2D = UITheme.load_icon(action_id)
+	if tex != null:
+		_icon.texture = tex
 	vbox.add_child(_icon)
 
 	_label = Label.new()

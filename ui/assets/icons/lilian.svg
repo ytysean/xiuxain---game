@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 历练 / Mountain Journey — 底部 Tab"历练"图标。远山 + 蜿蜒山径，取外出历练之象。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 远山三峰 -->
+  <path d="M8 50 L22 28 L32 38 L44 20 L56 50"/>
+  <!-- 蜿蜒山径（自下而上） -->
+  <path d="M18 50 Q24 42 20 34 Q18 28 30 24"/>
+</svg>

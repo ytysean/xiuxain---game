@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 灵石 / Spirit Stone — 状态栏"灵石"图标。多面灵石（晶簇），修真世界通用货币。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 主晶面（菱形晶簇外轮廓） -->
+  <path d="M32 12 L46 28 L32 52 L18 28 Z"/>
+  <!-- 中线（中纵） -->
+  <line x1="32" y1="12" x2="32" y2="52"/>
+  <!-- 中线（中横） -->
+  <line x1="18" y1="28" x2="46" y2="28"/>
+  <!-- 侧棱（左） -->
+  <line x1="24" y1="20" x2="24" y2="44"/>
+  <!-- 侧棱（右） -->
+  <line x1="40" y1="20" x2="40" y2="44"/>
+  <!-- 顶角星点（灵气透光） -->
+  <line x1="32" y1="6" x2="32" y2="10"/>
+</svg>

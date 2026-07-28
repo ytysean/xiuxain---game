@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 面板暗纹贴图（Panel Skin · 9-slice 友好）—— 自包含面板蒙皮：暗青黛底 + 极淡水墨暗纹 + 暗金描边。
+     规格：viewBox 0 0 256 256；圆角 16；金边描边粗细 4（随面板 9-slice 等比缩放 ≈ 2–3px @典型 S1 面板尺寸，
+     较 V1.0 规范的 1px 略粗以提升手机端可读性；如需严格 1px 可调用 UITheme.make_panel_stylebox(false)）。
+     9-slice：在 UITheme.make_panel_stylebox() 中以 set_margin_all(16) 锁定四角，中间拉伸。
+     装饰占比：水墨暗纹 opacity 极低，单面板覆盖面积 < 5%（§3.3 红线）。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- 面板底色（COLOR_PANEL_BG #232D2E / (0.137, 0.176, 0.180)）-->
+  <rect x="4" y="4" width="248" height="248" rx="16" ry="16" fill="#232D2E"/>
+  <!-- 暗金描边（COLOR_BORDER_GOLD #C8A86A）-->
+  <rect x="4" y="4" width="248" height="248" rx="16" ry="16" fill="none" stroke="#C8A86A" stroke-width="4"/>
+  <!-- 极淡水墨暗纹（低透明度笔触，覆盖 < 5%） -->
+  <!-- 大笔势（横抹） -->
+  <path d="M30 200 Q80 160 130 180 Q180 200 220 160" fill="none" stroke="#3A4A4C" stroke-width="2" opacity="0.28"/>
+  <!-- 细笔势（左下） -->
+  <path d="M46 230 Q96 210 150 224" fill="none" stroke="#4A5A5C" stroke-width="2.5" opacity="0.18"/>
+  <!-- 右上点墨 -->
+  <circle cx="210" cy="56" r="3" fill="#5A6A6C" opacity="0.30"/>
+  <circle cx="46" cy="90" r="2" fill="#5A6A6C" opacity="0.22"/>
+  <!-- 左上飞白 -->
+  <path d="M58 110 Q72 96 88 108" fill="none" stroke="#5A6A6C" stroke-width="1.5" opacity="0.20"/>
+</svg>
