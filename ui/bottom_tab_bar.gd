@@ -31,6 +31,10 @@ func _build() -> void:
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.custom_minimum_size = Vector2(0, UITheme.TAB_H)
 		btn.set_meta("tab_id", id)
+		# 古风线稿 Tab 图标（§2.4 图标+文字）；缺失时仅文字
+		var tab_tex: Texture2D = UITheme.load_icon(id)
+		if tab_tex != null:
+			btn.icon = tab_tex
 		var ul := ColorRect.new()
 		ul.name = "Underline"
 		ul.color = UITheme.COLOR_BORDER_GOLD

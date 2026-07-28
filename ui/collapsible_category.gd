@@ -9,6 +9,7 @@ signal toggled(open: bool)
 @export var collapsed_by_default: bool = true
 
 var _header: Button
+var _chevron: TextureRect
 var _content: VBoxContainer
 var _open: bool = false
 
@@ -30,6 +31,28 @@ func _build() -> void:
 	_header.pressed.connect(_on_header_pressed)
 	add_child(_header)
 
+	# 折叠状态指示（右侧 chevron：可展开 ↓ / 可收起 ↑）
+	_chevron = TextureRect.new()
+	_chevron.name = "Chevron"
+	_chevron.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chevron.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var cv_tex: Texture2D = UITheme.load_icon("折叠")
+	if cv_tex != null:
+		_chevron.texture = cv_tex
+	_chevron.custom_minimum_size = Vector2(24, 24)
+	_chevron.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	_chevron.anchor_left = 1.0
+	_chevron.anchor_right = 1.0
+	_chevron.anchor_top = 0.5
+	_chevron.anchor_bottom = 0.5
+	_chevron.offset_left = -32
+	_chevron.offset_right = -8
+	_chevron.offset_top = -12
+	_chevron.offset_bottom = 12
+	# 旋转支点设到中央，绕中心旋 180°
+	_chevron.pivot_offset = Vector2(12, 12)
+	_header.add_child(_chevron)
+
 	_content = VBoxContainer.new()
 	_content.name = "Content"
 	_content.add_theme_constant_override("separation", UITheme.GRID)
@@ -41,6 +64,9 @@ func _apply_theme() -> void:
 func set_open(open: bool) -> void:
 	_open = open
 	_content.visible = open
+	# chevron：折叠 → ↓(0°)；展开 → ↑(180°)
+	if _chevron != null:
+		_chevron.rotation_degrees = 180.0 if _open else 0.0
 	toggled.emit(open)
 
 func is_open() -> bool:

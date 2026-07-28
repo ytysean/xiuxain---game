@@ -15,7 +15,7 @@
 #                                  三类「只有 Godot 真机才报」的崩溃，纯文本零误报兜底)
 #   9) GDScript 真实语法解析       (gdtoolkit_check.py：用 gdtoolkit 真 parser 拦缩进错位/
 #                                  lambda 提前结束/match case 错位等只有 Godot 才报的语法灾难)
-#   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","御兽","历练","纪事"] 且长度 5)
+#   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","建筑","历练","纪事"] 且长度 5)
 #   18) 按钮色值/裸 hex 校验        (内联：全文件裸 #xxxxxx 比对顶部常量+四类锁定 hex，未定义即 FAIL)
 #   19) 背景透明度校验             (内联：BG_SCENE_ALPHA≤0.35 / BG_OVERLAY_ALPHA==0.50 / #16221D)
 #   20) 阵法拆解经济校验           (内联：复刻 `_阵法拆解返还数`，拆解产出≤投入 且 L1=0，防零投入白嫖漏洞)
@@ -211,14 +211,14 @@ def check_fullwidth_strings():
 
 
 # ── UI 整改「三」新增校验（闸门 17/18/19）────────────────────────────────
-# 17) 底部主导航 Tab 数恒为 5（宗门/弟子/御兽/历练/纪事）
+# 17) 底部主导航 Tab 数恒为 5（宗门/弟子/建筑/历练/纪事）
 # 18) 按钮色值 / 裸 hex：全文件裸 #xxxxxx 比对顶部常量 + 四类锁定 hex，未定义即 FAIL
 # 19) 背景透明度：BG_SCENE_ALPHA ≤ 0.35、BG_OVERLAY_ALPHA == 0.50、BG_OVERLAY_COLOR == #16221D
 NEW_UI_GATES = ("底部导航 Tab 数校验", "按钮色值/裸 hex 校验", "背景透明度校验")
 
 
 def check_tab_count():
-    """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/御兽/历练/纪事）。
+    """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/建筑/历练/纪事）。
     扫描 main.gd 的 `页名` 常量数组，须精确等于该 5 项，否则 FAIL。
     返回 (ok, summary, detail)。"""
     fp = os.path.join(ROOT, "main.gd")
@@ -232,9 +232,9 @@ def check_tab_count():
     if not m:
         return False, "未找到 页名 常量定义", ""
     items = re.findall(r'"([^"]*)"', m.group(1))
-    expected = ["宗门", "弟子", "御兽", "历练", "纪事"]
+    expected = ["宗门", "弟子", "建筑", "历练", "纪事"]
     if items == expected and len(items) == 5:
-        return True, "页名 = 5 Tab（宗门/弟子/御兽/历练/纪事）", ""
+        return True, "页名 = 5 Tab（宗门/弟子/建筑/历练/纪事）", ""
     detail = "页名 = %s（应为 %s）" % (items, expected)
     return False, "页名 Tab 数/项不匹配（实为 %d 项）" % len(items), detail
 

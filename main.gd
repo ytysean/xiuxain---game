@@ -196,7 +196,7 @@ var _任务提示: String = ""
 # Step 2 奇遇基础调度：signal 入队、逐个弹窗，避免推演期多奇遇堆叠
 var 奇遇队列: Array = []
 var 奇遇弹窗中: bool = false
-const 页名 := ["宗门", "弟子", "御兽", "历练", "纪事"]
+const 页名 := ["宗门", "弟子", "建筑", "历练", "纪事"]
 
 # S0 FTUE 引导（五步）相关实例引用与状态（逻辑独立封装，不侵入业务）
 var 引导_状态面板: PanelContainer = null

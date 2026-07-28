@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 卷轴 / Scroll — 核心宫格"任务"图标。两端卷轴轴心 + 几行古文，取宗门要务之象。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 主体（卷开的纸面） -->
+  <rect x="16" y="22" width="32" height="20" rx="1"/>
+  <!-- 左轴 -->
+  <rect x="12" y="20" width="4" height="24" rx="2"/>
+  <!-- 右轴 -->
+  <rect x="48" y="20" width="4" height="24" rx="2"/>
+  <!-- 卷内三行古文 -->
+  <line x1="20" y1="28" x2="44" y2="28"/>
+  <line x1="20" y1="32" x2="40" y2="32"/>
+  <line x1="20" y1="36" x2="42" y2="36"/>
+</svg>

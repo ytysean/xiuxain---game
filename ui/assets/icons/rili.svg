@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 日历 / Calendar — 顶部"推演时日"按钮图标。月历页 + 双环装订 + 表头三行。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 历页主体 -->
+  <rect x="14" y="20" width="36" height="30" rx="2"/>
+  <!-- 双环装订（左 + 右） -->
+  <line x1="22" y1="14" x2="22" y2="24"/>
+  <line x1="42" y1="14" x2="42" y2="24"/>
+  <!-- 表头分隔 -->
+  <line x1="14" y1="30" x2="50" y2="30"/>
+  <!-- 表格横线 -->
+  <line x1="14" y1="38" x2="50" y2="38"/>
+  <line x1="14" y1="44" x2="50" y2="44"/>
+  <!-- 表格竖线 -->
+  <line x1="26" y1="30" x2="26" y2="50"/>
+  <line x1="38" y1="30" x2="38" y2="50"/>
+</svg>

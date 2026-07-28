@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 丹火 / Alchemy Cauldron — 核心宫格"修炼"图标。鼎中炼化之火，外鼎内焰，取丹道之象。-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 丹鼎炉身 -->
+  <path d="M18 38 Q18 50 32 50 Q46 50 46 38"/>
+  <!-- 鼎口横沿 -->
+  <line x1="16" y1="38" x2="48" y2="38"/>
+  <!-- 三足 -->
+  <line x1="24" y1="50" x2="22" y2="56"/>
+  <line x1="32" y1="50" x2="32" y2="56"/>
+  <line x1="40" y1="50" x2="42" y2="56"/>
+  <!-- 外焰（叶状） -->
+  <path d="M32 32 Q24 22 32 12 Q40 22 32 32"/>
+  <!-- 内焰（核心） -->
+  <path d="M32 30 Q28 24 32 18 Q36 24 32 30"/>
+</svg>

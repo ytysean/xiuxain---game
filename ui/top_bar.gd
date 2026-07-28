@@ -83,12 +83,16 @@ func _make_slot(id: String) -> Control:
 	var slot := HBoxContainer.new()
 	slot.name = "Slot_" + id
 	slot.add_theme_constant_override("separation", 4)
-	var icon := ColorRect.new()
+	var icon := TextureRect.new()
 	icon.name = "Icon"
-	icon.color = UITheme.COLOR_BORDER_GOLD
-	icon.custom_minimum_size = Vector2(16, 16)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# 古风资源图标（灵石/灵气/弟子/时辰）；缺失静默隐藏
+	var tex: Texture2D = UITheme.load_icon(id)
+	if tex != null:
+		icon.texture = tex
+	icon.custom_minimum_size = Vector2(16, 16)
 	slot.add_child(icon)
 	var lbl := Label.new()
 	lbl.name = "Value"
