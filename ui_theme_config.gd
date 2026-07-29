@@ -10,7 +10,8 @@ extends Node
 
 # ───────── 品级（物品/装备，8 档）─────────
 # 键 = tier.* 的品级 stem（与 ICON_BY_LABEL / 业务数据约定一致）。
-const QUALITY_COLOR: Dictionary = {
+# 注意：GDScript 4 的 const 不允许 Color.from_string() 运行时调用，故用 @onready var。
+@onready var QUALITY_COLOR: Dictionary = {
 	"fan":   Color.from_string("#D6D6D6", Color.WHITE),   # 凡品
 	"liang": Color.from_string("#4CAF7A", Color.WHITE),   # 良品
 	"ling":  Color.from_string("#3FA9C9", Color.WHITE),   # 灵品（主理人裁定：青蓝，区别于良品）
@@ -22,7 +23,7 @@ const QUALITY_COLOR: Dictionary = {
 }
 
 # ───────── 境界（5 档）─────────
-const REALM_COLOR: Dictionary = {
+@onready var REALM_COLOR: Dictionary = {
 	"lianqi":   Color.from_string("#C8B896", Color.WHITE), # 练气（与 body-dim 同值）
 	"zhuji":    Color.from_string("#4CAF7A", Color.WHITE), # 筑基
 	"jindan":   Color.from_string("#5B8BD9", Color.WHITE), # 金丹
@@ -31,7 +32,7 @@ const REALM_COLOR: Dictionary = {
 }
 
 # ───────── 状态色（success / warn / danger / disabled / 等）─────────
-const STATE_COLOR: Dictionary = {
+@onready var STATE_COLOR: Dictionary = {
 	"success":  Color.from_string("#7ED39A", Color.WHITE), # 成功 / 增益
 	"danger":   Color.from_string("#E07878", Color.WHITE), # 警示 / 失败
 	"warn":     Color.from_string("#E07878", Color.WHITE), # warn 别名 → 同 danger
