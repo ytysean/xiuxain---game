@@ -314,17 +314,17 @@ func _ready():
 		顶栏.add_child(顶栏角)
 		设置图标 = Button.new(); 设置图标.text = "设置"
 		设置图标.tooltip_text = "设置（存读 / 新游戏）"
-		设置图标.custom_minimum_size = Vector2(44, 28)
+		设置图标.custom_minimum_size = Vector2(48, 40)
 		UITheme.apply_secondary_button_style(设置图标)
-		UITheme.apply_aux_font(设置图标)
+		UITheme.apply_title_font_sized(设置图标, UITheme.FONT_AUX)
 		设置图标.pressed.connect(_弹_设置)
 		顶栏角.add_child(设置图标)
 		if OS.is_debug_build():
 			调试图标 = Button.new(); 调试图标.text = "调试"
 			调试图标.tooltip_text = "推演中心（调试）"
-			调试图标.custom_minimum_size = Vector2(44, 28)
+			调试图标.custom_minimum_size = Vector2(48, 40)
 			UITheme.apply_secondary_button_style(调试图标)
-			UITheme.apply_aux_font(调试图标)
+			UITheme.apply_title_font_sized(调试图标, UITheme.FONT_AUX)
 			调试图标.pressed.connect(_弹_推演中心)
 			顶栏角.add_child(调试图标)
 			引导_推演按钮 = 调试图标
@@ -3270,16 +3270,28 @@ func _进入主界面():
 		add_child(g)
 		新UI = g
 		新UI.refresh_all()
-		# 顶右角 设置/调试 入口（新UI下原顶栏设置入口被 gate，此处补一个常驻角标）
-		var 角标 := HBoxContainer.new()
-		角标.anchor_left = 1.0; 角标.anchor_top = 0.0; 角标.anchor_right = 1.0; 角标.anchor_bottom = 0.0
-		角标.offset_left = -92; 角标.offset_top = 6; 角标.offset_right = -8; 角标.offset_bottom = 38
-		设置图标 = Button.new(); 设置图标.text = "设置"; 设置图标.tooltip_text = "设置（存读 / 新游戏）"; 设置图标.pressed.connect(_弹_设置)
-		角标.add_child(设置图标)
+		# 顶栏右区 设置/调试 入口：注入 TopBar 右区（与顶部栏右区视觉统一，消除旧「角标」浮层重叠）。
+		# 统一套用 UITheme.apply_secondary_button_style + apply_aux_font，圆角/内边距/尺寸一致，不残留裸按钮。
+		设置图标 = Button.new()
+		设置图标.name = "设置图标"
+		设置图标.text = "设置"
+		设置图标.tooltip_text = "设置（存读 / 新游戏）"
+		设置图标.custom_minimum_size = Vector2(48, 40)
+		UITheme.apply_secondary_button_style(设置图标)
+		UITheme.apply_title_font_sized(设置图标, UITheme.FONT_AUX)
+		设置图标.pressed.connect(_弹_设置)
+		g.add_top_corner_control(设置图标)
 		if OS.is_debug_build():
-			调试图标 = Button.new(); 调试图标.text = "调试"; 调试图标.tooltip_text = "推演中心（调试）"; 调试图标.pressed.connect(_弹_推演中心)
-			角标.add_child(调试图标)
-		add_child(角标)
+			调试图标 = Button.new()
+			调试图标.name = "调试图标"
+			调试图标.text = "调试"
+			调试图标.tooltip_text = "推演中心（调试）"
+			调试图标.custom_minimum_size = Vector2(48, 40)
+			UITheme.apply_secondary_button_style(调试图标)
+			UITheme.apply_title_font_sized(调试图标, UITheme.FONT_AUX)
+			调试图标.pressed.connect(_弹_推演中心)
+			g.add_top_corner_control(调试图标)
+			引导_推演按钮 = 调试图标
 		return
 	# else：原逻辑（启用新UI = false 时保留旧灰模 UI）
 	var 报: String = Game.推演至现在()   # 自动推演：加载时推进到当前时刻
