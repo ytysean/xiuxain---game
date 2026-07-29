@@ -47,7 +47,7 @@ func _build() -> void:
 	# 左：时辰占位（固定左对齐，不展开）
 	_time_label = Label.new()
 	_time_label.name = "Time"
-	_time_label.text = "时辰 · —"
+	_time_label.text = "时辰"
 	_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_time_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	hbox.add_child(_time_label)
@@ -62,7 +62,7 @@ func _build() -> void:
 
 	_level_label = Label.new()
 	_level_label.name = "Level"
-	_level_label.text = "宗门 Lv —"
+	_level_label.text = "宗门"
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mid.add_child(_level_label)
 
@@ -107,11 +107,11 @@ func _make_slot(id: String) -> Control:
 	var tex: Texture2D = UITheme.load_icon(id)
 	if tex != null:
 		icon.texture = tex
-	icon.custom_minimum_size = Vector2(16, 16)
+	icon.custom_minimum_size = Vector2(20, 20)
 	slot.add_child(icon)
 	var lbl := Label.new()
 	lbl.name = "Value"
-	lbl.text = "—"
+	lbl.text = ""
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	slot.add_child(lbl)
 	_res_labels[id] = lbl
@@ -131,7 +131,8 @@ func set_time(text: String) -> void:
 	_time_label.text = text
 
 func set_sect_level(text: String) -> void:
-	_level_label.text = text
+	# 避免「宗门 Lv —」这类占位横线露出；无有效等级时只显示「宗门」。
+	_level_label.text = text if not text.ends_with("—") else "宗门"
 
 func set_level_progress(ratio: float) -> void:
 	_progress.value = clampf(ratio, 0.0, 1.0) * 100.0
@@ -140,7 +141,8 @@ func set_resource(slot_id: String, value: String, abnormal: bool = false) -> voi
 	var lbl: Label = _res_labels.get(slot_id, null)
 	if lbl == null:
 		return
-	lbl.text = value
+	# 占位符「—」在资源槽里会呈现为图标后的残留横线，统一显示为空。
+	lbl.text = "" if value == "—" else value
 	UITheme.apply_value_font(lbl, abnormal)
 
 func _on_time_pressed() -> void:

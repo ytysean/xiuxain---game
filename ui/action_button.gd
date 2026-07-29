@@ -59,10 +59,8 @@ func _build() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _apply_theme() -> void:
-	if big:
-		UITheme.apply_body_font(_label)
-	else:
-		UITheme.apply_aux_font(_label)
+	# 大小按钮统一用 body 字号，避免小按钮 12px 与宫格其它文字字号断层。
+	UITheme.apply_body_font(_label)
 	_label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 
 func _on_pressed() -> void:
