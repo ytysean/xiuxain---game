@@ -78,6 +78,11 @@ func _wire() -> void:
 	_bottom_bar.tab_selected.connect(_on_tab_selected)
 	_top_bar.time_advance_requested.connect(_on_time_advance_requested)
 
+# main.gd 把 设置/调试 按钮注入顶部栏右区（与顶部栏右区视觉统一，消除旧「角标」浮层重叠）。
+func add_top_corner_control(control: Control) -> void:
+	if _top_bar != null and is_instance_valid(_top_bar) and _top_bar.has_method("add_right_control"):
+		_top_bar.add_right_control(control)
+
 # ───────── 首屏安全默认值 + 概览刷新 ─────────
 func _apply_safe_defaults() -> void:
 	# 只读安全默认值（零/空），绝不读 Game / 改玩法。

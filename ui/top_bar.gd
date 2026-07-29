@@ -1,102 +1,135 @@
 extends Control
 
-# 顶部状态栏（§2.2：固定顶部 48dp）。仅发信号，不连玩法/时间逻辑。
-# 左：时辰占位；中：宗门等级 + 微型进度条（展开填充、内容居中）；
-# 右：3 核心资源槽（图标16×16 + 紧贴数值标签）；
-# 最右：「推演时日」按钮 -> 信号 time_advance_requested。
+# 顶部状态栏（P2 §二：固定顶部 TOPBAR_H=64，半透明深青底 + 底部 1px 淡金分隔线）。
+# 仅发信号，不连玩法/时间逻辑。
+# 三区横向（均 vertical_center，BoxContainer.ALIGNMENT_CENTER 控制交叉轴对齐）：
+#   左（SHRINK_BEGIN）：时辰文字 + 宗门入口(等级/宗门名 + 微型进度条) + 3 核心资源槽
+#   中（EXPAND_FILL，居中）：3 个等大功能图标按钮（推演 发 time_advance_requested + 2 占位图标）
+#   右（SHRINK_END）：设置 + 调试 按钮（由 main.gd 通过 add_right_control 注入，样式统一）
 #
-# 布局采用单 HBoxContainer，顺序固定为：
-#   time(SHRINK_BEGIN) | mid(EXPAND_FILL) | res(SHRINK_END) | btn(SHRINK_END)
-# 该结构保证 480 竖屏下元素不重叠、不被挤出：mid 吸收多余宽度，
-# 末端元素（res / btn）固定靠右、time 固定靠左；资源槽紧凑（图标16 + 间距4 + 标签）。
+# 布局采用单 HBox（margin=MARGIN, separation=GRID），三区各自 size_flags 控制对齐。
 
 signal time_advance_requested
 
 const RESOURCES: Array = ["灵石", "灵气", "弟子"]
+const ICON_BTN_SIZE: int = 32   # 中部功能图标按钮单元格尺寸（图标光栅化 28，留触摸边距）
 
 var _time_label: Label
 var _level_label: Label
 var _progress: ProgressBar
 var _res_labels: Dictionary = {}
-var _time_btn: Button
+var _left: HBoxContainer
+var _center: HBoxContainer
+var _right: HBoxContainer
 
 func _ready() -> void:
 	_build()
 	_apply_theme()
-	_time_btn.pressed.connect(_on_time_pressed)
 
 func _build() -> void:
 	custom_minimum_size = Vector2(0, UITheme.TOPBAR_H)
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 
+	# 半透明深青底（P2 §二：Color(0.10,0.18,0.20,0.85) 类）
 	var bg := ColorRect.new()
 	bg.name = "BG"
-	bg.color = UITheme.COLOR_STATUSBAR_BG
+	bg.color = UITheme.COLOR_TOPBAR_BG
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	# 底部 1px 淡金分隔线
+	var divider := ColorRect.new()
+	divider.name = "Divider"
+	divider.color = UITheme.COLOR_BORDER_GOLD
+	divider.custom_minimum_size = Vector2(0, 1)
+	divider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	divider.size_flags_vertical = Control.SIZE_SHRINK_END
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	divider.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	add_child(divider)
 
 	var hbox := HBoxContainer.new()
 	hbox.name = "Main"
 	hbox.add_theme_constant_override("margin_left", UITheme.MARGIN)
 	hbox.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	hbox.add_theme_constant_override("separation", UITheme.GRID)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(hbox)
 	hbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	# 左：时辰占位（固定左对齐，不展开）
+	# 左区：时辰 + 宗门入口 + 资源槽（左对齐，间距 GRID*2）
+	_left = HBoxContainer.new()
+	_left.name = "Left"
+	_left.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_left.alignment = BoxContainer.ALIGNMENT_CENTER
+	_left.add_theme_constant_override("separation", UITheme.GRID * 2)
+	hbox.add_child(_left)
+
 	_time_label = Label.new()
 	_time_label.name = "Time"
 	_time_label.text = "时辰"
 	_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_time_label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	hbox.add_child(_time_label)
+	_left.add_child(_time_label)
 
-	# 中：宗门等级 + 微型进度条（展开填充，内容垂直/水平居中）
-	var mid := VBoxContainer.new()
-	mid.name = "Mid"
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.alignment = BoxContainer.ALIGNMENT_CENTER
-	mid.add_theme_constant_override("separation", 2)
-	hbox.add_child(mid)
+	# 宗门入口：等级文字 + 微型进度条（垂直居中）
+	var sect := VBoxContainer.new()
+	sect.name = "Sect"
+	sect.alignment = BoxContainer.ALIGNMENT_CENTER
+	sect.add_theme_constant_override("separation", 2)
+	_left.add_child(sect)
 
 	_level_label = Label.new()
 	_level_label.name = "Level"
 	_level_label.text = "宗门"
 	_level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mid.add_child(_level_label)
+	sect.add_child(_level_label)
 
 	_progress = ProgressBar.new()
 	_progress.name = "LevelProgress"
-	_progress.custom_minimum_size = Vector2(64, UITheme.BORDER_W + 4)
+	_progress.custom_minimum_size = Vector2(56, UITheme.BORDER_W + 4)
 	_progress.show_percentage = false
 	_progress.value = 0.0
 	_progress.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	mid.add_child(_progress)
+	sect.add_child(_progress)
 
-	# 右：3 核心资源槽（图标 16×16 + 紧贴数值标签）
-	var res := HBoxContainer.new()
-	res.name = "Resources"
-	res.size_flags_horizontal = Control.SIZE_SHRINK_END
-	res.add_theme_constant_override("separation", UITheme.GRID)
-	hbox.add_child(res)
+	# 资源槽（图标 20×20 + 紧贴数值）
 	for id in RESOURCES:
-		res.add_child(_make_slot(id))
+		_left.add_child(_make_slot(id))
 
-	# 最右：推演时日 按钮（已由工程侧处理为 图标+文字）
-	_time_btn = Button.new()
-	_time_btn.name = "TimeAdvance"
-	_time_btn.text = "推演时日"
-	_time_btn.icon = UITheme.load_icon_sized("推演时日", 22)
-	_time_btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_time_btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
-	_time_btn.custom_minimum_size = Vector2(72, 32)
-	_time_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-	hbox.add_child(_time_btn)
+	# 中区：3 个大等图标按钮（推演 + 2 占位），居中、等大、等距、垂直居中
+	_center = HBoxContainer.new()
+	_center.name = "Center"
+	_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_center.alignment = BoxContainer.ALIGNMENT_CENTER
+	_center.add_theme_constant_override("separation", UITheme.GRID * 2)
+	hbox.add_child(_center)
+
+	# 两侧弹性占位，使 3 图标作为紧凑组水平居中（图标本身保持 28px 等大）
+	_center.add_child(_spacer())
+	_center.add_child(_make_icon_btn("推演时日", "推演时日", time_advance_requested.emit))
+	_center.add_child(_make_icon_btn("纪事", "纪事（详见底部·纪事）", Callable()))
+	_center.add_child(_make_icon_btn("账册", "账册（开发中）", Callable()))
+	_center.add_child(_spacer())
+
+	# 右区：预留，由 main.gd 注入 设置/调试 按钮（确保与顶部栏右区视觉统一）
+	_right = HBoxContainer.new()
+	_right.name = "Right"
+	_right.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_right.alignment = BoxContainer.ALIGNMENT_CENTER
+	_right.add_theme_constant_override("separation", UITheme.GRID)
+	hbox.add_child(_right)
+
+func _spacer() -> Control:
+	var c := Control.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c
 
 func _make_slot(id: String) -> Control:
 	var slot := HBoxContainer.new()
 	slot.name = "Slot_" + id
+	slot.alignment = BoxContainer.ALIGNMENT_CENTER
 	slot.add_theme_constant_override("separation", 4)
 	var icon := TextureRect.new()
 	icon.name = "Icon"
@@ -117,6 +150,29 @@ func _make_slot(id: String) -> Control:
 	_res_labels[id] = lbl
 	return slot
 
+# 中部功能图标按钮：图标(28) + tooltip；on_press 非 null 时按下即 emit，否则纯占位（仅 tooltip）。
+func _make_icon_btn(label: String, tooltip: String, on_press: Callable) -> Button:
+	var btn := Button.new()
+	btn.name = "Icon_" + label
+	btn.flat = true
+	btn.text = ""
+	btn.tooltip_text = tooltip
+	btn.icon = UITheme.load_icon_sized(label, 28)
+	btn.custom_minimum_size = Vector2(ICON_BTN_SIZE, ICON_BTN_SIZE)
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# 统一图标按钮视觉：套用次按钮四态（淡金描边 + hover/press 反馈），避免裸图标无交互感
+	UITheme.apply_secondary_button_style(btn)
+	UITheme.apply_aux_font(btn)
+	if not on_press.is_null():
+		btn.pressed.connect(on_press)
+	return btn
+
+# main.gd 注入顶部右区控件（设置/调试按钮），确保与顶部栏右区视觉统一、不残留裸按钮。
+func add_right_control(control: Control) -> void:
+	if _right != null:
+		_right.add_child(control)
+
 func _apply_theme() -> void:
 	UITheme.apply_aux_font(_time_label)
 	UITheme.apply_aux_font(_level_label)
@@ -124,8 +180,6 @@ func _apply_theme() -> void:
 		var lbl: Label = _res_labels.get(id, null)
 		if lbl != null:
 			UITheme.apply_value_font(lbl, false)
-	# 等级进度条填充/底由 main_theme.tres 的 ProgressBar 默认提供（令牌 success 绿 #7ED39A，D2 拍板）。
-	# 推演按钮（_time_btn）四态改由 main_theme.tres Button 默认提供（阶段4 收口）。
 
 func set_time(text: String) -> void:
 	_time_label.text = text
@@ -144,6 +198,3 @@ func set_resource(slot_id: String, value: String, abnormal: bool = false) -> voi
 	# 占位符「—」在资源槽里会呈现为图标后的残留横线，统一显示为空。
 	lbl.text = "" if value == "—" else value
 	UITheme.apply_value_font(lbl, abnormal)
-
-func _on_time_pressed() -> void:
-	time_advance_requested.emit()

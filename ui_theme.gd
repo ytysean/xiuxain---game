@@ -7,6 +7,7 @@ extends Node
 const COLOR_BG_BASE: Color = Color(0.106, 0.153, 0.169)       # 暗青黛 底色
 const COLOR_PANEL_BG: Color = Color(0.141, 0.204, 0.224)      # 面板暗纹底（占位色，待美术暗纹贴图）
 const COLOR_STATUSBAR_BG: Color = Color(0.055, 0.082, 0.090)  # 状态栏/墨底
+const COLOR_TOPBAR_BG: Color = Color(0.10, 0.18, 0.20, 0.85)  # 顶部栏 半透明深青底（P2 §二）
 const COLOR_BORDER_GOLD: Color = Color(0.788, 0.659, 0.396)   # 暗金 描边/标题
 const COLOR_TEXT_GOLD: Color = Color(1.000, 0.843, 0.478)     # 亮金 核心数值（正常）
 const COLOR_TEXT_RED: Color = Color(0.878, 0.471, 0.471)      # color.status.danger #E07878 警示/异常（负值/预警）
@@ -51,21 +52,21 @@ const SIZE_LG: int = 120
 const SIZE_XL: int = 240
 const BTN_H_PRIMARY: int = 64
 const BTN_H_SECONDARY: int = 48
-const TAB_H: int = 64
-const TOPBAR_H: int = 48
+const TAB_H: int = 72
+const TOPBAR_H: int = 64
 const OVERVIEW_H: int = 120
 const CORE_GRID_H: int = 240
 
-# ───────── 字号 ─────────
-const FONT_TITLE: int = 24
+# ───────── 字号（P2 §一 规范：TITLE=30 / H2=22 / BODY=18 / AUX=14，全项目唯一来源，禁止散写魔法数字）─────────
+const FONT_TITLE: int = 30
 const FONT_VALUE: int = 18
-const FONT_BODY: int = 16
-const FONT_AUX: int = 12
+const FONT_BODY: int = 18
+const FONT_AUX: int = 14
 
-# 令牌 §2.2 字号阶梯（迁移目标-非破坏性新增，组件逐步采用；现有 4 档暂不放大以免 5 页文字溢出）
+# 令牌 §2.2 字号阶梯（扩展档，组件按需采用）
 const FONT_DISPLAY: int = 40   # font.size.display 巨号/大标题
 const FONT_H1: int = 32        # font.size.h1 一级标题
-const FONT_H2: int = 26        # font.size.h2 二级标题
+const FONT_H2: int = 22        # font.size.h2 二级标题
 const FONT_DENSE: int = 18     # font.size.dense 密集数值
 
 # ───────── 美术资产路径（图标 / 贴图 / 字体 · 集中管理）─────────
@@ -160,12 +161,27 @@ func apply_title_font(control: Control) -> void:
 	if _font_title_res != null:
 		control.add_theme_font_override("font", _font_title_res)
 
-func apply_value_font(control: Control, abnormal: bool = false) -> void:
+# 小号楷体：标题 / 按钮文字 / Tab 名称 用古风楷体 MaShanZheng，但按需要缩小字号。
+# apply_title_font 固定 30px 会撑爆小控件；P2 §一 要求 Tab名称/按钮文字→楷体，§三 要求 14px，故提供可控字号版。
+func apply_title_font_sized(control: Control, size: int) -> void:
 	_ensure_fonts()
-	control.add_theme_font_size_override("font_size", FONT_VALUE)
-	control.add_theme_color_override("font_color", color_value(abnormal))
+	if _font_title_res != null:
+		control.add_theme_font_override("font", _font_title_res)
+	control.add_theme_font_size_override("font_size", size)
+
+func apply_number_font(control: Control) -> void:
+	# 数值（战力/资源）用古风等宽数字感：当前无独立数字字体文件，
+	# 回落到宋体(_font_body_res) 并显式设定字号，开启 font_keep_to_baseline 让数字基线对齐。
+	# P2 §一：全项目数值统一走本 helper，禁止裸 Label 用默认字体。
+	_ensure_fonts()
 	if _font_body_res != null:
 		control.add_theme_font_override("font", _font_body_res)
+	control.add_theme_font_size_override("font_size", FONT_VALUE)
+	control.add_theme_constant_override("font_keep_to_baseline", 1)
+
+func apply_value_font(control: Control, abnormal: bool = false) -> void:
+	apply_number_font(control)
+	control.add_theme_color_override("font_color", color_value(abnormal))
 
 func apply_body_font(control: Control) -> void:
 	_ensure_fonts()
