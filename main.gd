@@ -312,13 +312,19 @@ func _ready():
 		顶栏角.alignment = BoxContainer.ALIGNMENT_END
 		顶栏角.add_theme_constant_override("separation", 6)
 		顶栏.add_child(顶栏角)
-		设置图标 = Button.new(); 设置图标.text = "⚙"
+		设置图标 = Button.new(); 设置图标.text = "设置"
 		设置图标.tooltip_text = "设置（存读 / 新游戏）"
+		设置图标.custom_minimum_size = Vector2(44, 28)
+		UITheme.apply_secondary_button_style(设置图标)
+		UITheme.apply_aux_font(设置图标)
 		设置图标.pressed.connect(_弹_设置)
 		顶栏角.add_child(设置图标)
 		if OS.is_debug_build():
-			调试图标 = Button.new(); 调试图标.text = "🐞"
+			调试图标 = Button.new(); 调试图标.text = "调试"
 			调试图标.tooltip_text = "推演中心（调试）"
+			调试图标.custom_minimum_size = Vector2(44, 28)
+			UITheme.apply_secondary_button_style(调试图标)
+			UITheme.apply_aux_font(调试图标)
 			调试图标.pressed.connect(_弹_推演中心)
 			顶栏角.add_child(调试图标)
 			引导_推演按钮 = 调试图标

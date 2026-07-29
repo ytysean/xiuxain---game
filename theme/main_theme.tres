@@ -1,8 +1,8 @@
 ; main_theme.tres — 《太玄宗门录》S1 UI 重架构 · 基础原生控件样式（仅此）
 ; 数据源：design/06-角色与UI/UI设计令牌v1.0.md（所有色值/圆角/间距/字号唯一来源）
 ; 双轨职责：本 .tres 只放「原生控件基础样式」(StyleBox + 默认文字色)，不放业务/组件特殊样式、不放动态色。
-; 字体：暂不绑定字体文件（用户字体已移出项目，避免引用缺失资源报错）→ 用 Godot 默认回退。
-;       字体恢复后由 ui_theme.gd 的 apply_*_font helper 另行处理（见 §2.4 字体绑定规则）。
+; 字体：已由 tools/font_subset.py 子集化恢复（MaShanZheng-Subset.ttf / NotoSerifSC-Subset.otf）。
+;       本 .tres 不直接绑定字体文件，字号/字体资源由 ui_theme.gd 的 apply_*_font helper 按控件类型覆盖。
 ; 加载步数 = 13 个子资源 + 1 个主资源 = 14。
 
 [gd_resource type="Theme" load_steps=14 format=3]

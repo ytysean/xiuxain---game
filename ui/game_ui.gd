@@ -81,12 +81,12 @@ func _wire() -> void:
 # ───────── 首屏安全默认值 + 概览刷新 ─────────
 func _apply_safe_defaults() -> void:
 	# 只读安全默认值（零/空），绝不读 Game / 改玩法。
-	_top_bar.set_time("—")
-	_top_bar.set_sect_level("宗门 Lv —")
+	_top_bar.set_time("时辰")
+	_top_bar.set_sect_level("宗门")
 	_top_bar.set_level_progress(0.0)
-	_top_bar.set_resource("灵石", "—", false)
-	_top_bar.set_resource("灵气", "—", false)
-	_top_bar.set_resource("弟子", "—", false)
+	_top_bar.set_resource("灵石", "", false)
+	_top_bar.set_resource("灵气", "", false)
+	_top_bar.set_resource("弟子", "", false)
 	# 首屏刷新：所有真实页统一 refresh()（宗门页提供 refresh_overview()，其余提供 refresh()）。
 	# 全部只读 Game，内部已做 null 守卫；绝不写 GameState / 玩法。
 	_refresh_all_pages()
