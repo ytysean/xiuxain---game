@@ -76,8 +76,8 @@ const PANEL_INK_TEX: String = ASSET_DIR + "panel_ink.svg"
 const DIVIDER_TEX: String = ASSET_DIR + "divider_cloud.svg"
 # 字体路径：当前环境无法下载，故保留占位常量；放入字体文件后即被 apply_fonts() / apply_*_font 拾取。
 # 注：FONT_TITLE / FONT_BODY 已被上方字号 int 占用 → 路径常量命名 *_PATH 以示区别。
-const FONT_TITLE_PATH: String = ASSET_DIR + "fonts/MaShanZheng-Regular.ttf"
-const FONT_BODY_PATH: String = ASSET_DIR + "fonts/NotoSerifSC-Regular.otf"
+const FONT_TITLE_PATH: String = ASSET_DIR + "fonts/MaShanZheng-Subset.ttf"
+const FONT_BODY_PATH: String = ASSET_DIR + "fonts/NotoSerifSC-Subset.otf"
 
 # 中文 label → 图标文件 stem（不含扩展名）。组件按其 Chinese 标签取图，统一线稿风格（§3.1）。
 const ICON_BY_LABEL: Dictionary = {
