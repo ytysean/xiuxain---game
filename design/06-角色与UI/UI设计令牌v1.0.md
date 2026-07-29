@@ -120,8 +120,8 @@
 
 | 角色 | 字体 | 资源路径 | 状态 |
 |---|---|---|---|
-| 标题（毛笔体） | MaShanZheng | `res://ui/assets/fonts/MaShanZheng-Regular.ttf` | 用户已移出项目，**需先跑子集化脚本恢复**（沿用 `ui_theme.gd` 现有 `FONT_TITLE_PATH` 常量位置） |
-| 正文（宋体） | NotoSerifSC | `res://ui/assets/fonts/NotoSerifSC-Regular.otf` | 同上，需恢复 |
+| 标题（毛笔体） | MaShanZheng | `res://ui/assets/fonts/MaShanZheng-Subset.ttf` | ✅ 已子集化恢复（原 5.6MB→2.04MB；原字体已移出项目避 Godot 重导入崩溃） |
+| 正文（宋体） | NotoSerifSC | `res://ui/assets/fonts/NotoSerifSC-Subset.otf` | ✅ 已子集化恢复（原 11.6MB→996KB；`ui_theme.gd` 的 `FONT_TITLE_PATH`/`FONT_BODY_PATH` 已指向 -Subset） |
 
 - **恢复前**：所有文本使用 **Godot 默认回退字体**，保证可运行、不报错。
 - **`.tres` 暂不绑定字体文件**（避免引用缺失字体资源报错）；字体绑定在 `ui_theme.gd` 的 `apply_*_font` helper 中按路径探测（缺失则回退），等用户恢复子集字体后再由 engineering-lead 在 `.tres` 补 `default_font` 绑定。
