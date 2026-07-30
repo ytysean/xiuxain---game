@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "name": "太玄宗门录 · 等阶视觉系统配置",
+    "version": "2.1",
+    "spec_ref": "道具图标三阶分层规范落地文档 (凡→灵→玄)",
+    "size": 1024,
+    "med_r": 448,
+    "frame_out": 500,
+    "note": "本文件为 tier_system.py 的权威配置源。改这里即可调等阶参数，无需动代码。"
+  },
+
+  "tiers": {
+    "low": {
+      "label": "凡阶",
+      "tier_zh": "低档",
+      "badge_grade": "凡",
+      "obj_ratio": 0.35,
+      "glow": [150, 170, 160],
+      "glow_alpha": 0.0,
+      "jade": [178, 176, 168, 255],
+      "border_type": "single_dark_bronze",
+      "base_material": "rough_stone",
+      "glow_mode": "none"
+    },
+    "mid": {
+      "label": "灵阶",
+      "tier_zh": "中档",
+      "badge_grade": "宝",
+      "obj_ratio": 0.45,
+      "glow": [190, 210, 200],
+      "glow_alpha": 0.42,
+      "jade": [108, 172, 142, 255],
+      "border_type": "double_gold_jade",
+      "base_material": "pale_jade",
+      "glow_mode": "weak_edge"
+    },
+    "high": {
+      "label": "玄阶",
+      "tier_zh": "高档",
+      "badge_grade": "道",
+      "obj_ratio": 0.60,
+      "glow": [185, 235, 220],
+      "glow_alpha": 0.55,
+      "jade": [198, 86, 76, 255],
+      "border_type": "triple_carved_gold",
+      "base_material": "dark_crack_jade",
+      "glow_mode": "core_radiate"
+    }
+  },
+
+  "grade_colors": {
+    "凡": [183, 178, 168, 255],
+    "灵": [127, 191, 160, 255],
+    "宝": [111, 163, 199, 255],
+    "王": [168, 143, 208, 255],
+    "圣": [214, 154, 92, 255],
+    "仙": [226, 197, 102, 255],
+    "道": [194, 80, 74, 255]
+  },
+
+  "grade_to_tier": {
+    "凡品": "low",
+    "灵品": "low",
+    "宝品": "mid",
+    "王品": "mid",
+    "圣品": "mid",
+    "仙品": "high",
+    "道品": "high"
+  },
+
+  "center_strategy": {
+    "mode": "hybrid",
+    "note": "凡/灵共用一张 normal 中心物(代码参数化缩放+光效), 玄阶专属重绘 top 中心物(材质拉满)。每原型=2张中心物。",
+    "per_archetype_files": ["{archetype}_normal.png", "{archetype}_top.png"]
+  }
+}
