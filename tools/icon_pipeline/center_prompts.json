@@ -1,0 +1,373 @@
+[
+  {
+    "target": "accessory_normal.png",
+    "slug": "zzaccessory_normal",
+    "tier": "normal",
+    "archetype": "accessory",
+    "prompt": "zzaccessory_normal A xianxia pendant accessory of refined xianxia craftsmanship, simple jade pendant, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "accessory_top.png",
+    "slug": "zzaccessory_top",
+    "tier": "top",
+    "archetype": "accessory",
+    "prompt": "zzaccessory_top A top-tier spirit xianxia pendant accessory, heavy dark metal pendant with red gem and gilt inlays, inner glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "array_book_normal.png",
+    "slug": "zzarray_book_normal",
+    "tier": "normal",
+    "archetype": "array_book",
+    "prompt": "zzarray_book_normal A array formation scroll of refined xianxia craftsmanship, rolled formation diagram scroll, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "beast_normal.png",
+    "slug": "zzbeast_normal",
+    "tier": "normal",
+    "archetype": "beast",
+    "prompt": "zzbeast_normal A spirit beast fang and claw relic of refined xianxia craftsmanship, bone-white surface with subtle dark streaks, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "belt_normal.png",
+    "slug": "zzbelt_normal",
+    "tier": "normal",
+    "archetype": "belt",
+    "prompt": "zzbelt_normal A xianxia belt sash of refined xianxia craftsmanship, woven belt with simple buckle, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "belt_top.png",
+    "slug": "zzbelt_top",
+    "tier": "top",
+    "archetype": "belt",
+    "prompt": "zzbelt_top A top-tier spirit xianxia belt sash, heavy dark sash with gold clasp and jade plaque, restrained glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "blueprint_normal.png",
+    "slug": "zzblueprint_normal",
+    "tier": "normal",
+    "archetype": "blueprint",
+    "prompt": "zzblueprint_normal A crafting blueprint scroll of refined xianxia craftsmanship, rolled scroll with faint schematic lines, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "blueprint_top.png",
+    "slug": "zzblueprint_top",
+    "tier": "top",
+    "archetype": "blueprint",
+    "prompt": "zzblueprint_top A top-tier spirit crafting blueprint scroll, ancient gold-trimmed scroll with spirit schematic glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "boot_normal.png",
+    "slug": "zzboot_normal",
+    "tier": "normal",
+    "archetype": "boot",
+    "prompt": "zzboot_normal A xianxia boot of refined xianxia craftsmanship, leather boot with simple sole, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "boot_top.png",
+    "slug": "zzboot_top",
+    "tier": "top",
+    "archetype": "boot",
+    "prompt": "zzboot_top A top-tier spirit xianxia boot, heavy dark leather boot with gilt trim and jade accent, faint glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "bracer_normal.png",
+    "slug": "zzbracer_normal",
+    "tier": "normal",
+    "archetype": "bracer",
+    "prompt": "zzbracer_normal A xianxia arm guard of refined xianxia craftsmanship, leather bracer with metal band, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "bracer_top.png",
+    "slug": "zzbracer_top",
+    "tier": "top",
+    "archetype": "bracer",
+    "prompt": "zzbracer_top A top-tier spirit xianxia arm guard, heavy dark metal bracer with jade core and gilt bands, restrained glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "crystal_normal.png",
+    "slug": "zzcrystal_normal",
+    "tier": "normal",
+    "archetype": "crystal",
+    "prompt": "zzcrystal_normal A spirit crystal cluster of refined xianxia craftsmanship, translucent pale crystal with soft inner sheen, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "fabric_normal.png",
+    "slug": "zzfabric_normal",
+    "tier": "normal",
+    "archetype": "fabric",
+    "prompt": "zzfabric_normal A bolt of spirit silk fabric of refined xianxia craftsmanship, fine pale silk with subtle woven texture, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "flag_normal.png",
+    "slug": "zzflag_normal",
+    "tier": "normal",
+    "archetype": "flag",
+    "prompt": "zzflag_normal A spirit banner of refined xianxia craftsmanship, cloth banner with simple pole, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "flag_top.png",
+    "slug": "zzflag_top",
+    "tier": "top",
+    "archetype": "flag",
+    "prompt": "zzflag_top A top-tier spirit spirit banner, heavy dark banner with gold trim and jade tassel, faint glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "food_normal.png",
+    "slug": "zzfood_normal",
+    "tier": "normal",
+    "archetype": "food",
+    "prompt": "zzfood_normal A spirit fruit of refined xianxia craftsmanship, matte jade-green fruit with a small leaf, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "helmet_normal.png",
+    "slug": "zzhelmet_normal",
+    "tier": "normal",
+    "archetype": "helmet",
+    "prompt": "zzhelmet_normal A xianxia helmet of refined xianxia craftsmanship, dark metal helm with simple rivets, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "helmet_top.png",
+    "slug": "zzhelmet_top",
+    "tier": "top",
+    "archetype": "helmet",
+    "prompt": "zzhelmet_top A top-tier spirit xianxia helmet, antique dark metal helm with jade crest insert and gilt rivets, restrained inner spirit sheen, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "herb_normal.png",
+    "slug": "zzherb_normal",
+    "tier": "normal",
+    "archetype": "herb",
+    "prompt": "zzherb_normal A cluster of spirit herbs with slender leaves of refined xianxia craftsmanship, fresh green jade-like leaves with faint vein sheen, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "herb_top.png",
+    "slug": "zzherb_top",
+    "tier": "top",
+    "archetype": "herb",
+    "prompt": "zzherb_top A top-tier spirit cluster of spirit herbs with slender leaves, icy jade herb with condensed cyan spirit light at the core, fine gold vein inlays, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "mat_special_normal.png",
+    "slug": "zzmat_special_normal",
+    "tier": "normal",
+    "archetype": "mat_special",
+    "prompt": "zzmat_special_normal A rare spirit material relic of refined xianxia craftsmanship, weathered dark material with aged patina, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "mirror_normal.png",
+    "slug": "zzmirror_normal",
+    "tier": "normal",
+    "archetype": "mirror",
+    "prompt": "zzmirror_normal A spirit mirror disc of refined xianxia craftsmanship, bronze-framed stone mirror with weathered worn surface, pitting and aged patina, matte non-reflective, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "mirror_top.png",
+    "slug": "zzmirror_top",
+    "tier": "top",
+    "archetype": "mirror",
+    "prompt": "zzmirror_top A top-tier spirit spirit mirror disc, bronze-gilt worn metal frame, dark jade mirror face engraved with dark-gold talisman runes, light only from rune groove gaps, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "orb_normal.png",
+    "slug": "zzorb_normal",
+    "tier": "normal",
+    "archetype": "orb",
+    "prompt": "zzorb_normal A spirit orb of refined xianxia craftsmanship, warm jade orb with subtle gold cloud inlays, gentle sheen, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "orb_top.png",
+    "slug": "zzorb_top",
+    "tier": "top",
+    "archetype": "orb",
+    "prompt": "zzorb_top A top-tier spirit spirit orb, icy matte jade orb with raised gilt gold cloud-pattern reliefs, core of condensed cyan inner spirit light, gold vein inlays, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "ore_normal.png",
+    "slug": "zzore_normal",
+    "tier": "normal",
+    "archetype": "ore",
+    "prompt": "zzore_normal A raw spirit ore chunk of refined xianxia craftsmanship, rough dark stone with faint mineral specks, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "pill_normal.png",
+    "slug": "zzpill_normal",
+    "tier": "normal",
+    "archetype": "pill",
+    "prompt": "zzpill_normal A spirit pill bottle with rounded pills of refined xianxia craftsmanship, jade bottle with rounded pills, subtle sheen, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "pill_top.png",
+    "slug": "zzpill_top",
+    "tier": "top",
+    "archetype": "pill",
+    "prompt": "zzpill_top A top-tier spirit spirit pill bottle with rounded pills, icy jade pill bottle with embedded red gem cork, dense spirit pill glowing from within, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "quest_normal.png",
+    "slug": "zzquest_normal",
+    "tier": "normal",
+    "archetype": "quest",
+    "prompt": "zzquest_normal A quest token of refined xianxia craftsmanship, simple jade token with marking, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "robe_normal.png",
+    "slug": "zzrobe_normal",
+    "tier": "normal",
+    "archetype": "robe",
+    "prompt": "zzrobe_normal A folded xianxia robe of refined xianxia craftsmanship, pale fabric robe with simple trim, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "robe_top.png",
+    "slug": "zzrobe_top",
+    "tier": "top",
+    "archetype": "robe",
+    "prompt": "zzrobe_top A top-tier spirit folded xianxia robe, ceremonial robe of heavy dark silk with gold embroidery and jade clasps, faint glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "scripture_normal.png",
+    "slug": "zzscripture_normal",
+    "tier": "normal",
+    "archetype": "scripture",
+    "prompt": "zzscripture_normal A cultivation scripture scroll of refined xianxia craftsmanship, classic scroll with title band, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "scripture_top.png",
+    "slug": "zzscripture_top",
+    "tier": "top",
+    "archetype": "scripture",
+    "prompt": "zzscripture_top A top-tier spirit cultivation scripture scroll, ancient jade-bound scripture with gold seal and rune glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "setpiece_normal.png",
+    "slug": "zzsetpiece_normal",
+    "tier": "normal",
+    "archetype": "setpiece",
+    "prompt": "zzsetpiece_normal A set armor emblem insignia of refined xianxia craftsmanship, metal insignia plaque, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "sword_normal.png",
+    "slug": "zzsword_normal",
+    "tier": "normal",
+    "archetype": "sword",
+    "prompt": "zzsword_normal A spirit flying sword of refined xianxia craftsmanship, slender jade sword with simple guard, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "sword_top.png",
+    "slug": "zzsword_top",
+    "tier": "top",
+    "archetype": "sword",
+    "prompt": "zzsword_top A top-tier spirit spirit flying sword, heavy dark steel flying sword with gilt guard and jade grip, cold rim light, restrained inner glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "talisman_normal.png",
+    "slug": "zztalisman_normal",
+    "tier": "normal",
+    "archetype": "talisman",
+    "prompt": "zztalisman_normal A talisman slip of refined xianxia craftsmanship, pale talisman paper with faint red rune, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "talisman_top.png",
+    "slug": "zztalisman_top",
+    "tier": "top",
+    "archetype": "talisman",
+    "prompt": "zztalisman_top A top-tier spirit talisman slip, ancient jade talisman slip with dark-gold runes glowing from grooves, heavy antique feel, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "tower_normal.png",
+    "slug": "zztower_normal",
+    "tier": "normal",
+    "archetype": "tower",
+    "prompt": "zztower_normal A spirit pagoda of refined xianxia craftsmanship, jade miniature pagoda with tiers, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "tower_top.png",
+    "slug": "zztower_top",
+    "tier": "top",
+    "archetype": "tower",
+    "prompt": "zztower_top A top-tier spirit spirit pagoda, heavy dark gold pagoda with jade eaves and inner cyan glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "treasure_atk_normal.png",
+    "slug": "zztreasure_atk_normal",
+    "tier": "normal",
+    "archetype": "treasure_atk",
+    "prompt": "zztreasure_atk_normal A offensive spirit treasure of refined xianxia craftsmanship, jade spike-charm with sharp form, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "treasure_atk_top.png",
+    "slug": "zztreasure_atk_top",
+    "tier": "top",
+    "archetype": "treasure_atk",
+    "prompt": "zztreasure_atk_top A top-tier spirit offensive spirit treasure, heavy dark metal spike-treasure with gilt edge and inner glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "treasure_def_normal.png",
+    "slug": "zztreasure_def_normal",
+    "tier": "normal",
+    "archetype": "treasure_def",
+    "prompt": "zztreasure_def_normal A defensive spirit treasure of refined xianxia craftsmanship, rounded jade shield-charm with simple band, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "treasure_def_top.png",
+    "slug": "zztreasure_def_top",
+    "tier": "top",
+    "archetype": "treasure_def",
+    "prompt": "zztreasure_def_top A top-tier spirit defensive spirit treasure, heavy dark gold shield-charm with jade boss and inner glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "treasure_sup_normal.png",
+    "slug": "zztreasure_sup_normal",
+    "tier": "normal",
+    "archetype": "treasure_sup",
+    "prompt": "zztreasure_sup_normal A support spirit treasure of refined xianxia craftsmanship, jade ring-charm with simple inlay, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "treasure_sup_top.png",
+    "slug": "zztreasure_sup_top",
+    "tier": "top",
+    "archetype": "treasure_sup",
+    "prompt": "zztreasure_sup_top A top-tier spirit support spirit treasure, heavy dark gold ring-treasure with jade inlay and faint glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "tribulation_normal.png",
+    "slug": "zztribulation_normal",
+    "tier": "normal",
+    "archetype": "tribulation",
+    "prompt": "zztribulation_normal A tribulation thunder motif relic of refined xianxia craftsmanship, stylized lightning bolt relic, matte, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "weapon_normal.png",
+    "slug": "zzweapon_normal",
+    "tier": "normal",
+    "archetype": "weapon",
+    "prompt": "zzweapon_normal A cultivation melee weapon of refined xianxia craftsmanship, steel blade with simple guard, matte finish, with fine surface weathering, pitting and aged patina, matte non-reflective finish, kept well within the central 60% of the canvas with ample transparent margin, centered object only, no frame, no border, no decoration, no background, transparent background, realistic xianxia fantasy illustration, dark moody lighting, rim light."
+  },
+  {
+    "target": "weapon_top.png",
+    "slug": "zzweapon_top",
+    "tier": "top",
+    "archetype": "weapon",
+    "prompt": "zzweapon_top A top-tier spirit cultivation melee weapon, heavy dark steel blade with gilt guard and jade grip inlay, cold rim light, restrained inner glow, heavy substantial feel, inner spirit light glowing gently from deep within (NOT overall glowing, NOT glassy, NOT transparent plastic, NOT crystal, NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "array_book_top.png",
+    "slug": "zzarray_book_top",
+    "tier": "top",
+    "archetype": "array_book",
+    "prompt": "zzarray_book_top A top-tier spirit array formation tome, bronze-gilt worn metal cover frame, dark jade slab face engraved with dark-gold talisman runes, light only from rune groove gaps (NOT overall bright glow, NOT glassy), heavy substantial feel, inner spirit light glowing gently from deep within (NOT overexposed), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "tribulation_top.png",
+    "slug": "zztribulation_top",
+    "tier": "top",
+    "archetype": "tribulation",
+    "prompt": "zztribulation_top A top-tier spirit tribulation pill vessel, icy matte jade pill bottle with embedded red gem cork, dense spirit pill glowing from within (NOT transparent glass, NOT overexposed), heavy substantial feel, fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  },
+  {
+    "target": "quest_top.png",
+    "slug": "zzquest_top",
+    "tier": "top",
+    "archetype": "quest",
+    "prompt": "zzquest_top A top-tier ancient spirit command tablet, heavy dark jade talisman slip with gilt dark-gold runes glowing from grooves, restrained inner sheen (NOT overall bright glow, NOT glassy), fine gold vein inlays, kept well within the central 60% of the canvas with ample transparent margin, top-down lighting, dark moody background, centered object only, no frame, no border, no background, transparent background, realistic xianxia fantasy illustration."
+  }
+]

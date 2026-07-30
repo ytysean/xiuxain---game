@@ -18,3 +18,7 @@ __pycache__/
 
 # 本地临时校验报告（pre_f5 本地生成，不进库）
 validate_report.txt
+
+# 图标管线本地派生/备份（_bases 可由 tier_system.py 重生成；cohesion_backup 为本地还原快照，均禁进库）
+icon/_bases/
+icon/_validation/cohesion_backup/
