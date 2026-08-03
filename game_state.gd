@@ -3249,6 +3249,35 @@ func 处理兑换队列():
 		战报更新.emit(引纪["文案"])
 		宗门纪事.append({"日": 累计游戏日, "稀有度": ("异闻" if 引纪.get("category", "") == "异闻" else "宗门"), "名称": "引育成果", "文案": 引纪["文案"], "category": 引纪.get("category", "")})
 
+# ── T03 引育计划队列 · 数据层 mutation（S1 ENG-S1-YUSHOU-WIRE）──
+# 背景：队列的 增/删/启停 原先只以内联形式散落在 main.gd（_弹出兑换新增 / _on_兑换启停 / _on_兑换删除
+#   直接读写 Game.灵兽兑换队列）。御兽堂迁入 ui/page_building.gd 后需要一个与具体 UI 无关的数据层入口，
+#   故在此收敛为 3 个 typed + 带守卫的方法。返回值统一为「可直接展示的中文结果文案」，
+#   与同区既有的 绑定灵兽给指定弟子() / 解绑灵兽() 返回 String 的约定保持一致。
+# 边界：main.gd 的 R8 复用端口保持原样不动、不改写为调用本组方法；两条路径写的是同一个
+#   灵兽兑换队列，条目结构同为 {偏好: Dictionary, cost: int, 启用: bool}，语义完全一致。
+func 灵兽兑换_新增(偏好: Dictionary, 经费: int) -> String:
+	if 经费 <= 0:
+		return "引育计划拨付经费须为正数。"
+	# 偏好可能来自调用方的 const 表（Godot 4 常量为只读），必须深拷贝后再入队，
+	# 否则后续存档/读档 或 条目改写会撞上 read-only Dictionary。
+	灵兽兑换队列.append({"偏好": 偏好.duplicate(true), "cost": 经费, "启用": true})
+	return "已添加引育计划（单次拨付 %d 灵石）。" % 经费
+
+func 灵兽兑换_启停(序号: int) -> String:
+	if 序号 < 0 or 序号 >= 灵兽兑换队列.size():
+		return "引育计划序号越界，操作已忽略。"
+	var 条目: Dictionary = 灵兽兑换队列[序号]
+	var 新态: bool = not bool(条目.get("启用", false))
+	条目["启用"] = 新态
+	return "引育计划已%s。" % ("启用" if 新态 else "停用")
+
+func 灵兽兑换_删除(序号: int) -> String:
+	if 序号 < 0 or 序号 >= 灵兽兑换队列.size():
+		return "引育计划序号越界，操作已忽略。"
+	灵兽兑换队列.remove_at(序号)
+	return "已删除该引育计划。"
+
 # T13+T14 出战灵兽月度养成：出战(主/副宠)+1级(封顶上限)、忠诚+2(封顶100)；库存灵兽忠诚-1(地板0)
 func 出战灵兽月度养成():
 	for d in 弟子列表:
