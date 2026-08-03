@@ -1,4 +1,4 @@
-# StageDataLoader.gd —— 关卡/怪物/掉落 数据层（Day 2）
+# StageDataLoader.gd —— 秘境/怪物/掉落 数据层（Day 2）
 #
 # 定位：纯数据读取层，不依赖 Game / UI / 战斗结算器。
 # 所有方法为 static（与 BattleCalculator / BattleManager 一致）；
@@ -15,12 +15,12 @@
 class_name StageDataLoader
 extends RefCounted
 
-const 关卡路径 := "res://config/stage_main.csv"
+const 秘境路径 := "res://config/stage_main.csv"
 const 怪物路径 := "res://config/monster_main.csv"
 const 掉落路径 := "res://config/drop_pool.csv"
 # 怪物境界战斗倍率（与 disciple.境界战斗倍率 对称；怪物实战四维随境界放大，消除后期碾压）
 const 怪物境界倍率: Dictionary = {"练气":1.0, "筑基":2.0, "金丹":4.0, "元婴":8.0, "化神":15.0, "仙阶":25.0, "道阶":40.0}
-# 关卡难度系数（推荐战力 = 怪物队伍战力度量 × 难度系数）
+# 秘境难度系数（推荐战力 = 怪物队伍战力度量 × 难度系数）
 const 难度系数表: Dictionary = {"normal":0.85, "elite":1.0, "boss":1.2, "treasure":0.0}
 
 # ============ CSV 读取（Godot 内置 get_csv_line，自动处理引号字段）============
@@ -46,15 +46,15 @@ static func _read_csv(path: String) -> Array:
 	f.close()
 	return rows
 
-# ============ 关卡查询 ============
+# ============ 秘境查询 ============
 static func get_stage(id: String) -> Dictionary:
-	for s in _read_csv(关卡路径):
+	for s in _read_csv(秘境路径):
 		if s.get("stage_id", "") == id:
 			return s
 	return {}
 
 static func get_all_stages() -> Array:
-	return _read_csv(关卡路径)
+	return _read_csv(秘境路径)
 
 # 解锁判定：解析 unlock_condition（格式 "sect_level>=N;pre_stage=X"）
 static func is_unlocked(id: String, 宗门等级: int, 已通: Dictionary) -> bool:
@@ -100,7 +100,7 @@ static func _get_monster(mid: String) -> Dictionary:
 			return m
 	return {}
 
-# 怪物 → BattleCalculator 战斗快照（属性嵌套 + 灵根 + 暴击/闪避；职业留空=不触发职业克制）
+# 怪物 → BattleCalculator 战斗快照（属性嵌套 + 灵根 + 暴击/闪避；道途留空=不触发道途克制）
 static func _monster_to_unit(m: Dictionary) -> Dictionary:
 	var 倍: float = 怪物境界倍率.get(m.get("realm", "练气"), 1.0)
 	return {
@@ -110,7 +110,7 @@ static func _monster_to_unit(m: Dictionary) -> Dictionary:
 			"血": int(float(m.get("base_hp", 0)) * 倍),
 			"速": int(float(m.get("base_spd", 0)) * 倍),
 		},
-		"职业": "",
+		"道途": "",
 		"灵根": {"主": m.get("element", "金"), "纯度": "单"},
 		"暴击率": float(m.get("base_crit", 0.0)),
 		"闪避率": float(m.get("base_dodge", 0.0)),

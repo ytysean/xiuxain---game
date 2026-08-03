@@ -5,14 +5,16 @@ extends Node
 
 # ───────── 色彩 token ─────────
 const COLOR_BG_BASE: Color = Color(0.106, 0.153, 0.169)       # 暗青黛 底色
-const COLOR_PANEL_BG: Color = Color(0.141, 0.204, 0.224)      # 面板暗纹底（占位色，待美术暗纹贴图）
+const COLOR_PANEL_BG: Color = Color(0.173, 0.243, 0.271)      # #2C3E45 深青灰面板底（降饱和，不要墨绿）
 const COLOR_STATUSBAR_BG: Color = Color(0.055, 0.082, 0.090)  # 状态栏/墨底
-const COLOR_TOPBAR_BG: Color = Color(0.10, 0.18, 0.20, 0.85)  # 顶部栏 半透明深青底（P2 §二）
-const COLOR_BORDER_GOLD: Color = Color(0.788, 0.659, 0.396)   # 暗金 描边/标题
+const COLOR_TOPBAR_BG: Color = Color(0.173, 0.243, 0.271, 0.85)  # 顶部栏 半透明深青底（P2 §二）
+const COLOR_BORDER_GOLD: Color = Color(0.788, 0.651, 0.337)   # #C9A656 暗金描边（1~2px）
 const COLOR_TEXT_GOLD: Color = Color(1.000, 0.843, 0.478)     # 亮金 核心数值（正常）
 const COLOR_TEXT_RED: Color = Color(0.878, 0.471, 0.471)      # color.status.danger #E07878 警示/异常（负值/预警）
-const COLOR_TEXT_BODY: Color = Color(0.878, 0.835, 0.745)     # 浅米 正文
-const COLOR_TEXT_AUX: Color = Color(0.541, 0.494, 0.408)      # 浅灰 辅助
+const COLOR_TEXT_BODY: Color = Color(0.878, 0.835, 0.745)     # 浅米 正文（旧值，新正文走 COLOR_TEXT_BODY_GOLD）
+const COLOR_TEXT_AUX: Color = Color(0.541, 0.494, 0.408)      # 浅灰 辅助（旧值，新辅助走 COLOR_TEXT_BODY_GOLD）
+const COLOR_TEXT_BODY_GOLD: Color = Color(0.831, 0.722, 0.416) # #D4B86A 暗金：正文/数值/辅助统一色
+const COLOR_TAB_UNSELECTED: Color = Color(0.788, 0.659, 0.396)  # #C9A865 底部 Tab 未选中暗金
 const COLOR_BTN_PRESSED: Color = Color(0.078, 0.106, 0.110)   # 主按钮按下态 底色加深
 const COLOR_BTN_DISABLED: Color = Color(0.180, 0.196, 0.196)
 
@@ -52,8 +54,8 @@ const SIZE_LG: int = 120
 const SIZE_XL: int = 240
 const BTN_H_PRIMARY: int = 64
 const BTN_H_SECONDARY: int = 48
-const TAB_H: int = 72
-const TOPBAR_H: int = 64
+const TAB_H: int = 60
+const TOPBAR_H: int = 56
 const OVERVIEW_H: int = 120
 const CORE_GRID_H: int = 240
 
@@ -71,46 +73,120 @@ const FONT_DENSE: int = 18     # font.size.dense 密集数值
 
 # ───────── 美术资产路径（图标 / 贴图 / 字体 · 集中管理）─────────
 # 集中管理 res:// 资源位置；改皮 / 换套仅动本节，组件零硬编码（保持单文件样式管理）。
-const ASSET_DIR: String = "res://ui/assets/"
-const ICON_DIR: String = ASSET_DIR + "icons/"
+const ASSET_DIR: String = "res://art/"
+# 旧 SVG 线稿图标已废弃，改用写实国漫油画风 PNG 图标（art/ui/buttons/）。
+const ICON_DIR: String = "res://art/ui/buttons/"
 const PANEL_INK_TEX: String = ASSET_DIR + "panel_ink.svg"
 const DIVIDER_TEX: String = ASSET_DIR + "divider_cloud.svg"
-# 字体路径：当前环境无法下载，故保留占位常量；放入字体文件后即被 apply_fonts() / apply_*_font 拾取。
+# 字体路径：已落盘子集字体（tools/font_subset.py 生成，体积 < 1MB，Godot 4.7 可稳定导入）。
 # 注：FONT_TITLE / FONT_BODY 已被上方字号 int 占用 → 路径常量命名 *_PATH 以示区别。
 const FONT_TITLE_PATH: String = ASSET_DIR + "fonts/MaShanZheng-Subset.ttf"
 const FONT_BODY_PATH: String = ASSET_DIR + "fonts/NotoSerifSC-Subset.otf"
 
-# 中文 label → 图标文件 stem（不含扩展名）。组件按其 Chinese 标签取图，统一线稿风格（§3.1）。
+# 中文 label → 图标文件 stem（不含扩展名）。组件按其 Chinese 标签取图，统一写实国漫油画风（§3.1）。
+# 所有图标已迁移到 res://art/ui/buttons/，扩展名为 .png。
 const ICON_BY_LABEL: Dictionary = {
-	"建筑": "jianyu",
-	"坊市": "suanpan",
-	"修炼": "danhuo",
-	"洞府": "shandong",
-	"任务": "juanshu",
-	"账册": "boce",
-	"宗门": "zongmen",
-	"弟子": "dizi",
-	"历练": "lilian",
-	"纪事": "jishi",
-	"灵石": "lingshi",
-	"灵气": "lingqi",
-	"时辰": "shichen",
-	"推演时日": "rili",
-	"折叠": "chevron",
-	"大事件": "dashi",
-	"返回": "fanhui",
-	"领取": "lingqu",
-	"排序": "paixu",
-	"庶务": "shuwu",
-	"岁纪": "suiji",
-	"锁": "suod",
-	"详情": "xiangqing",
-	"异闻": "yiwen",
-	"战力": "zhanli",
-	"关闭": "关闭",
-	"确认": "确认",
-	"取消": "取消",
-	"箭头": "箭头",
+	# ── 底部主导航（normal/selected 成对）──
+	"宗门": "nav_jy_normal",
+	"宗门_选中": "nav_jy_selected",
+	"弟子": "nav_dz_normal",
+	"弟子_选中": "nav_dz_selected",
+	"历练": "nav_ll_normal",
+	"历练_选中": "nav_ll_selected",
+	"纪事": "nav_js_normal",
+	"纪事_选中": "nav_js_selected",
+	"殿阁": "grid_jz",              # 底部 5 Tab 中“殿阁”用六宫格总览图标
+	"更多": "nav_gd_normal",
+	"更多_选中": "nav_gd_selected",
+
+	# ── 宗门首页六宫格入口 ──
+	"殿阁总览": "grid_jz",
+	"弟子录": "grid_dz",
+	"丹器炼制": "grid_dq",
+	"宗门洞府": "grid_df",
+	"差事目标": "grid_rw",
+	"宗门库藏": "grid_zc",
+
+	# ── 殿阁页内部殿阁图标（bld_*）──
+	"宗门正殿": "bld_zd",
+	"执事殿": "bld_jy",
+	"灵田": "bld_lt",
+	"矿脉": "bld_km",
+	"探微阁": "bld_tw",
+	"丹殿": "bld_dt",
+	"器殿": "bld_qt",
+	"功勋阁": "bld_gx",
+	"阵殿": "bld_zt",
+	"藏书阁": "bld_cs",
+	"商驿": "bld_sy",
+
+	# ── 主操作按钮 / 返回按钮（长条底板，无中心图）──
+	"主按钮_常态": "btn_primary_normal",
+	"主按钮_悬浮": "btn_primary_hover",
+	"主按钮_点击": "btn_primary_press",
+	"次按钮_常态": "btn_secondary_normal",
+	"次按钮_悬浮": "btn_secondary_hover",
+	"次按钮_点击": "btn_secondary_press",
+	"返回按钮_常态": "btn_back_normal",
+	"返回按钮_点击": "btn_back_press",
+
+	# ── 子标签 / 筛选标签（长条底板）──
+	"子标签_常态": "subtab_normal",
+	"子标签_选中": "subtab_selected",
+	"筛选_常态": "filter_normal",
+	"筛选_选中": "filter_selected",
+
+	# ── 顶栏资源小图标（20×20）──
+	"灵石": "res_lingshi",
+	"灵气": "res_lingqi",
+	"灵植": "res_lingzhi",
+	"声望": "res_shengwang",
+	# 旧兼容键（部分旧代码可能传小写 stem）
+	"lingshi": "res_lingshi",
+	"lingqi": "res_lingqi",
+	"lingzhi": "res_lingzhi",
+	"shengwang": "res_shengwang",
+
+	# ── 玩法入口按钮（play_*）──
+	"历练派遣": "play_lj",
+	"炼制": "play_lz",
+	"招募": "play_zm",
+	"突破": "play_tp",
+
+	# ── 管理操作按钮（op_*）──
+	"任命": "op_renming",
+	"罢免": "op_bamian",
+	"自动": "op_auto",
+	"调配": "op_tiaopei",
+	"审核": "op_shenhe",
+	"记录": "op_jilu",
+
+	# ── 炼制操作按钮（refine_*）──
+	"开始炼制": "refine_start",
+	"加速炼制": "refine_speed",
+	"切换丹方": "refine_recipe",
+	"布阵": "refine_array",
+
+	# ── 商店入口按钮（shop_*）──
+	"签到": "shop_signin",
+	"商城": "shop_mall",
+	"活动": "shop_event",
+	"首充": "shop_firstpay",
+
+	# ── 物品品阶槽位（slot_*）──
+	"槽位_凡": "slot_fan",
+	"槽位_灵": "slot_ling",
+	"槽位_宝": "slot_bao",
+	"槽位_王": "slot_wang",
+	"槽位_圣": "slot_sheng",
+	"槽位_仙": "slot_xian",
+	"槽位_道": "slot_dao",
+
+	# ── 确认弹窗按钮（长条底板）──
+	"确认_正常": "confirm_ok",
+	"取消_正常": "confirm_cancel",
+	"危险确认": "confirm_danger",
+	"关闭_正常": "confirm_close",
 }
 
 # 字体缓存（首次探测后缓存，避免对缺失文件重复 load 刷错误日志）
@@ -131,8 +207,8 @@ func color_border_gold() -> Color: return COLOR_BORDER_GOLD
 func color_text_gold() -> Color: return COLOR_TEXT_GOLD
 func color_text_body() -> Color: return COLOR_TEXT_BODY
 func color_text_aux() -> Color: return COLOR_TEXT_AUX
-# 核心数值：正常亮金 / 异常暗红
-func color_value(abnormal: bool) -> Color: return COLOR_TEXT_RED if abnormal else COLOR_TEXT_GOLD
+# 核心数值：正常暗金 / 异常暗红
+func color_value(abnormal: bool) -> Color: return COLOR_TEXT_RED if abnormal else COLOR_TEXT_BODY_GOLD
 
 # ── 令牌色 getter（对齐 UI设计令牌v1.0，供组件按需取色）──
 func color_bg_content() -> Color: return COLOR_BG_CONTENT
@@ -186,14 +262,22 @@ func apply_value_font(control: Control, abnormal: bool = false) -> void:
 func apply_body_font(control: Control) -> void:
 	_ensure_fonts()
 	control.add_theme_font_size_override("font_size", FONT_BODY)
-	control.add_theme_color_override("font_color", COLOR_TEXT_BODY)
+	control.add_theme_color_override("font_color", COLOR_TEXT_BODY_GOLD)
 	if _font_body_res != null:
 		control.add_theme_font_override("font", _font_body_res)
+
+# 可控字号正文：与 apply_title_font_sized 对称，用于需要固定 14/18px 等宋体正文的场景。
+func apply_body_font_sized(control: Control, size: int) -> void:
+	_ensure_fonts()
+	if _font_body_res != null:
+		control.add_theme_font_override("font", _font_body_res)
+	control.add_theme_font_size_override("font_size", size)
+	control.add_theme_color_override("font_color", COLOR_TEXT_BODY_GOLD)
 
 func apply_aux_font(control: Control) -> void:
 	_ensure_fonts()
 	control.add_theme_font_size_override("font_size", FONT_AUX)
-	control.add_theme_color_override("font_color", COLOR_TEXT_AUX)
+	control.add_theme_color_override("font_color", COLOR_TEXT_BODY_GOLD)
 	if _font_body_res != null:
 		control.add_theme_font_override("font", _font_body_res)
 
@@ -228,6 +312,53 @@ func make_panel_stylebox(use_ink: bool = true) -> StyleBox:
 func apply_panel_style(control: Control, use_ink: bool = true) -> void:
 	# 作用于 Panel / PanelContainer 的 "panel" 样式；其余容器请包裹 PanelContainer
 	control.add_theme_stylebox_override("panel", make_panel_stylebox(use_ink))
+
+# ───────── 统一扁平面板蒙皮（S1 首页三文件共用）─────────
+# 替代原本各自硬编码的 StyleBoxFlat：统一深青灰底 + 暗金描边 + 小圆角 + 极淡内阴影。
+# 顶栏胶囊、右侧悬浮节点、宗门动态面板均走此入口，保证视觉语言一致。
+func make_panel_stylebox_flat(bg: Color, border: Color, radius: int, border_w: int) -> StyleBox:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(border_w)
+	sb.set_content_margin_all(PAD_PANEL)
+	# 极淡内阴影：低透明黑 + 小 blur，增加温润质感，不抢主体
+	sb.shadow_color = Color(0, 0, 0, 0.22)
+	sb.shadow_size = 4
+	sb.shadow_offset = Vector2(0, 0)
+	return sb
+
+func apply_panel_style_flat(control: Control, bg: Color, border: Color, radius: int, border_w: int) -> void:
+	control.add_theme_stylebox_override("panel", make_panel_stylebox_flat(bg, border, radius, border_w))
+
+# ───────── 首页专用面板蒙皮（宗门动态面板 / 右侧悬浮节点）─────────
+# 圆角 16 / 2px 暗金描边 / 面板底(COLOR_PANEL_BG=#2C3E45) @ 指定 alpha（透出背景山门）。
+# 与 make_panel_stylebox 的区别：固定大圆角 + 2px 描边 + 半透明底（规格 §3.3/§3.4）。
+func make_home_panel_stylebox(alpha: float = 0.85) -> StyleBox:
+	return make_panel_stylebox_flat(Color(COLOR_PANEL_BG, alpha), COLOR_BORDER_GOLD, 16, 2)
+
+func apply_home_panel_style(control: Control, alpha: float = 0.85) -> void:
+	control.add_theme_stylebox_override("panel", make_home_panel_stylebox(alpha))
+
+# 宗门动态面板蒙皮（规格 §3.3：432×148、圆角 12、2px 暗金描边、纯色半透明深青底 #2C3E45 @ α）。
+func make_dynamics_panel_stylebox(alpha: float = 0.82) -> StyleBox:
+	return make_panel_stylebox_flat(Color(COLOR_PANEL_BG, alpha), COLOR_BORDER_GOLD, 12, 2)
+
+func apply_dynamics_panel_style(control: Control, alpha: float = 0.82) -> void:
+	control.add_theme_stylebox_override("panel", make_dynamics_panel_stylebox(alpha))
+
+# ───────── 顶部栏胶囊条蒙皮（参考图效果：整根圆角胶囊、半透明深青底、1px 暗金描边）─────────
+func apply_topbar_capsule_style(control: Control) -> void:
+	var sb: StyleBox = make_panel_stylebox_flat(Color(COLOR_TOPBAR_BG, 0.85), COLOR_BORDER_GOLD, 10, 1)
+	sb.set_content_margin_all(6)
+	control.add_theme_stylebox_override("panel", sb)
+
+# ───────── 首页右侧悬浮资源节点蒙皮（规格 §3.4：~106×85、圆角 10、1px 暗金描边、深青半透明 α0.85）─────────
+func apply_float_node_style(control: Control, alpha: float = 0.85) -> void:
+	var sb: StyleBox = make_panel_stylebox_flat(Color(COLOR_PANEL_BG, alpha), COLOR_BORDER_GOLD, 10, 1)
+	sb.set_content_margin_all(GRID)
+	control.add_theme_stylebox_override("panel", sb)
 
 # ───────── 主按钮（高64 / 圆角6 / 暗底金边 / 三态 normal/pressed/disabled）─────────
 func apply_primary_button_style(btn: BaseButton) -> void:
@@ -331,12 +462,22 @@ func apply_divider(control: Control) -> void:
 
 # ───────── 资产加载 helper（图标 / 贴图）─────────
 # 按 Chinese label 取图标（§3.1 修真器物映射）；label 不在 ICON_BY_LABEL → 返 null，调用方保留原占位。
-# Godot 4 原生支持 .svg 导入为 Texture2D；load() 内部按路径缓存结果，重复调用成本极低。
+# 图标已迁移为 .png；load() 内部按路径缓存结果，重复调用成本极低。
 func load_icon(label: String) -> Texture2D:
 	var stem: String = ICON_BY_LABEL.get(label, "")
 	if stem == "":
 		return null
-	return load(ICON_DIR + stem + ".svg") as Texture2D
+	return load(ICON_DIR + stem + ".png") as Texture2D
+
+# 取底部导航 Tab 图标，根据选中状态自动切换 normal/selected。
+# label 为 Tab 中文名（宗门/弟子/历练/纪事/殿阁/更多）。
+func load_tab_icon(label: String, selected: bool = false) -> Texture2D:
+	var suffix: String = "_选中" if selected else ""
+	var key: String = label + suffix
+	# 没有成对状态的 Tab（如殿阁）fallback 到普通图标
+	if not ICON_BY_LABEL.has(key):
+		key = label
+	return load_icon(key)
 
 # 按 label 取图标并光栅化缩放到指定尺寸（正方形）。
 # 用于绕过某些 Godot 4.7 build 中 Button.icon_max_width 不可用的问题。
@@ -349,6 +490,14 @@ func load_icon_sized(label: String, size: int) -> Texture2D:
 		return tex
 	img.resize(size, size, Image.INTERPOLATE_LANCZOS)
 	return ImageTexture.create_from_image(img)
+
+# ───────── 资源数值格式化（首页/顶栏万缀显示）─────────
+# >=10000 显示为 X.X万（snapped 到 0.1），否则显示整数。纯函数，供 TopBar / 宗门动态面板复用。
+static func format_resource(value: int) -> String:
+	if value >= 10000:
+		var wan: float = value / 10000.0
+		return "%g万" % snapped(wan, 0.1)
+	return str(value)
 
 # 加载面板暗纹贴图；缺失返 null（make_panel_stylebox 退化为 StyleBoxFlat）。
 func load_panel_ink() -> Texture2D:

@@ -1,7 +1,7 @@
 # quest.gd —— 奇遇引擎（Epic B / ADR-002 / GDD-奇遇）
 #
 # 仿 lore.gd 叶子结构：class_name + static func，无 preload 其它业务脚本、不依赖 Game 单例。
-# 输入 Disciple（取其 性格/境界/命格），输出 Dictionary（文案/稀有度/需干预/奖励）。
+# 输入 Disciple（取其 性格/境界/命格），输出 Dictionary（文案/稀有度/需干预/赏赐）。
 # 数据源：核心池 config/event_quest.csv（ADR-002 §6.2，200则/四类/三档权重归一化）；
 #        CSV 缺失时回退到 Lore.取奇遇 兜底。
 #
@@ -48,8 +48,8 @@ const _兜底稀有度权重 := {"普通": 70.0, "稀有": 30.0}   # [PLACEHOLDE
 # 紫+ 干预三档选项（ADR-002 D4 / GDD-奇遇 三.2）；UI 灰模由 art-lead 后续出。
 const 干预选项 := [
 	{"键": "放任自流", "消耗": "无",            "效果": "保持原性格自动判定"},
-	{"键": "暗中相助", "消耗": "宗门贡献/灵石", "效果": "成功概率+15%，奖励品质+1档"},
-	{"键": "亲自出手", "消耗": "高阶道具/声望", "效果": "强制最优分支，奖励拉满，额外道心值"},
+	{"键": "暗中相助", "消耗": "宗门贡献/灵石", "效果": "成功概率+15%，赏赐品质+1档"},
+	{"键": "亲自出手", "消耗": "高阶道具/声望", "效果": "强制最优分支，赏赐拉满，额外道心值"},
 ]
 
 # 境界序（用于过滤匹配）
@@ -151,7 +151,7 @@ static func _确保csv加载() -> void:
 static func 性格四维(性格: String) -> Dictionary:
 	return 性格四维表.get(性格, _中性四维.duplicate())
 
-# 是否需掌门干预：S0 仅「传说」触发（干预 UI 待 S1；稀有/优秀/普通直接结算，避免奖励因 UI 未建而静默丢失）。
+# 是否需掌门干预：S0 仅「传说」触发（干预 UI 待 S1；稀有/优秀/普通直接结算，避免赏赐因 UI 未建而静默丢失）。
 # S1 建干预 UI 后改回 ["稀有", "传说"]（高两档均需抉择）。
 static func 是否需干预(稀有度: String) -> bool:
 	return 稀有度 in ["传说"]
@@ -216,11 +216,11 @@ static func _取周期事件(周期: String) -> Array:
 # 奇遇抽取（ADR-002 D2）。
 # 数据源切换：CSV 200则到位后走 CSV 按境界过滤+权重抽取；
 #            CSV 加载失败时回退到 Lore.取奇遇 兜底。
-# 返回契约 Dictionary：{文案, 稀有度, 需干预, 奖励, event_name, opt1_*, opt2_*}
+# 返回契约 Dictionary：{文案, 稀有度, 需干预, 赏赐, event_name, opt1_*, opt2_*}
 #   · 文案    ：CSV 模式 = event_content；兜底 = Lore.取奇遇()
 #   · 稀有度  ：来自 CSV rarity 字段 / 兜底期占位随机
 #   · 需干预  ：S0 仅「传说」为 true（干预 UI 待 S1；S1 扩为 稀有/传说）
-#   · 奖励    ：兜底期 null（game_state 走随机小奖励）
+#   · 赏赐    ：兜底期 null（game_state 走随机小赏赐）
 static func 抽取(d: Disciple, scene: String = "") -> Dictionary:
 	_确保csv加载()
 	
@@ -235,7 +235,7 @@ static func 抽取(d: Disciple, scene: String = "") -> Dictionary:
 				"文案": evt["event_content"],
 				"稀有度": evt["rarity"],
 				"需干预": 是否需干预(evt["rarity"]),
-				"奖励": null,
+				"赏赐": null,
 				"event_name": evt["event_name"],
 				"event_type": evt["event_type"],
 				"trigger_scene": evt["trigger_scene"],
@@ -265,7 +265,7 @@ static func 抽取(d: Disciple, scene: String = "") -> Dictionary:
 		"文案": 文案,
 		"稀有度": 稀有度,
 		"需干预": 是否需干预(稀有度),
-		"奖励": null,
+		"赏赐": null,
 	}
 
 # 加权随机（复用 disciple/item 的同款算法）
@@ -291,24 +291,24 @@ static func _缩放入参(base: float, factor: float, min_v: float, max_v: float
 #   ② 调用 BattleCalculator 纯数值结算（quick 模式），把统一 BattleResult 回传「奇遇管理器」（game_state）。
 # 奇遇叶子仅调 BattleCalculator 纯数值结算（quick 模式）：不预载入战斗编排层、
 # 不打开战斗场景、不播放战斗流程。
-# 不在此处发放奖励/记 履历——那属奇遇管理器收尾职责（见 game_state.结算征伐奇遇）。
+# 不在此处发放赏赐/记 履历——那属奇遇管理器收尾职责（见 game_state.结算征伐奇遇）。
 
 # 由征伐事件派生敌方战斗快照列表（P0 占位确定性生成，数值待 design 校准）。
 # 字段严格对齐 BattleCalculator 消费的 CombatantData 契约：
-#   战力/属性{攻防血速}/职业/灵根{主,纯度}/灵兽战力/极品特效/通用增益/道心增益/暴击率/闪避率/名称
+#   战力/属性{攻防血速}/道途/灵根{主,纯度}/灵兽战力/极品特效/通用增益/道心增益/暴击率/闪避率/名称
 static func 征伐敌方快照(事件: Dictionary, 玩家境界: String) -> Array:
 	var 数量: int = int(事件.get("征伐数量", 1))
 	数量 = clamp(数量, 1, 3)   # P0 征伐规模：单体或三人小队
 	# 敌方属性基准随玩家境界缩放（复用 disciple.境界表 战力基线；数值为 [PLACEHOLDER]，非硬编码测试值）
 	var 基线 := Disciple.境界表.get(玩家境界, Disciple.境界表["练气"])["战力"] as float
 	var 总属性: int = int(clamp(基线 * 0.5, 40, 2000))   # 占位：敌方总属性量级≈玩家境界战力一半
-	var 职业池: Array = ["道修", "体修", "法修"]
+	var 道途池: Array = ["道修", "体修", "法修"]
 	var 灵根池: Array = ["金", "木", "水", "火", "土"]
 	var 快照列表 := []
 	for i in 数量:
-		var 职业: String = 职业池[i % 职业池.size()]
+		var 道途: String = 道途池[i % 道途池.size()]
 		var 灵根: String = 灵根池[(i * 2) % 灵根池.size()]
-		# 占位属性分布（按职业侧重近似，数值待 design 录入）
+		# 占位属性分布（按道途侧重近似，数值待 design 录入）
 		var 属性: Dictionary = {
 			"攻": int(总属性 * 0.30), "防": int(总属性 * 0.25),
 			"血": int(总属性 * 0.35), "速": int(总属性 * 0.10),
@@ -323,7 +323,7 @@ static func 征伐敌方快照(事件: Dictionary, 玩家境界: String) -> Arra
 		快照列表.append({
 			"战力": 总属性,
 			"属性": 属性,
-			"职业": 职业,
+			"道途": 道途,
 			"灵根": {"主": 灵根, "纯度": "单"},
 			"灵兽战力": 0,
 			"极品特效": [],
@@ -338,7 +338,7 @@ static func 征伐敌方快照(事件: Dictionary, 玩家境界: String) -> Arra
 # 征伐类奇遇战斗结算（ADR-003 D6①）：攻方=弟子战斗快照，守方=征伐事件派生的敌方列表。
 # 单体 → 结算_1v1；小队 → 结算_3v3 车轮（攻方单弟子 vs 敌方列表，气血继承）。
 # 仅走 BattleCalculator 纯数值结算（quick 模式，纯数值口径，无 UI / 无战斗流程副作用）。
-# 返回统一 BattleResult 给奇遇管理器收尾（奖励/履历在 game_state.结算征伐奇遇 处理，字段不变）。
+# 返回统一 BattleResult 给奇遇管理器收尾（赏赐/履历在 game_state.结算征伐奇遇 处理，字段不变）。
 static func 结算征伐(d: Disciple, 事件: Dictionary) -> Dictionary:
 	var 攻: Dictionary = d.get_final_combat_attr()          # 取自弟子最终属性接口（AC6，无硬编码）
 	var 守列表: Array = 征伐敌方快照(事件, d.境界)

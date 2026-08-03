@@ -15,13 +15,13 @@
 #                                  三类「只有 Godot 真机才报」的崩溃，纯文本零误报兜底)
 #   9) GDScript 真实语法解析       (gdtoolkit_check.py：用 gdtoolkit 真 parser 拦缩进错位/
 #                                  lambda 提前结束/match case 错位等只有 Godot 才报的语法灾难)
-#   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","建筑","历练","纪事"] 且长度 5)
+#   17) 底部导航 Tab 数校验         (内联：页名 数组 == ["宗门","弟子","殿阁","历练","纪事"] 且长度 5)
 #   18) 按钮色值/裸 hex 校验        (内联：全文件裸 #xxxxxx 比对顶部常量+四类锁定 hex，未定义即 FAIL)
 #   19) 背景透明度校验             (内联：BG_SCENE_ALPHA≤0.35 / BG_OVERLAY_ALPHA==0.50 / #16221D)
 #   20) 阵法拆解经济校验           (内联：复刻 `_阵法拆解返还数`，拆解产出≤投入 且 L1=0，防零投入白嫖漏洞)
 #   21) Python 工具脚本编译检查     (内联：py_compile 全量编译所有 *.py，任一 SyntaxError 直接 FAIL)
 #   22) GDScript 存档键名对称检查   (内联：抓 `目标 = data.get("_键")` 目标缺前导下划线的反模式)
-#   23) 事件奖励 item 引用校验      (内联：event_quest opt1/2/3_reward 的 item:item_id:count，断言 item_id ∈ array_items.csv|item_id_registry.csv 且 count>0)
+#   23) 事件赏赐 item 引用校验      (内联：event_quest opt1/2/3_reward 的 item:item_id:count，断言 item_id ∈ array_items.csv|item_id_registry.csv 且 count>0)
 #   24) 零战斗触碰红线校验
 #   25) CSV 消费链路校验           (subprocess：check_csv_consumer.py；CSV-GOV-GATE-002，当前非阻断·报告模式)
 #                                  摆设型 CSV 自动校验：逐 config/*.csv 检索业务代码字面引用，
@@ -53,7 +53,7 @@ CHECKS = [
     ("彩蛋数值红线断言",     "tests/easter_egg/test_easter_egg.py", ROOT),
     ("资源产耗闭环断言",     "tests/resource_flow/test_resource_flow.py", ROOT),
     ("增益数值红线断言",     "tests/buff_redline/test_buff_redline.py", ROOT),
-    ("七载奖励零通胀校验",   "check_rating_inflation.py", ROOT),
+    ("七载赏赐零通胀校验",   "check_rating_inflation.py", ROOT),
     ("产耗±15%红线校验",     "check_resource_redline.py", ROOT),   # ECON-01 新增：零通胀基线锁（第11道 subprocess 闸）
 ]
 
@@ -211,14 +211,14 @@ def check_fullwidth_strings():
 
 
 # ── UI 整改「三」新增校验（闸门 17/18/19）────────────────────────────────
-# 17) 底部主导航 Tab 数恒为 5（宗门/弟子/建筑/历练/纪事）
+# 17) 底部主导航 Tab 数恒为 5（宗门/弟子/殿阁/历练/纪事）
 # 18) 按钮色值 / 裸 hex：全文件裸 #xxxxxx 比对顶部常量 + 四类锁定 hex，未定义即 FAIL
 # 19) 背景透明度：BG_SCENE_ALPHA ≤ 0.35、BG_OVERLAY_ALPHA == 0.50、BG_OVERLAY_COLOR == #16221D
 NEW_UI_GATES = ("底部导航 Tab 数校验", "按钮色值/裸 hex 校验", "背景透明度校验")
 
 
 def check_tab_count():
-    """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/建筑/历练/纪事）。
+    """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/殿阁/历练/纪事）。
     扫描 main.gd 的 `页名` 常量数组，须精确等于该 5 项，否则 FAIL。
     返回 (ok, summary, detail)。"""
     fp = os.path.join(ROOT, "main.gd")
@@ -232,9 +232,9 @@ def check_tab_count():
     if not m:
         return False, "未找到 页名 常量定义", ""
     items = re.findall(r'"([^"]*)"', m.group(1))
-    expected = ["宗门", "弟子", "建筑", "历练", "纪事"]
+    expected = ["宗门", "弟子", "殿阁", "历练", "纪事"]
     if items == expected and len(items) == 5:
-        return True, "页名 = 5 Tab（宗门/弟子/建筑/历练/纪事）", ""
+        return True, "页名 = 5 Tab（宗门/弟子/殿阁/历练/纪事）", ""
     detail = "页名 = %s（应为 %s）" % (items, expected)
     return False, "页名 Tab 数/项不匹配（实为 %d 项）" % len(items), detail
 
@@ -490,11 +490,11 @@ def check_save_key_symmetry():
 
 
 def check_event_reward_item_ref():
-    """闸门23：事件奖励 item 引用校验（D5④ 新增 item:item_id:count 奖励语义）。
-    event_quest.csv 的 opt1/2/3_reward 列若出现 `item:item_id:count` 形式奖励，必须断言：
+    """闸门23：事件赏赐 item 引用校验（D5④ 新增 item:item_id:count 赏赐语义）。
+    event_quest.csv 的 opt1/2/3_reward 列若出现 `item:item_id:count` 形式赏赐，必须断言：
       1) item_id 存在于 array_items.csv 或 item_id_registry.csv（跨表引用合法性）；
       2) count 为正整数（count>0）。
-    缺失/非正的 count 视为 count=1（与 game_state.gd `_解析并发放奇遇奖励` 的 item: 分支默认一致）。
+    缺失/非正的 count 视为 count=1（与 game_state.gd `_解析并发放奇遇赏赐` 的 item: 分支默认一致）。
     任一不合法即 FAIL，打印 event_id/行号 + 违规明细。返回 (ok, summary, detail)。"""
     import csv as _csv
     eq_path = os.path.join(ROOT, "config", "event_quest.csv")
@@ -524,7 +524,7 @@ def check_event_reward_item_ref():
     if not valid_ids:
         return False, "array_items.csv / item_id_registry.csv 均未提供合法 item_id", ""
 
-    # 2) 扫描奖励列中的 item: 引用
+    # 2) 扫描赏赐列中的 item: 引用
     OPT_COLS = ("opt1_reward", "opt2_reward", "opt3_reward")
     violations = []
     scanned = 0
@@ -554,13 +554,13 @@ def check_event_reward_item_ref():
         return False, "校验异常: %s" % e, ""
     if violations:
         detail = "\n".join(violations)
-        return False, "检出 %d 处 item 奖励引用不合法" % len(violations), detail
-    return True, "事件奖励 item 引用全部合法（扫描 %d 处 item: 奖励，均存在且 count>0）" % scanned, ""
+        return False, "检出 %d 处 item 赏赐引用不合法" % len(violations), detail
+    return True, "事件赏赐 item 引用全部合法（扫描 %d 处 item: 赏赐，均存在且 count>0）" % scanned, ""
 
 
 def check_zero_battle_touch():
     """闸门24：零战斗触碰红线校验（D5④ 铁律）。
-    D5④ 事件奖励落地的所有改动必须在经营/配置层，严禁触碰战斗结算：
+    D5④ 事件赏赐落地的所有改动必须在经营/配置层，严禁触碰战斗结算：
     BattleCalculator.gd / BattleManager.gd。
     运行 `git diff --name-only HEAD`（cwd=ROOT）取改动清单，按 basename 比对；
     若任一战斗文件被改 → FAIL，打印其相对路径。返回 (ok, summary, detail)。"""
@@ -794,17 +794,17 @@ def main():
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "GDScript 存档键名对称检查", " " * pad, mark, sk_sum))
 
-    # 第二十三道：事件奖励 item 引用校验（D5④ 新增 item:item_id:count 奖励语义）
+    # 第二十三道：事件赏赐 item 引用校验（D5④ 新增 item:item_id:count 赏赐语义）
     #   断言 event_quest opt1/2/3_reward 的 item:item_id:count 中 item_id 合法且 count>0，
     #   防止跨表引用悬空 / 非法 count 在 F5 运行期炸（_按id造 找不到 item_id）。
     ir_ok, ir_sum, ir_detail = check_event_reward_item_ref()
     total = total + 1
-    results.append(("事件奖励 item 引用校验", ir_ok, ir_sum, ir_detail))
+    results.append(("事件赏赐 item 引用校验", ir_ok, ir_sum, ir_detail))
     mark = PASS_MARK if ir_ok else FAIL_MARK
-    pad = LINE_W - len("事件奖励 item 引用校验")
+    pad = LINE_W - len("事件赏赐 item 引用校验")
     if pad < 1:
         pad = 1
-    print("  [%d/%d] %s%s %s  %s" % (total, total, "事件奖励 item 引用校验", " " * pad, mark, ir_sum))
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "事件赏赐 item 引用校验", " " * pad, mark, ir_sum))
 
     # 第二十四道：零战斗触碰红线校验（D5④ 铁律）
     #   git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动；

@@ -1,0 +1,39 @@
+{
+	"kind": "style",
+	"type": "Button",
+	"name": "主按钮(青黛)",
+	"style": {
+		"button_text": "按钮",
+		"icon_path": "",
+		"bg_path": "",
+		"font_path": "",
+		"font_size": 22,
+		"color": [
+			1.0,
+			1.0,
+			1.0,
+			1.0
+		],
+		"bg_color": [
+			0.17,
+			0.37,
+			0.32,
+			1.0
+		],
+		"border_color": [
+			0.78,
+			0.66,
+			0.42,
+			1.0
+		],
+		"border_width": 2,
+		"corner_radius": 8,
+		"bg_nine_patch": true,
+		"bg_margin_left": 0,
+		"bg_margin_top": 0,
+		"bg_margin_right": 0,
+		"bg_margin_bottom": 0,
+		"bg_axis_h": 0,
+		"bg_axis_v": 0
+	}
+}

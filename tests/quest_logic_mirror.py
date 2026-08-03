@@ -47,7 +47,7 @@ def _加权抽(权重, rng):
 def 抽取(rng):
     稀有度 = _加权抽(_兜底稀有度权重, rng)
     return {"文案": "（镜像占位）", "稀有度": 稀有度,
-            "需干预": 是否需干预(稀有度), "奖励": None}
+            "需干预": 是否需干预(稀有度), "赏赐": None}
 
 
 def main():
@@ -80,11 +80,11 @@ def main():
     计数 = {"普通": 0, "稀有": 0, "珍稀": 0, "传说": 0}
     for _ in range(20000):
         q = 抽取(rng)
-        for key in ("文案", "稀有度", "需干预", "奖励"):
+        for key in ("文案", "稀有度", "需干预", "赏赐"):
             if key not in q:
                 fails.append("抽取缺键:" + key)
-        if q["奖励"] is not None:
-            fails.append("兜底奖励应 null")
+        if q["赏赐"] is not None:
+            fails.append("兜底赏赐应 null")
         if q["需干预"] is not False:
             fails.append("兜底需干预应 false")
         计数[q["稀有度"]] += 1

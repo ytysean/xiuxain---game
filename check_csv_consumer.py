@@ -17,7 +17,7 @@
 # 用法（项目根目录执行）：
 #   python check_csv_consumer.py                  # 报告模式，exit 0（默认 runtime scope）
 #   python check_csv_consumer.py --strict         # 阻断模式，ORPHAN>0 则 exit 1（供将来切换用，本次不启用）
-#   python check_csv_consumer.py --scope all      # 扫描所有 .gd/.py（含 dev 工具/测试），对齐任务字面范围
+#   python check_csv_consumer.py --scope all      # 扫描所有 .gd/.py（含 dev 工具/测试），对齐差事字面范围
 #   python check_csv_consumer.py --scope runtime  # 仅扫 Godot 运行时 .gd（默认，对齐《三位一体》核定的 28）
 #   python check_csv_consumer.py --no-color       # 关闭 ANSI 颜色（适合写入日志/CI 纯文本）
 #
@@ -27,7 +27,7 @@
 #   若把"仅被 .py 工具或 tests/ 引用"也算作消费者，会复活「系统已落地错觉」
 #   （如 item_id_registry.csv / 新功能冲击声明.csv / resource_flow.csv 仅被 dev 工具/测试打开，已迁 tools/config/ 脱离运行时闸门；config/ 内零引用表方为真摆设）。
 #   故默认 scope=runtime：只扫 .gd 运行时消费者 -> 对齐《三位一体》核定的「真实被消费 28 张」。
-#   若主理人要求按任务字面"所有 .gd+.py"全扫，可用 --scope all（会多计 3 张工具/测试引用为 OK）。
+#   若主理人要求按差事字面"所有 .gd+.py"全扫，可用 --scope all（会多计 3 张工具/测试引用为 OK）。
 #   两种 scope 的 RESERVED/BAK/ORPHAN 判定规则一致，仅消费者来源不同。
 #
 # 实现约束：
@@ -138,7 +138,7 @@ def scan_consumers(root, scope="runtime"):
                         跳过 tests/ 目录与 EXCLUDED_SOURCE_FILES。
                         对齐《三位一体》核定的「真实被消费 28 张」——.py 工具不在 Godot 内运行。
       "all":     扫所有 .gd + .py（排除 csv_validator.gd / validate_all.py 及 .bak/.tmp 临时源），
-                对齐任务字面"所有 .gd + .py"范围（会多计工具/测试引用为 OK）。
+                对齐差事字面"所有 .gd + .py"范围（会多计工具/测试引用为 OK）。
     通用：跳过隐藏/缓存目录（.git/.godot/.workbuddy/__pycache__ 等）。"""
     referenced = {}
     for dirpath, dirs, files in os.walk(root):

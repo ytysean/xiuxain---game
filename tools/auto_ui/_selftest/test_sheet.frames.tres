@@ -1,0 +1,43 @@
+[gd_resource type="SpriteFrames" load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://_selftest/test_sheet.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1"]
+atlas = ExtResource("1")
+region = Rect2(0.0, 0.0, 76.0, 76.0)
+
+[sub_resource type="SpriteFrame" id="SpriteFrame_1"]
+texture = SubResource("AtlasTexture_1")
+duration = 0.125
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2"]
+atlas = ExtResource("1")
+region = Rect2(76.0, 0.0, 76.0, 76.0)
+
+[sub_resource type="SpriteFrame" id="SpriteFrame_2"]
+texture = SubResource("AtlasTexture_2")
+duration = 0.125
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3"]
+atlas = ExtResource("1")
+region = Rect2(0.0, 76.0, 76.0, 76.0)
+
+[sub_resource type="SpriteFrame" id="SpriteFrame_3"]
+texture = SubResource("AtlasTexture_3")
+duration = 0.125
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4"]
+atlas = ExtResource("1")
+region = Rect2(76.0, 76.0, 76.0, 76.0)
+
+[sub_resource type="SpriteFrame" id="SpriteFrame_4"]
+texture = SubResource("AtlasTexture_4")
+duration = 0.125
+
+[resource]
+animations = [{
+"frames": [SubResource("SpriteFrame_1"), SubResource("SpriteFrame_2"), SubResource("SpriteFrame_3"), SubResource("SpriteFrame_4")],
+"loop": true,
+"name": "default",
+"speed": 8.0
+}]

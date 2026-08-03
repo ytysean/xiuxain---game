@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# gen_battle_csv.py —— 战斗关卡数据生成器（Day1，可重跑）
+# gen_battle_csv.py —— 战斗秘境数据生成器（Day1，可重跑）
 # 口径对齐代码枚举：
 #   境界 = 练气/筑基/金丹/元婴/化神/仙阶/道阶（disciple.gd 境界序）
 #   五行 = 金/木/水/火/土（disciple.gd 灵根五行）
@@ -83,18 +83,18 @@ with open(os.path.join(CFG, "stage_main.csv"), "w", encoding="utf-8", newline=""
         w.writerow(list(s))
 
 pools = [
-    ("dp_ch1_normal", "herb", "草药", 60, 1, 3, "凡品"), ("dp_ch1_normal", "eq_frag_1", "凡品装备碎片", 40, 1, 2, "凡品"),
-    ("dp_ch1_elite", "eq_frag_2", "良品装备碎片", 50, 1, 2, "良品"), ("dp_ch1_elite", "eq_whole_1", "凡品整装", 30, 1, 1, "凡品"), ("dp_ch1_elite", "herb", "草药", 20, 1, 2, "凡品"),
+    ("dp_ch1_normal", "herb", "灵植", 60, 1, 3, "凡品"), ("dp_ch1_normal", "eq_frag_1", "凡品装备碎片", 40, 1, 2, "凡品"),
+    ("dp_ch1_elite", "eq_frag_2", "良品装备碎片", 50, 1, 2, "良品"), ("dp_ch1_elite", "eq_whole_1", "凡品整装", 30, 1, 1, "凡品"), ("dp_ch1_elite", "herb", "灵植", 20, 1, 2, "凡品"),
     ("dp_ch1_boss", "eq_whole_1", "凡品整装", 60, 1, 1, "凡品"), ("dp_ch1_boss", "mat_1", "灵材", 40, 1, 2, "良品"),
-    ("dp_ch1_treasure", "herb", "草药", 50, 1, 3, "凡品"), ("dp_ch1_treasure", "mat_1", "灵材", 50, 1, 1, "良品"),
-    ("dp_ch2_normal", "herb", "草药", 50, 1, 3, "凡品"), ("dp_ch2_normal", "eq_frag_2", "良品装备碎片", 50, 1, 2, "良品"),
+    ("dp_ch1_treasure", "herb", "灵植", 50, 1, 3, "凡品"), ("dp_ch1_treasure", "mat_1", "灵材", 50, 1, 1, "良品"),
+    ("dp_ch2_normal", "herb", "灵植", 50, 1, 3, "凡品"), ("dp_ch2_normal", "eq_frag_2", "良品装备碎片", 50, 1, 2, "良品"),
     ("dp_ch2_elite", "eq_frag_2", "良品装备碎片", 40, 1, 2, "良品"), ("dp_ch2_elite", "eq_whole_1", "凡品整装", 40, 1, 1, "凡品"), ("dp_ch2_elite", "mat_1", "灵材", 20, 1, 1, "良品"),
     ("dp_ch2_boss", "eq_whole_1", "凡品整装", 50, 1, 1, "凡品"), ("dp_ch2_boss", "mat_1", "灵材", 50, 1, 2, "良品"),
-    ("dp_ch2_treasure", "mat_1", "灵材", 50, 1, 2, "良品"), ("dp_ch2_treasure", "herb", "草药", 50, 1, 3, "凡品"),
+    ("dp_ch2_treasure", "mat_1", "灵材", 50, 1, 2, "良品"), ("dp_ch2_treasure", "herb", "灵植", 50, 1, 3, "凡品"),
     ("dp_ch3_normal", "eq_frag_2", "良品装备碎片", 50, 1, 2, "良品"), ("dp_ch3_normal", "mat_1", "灵材", 50, 1, 1, "良品"),
     ("dp_ch3_elite", "eq_whole_1", "凡品整装", 40, 1, 1, "凡品"), ("dp_ch3_elite", "mat_1", "灵材", 40, 1, 2, "良品"), ("dp_ch3_elite", "eq_frag_2", "良品装备碎片", 20, 1, 2, "良品"),
     ("dp_ch3_boss", "eq_whole_1", "凡品整装", 50, 1, 1, "凡品"), ("dp_ch3_boss", "mat_1", "灵材", 50, 1, 3, "良品"),
-    ("dp_ch3_treasure", "mat_1", "灵材", 60, 1, 2, "良品"), ("dp_ch3_treasure", "herb", "草药", 40, 1, 3, "凡品"),
+    ("dp_ch3_treasure", "mat_1", "灵材", 60, 1, 2, "良品"), ("dp_ch3_treasure", "herb", "灵植", 40, 1, 3, "凡品"),
 ]
 with open(os.path.join(CFG, "drop_pool.csv"), "w", encoding="utf-8", newline="") as f:
     w = csv.writer(f)

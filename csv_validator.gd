@@ -27,7 +27,7 @@ const TREASURE_TYPES := ["攻击类", "防御类", "辅助类"]
 const SKILL_TYPES := ["攻击", "控制", "辅助防御", "通用", "普攻", "主动", "被动天赋"]
 const EQUIP_SLOTS := ["武器", "法袍", "头盔", "护腕", "腰带", "靴子", "饰品", "法宝"]
 const APPLY_CLASSES := ["通用", "体修", "道修", "法修"]
-const SET_CLASSES := ["全职业通用", "道修", "体修", "法修"]
+const SET_CLASSES := ["全道途通用", "道修", "体修", "法修"]
 
 # ---------- 各表校验规则 ----------
 const TABLE_RULES := {
@@ -114,7 +114,7 @@ const TABLE_RULES := {
             "grade": {"type": "enum", "values": VALID_GRADES},
             "sub_grade": {"type": "enum", "values": VALID_SUB_GRADES, "tip": "细分品级非法"},
             "equip_slot": {"type": "enum", "values": EQUIP_SLOTS, "tip": "装备部位非法"},
-            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用职业非法"},
+            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用道途非法"},
             "base_atk": {"type": "int", "min": 0, "tip": "攻击不能为负"},
             "base_def": {"type": "int", "min": 0, "tip": "防御不能为负"},
             "base_hp": {"type": "int", "min": 0, "tip": "气血不能为负"},
@@ -139,7 +139,7 @@ const TABLE_RULES := {
         "field_rules": {
             "grade": {"type": "enum", "values": VALID_GRADES},
             "sub_grade": {"type": "enum", "values": VALID_SUB_GRADES, "tip": "细分品级非法"},
-            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用职业非法"},
+            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用道途非法"},
             "skill_type": {"type": "enum", "values": SKILL_TYPES, "tip": "功法类型非法"},
             "effect_value": {"type": "percent", "max": 200.0, "tip": "功法效果超出合理上限"},
             "max_level": {"type": "int", "min": 1, "tip": "最高等级必须大于0"},
@@ -174,7 +174,7 @@ const TABLE_RULES := {
         "field_rules": {
             "grade": {"type": "enum", "values": VALID_GRADES},
             "sub_grade": {"type": "enum", "values": VALID_SUB_GRADES, "tip": "细分品级非法"},
-            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用职业非法"},
+            "apply_class": {"type": "enum", "values": APPLY_CLASSES, "tip": "适用道途非法"},
             "growth_value": {"type": "percent", "max": 200.0, "tip": "成长数值超出合理上限"},
             "max_level": {"type": "int", "min": 1, "tip": "最高等级必须大于0"},
             # ---- S1 预留：本命法宝战斗效果字段（默认关闭，不参与任何逻辑，仅配置预留）----
@@ -193,7 +193,7 @@ const TABLE_RULES := {
         "field_rules": {
             "grade": {"type": "enum", "values": VALID_GRADES},
             "sub_grade": {"type": "enum", "values": VALID_SUB_GRADES, "tip": "细分品级非法"},
-            "apply_class": {"type": "enum", "values": SET_CLASSES, "tip": "套装适用职业非法"},
+            "apply_class": {"type": "enum", "values": SET_CLASSES, "tip": "套装适用道途非法"},
             "set_2pc_value": {"type": "percent", "max": 200.0, "tip": "2件套效果数值非法"},
             "set_4pc_value": {"type": "percent", "max": 200.0, "tip": "4件套效果数值非法"}
         }
@@ -214,7 +214,7 @@ const TABLE_RULES := {
             "upgrade_lingstone": {"type": "int", "min": 0, "tip": "升级灵石不能为负"},
             "upgrade_material": {"type": "string", "tip": "升级材料格式异常"},
             "upgrade_days": {"type": "int", "min": 0, "tip": "升级天数不能为负"},
-            "max_cover": {"type": "int", "min": 1, "tip": "最大覆盖建筑数必须大于0"}
+            "max_cover": {"type": "int", "min": 1, "tip": "最大覆盖殿阁数必须大于0"}
         }
     },
     "defense_array_config": {
@@ -230,13 +230,13 @@ const TABLE_RULES := {
             "spy_reduce_rate": {"type": "float", "max": 1.0, "tip": "谍报削减率超出 100%"},
             "war_cost": {"type": "int", "min": 0, "tip": "战时消耗不能为负"},
             "war_damage_reduce_max": {"type": "float", "max": 1.0, "tip": "战时减伤上限超出 100%"},
-            "building_damage_reduce": {"type": "float", "max": 1.0, "tip": "建筑减伤超出 100%"},
+            "building_damage_reduce": {"type": "float", "max": 1.0, "tip": "殿阁减伤超出 100%"},
             "tribulation_resist_max": {"type": "float", "max": 1.0, "tip": "渡劫抗性上限超出 100%"},
             "tribulation_cost": {"type": "int", "min": 0, "tip": "渡劫消耗不能为负"},
             "upgrade_lingstone": {"type": "int", "min": 0, "tip": "升级灵石不能为负"},
             "upgrade_material": {"type": "string", "tip": "升级材料格式异常"},
             "upgrade_days": {"type": "int", "min": 0, "tip": "升级天数不能为负"},
-            "max_cover_buildings": {"type": "int", "min": 1, "tip": "最大覆盖建筑数必须大于0"}
+            "max_cover_buildings": {"type": "int", "min": 1, "tip": "最大覆盖殿阁数必须大于0"}
         }
     },
     "skill": {
@@ -245,7 +245,7 @@ const TABLE_RULES := {
         ],
         "primary_key": "skill_id",
         "field_rules": {
-            "profession": {"type": "enum", "values": ["体修", "道修", "法修", "通用"], "tip": "职业类型非法"},
+            "profession": {"type": "enum", "values": ["体修", "道修", "法修", "通用"], "tip": "道途类型非法"},
             "skill_type": {"type": "enum", "values": SKILL_TYPES, "tip": "技能类型非法（应为 攻击/控制/辅助防御/通用/普攻/主动/被动天赋）"},
             "damage_rate": {"type": "float", "min": 0, "max": 3.0, "tip": "技能倍率超出合理范围"},
             "cooldown": {"type": "int", "min": 0, "max": 10, "tip": "调息周期超出0-10范围"},
@@ -304,12 +304,12 @@ const TABLE_RULES := {
         "required_fields": ["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","active_point","daily_limit","is_auto_complete"],
         "primary_key": "quest_id",
         "field_rules": {
-            "quest_type": {"type": "enum", "values": ["经营","养成","探索","互动"], "tip": "日常任务类型非法"},
+            "quest_type": {"type": "enum", "values": ["经营","养成","探索","互动"], "tip": "日常差事类型非法"},
             "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法（应对四阶段成长节奏）"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "target_num": {"type": "int", "min": 1, "tip": "目标数量必须大于0"},
-            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
-            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石赏赐不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气赏赐不能为负"},
             "active_point": {"type": "int", "min": 0, "tip": "活跃度不能为负"},
             "daily_limit": {"type": "int", "min": 0, "tip": "每日次数不能为负"},
             "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
@@ -319,12 +319,12 @@ const TABLE_RULES := {
         "required_fields": ["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","reward_chest_id","weekly_active_point","weekly_limit","is_auto_complete"],
         "primary_key": "quest_id",
         "field_rules": {
-            "quest_type": {"type": "enum", "values": ["深度养成","高阶玩法","宗门经营"], "tip": "周常任务类型非法"},
+            "quest_type": {"type": "enum", "values": ["深度养成","高阶玩法","宗门经营"], "tip": "周常差事类型非法"},
             "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "target_num": {"type": "int", "min": 1, "tip": "目标数量必须大于0"},
-            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
-            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石赏赐不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气赏赐不能为负"},
             "weekly_active_point": {"type": "int", "min": 0, "tip": "周活跃度不能为负"},
             "weekly_limit": {"type": "int", "min": 0, "tip": "每周次数不能为负"},
             "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
@@ -334,14 +334,14 @@ const TABLE_RULES := {
         "required_fields": ["quest_id","quest_name","quest_type","trigger_type","trigger_prob","valid_time","unlock_sect_level","difficulty","reward_pool_id","reward_lingjing","reward_lingqi","quest_npc_id","is_auto_complete"],
         "primary_key": "quest_id",
         "field_rules": {
-            "quest_type": {"type": "enum", "values": ["访客委托","宗门琐事","奇遇机遇","紧急事件"], "tip": "随机任务类型非法"},
+            "quest_type": {"type": "enum", "values": ["访客委托","宗门琐事","奇遇机遇","紧急事件"], "tip": "随机差事类型非法"},
             "trigger_type": {"type": "enum", "values": ["登录","收取资源","历练归来","弟子突破","事件触发","随机"], "tip": "触发类型非法"},
             "trigger_prob": {"type": "float", "max": 1.0, "tip": "触发概率须≤1"},
             "valid_time": {"type": "int", "min": 0, "tip": "有效期不能为负"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法"},
-            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
-            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石赏赐不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气赏赐不能为负"},
             "is_auto_complete": {"type": "bool", "tip": "是否自动完成应为 true/false"}
         }
     },
@@ -349,7 +349,7 @@ const TABLE_RULES := {
         "required_fields": ["pool_id","item_id","item_name","item_grade","weight","drop_limit","daily_max","is_counted_in_balance"],
         "primary_key": "pool_id+item_id",
         "field_rules": {
-            "item_grade": {"type": "enum", "values": ["凡品下品","凡品中品","凡品上品","凡品极品","灵品下品","灵品中品","灵品上品","灵品极品","宝品下品","宝品中品","宝品上品","宝品极品","王品下品","王品中品","王品上品","王品极品","圣品下品","圣品中品","圣品上品","圣品极品","固定数值"], "tip": "道具品阶非法（应为 大品阶+细分品级 组合，对齐 7 品 4 级；灵石/气运等固定数值奖励填「固定数值」）"},
+            "item_grade": {"type": "enum", "values": ["凡品下品","凡品中品","凡品上品","凡品极品","灵品下品","灵品中品","灵品上品","灵品极品","宝品下品","宝品中品","宝品上品","宝品极品","王品下品","王品中品","王品上品","王品极品","圣品下品","圣品中品","圣品上品","圣品极品","固定数值"], "tip": "道具品阶非法（应为 大品阶+细分品级 组合，对齐 7 品 4 级；灵石/气运等固定数值赏赐填「固定数值」）"},
             "weight": {"type": "int", "min": 0, "tip": "权重不能为负"},
             "drop_limit": {"type": "int", "min": 0, "tip": "掉落上限不能为负"},
             "daily_max": {"type": "int", "min": 0, "tip": "每日上限不能为负"},
@@ -370,10 +370,10 @@ const TABLE_RULES := {
             "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false"}
         },
-        # 奖励倍率软告警（P0 拍板，实装在 validate_all.py 镜像）：
+        # 赏赐倍率软告警（P0 拍板，实装在 validate_all.py 镜像）：
         #   普通1x / 优秀2x / 稀有5x / 传说12x，基准 REWARD_BASE=200（灵石当量）。
         #   解析 opt*_reward 中 `资源key:数量` 数值，超对应品阶软上限即软告警（不阻断闸门）。
-        # D5④ 事件奖励落地：item: 跨表校验规则（仅注释；运行期由 pre_f5_check.py::check_event_reward_item_ref 执行）
+        # D5④ 事件赏赐落地：item: 跨表校验规则（仅注释；运行期由 pre_f5_check.py::check_event_reward_item_ref 执行）
         #   event_quest.opt*_reward 支持 `item:item_id:count` 语法（具名物品经 _按id造 造入背包，含 unlock_array 闭环）；
         #   item_id 必须存在于 config/array_items.csv（或 config/item_id_registry.csv），count 须为正整数（>0）。
         #   机缘类事件（event_type=奇遇机遇 / trigger_scene=机缘）走独立 roll 语义，豁免 check_event_weight_sum 的=100 加权约定。
@@ -443,7 +443,7 @@ const TABLE_RULES := {
         "required_fields": ["path_id","path_name","match_profession","work_area_weight","train_area_weight","public_area_weight","exclusive_behavior_id","skill_grow_bonus","special_buff"],
         "primary_key": "path_id",
         "field_rules": {
-            "match_profession": {"type": "enum", "values": ["体修","道修","法修","通用"], "tip": "职业非法"},
+            "match_profession": {"type": "enum", "values": ["体修","道修","法修","通用"], "tip": "道途非法"},
             "work_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
             "train_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
             "public_area_weight": {"type": "float", "min": 0, "max": 1, "tip": "片区权重须在[0,1]"},
@@ -469,9 +469,9 @@ const TABLE_RULES := {
             "trigger_prob": {"type": "float", "min": 0, "max": 1.0, "tip": "触发概率须∈[0,1]"},
             "relation_min": {"type": "int", "min": 0, "max": 100, "tip": "关系下限须在0-100"},
             "relation_max": {"type": "int", "min": 0, "max": 100, "tip": "关系上限须在0-100"},
-            "reward_type": {"type": "enum", "values": ["好感","灵石","道具","修为","道心"], "tip": "奖励类型非法"},
-            "reward_value_a": {"type": "int", "min": 0, "tip": "奖励数值不能为负"},
-            "reward_value_b": {"type": "int", "min": 0, "tip": "奖励数值不能为负"},
+            "reward_type": {"type": "enum", "values": ["好感","灵石","道具","修为","道心"], "tip": "赏赐类型非法"},
+            "reward_value_a": {"type": "int", "min": 0, "tip": "赏赐数值不能为负"},
+            "reward_value_b": {"type": "int", "min": 0, "tip": "赏赐数值不能为负"},
             "punish_type": {"type": "enum", "values": ["好感","灵石","忠诚","无"], "tip": "惩罚类型非法"},
             "punish_value": {"type": "int", "min": 0, "tip": "惩罚数值不能为负"},
             "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
@@ -532,14 +532,14 @@ const TABLE_RULES := {
         "required_fields": ["item_id","item_name","item_class","combine_group","combine_target_id","fragment_total","obtain_hint","unlock_event","related_volume","is_counted_in_balance"],
         "primary_key": "item_id",
         "field_rules": {
-            "item_class": {"type": "enum", "values": ["主线信物","任务碎片"], "tip": "剧情信物类别非法（信物=合成本体，碎片=合成组件）"},
+            "item_class": {"type": "enum", "values": ["主线信物","差事碎片"], "tip": "剧情信物类别非法（信物=合成本体，碎片=合成组件）"},
             "fragment_total": {"type": "int", "min": 0, "tip": "所需碎片数不能为负（仅信物本体有意义，碎片填0）"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false（剧情信物恒为 false）"}
         }
     },
     # ---------- 成就系统（v2.67 新增，对应 GDD §17 成就系统）----------
     # 本批次为 [PL] 框架：reward_id 仅做格式（string）校验，跨表存在性校验
-    # （ID 必须存在全局道具/称号/外观/功能库）留待奖励 ID 回填时启用（见 GDD §17.8 缺口清单）。
+    # （ID 必须存在全局道具/称号/外观/功能库）留待赏赐 ID 回填时启用（见 GDD §17.8 缺口清单）。
     "achievement_config": {
         "required_fields": ["achievement_id","ach_name","category","grade","condition_desc","condition_param","reward_type","reward_id","reward_num","point_num","unlock_tip"],
         "primary_key": "achievement_id",
@@ -547,11 +547,11 @@ const TABLE_RULES := {
             "category": {"type": "enum", "values": ["成长","经营","战斗","探索","社交"], "tip": "成就分类非法"},
             "grade": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "成就等级非法"},
             "point_num": {"type": "enum", "values": [10,30,100], "tip": "成就点数必须为10/30/100"},
-            "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "奖励类型非法"},
+            "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "赏赐类型非法"},
             # reward_num 原拟 int；实测 ach_grow_021 为 1.5（永久增益 fang_yu 倍率）。
             # 依据本仓库「CSV 为唯一真相源」原则（见文件头 B2/B3 裁决）改为 float，min 0。
             # 整数数量（如灵石 50000）与小数倍率（如 1.5）均合法。
-            "reward_num": {"type": "float", "min": 0, "tip": "奖励数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
+            "reward_num": {"type": "float", "min": 0, "tip": "赏赐数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
             "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数不能为负"},
             "reward_id": {"type": "string", "tip": "意图指向全局道具/称号/外观/功能ID；本批次[PL]不做跨表存在性校验，缺口见GDD §17.8"}
         }
@@ -585,7 +585,7 @@ const TABLE_RULES := {
             "dismantle_reward_id": {"type": "string", "tip": "拆解产出物品 item_id（阵图→item_015 阵纹碎片，比例随阵阶 [PLACEHOLDER]）"}
         }
     },
-    # ---------- 器堂赠宝梯度池（Task #28 P0，对应 器堂赠宝_优化GDD §1.1）----------
+    # ---------- 器殿赠宝梯度池（Task #28 P0，对应 器殿赠宝_优化GDD §1.1）----------
     # 本块仅做单列 schema 校验（同 array_items 仅单行规则）；外键（gen→fabao 等 / id→array_items.item_id）
     # 与 count_min<=count_max / level_min<=level_max 由调用方 validate_all.py 跨表层强制。
     # 主键含 count_min+count_max：Band 7 故意存在两行 item_015（灵阶炼器材料缺独立 item，暂代 item_015，
@@ -595,7 +595,7 @@ const TABLE_RULES := {
         "primary_key": "level_min+level_max+pool_type+item_ref+count_min+count_max",
         "field_rules": {
             "level_min": {"type": "int", "min": 1, "tip": "等级区间下界须≥1"},
-            "level_max": {"type": "int", "min": 1, "tip": "等级区间上界须≥level_min（引擎按区间筛器堂等级）"},
+            "level_max": {"type": "int", "min": 1, "tip": "等级区间上界须≥level_min（引擎按区间筛器殿等级）"},
             "pool_type": {"type": "enum", "values": ["common","rare"], "tip": "池类型非法（common 普通/rare 稀有，触发后 90%/10% 二选一）"},
             "ref_type": {"type": "enum", "values": ["gen","id"], "tip": "引擎解析方式非法（gen→_造低阶物品 / id→_按id造）"},
             "grade": {"type": "string", "tip": "品阶（宽松字符串；gen 行用品阶 vocab 凡阶…，id 行引擎忽略改读 array_items 真值）"},
@@ -660,20 +660,20 @@ const TABLE_RULES := {
 # 注：GDD §11.24.6.2 原文「各品阶概率之和=100%」已据 CSV 实际结构（按道具权重）修正为
 #     「同 drop_id 池内 drop_weight 之和=100」，以匹配 drop_common.csv 与 §11.24.8.4 校验说明。
 
-# ---------- 任务系统关系校验（v2.60 新增，对应 GDD §11.25）----------
+# ---------- 差事系统关系校验（v2.60 新增，对应 GDD §11.25）----------
 # TABLE_RULES 已含 quest_daily/quest_weekly/quest_random/quest_reward_pool 四表。
 # 跨表关系校验实现于调用方（validate_all.py 镜像），分层如下：
 #   1. check_reward_pool_weight_sum（已落地）：同 pool_id 池内 weight 之和必须 = 100。
-#   2. balance_check（暂缓）：单阶段任务日均产出不得超过全局日均产出的 10%；
-#      需汇总 quest_* 奖励 vs output_daily 按 stage 计算，待奖励明细充实后实现（同 §11.24 口径）。
+#   2. balance_check（暂缓）：单阶段差事日均产出不得超过全局日均产出的 10%；
+#      需汇总 quest_* 赏赐 vs output_daily 按 stage 计算，待赏赐明细充实后实现（同 §11.24 口径）。
 # 注：GDD §11.25.8.2 原稿 13.8.2 误将 4 张表写成单一 "quest" 表并内嵌 reward_check/balance_check dict，
 #     已按 4 表结构 + 权重和关系校验重写，避免入库即报错。
 
 # ---------- 剧情信物合成校验（v2.66 新增，对应 GDD §16.2.4）----------
-# TABLE_RULES 新增 quest_item 表（剧情主线信物 / 合成碎片，独立于 §11.25 任务四表）。
+# TABLE_RULES 新增 quest_item 表（剧情主线信物 / 合成碎片，独立于 §11.25 差事四表）。
 # 跨表关系校验（合成完整性）实现于调用方（validate_all.py 镜像）：
-#   1. check_quest_item_combine：同 combine_group 内「任务碎片」行数 必须 == 对应「主线信物」行的 fragment_total；
+#   1. check_quest_item_combine：同 combine_group 内「差事碎片」行数 必须 == 对应「主线信物」行的 fragment_total；
 #      碎片数不符即报错（防数据层漏配 / 多配碎片）。
-#   2. check_quest_item_target：每枚「任务碎片」的 combine_target_id 必须指向存在的「主线信物」行，
+#   2. check_quest_item_target：每枚「差事碎片」的 combine_target_id 必须指向存在的「主线信物」行，
 #      否则报错（防悬空合成目标）。
 # 注：quest_item 不参与经济平衡（is_counted_in_balance 恒 false），不计入 §11.24 产出 / 消耗闭环。

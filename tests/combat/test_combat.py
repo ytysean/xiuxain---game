@@ -3,7 +3,7 @@
 #
 # 覆盖：
 #  · 五行 5 关系 × 4 纯度档 乘率（AC2）
-#  · 职业克制闭环（AC3 / D2）
+#  · 道途克制闭环（AC3 / D2）
 #  · 4 类边界（AC7）：伤害下限=1 / 攻击=0 不出负伤 / 暴击·闪避封顶 / 浮动∈[0.9,1.1] / 速算vs完整偏差≤10%
 #  · 五行边界 max1.25 / min0.82
 # 运行：python tests/combat/test_combat.py  →  全部断言必须 100% 通过
@@ -79,18 +79,18 @@ def test_wuxing_bounds():
     check("所有组合 ∈ [0.33, 1.25]（多灵根可低至0.33）", ok_all)
 
 
-# ============ 3. 职业克制闭环（AC3 / D2）============
+# ============ 3. 道途克制闭环（AC3 / D2）============
 def test_profession_loop():
-    print("== 职业克制闭环 道修→法修→体修→道修 ==")
+    print("== 道途克制闭环 道修→法修→体修→道修 ==")
     check("道修克法修 ×1.20", M.profession_multiplier("道修", "法修") == 1.20)
     check("法修克体修 ×1.20", M.profession_multiplier("法修", "体修") == 1.20)
     check("体修克道修 ×1.20", M.profession_multiplier("体修", "道修") == 1.20)
     check("法修被道修克 ×0.85", M.profession_multiplier("法修", "道修") == 0.85)
     check("体修被法修克 ×0.85", M.profession_multiplier("体修", "法修") == 0.85)
     check("道修被体修克 ×0.85", M.profession_multiplier("道修", "体修") == 0.85)
-    check("同职业中性 ×1.0", M.profession_multiplier("道修", "道修") == 1.0)
-    check("空职业中性 ×1.0", M.profession_multiplier("", "") == 1.0)
-    check("未知职业(御兽师)中性 ×1.0", M.profession_multiplier("道修", "御兽师") == 1.0)
+    check("同道途中性 ×1.0", M.profession_multiplier("道修", "道修") == 1.0)
+    check("空道途中性 ×1.0", M.profession_multiplier("", "") == 1.0)
+    check("未知道途(御兽师)中性 ×1.0", M.profession_multiplier("道修", "御兽师") == 1.0)
 
 
 # ============ 4. 边界红线（AC7）============
@@ -158,8 +158,8 @@ def test_quick_vs_full():
 
 # ============ 6. 强制结构化战斗日志契约（D7 / AC8）============
 # 每回合日志条目须含：行动单位/目标/伤害值/是否暴击/是否克制/双方剩余血量。
-# 注：BattleCalculator 的 is_restrain 标记 = 职业克制（D2 闭环）；
-#     选 体修(金) 攻 道修(木) → 体修克道修(职业) 且 金克木(五行) 同时成立。
+# 注：BattleCalculator 的 is_restrain 标记 = 道途克制（D2 闭环）；
+#     选 体修(金) 攻 道修(木) → 体修克道修(道途) 且 金克木(五行) 同时成立。
 def test_structured_log_schema():
     print("== 强制结构化战斗日志契约 D7 ==")
     atk = M.make_unit(150, 60, 250, 40, "体修", "金", "单", 名称="攻方")
@@ -180,7 +180,7 @@ def test_structured_log_schema():
             ok_bool = False
     check("每条日志含 8 个结构化字段", ok_schema)
     check("is_crit / is_restrain 为布尔", ok_bool)
-    # 职业克制可验证：体修 攻 道修 → 体修克道修 → 日志应出现 is_restrain=true
+    # 道途克制可验证：体修 攻 道修 → 体修克道修 → 日志应出现 is_restrain=true
     any_restrain = any(e.get("is_restrain") for e in log)
     check("体修克道修 至少一次触发克制标记", any_restrain)
 
@@ -311,8 +311,8 @@ def test_灵兽行动日志():
 def test_enhanced_buff_skill():
     print("== 增强版 Buff/技能 生命周期（S1 批3）==")
 
-    def 带技能(技能列表, 名称, 职业="体修", 灵根主="金", 纯度="单"):
-        u = M.make_unit(150, 60, 250, 40, 职业, 灵根主, 纯度, 名称=名称, 闪避=0.0, 暴击=0.0)
+    def 带技能(技能列表, 名称, 道途="体修", 灵根主="金", 纯度="单"):
+        u = M.make_unit(150, 60, 250, 40, 道途, 灵根主, 纯度, 名称=名称, 闪避=0.0, 暴击=0.0)
         u["技能"] = 技能列表
         return u
 

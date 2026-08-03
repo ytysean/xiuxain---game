@@ -82,7 +82,7 @@ game_core_ip: 太玄宗
 
 | 项 | 约定 |
 | --- | --- |
-| 资源路径 | `res://assets/ui/intro/{node_id}.png` 等，与 `node_id` 绑定 |
+| 资源路径 | `res://art/_references/ui/intro/{node_id}.png` 等，与 `node_id` 绑定 |
 | 缺失回退 | 资源不存在→自动加载灰模占位（`_placeholder_{node_id}`），不抛错 |
 | 比例保护 | 加载时按 `ASSET_RATIO` 等比缩放 + 居中裁切，禁止拉伸变形 |
 | 动效令牌 | 真实动画须引用 §15.5 / §15.4 令牌，禁自定义；受降级开关约束 |

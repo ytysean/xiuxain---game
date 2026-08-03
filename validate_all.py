@@ -83,7 +83,7 @@ TABLE_RULES = {
         "primary_key":"set_id",
         "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
-            "apply_class":{"type":"enum","values":["全职业通用","道修","体修","法修"]},
+            "apply_class":{"type":"enum","values":["全道途通用","道修","体修","法修"]},
             "set_2pc_value":{"type":"percent","max":200.0},"set_4pc_value":{"type":"percent","max":200.0}}},
     "spirit_array_config": {"required_fields":["array_id","array_name","grade","sub_grade","level","unlock_sect_level","cultivate_bonus","herb_grow_bonus","pill_success_bonus","forge_success_bonus","daily_cost","upgrade_lingstone","upgrade_material","upgrade_days","max_cover"],
         "primary_key":"array_id",
@@ -234,7 +234,7 @@ TABLE_RULES = {
         "field_rules":{"faction_id":{"type":"enum","values":["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi","fz_yuan","neutral"]}}},
     "quest_item": {"required_fields":["item_id","item_name","item_class","combine_group","combine_target_id","fragment_total","obtain_hint","unlock_event","related_volume","is_counted_in_balance"],
         "primary_key":"item_id",
-        "field_rules":{"item_class":{"type":"enum","values":["主线信物","任务碎片"]},
+        "field_rules":{"item_class":{"type":"enum","values":["主线信物","差事碎片"]},
             "fragment_total":{"type":"int","min":0},"is_counted_in_balance":{"type":"bool"}}},
     "achievement_config": {"required_fields":["achievement_id","ach_name","category","grade","condition_desc","condition_param","reward_type","reward_id","reward_num","point_num","unlock_tip"],
         "primary_key":"achievement_id",
@@ -359,15 +359,15 @@ def validate_field(val, rule):
     if "max" in rule and v > rule["max"]: return "高于上限%g"%rule["max"]
     return None
 
-# ---------------- TASK0 职业重命名门控（R5 代码重命名前置）----------------
-# 已定义职业枚举（含 csv_validator.gd 的 APPLY_CLASSES 通用 用于 item apply-class）
+# ---------------- TASK0 道途重命名门控（R5 代码重命名前置）----------------
+# 已定义道途枚举（含 csv_validator.gd 的 APPLY_CLASSES 通用 用于 item apply-class）
 PROF_ALLOWED = {"道修","体修","法修","御兽师","符箓师","毒师","傀儡师","通用"}
-# 旧职业名，Sprint-03 前须从 .gd/.csv 清零（剑修后置为后续新增职业，不复用旧槽位）
+# 旧道途名，Sprint-03 前须从 .gd/.csv 清零（剑修后置为后续新增道途，不复用旧槽位）
 PROF_ORPHAN_TOKEN = "剑修"
 
 def validate_profession_renamed():
-    """扫描根目录 *.gd 与 config/*.csv，旧职业名「剑修」必须清零。
-    出现「剑修」即报孤儿字段（职业枚举已迁移为「道修」）。"""
+    """扫描根目录 *.gd 与 config/*.csv，旧道途名「剑修」必须清零。
+    出现「剑修」即报孤儿字段（道途枚举已迁移为「道修」）。"""
     bad = []
     gd_files = sorted(glob.glob(os.path.join(SCRIPT_DIR, "*.gd")))
     for p in gd_files:
@@ -376,7 +376,7 @@ def validate_profession_renamed():
                 for i, line in enumerate(f, 1):
                     if PROF_ORPHAN_TOKEN in line and "@LEGACY-MIGRATION" not in line:
                         bad.append((os.path.basename(p), "profession-rename", i,
-                                    "残留旧职业名「剑修」(应为「道修」): %r" % line.strip()[:60]))
+                                    "残留旧道途名「剑修」(应为「道修」): %r" % line.strip()[:60]))
         except Exception:
             pass
     csv_files = sorted(glob.glob(os.path.join(CONFIG_DIR, "*.csv")))
@@ -388,7 +388,7 @@ def validate_profession_renamed():
                 for i, line in enumerate(f, 1):
                     if PROF_ORPHAN_TOKEN in line and "@LEGACY-MIGRATION" not in line:
                         bad.append((os.path.basename(p), "profession-rename", i,
-                                    "残留旧职业名「剑修」(应为「道修」): %r" % line.strip()[:60]))
+                                    "残留旧道途名「剑修」(应为「道修」): %r" % line.strip()[:60]))
         except Exception:
             pass
     return bad
@@ -509,7 +509,7 @@ def main():
         if rc.get("传说", 0) > 10:
             errors.append(("event_quest.csv","event_quest",0,"传说档=%d 条，超过 P0 硬上限 10 条（占比%.1f%%），S0 不得新增超标传说奇遇" % (rc["传说"], rc["传说"]*100.0/max(total,1))))
 
-        # 4b. 单条奖励倍率软告警（P0 拍板）：普通1x / 优秀2x / 稀有5x / 传说12x。
+        # 4b. 单条赏赐倍率软告警（P0 拍板）：普通1x / 优秀2x / 稀有5x / 传说12x。
         #     解析 opt*_reward 中 `资源key:数量` 的数值当量，超对应品阶软上限即软告警（不阻断闸门）。
         REWARD_BASE = 200  # 普通 1x 基准（灵石当量）
         RARITY_MULT = {"普通": 1, "优秀": 2, "稀有": 5, "传说": 12}
@@ -535,12 +535,12 @@ def main():
                             except ValueError:
                                 pass
                 if parsed and tot > cap:
-                    warns.append("event_quest.csv: event_id=%s %s 数值当量=%d 超%s档软上限%d（%.1fx），请复核是否奖励过高" % (r.get("event_id", ""), opt, tot, rt, cap, tot / float(REWARD_BASE)))
-        report.append("- [OK] event_quest: 单条奖励倍率软告警扫描完成（基准%d，超倍率即告警不阻断）" % REWARD_BASE)
+                    warns.append("event_quest.csv: event_id=%s %s 数值当量=%d 超%s档软上限%d（%.1fx），请复核是否赏赐过高" % (r.get("event_id", ""), opt, tot, rt, cap, tot / float(REWARD_BASE)))
+        report.append("- [OK] event_quest: 单条赏赐倍率软告警扫描完成（基准%d，超倍率即告警不阻断）" % REWARD_BASE)
 
-    # ---------- 战斗关卡系统跨表校验（Day1 新增 stage_main / monster_main / drop_pool）----------
+    # ---------- 战斗秘境系统跨表校验（Day1 新增 stage_main / monster_main / drop_pool）----------
     report.append("")
-    report.append("# 战斗关卡跨表校验（stage_main / monster_main / drop_pool）")
+    report.append("# 战斗秘境跨表校验（stage_main / monster_main / drop_pool）")
     _stg = rows_of("stage_main")
     _mon = rows_of("monster_main")
     _dp = rows_of("drop_pool")
@@ -582,13 +582,13 @@ def main():
             mx = int(get_first_num(r["max_count"]) or 0)
             if mn > mx:
                 errors.append(("drop_pool.csv", "drop_pool", 0, "pool_id=%s item_id=%s min_count>max_count" % (r["pool_id"], r["item_id"])))
-        report.append("- [CHECK] 战斗关卡跨表校验完成（怪物引用/掉落池/前置关卡/掉落物存在性/min-max）")
+        report.append("- [CHECK] 战斗秘境跨表校验完成（怪物引用/掉落池/前置秘境/掉落物存在性/min-max）")
     else:
         report.append("- [SKIP] stage_main/monster_main/drop_pool 未全部加载，跳过跨表校验")
 
-    # ---------- 器堂赠宝配置跨表校验（craft_hall_reward）----------
+    # ---------- 器殿赠宝配置跨表校验（craft_hall_reward）----------
     report.append("")
-    report.append("# 器堂赠宝配置跨表校验（craft_hall_reward）")
+    report.append("# 器殿赠宝配置跨表校验（craft_hall_reward）")
     _chr = rows_of("craft_hall_reward")
     if _chr:
         _array_loaded = "array_items" in tables_loaded
@@ -667,7 +667,7 @@ def main():
         frags = defaultdict(int)
         frag_target = {}
         for r in d:
-            if r["item_class"]=="任务碎片":
+            if r["item_class"]=="差事碎片":
                 frags[r["combine_group"]] += 1
                 frag_target[r["combine_group"]] = r["combine_target_id"]
         for grp, cnt in frags.items():
@@ -680,18 +680,18 @@ def main():
                     errors.append(("quest_item.csv","quest_item",0,"combine_group=%s 碎片数=%d≠主线信物fragment_total=%d"%(grp,cnt,exp)))
         report.append("- [CHECK] quest_item: 合成完整性校验完成")
 
-    # ---------- TASK0 职业重命名门控 ----------
+    # ---------- TASK0 道途重命名门控 ----------
     report.append("")
-    report.append("# 职业重命名门控（剑修→道修）")
+    report.append("# 道途重命名门控（剑修→道修）")
     prof_bad = validate_profession_renamed()
     for e in prof_bad:
         errors.append(e)
     if prof_bad:
-        report.append("- [FAIL] 检测到 %d 处残留「剑修」（职业枚举须全部为「道修」）" % len(prof_bad))
+        report.append("- [FAIL] 检测到 %d 处残留「剑修」（道途枚举须全部为「道修」）" % len(prof_bad))
         for f,k,r,msg in prof_bad:
             report.append("  - [%s/%s 行%d] %s" % (f,k,r,msg))
     else:
-        report.append("- [OK] 根目录 .gd 与 config/*.csv 中无残留「剑修」，职业枚举已统一为「道修」")
+        report.append("- [OK] 根目录 .gd 与 config/*.csv 中无残留「剑修」，道途枚举已统一为「道修」")
 
     # ---------- 命格效果参数格式校验 ----------
     if "destiny_main" in tables_loaded:

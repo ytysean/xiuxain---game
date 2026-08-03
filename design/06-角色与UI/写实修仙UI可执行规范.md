@@ -46,7 +46,7 @@ game_core_ip: 太玄宗
 ### 1.1 背景图规格
 | 项 | 值 |
 | --- | --- |
-| 资源 | `res://assets/ai_art/2026-07-22/仙山宗门远景_云雾半透明_古建木石_青黛色调_低饱和度_水墨_2026-07-22T15-19-56.png` |
+| 资源 | `res://art/_references/ai_art/2026-07-22/仙山宗门远景_云雾半透明_古建木石_青黛色调_低饱和度_水墨_2026-07-22T15-19-56.png` |
 | 真实尺寸 / 模式 | **1216×832，RGB（不透明，无 alpha）** |
 | 节点 | `TextureRect`，`mouse_filter = IGNORE`，`set_stretch_mode(STRETCH_KEEP_ASPECT_COVERED)`，`PRESET_FULL_RECT` |
 | 竖屏适配 | 屏 480×854（竖，比例 0.563） vs 图 1216×832（横，比例 1.46）；`COVERED` 会左右裁切取中景（云海+远山居中，符合「远景不抢信息」） |

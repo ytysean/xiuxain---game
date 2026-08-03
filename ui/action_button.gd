@@ -37,10 +37,13 @@ func _build() -> void:
 	_icon.name = "Icon"
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_icon.expand_mode = TextureRect.EXPAND_KEEP_SIZE
 	# 大按钮图标降到 32px、小按钮 20px；统一走 load_icon_sized 光栅化固定尺寸，
 	# 避免原始 SVG 尺寸过大撑爆按钮（§2.4 / §3.1）。
 	var isz: int = 32 if big else 20
 	_icon.custom_minimum_size = Vector2(isz, isz)
+	_icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var tex: Texture2D = UITheme.load_icon_sized(action_id, isz)
 	if tex != null:
 		_icon.texture = tex

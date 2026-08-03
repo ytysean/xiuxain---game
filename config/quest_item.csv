@@ -1,4 +1,4 @@
 item_id,item_name,item_class,combine_group,combine_target_id,fragment_total,obtain_hint,unlock_event,related_volume,is_counted_in_balance
 q_xuanji,玄极令,主线信物,grp_xuanji,,2,由左/右残片于卷二玄灵秘境三层核心石台合成,ml_xuanji_united,vol2,false
-q_xuanji_frag_l,玄极令·残片（左）,任务碎片,grp_xuanji,q_xuanji,0,开局·苏清禾托付（老掌门遗物）,,vol1,false
-q_xuanji_frag_r,玄极令·残片（右）,任务碎片,grp_xuanji,q_xuanji,0,卷二·玄灵秘境三层·击败玄灵守将获取,,vol2,false
+q_xuanji_frag_l,玄极令·残片（左）,差事碎片,grp_xuanji,q_xuanji,0,开局·苏清禾托付（老掌门遗物）,,vol1,false
+q_xuanji_frag_r,玄极令·残片（右）,差事碎片,grp_xuanji,q_xuanji,0,卷二·玄灵秘境三层·击败玄灵守将获取,,vol2,false

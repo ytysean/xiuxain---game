@@ -1,6 +1,13 @@
-[gd_scene format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://ui/sect_home_page.gd" id="1_sh"]
+[ext_resource type="Texture2D" path="res://art/backgrounds/home_bg_sect_a.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/grid_jz.png" id="3_jz"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/grid_dz.png" id="4_dz"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/grid_zc.png" id="5_zc"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingzhi.png" id="6_lz"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/nav_ll_normal.png" id="7_ll"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/nav_js_normal.png" id="8_js"]
 
 [node name="SectHomePage" type="Control"]
 layout_mode = 1
@@ -8,3 +15,410 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_sh")
+
+[node name="BG" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 480.0
+offset_bottom = 854.0
+mouse_filter = 2
+z_index = -100
+stretch_mode = 6
+texture = ExtResource("2_bg")
+
+[node name="LogoLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 0.0
+offset_right = 216.0
+offset_bottom = 28.0
+text = "太玄宗门录"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="HeroBlock" type="Control" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 40.0
+offset_right = 456.0
+offset_bottom = 320.0
+mouse_filter = 2
+z_index = 5
+
+[node name="BG" type="Panel" parent="HeroBlock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 8.0
+offset_right = 432.0
+offset_bottom = 36.0
+text = "宗门进境"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Divider" type="ColorRect" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 40.0
+offset_right = 420.0
+offset_bottom = 41.0
+mouse_filter = 2
+
+[node name="Label_宗门等级" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 52.0
+offset_right = 200.0
+offset_bottom = 80.0
+text = "宗门等级"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_宗门等级" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 232.0
+offset_top = 52.0
+offset_right = 416.0
+offset_bottom = 80.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Label_繁荣度" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 96.0
+offset_right = 200.0
+offset_bottom = 124.0
+text = "繁荣度"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_繁荣度_Hero" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 232.0
+offset_top = 96.0
+offset_right = 416.0
+offset_bottom = 124.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Label_收益速率" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 140.0
+offset_right = 200.0
+offset_bottom = 168.0
+text = "收益速率"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_收益速率" type="Label" parent="HeroBlock"]
+layout_mode = 0
+offset_left = 232.0
+offset_top = 140.0
+offset_right = 416.0
+offset_bottom = 168.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="EntryGrid" type="GridContainer" parent="."]
+layout_mode = 0
+columns = 3
+offset_left = 24.0
+offset_top = 332.0
+offset_right = 456.0
+offset_bottom = 632.0
+mouse_filter = 2
+z_index = 5
+add_theme_constant_override("h_separation", 12)
+add_theme_constant_override("v_separation", 18)
+
+[node name="Entry_殿阁" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("3_jz")
+
+[node name="Label_殿阁" type="Label" parent="EntryGrid/Entry_殿阁"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "殿阁"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Entry_弟子" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("4_dz")
+
+[node name="Label_弟子" type="Label" parent="EntryGrid/Entry_弟子"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "弟子"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Entry_灵植" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("6_lz")
+
+[node name="Label_灵植" type="Label" parent="EntryGrid/Entry_灵植"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "灵植"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Entry_秘境" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("7_ll")
+
+[node name="Label_秘境" type="Label" parent="EntryGrid/Entry_秘境"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "秘境"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Entry_库藏" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("5_zc")
+
+[node name="Label_库藏" type="Label" parent="EntryGrid/Entry_库藏"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "库藏"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Entry_纪事" type="TextureButton" parent="EntryGrid"]
+layout_mode = 2
+custom_minimum_size = Vector2(132, 128)
+ignore_texture_size = true
+stretch_mode = 0
+texture_normal = ExtResource("8_js")
+
+[node name="Label_纪事" type="Label" parent="EntryGrid/Entry_纪事"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 132.0
+offset_bottom = 128.0
+text = "纪事"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="DynamicsPanel" type="Control" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 640.0
+offset_right = 232.0
+offset_bottom = 730.0
+mouse_filter = 2
+z_index = 5
+
+[node name="BG" type="Panel" parent="DynamicsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 4.0
+offset_right = 216.0
+offset_bottom = 24.0
+text = "宗门动态"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Divider" type="ColorRect" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 28.0
+offset_right = 208.0
+offset_bottom = 29.0
+mouse_filter = 2
+
+[node name="Label_弟子数量" type="Label" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 32.0
+offset_right = 110.0
+offset_bottom = 52.0
+text = "弟子数量"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_弟子数量" type="Label" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 32.0
+offset_right = 206.0
+offset_bottom = 52.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Label_声望" type="Label" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 56.0
+offset_right = 110.0
+offset_bottom = 76.0
+text = "声望"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_声望" type="Label" parent="DynamicsPanel"]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 56.0
+offset_right = 206.0
+offset_bottom = 76.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Panel_历练事件" type="Control" parent="."]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 640.0
+offset_right = 464.0
+offset_bottom = 730.0
+mouse_filter = 2
+z_index = 5
+
+[node name="BG" type="Panel" parent="Panel_历练事件"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 4.0
+offset_right = 224.0
+offset_bottom = 24.0
+text = "历练事件"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Divider" type="ColorRect" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 28.0
+offset_right = 216.0
+offset_bottom = 29.0
+mouse_filter = 2
+
+[node name="Label_秘境" type="Label" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 32.0
+offset_right = 108.0
+offset_bottom = 52.0
+text = "秘境"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_秘境" type="Label" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 112.0
+offset_top = 32.0
+offset_right = 216.0
+offset_bottom = 52.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Label_赏赐" type="Label" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 56.0
+offset_right = 108.0
+offset_bottom = 76.0
+text = "赏赐"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_赏赐" type="Label" parent="Panel_历练事件"]
+layout_mode = 0
+offset_left = 112.0
+offset_top = 56.0
+offset_right = 216.0
+offset_bottom = 76.0
+text = "—"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2

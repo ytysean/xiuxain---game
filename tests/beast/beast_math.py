@@ -18,8 +18,8 @@
     "fan_jie": 10, "ling_jie": 20, "bao_jie": 30, "wang_jie": 40,
     "sheng_jie": 50, "xian_jie": 60, "dao_jie": 80,
 }   # T13：等级上限按品阶锁死
-# 类型 → 适配职业（attack→道修/法修；defense→体修；support→御兽师/符箓师/毒师/傀儡师）
-类型适配职业 = {
+# 类型 → 适配道途（attack→道修/法修；defense→体修；support→御兽师/符箓师/毒师/傀儡师）
+类型适配道途 = {
     "attack": ["道修", "法修"],
     "defense": ["体修"],
     "support": ["御兽师", "符箓师", "毒师", "傀儡师"],
@@ -92,11 +92,11 @@ def 本体战力(品阶key: str, beast_type: str, 神兽血脉: bool, 等级: in
 
 
 def calc_beast_bonus(beast_type: str, 天赋类型: str, 天赋关联: str,
-                     弟子职业: str, 弟子灵根: str, 忠诚度: int = 50) -> float:
-    """镜像 disciple.gd::calc_beast_bonus()：职业类型+20% + 灵根属性+8% + T14忠诚(忠诚/100)×8%，上限36%"""
+                     弟子道途: str, 弟子灵根: str, 忠诚度: int = 50) -> float:
+    """镜像 disciple.gd::calc_beast_bonus()：道途类型+20% + 灵根属性+8% + T14忠诚(忠诚/100)×8%，上限36%"""
     加成 = 0.0
-    if 弟子职业 != "" and beast_type in 类型适配职业:
-        if 弟子职业 in 类型适配职业[beast_type]:
+    if 弟子道途 != "" and beast_type in 类型适配道途:
+        if 弟子道途 in 类型适配道途[beast_type]:
             加成 += 0.20
     if 天赋类型 == "灵根" and 天赋关联 == 弟子灵根:
         加成 += 0.08
@@ -115,14 +115,14 @@ def 战力贡献(本体: int, is_main: bool, is_deputy: bool) -> int:
     return int(float(本体) * 战力比例 * 比例)
 
 
-def 灵兽契约战力(pets: list, 弟子职业: str, 弟子灵根: str) -> int:
+def 灵兽契约战力(pets: list, 弟子道途: str, 弟子灵根: str) -> int:
     """镜像 disciple.gd::灵兽契约战力()：逐槽 [本体×(1+适配加成)] 后走战力贡献汇总"""
     总和 = 0
     for p in pets:
         if p is None or p["孵化中"]:
             continue
         本体 = 本体战力(p["品阶key"], p["beast_type"], p["神兽血脉"], p.get("等级", 1), p.get("等级上限"))
-        加成 = calc_beast_bonus(p["beast_type"], p["天赋类型"], p["天赋关联"], 弟子职业, 弟子灵根, p.get("忠诚度", 50))
+        加成 = calc_beast_bonus(p["beast_type"], p["天赋类型"], p["天赋关联"], 弟子道途, 弟子灵根, p.get("忠诚度", 50))
         加成后 = int(float(本体) * (1.0 + 加成))
         总和 += 战力贡献(加成后, p["is_main"], p["is_deputy"])
     return 总和
@@ -138,7 +138,7 @@ def 本体属性(品阶key: str, beast_type: str, 神兽血脉: bool, 等级: in
     return r
 
 
-def 灵兽属性加成(pets: list, 弟子职业: str, 弟子灵根: str) -> dict:
+def 灵兽属性加成(pets: list, 弟子道途: str, 弟子灵根: str) -> dict:
     """镜像 disciple.gd::灵兽属性加成()：本体属性 × 战力比例帽(0.30) × 槽位比例(主1.0/副0.3) × 适配加成(1+bonus)，加法汇总四维"""
     聚合 = {"攻": 0, "防": 0, "血": 0, "速": 0}
     for p in pets:
@@ -147,7 +147,7 @@ def 灵兽属性加成(pets: list, 弟子职业: str, 弟子灵根: str) -> dict
         if not p["is_main"] and not p["is_deputy"]:
             continue
         槽位比例 = 1.0 if p["is_main"] else 0.3
-        加成 = calc_beast_bonus(p["beast_type"], p["天赋类型"], p["天赋关联"], 弟子职业, 弟子灵根, p.get("忠诚度", 50))
+        加成 = calc_beast_bonus(p["beast_type"], p["天赋类型"], p["天赋关联"], 弟子道途, 弟子灵根, p.get("忠诚度", 50))
         系数 = 战力比例 * 槽位比例 * (1.0 + 加成)
         本体 = 本体属性(p["品阶key"], p["beast_type"], p["神兽血脉"], p.get("等级", 1), p.get("等级上限"))
         for _st in ["攻", "防", "血", "速"]:

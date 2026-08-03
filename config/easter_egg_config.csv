@@ -1,5 +1,5 @@
 egg_id,type,trigger_param,name,text,reward,reward_num,buff_dim,buff_pct,duration,enabled
-egg_click_dantang,click,丹堂,丹炉异响,你连点数下丹炉，炉火噗地窜高半尺，惊得丹童跳脚。,none,0,无,0,日,true
+egg_click_dantang,click,丹殿,丹炉异响,你连点数下丹炉，炉火噗地窜高半尺，惊得丹童跳脚。,none,0,无,0,日,true
 egg_click_yushou,click,灵兽峰,兽栏探头,灵兽峰兽栏里探出一只毛团，滴溜溜瞅了你一眼又缩了回去。,lingshi,10,无,0,日,true
 egg_click_lingtian,click,灵田,灵苗轻晃,你轻触灵田，灵苗簌簌晃动，惊飞一只灵虫，当日宗门产出微增。,none,0,产出,2,日,true
 egg_click_shanmen,click,山门,山门旧事,山门牌匾古朴，落款依稀是初代掌教手书；宗门立基至今，已历数载风雨。,none,0,无,0,日,true

@@ -1,7 +1,7 @@
 extends Control
 
 # 历练页（§5 · 玩法探索）：只读展示 历练派发面板 + 日常(≤3) + 周常(1) 卡。
-# 奖励按 任务奖励系数() 缩放。Lv.3 / FTUE 灰锁：锁定时不隐藏卡片，仅置灰所有 领取 按钮（disabled + 🔒 + tooltip）。
+# 赏赐按 差事赏赐系数() 缩放。Lv.3 / FTUE 灰锁：锁定时不隐藏卡片，仅置灰所有 领取 按钮（disabled + 🔒 + tooltip）。
 # 零 GameState 写入；领取按钮仅 emit 占位信号。读数经 is_instance_valid(Game) + .get() 守卫。
 
 signal 领取日常请求(序号: int)
@@ -75,7 +75,7 @@ func _build_lock_bar(parent: Control) -> void:
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	_lock_bar.add_child(hb)
 	var lbl := Label.new()
-	lbl.text = "🔒 宗门 Lv.3 或完成引导后开启历练"
+	lbl.text = "🔒 宗门 Lv.3 或完成入门指引后开启历练"
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_aux_font(lbl)
 	hb.add_child(lbl)
@@ -131,17 +131,17 @@ func refresh() -> void:
 
 func _is_locked() -> bool:
 	var 等级 := 1
-	var 引导 := 0
+	var 入门指引 := 0
 	if is_instance_valid(Game):
 		var 等级v = Game.get("门派等级")
 		等级 = int(等级v) if 等级v != null else 1
-		var 引导v = Game.get("引导阶段")
-		引导 = int(引导v) if 引导v != null else 0
-	return (等级 < 3 and 引导 < 6)
+		var 入门指引v = Game.get("引导阶段")
+		入门指引 = int(入门指引v) if 入门指引v != null else 0
+	return (等级 < 3 and 入门指引 < 6)
 
-func _奖励系数() -> float:
-	if is_instance_valid(Game) and Game.has_method("任务奖励系数"):
-		return float(Game.任务奖励系数())
+func _赏赐系数() -> float:
+	if is_instance_valid(Game) and Game.has_method("差事赏赐系数"):
+		return float(Game.差事赏赐系数())
 	return 1.0
 
 func _progress_summary() -> String:
@@ -227,7 +227,7 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)
 
-	var 系数 = _奖励系数()
+	var 系数 = _赏赐系数()
 	var 石 = q.get("reward_lingjing", null)
 	var 气 = q.get("reward_lingqi", null)
 	var 石文本 := "—"
@@ -236,10 +236,10 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 		石文本 = str(int(float(石) * 系数))
 	if 气 != null and (typeof(气) == TYPE_INT or typeof(气) == TYPE_FLOAT):
 		气文本 = str(int(float(气) * 系数))
-	var 奖励 := Label.new()
-	奖励.text = "灵石%s / 灵气%s" % [石文本, 气文本]
-	UITheme.apply_value_font(奖励, false)
-	vbox.add_child(奖励)
+	var 赏赐 := Label.new()
+	赏赐.text = "灵石%s / 灵气%s" % [石文本, 气文本]
+	UITheme.apply_value_font(赏赐, false)
+	vbox.add_child(赏赐)
 
 	var 领取 := Button.new()
 	领取.name = "ClaimDaily_%d" % i
@@ -255,7 +255,7 @@ func _add_daily_card(i: int, q: Dictionary, locked: bool) -> void:
 	elif locked:
 		领取.text = "🔒 领取"
 		领取.disabled = true
-		领取.tooltip_text = "宗门 Lv.3 或完成引导后开启历练"
+		领取.tooltip_text = "宗门 Lv.3 或完成入门指引后开启历练"
 	else:
 		领取.text = "领取"
 		领取.disabled = false
@@ -302,7 +302,7 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	UITheme.apply_aux_font(目标)
 	vbox.add_child(目标)
 
-	var 系数 = _奖励系数()
+	var 系数 = _赏赐系数()
 	var 石 = q.get("reward_lingjing", null)
 	var 气 = q.get("reward_lingqi", null)
 	var 石文本 := "—"
@@ -311,10 +311,10 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 		石文本 = str(int(float(石) * 系数))
 	if 气 != null and (typeof(气) == TYPE_INT or typeof(气) == TYPE_FLOAT):
 		气文本 = str(int(float(气) * 系数))
-	var 奖励 := Label.new()
-	奖励.text = "灵石%s / 灵气%s" % [石文本, 气文本]
-	UITheme.apply_value_font(奖励, false)
-	vbox.add_child(奖励)
+	var 赏赐 := Label.new()
+	赏赐.text = "灵石%s / 灵气%s" % [石文本, 气文本]
+	UITheme.apply_value_font(赏赐, false)
+	vbox.add_child(赏赐)
 
 	var 领取 := Button.new()
 	领取.name = "ClaimWeekly"
@@ -328,7 +328,7 @@ func _add_weekly_card(q: Dictionary, locked: bool) -> void:
 	elif locked:
 		领取.text = "🔒 领取"
 		领取.disabled = true
-		领取.tooltip_text = "宗门 Lv.3 或完成引导后开启历练"
+		领取.tooltip_text = "宗门 Lv.3 或完成入门指引后开启历练"
 	else:
 		领取.text = "领取"
 		领取.disabled = false

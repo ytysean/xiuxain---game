@@ -410,7 +410,7 @@ scope: UX / 文档层落地；零战斗 / 数值 / 玩法触碰。所有样式�
 
 ## 5. 资产需求（给 art-director）
 
-> 现有 `ICON_BY_LABEL` 已含 15 个图标（见 §0），**足以覆盖 5-Tab、TopBar 资源槽、核心宫格、折叠 chevron、推演时日**。以下为四页**页内专属**新增图标需求。所有新增图标统一古风线稿风格（§3.1），按 `UITheme.load_icon(label)` 的「中文 label → stem」机制接入——art-director 交付 SVG 至 `res://ui/assets/icons/<stem>.svg`，并在 `ui_theme.gd` 的 `ICON_BY_LABEL` 增补对应 label→stem 映射。
+> 现有 `ICON_BY_LABEL` 已含 15 个图标（见 §0），**足以覆盖 5-Tab、TopBar 资源槽、核心宫格、折叠 chevron、推演时日**。以下为四页**页内专属**新增图标需求。所有新增图标统一古风线稿风格（§3.1），按 `UITheme.load_icon(label)` 的「中文 label → stem」机制接入——art-director 交付 SVG 至 `res://art/icons/<stem>.svg`，并在 `ui_theme.gd` 的 `ICON_BY_LABEL` 增补对应 label→stem 映射。
 
 **必要新增（建议本轮交付）：**
 
