@@ -13,8 +13,10 @@ signal 殿阁任免请求(key: String)
 signal 殿阁开关请求(key: String, 开启: bool)
 signal 殿阁详情返回()
 
-# hall_yushou 占位信号（与本页既有 signal 范式一致：只 emit，不写 GameState；
-# 实际 mutation（Game.解绑灵兽 / 绑定 / 兑换队列增删启停）由宿主后续接线）。
+# hall_yushou 操作信号。S1 ENG-S1-YUSHOU-WIRE 起不再是「只 emit 的占位」：
+# 本页在 _connect_signals() 内把这 5 条信号自连到 _on_灵兽_* handler，由 handler 调用 GameState
+# 真实 mutation（解绑灵兽 / 绑定灵兽给首只合格 / 灵兽兑换_启停·删除·新增）并重绘（见文件末「信号接线」区）。
+# 信号本身仍保持公开：宿主日后可再 connect 一份做 toast / 埋点，与本页自连互不干扰。
 signal 灵兽_卸下_request(弟子, 槽: String)
 signal 灵兽_绑定_request(灵兽)
 signal 灵兽_兑换_启停_request(序号: int)
@@ -31,6 +33,24 @@ const YUSHOU_FONT_SUB: int = 15
 const YUSHOU_FONT_BODY: int = 15
 const YUSHOU_FONT_AUX: int = 13
 
+# 引育计划预设表（标签 / 偏好 / 单次拨付经费）。
+# 与 main.gd _弹出兑换新增() 的预设表【同源同价】，保证新旧两个入口（旧御兽页 / 殿阁御兽堂）
+# 拨付经费口径一致；此处为只读常量副本，不跨文件引用 main.gd 私有方法（R8 模块边界）。
+# 标签刻意做短，供 2 列 GridContainer 在 480 宽竖屏内不折行。
+const YUSHOU_引育预设: Array = [
+	{"标签": "泛性 600", "偏好": {}, "cost": 600},
+	{"标签": "凡阶 200", "偏好": {"品阶": "fan_jie"}, "cost": 200},
+	{"标签": "灵阶 600", "偏好": {"品阶": "ling_jie"}, "cost": 600},
+	{"标签": "宝阶 1500", "偏好": {"品阶": "bao_jie"}, "cost": 1500},
+	{"标签": "王阶 4000", "偏好": {"品阶": "wang_jie"}, "cost": 4000},
+	{"标签": "圣阶 10000", "偏好": {"品阶": "sheng_jie"}, "cost": 10000},
+	{"标签": "仙阶 25000", "偏好": {"品阶": "xian_jie"}, "cost": 25000},
+	{"标签": "道阶 60000", "偏好": {"品阶": "dao_jie"}, "cost": 60000},
+	{"标签": "攻伐型 600", "偏好": {"类型": "attack"}, "cost": 600},
+	{"标签": "防御型 600", "偏好": {"类型": "defense"}, "cost": 600},
+	{"标签": "辅助型 600", "偏好": {"类型": "support"}, "cost": 600},
+]
+
 var _built: bool = false
 var _list_root: Control
 var _detail_root: Control
@@ -43,7 +63,14 @@ var _scroll_vbox: VBoxContainer
 var _yushou_root: VBoxContainer
 var _yushou_vbox: VBoxContainer
 
+# hall_yushou 交互态（S1 ENG-S1-YUSHOU-WIRE）
+var _signals_connected: bool = false          # _connect_signals() 幂等守卫，保证 5 条信号只连一次
+var _yushou_状态: String = ""                  # 最近一次灵兽操作的结果文案（轻量 toast 占位，渲染于御兽堂顶部）
+var _yushou_状态_成功: bool = true             # 决定状态行取 success 还是 danger 色 token
+var _yushou_新增展开: bool = false             # 「＋ 新增引育计划」预设选择器的展开态
+
 func _ready() -> void:
+	_connect_signals()
 	_build()
 	refresh()
 
@@ -56,6 +83,8 @@ func _ready() -> void:
 # 「入树传播」窗口内，直接改子节点树有重入风险；延后到本帧空闲执行，行为等价且安全。
 func _enter_tree() -> void:
 	if _built:
+		# 重新进入殿阁 Tab 视为「一次新的访问」，清掉上次灵兽操作留下的结果文案（见 _yushou_状态 注释）。
+		_yushou_状态 = ""
 		refresh.call_deferred()
 
 func _build() -> void:
@@ -189,6 +218,10 @@ func _build_passive_bar(parent: Control) -> void:
 func refresh() -> void:
 	if not _built:
 		_build()
+	# 刻意【不】在此清 _yushou_状态：Game.解绑灵兽/绑定灵兽* 会 emit 弟子变动，而 main.gd 把它
+	# CONNECT_DEFERRED 到 _on_弟子变动刷新新UI() → 新UI.refresh_all() → 本页 refresh()。
+	# 若在此清空，卸下/绑定的结果文案会在同一 idle 帧被这条链路抹掉，而不 emit 弟子变动的
+	# 引育增删启停却能留住提示 —— 五个操作的反馈行为将不一致。清理点统一收到 _enter_tree()。
 	_populate()
 
 func _populate() -> void:
@@ -361,6 +394,7 @@ func _refresh_yushou() -> void:
 	for child in _yushou_vbox.get_children():
 		_yushou_vbox.remove_child(child)
 		child.queue_free()
+	_yushou_状态行()
 	if not is_instance_valid(Game):
 		_yushou_空行("（御兽堂暂无灵兽）")
 		return
@@ -456,9 +490,28 @@ func _yushou_队列区(队列: Array) -> void:
 		启停.pressed.connect(_on_灵兽兑换启停_pressed.bind(i, 启停))
 		var 删: Button = _yushou_按钮(行, "删除")
 		删.pressed.connect(_on_灵兽兑换删除_pressed.bind(i, 删))
-	var 添加: Button = _yushou_按钮(_yushou_vbox, "＋ 新增引育计划", true)
+	var 添加: Button = _yushou_按钮(_yushou_vbox, ("收起引育预设" if _yushou_新增展开 else "＋ 新增引育计划"), true)
 	添加.name = "BreedAddBtn"
 	添加.pressed.connect(_on_灵兽兑换新增_pressed.bind(添加))
+	if _yushou_新增展开:
+		_yushou_新增选择器()
+
+# 「＋ 新增引育计划」展开后的预设选择器（页内内联，不弹窗）。
+# 不做 main.gd 式的遮罩弹窗：本页无弹窗基建，且 480×854 竖屏内内联展开随 ScrollVBox 一起滚动，
+# 手势更简单、也不会与殿阁详情二级视图的显隐模式打架。选中任一预设即入队并自动收起。
+func _yushou_新增选择器() -> void:
+	var vb: VBoxContainer = _yushou_新面板("BreedPresets")
+	_yushou_正文(vb, "选择引育偏好与单次拨付经费，加入引育计划队列；周期结算时自动拨付灵石生成兽卵。")
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", UITheme.GRID)
+	grid.add_theme_constant_override("v_separation", UITheme.GRID)
+	vb.add_child(grid)
+	for i in YUSHOU_引育预设.size():
+		var 预设: Dictionary = YUSHOU_引育预设[i]
+		var b: Button = _yushou_按钮(grid, str(预设.get("标签", "—")))
+		b.pressed.connect(_on_灵兽_兑换_新增_确认.bind(i, b))
 
 # 引育计划模式文本：读 Beast.品阶显示 / Beast.类型中文 常量表（class_name Beast 全局可见，只读）
 func _引育模式文本(条目: Dictionary) -> String:
@@ -532,7 +585,9 @@ func _yushou_按钮(parent: Control, 文本: String, 主要: bool = false) -> Bu
 	parent.add_child(btn)
 	return btn
 
-# ── hall_yushou 事件：一律只 emit 占位信号（零 GameState 写入 / 不碰 main.gd handler）──
+# ── hall_yushou 按钮事件：按钮只负责「按压反馈 + emit 信号」，不直接写 GameState。──
+# 真正的 mutation 在下方「信号接线」区的 _on_灵兽_* handler 里做，保持「按钮 → 信号 → handler → 数据层」
+# 单向链路，宿主日后接管其中任何一环都不必改按钮代码。
 func _on_灵兽卸下_pressed(弟子: Variant, 槽: String, btn: Button = null) -> void:
 	if btn != null:
 		UITween.button_press(btn)
@@ -557,6 +612,140 @@ func _on_灵兽兑换新增_pressed(btn: Button = null) -> void:
 	if btn != null:
 		UITween.button_press(btn)
 	灵兽_兑换_新增_request.emit()
+
+# ═════════ hall_yushou · 信号接线（S1 ENG-S1-YUSHOU-WIRE）═════════
+# 上一轮 ENG-S1-HALLYUSHOU 只建了 5 条 request 信号（只 emit、无订阅者），灵兽因此不可操作。
+# 本轮把它们接到 GameState 真实 mutation 上，御兽堂即刻可用。
+#
+# 为什么「自连」而不是等宿主接线：
+#   全项目 grep 这 5 条信号，除本文件 emit 外没有任何 connect —— 交给宿主意味着继续悬空。
+#   自连让御兽堂自给自足，同时信号仍是公开契约（宿主可另行 connect 做 toast / 埋点，不冲突）。
+# 模块边界（R8）：全程只调 Game.* 公有方法，不 call main.gd 的 _on_卸下/_on_绑定/_on_兑换*，
+#   main.gd 那套复用端口原样保留、行为仅作参考。
+# 反馈策略：本页无弹窗/Toast 基建，故把数据层返回的中文文案写进 _yushou_状态，由 _yushou_状态行()
+#   渲染在御兽堂顶部（success/danger 双色 token）；失败路径额外 push_warning，全程不阻塞。
+func _connect_signals() -> void:
+	if _signals_connected:
+		return
+	_signals_connected = true
+	灵兽_卸下_request.connect(_on_灵兽_卸下)
+	灵兽_绑定_request.connect(_on_灵兽_绑定)
+	灵兽_兑换_启停_request.connect(_on_灵兽_兑换_启停)
+	灵兽_兑换_删除_request.connect(_on_灵兽_兑换_删除)
+	灵兽_兑换_新增_request.connect(_on_灵兽_兑换_新增)
+
+# 解除主宠/副宠契约 → Game.解绑灵兽(弟子, 槽位)（game_state.gd L3321，返回结果文案，灵兽退回 灵兽库存）
+func _on_灵兽_卸下(弟子: Variant, 槽: String) -> void:
+	if not _yushou_数据层就绪("解绑灵兽"):
+		return
+	# 信号签名里 弟子 是无类型 Variant（信号契约不引入 Disciple 依赖），故此处显式收窄再传给 typed API，
+	# 否则 null / 已释放实例会直接把 GDScript 的参数类型检查打成运行时错误。
+	if not (弟子 is Disciple) or not is_instance_valid(弟子):
+		_yushou_提示("卸下失败：弟子对象已失效。", false)
+		_yushou_重绘()
+		return
+	var 槽位: String = "副宠" if 槽 == "副宠" else "主宠"
+	_yushou_提示(str(Game.解绑灵兽(弟子 as Disciple, 槽位)), true)
+	_yushou_重绘()
+
+# 库存灵兽绑定给空闲弟子 → Game.绑定灵兽给首只合格(灵兽)（game_state.gd L3294，内部转调 绑定灵兽给指定弟子 L3303）
+func _on_灵兽_绑定(灵兽: Variant) -> void:
+	if not _yushou_数据层就绪("绑定灵兽给首只合格"):
+		return
+	if not (灵兽 is Beast) or not is_instance_valid(灵兽):
+		_yushou_提示("绑定失败：灵兽对象已失效。", false)
+		_yushou_重绘()
+		return
+	var 结果: String = str(Game.绑定灵兽给首只合格(灵兽 as Beast))
+	# 数据层成功/失败都只返回文案（无资质匹配的弟子时返回「无符合条件的空闲弟子可绑定…」），
+	# 不返回 bool；故以「该灵兽是否已被移出库存」作为客观成功判据，避免解析文案。
+	var 成功: bool = not _as_array(Game.get("灵兽库存")).has(灵兽)
+	_yushou_提示(结果, 成功)
+	_yushou_重绘()
+
+# 引育计划：启停 / 删除 / 展开新增选择器 → Game.灵兽兑换_*（game_state.gd，本轮新增，含越界守卫）
+func _on_灵兽_兑换_启停(序号: int) -> void:
+	if not _yushou_数据层就绪("灵兽兑换_启停"):
+		return
+	# 与「删除」一致：先判定合法性再调用，不依赖实参求值顺序（启停虽不改 size，但保持同一写法便于阅读）。
+	var 合法: bool = _队列序号合法(序号)
+	_yushou_提示(str(Game.灵兽兑换_启停(序号)), 合法)
+	_yushou_重绘()
+
+func _on_灵兽_兑换_删除(序号: int) -> void:
+	if not _yushou_数据层就绪("灵兽兑换_删除"):
+		return
+	# 合法性必须在删除【之前】判定：删完 size 会变小，事后再比对序号会误判。
+	var 合法: bool = _队列序号合法(序号)
+	_yushou_提示(str(Game.灵兽兑换_删除(序号)), 合法)
+	_yushou_重绘()
+
+# 「＋ 新增引育计划」本身不入队，只切换页内预设选择器的展开态（真正入队在 _on_灵兽_兑换_新增_确认）。
+# 与 main.gd _弹出兑换新增() 同构：那边弹窗选预设，这边内联展开选预设，都不做「盲目新增默认计划」。
+func _on_灵兽_兑换_新增() -> void:
+	_yushou_新增展开 = not _yushou_新增展开
+	_yushou_重绘()
+
+# 选定预设 → Game.灵兽兑换_新增(偏好, 经费)（game_state.gd，本轮新增；内部对偏好深拷贝，规避 const 只读）
+func _on_灵兽_兑换_新增_确认(预设序号: int, btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	if not _yushou_数据层就绪("灵兽兑换_新增"):
+		return
+	if 预设序号 < 0 or 预设序号 >= YUSHOU_引育预设.size():
+		_yushou_提示("新增失败：引育预设序号越界。", false)
+		_yushou_重绘()
+		return
+	var 预设: Dictionary = YUSHOU_引育预设[预设序号]
+	var 偏好: Variant = 预设.get("偏好", {})
+	var 结果: String = str(Game.灵兽兑换_新增(偏好 if 偏好 is Dictionary else {}, int(预设.get("cost", 0))))
+	_yushou_新增展开 = false   # 选完即收起，避免预设面板长期占据竖屏高度
+	_yushou_提示("%s（%s）" % [结果, str(预设.get("标签", "—"))], true)
+	_yushou_重绘()
+
+# 数据层就绪守卫：Game 未就位或缺方法时给出可见提示并 push_warning，绝不臆造 API、绝不静默失败。
+# 失败分支自行触发一次重绘，否则提示只写进变量却没人渲染（handler 在守卫失败时就 return 了）。
+# 注意 _refresh_yushou() 先渲染状态行、再判 Game 有效性，故 Game 为空时提示依然可见。
+func _yushou_数据层就绪(方法名: String) -> bool:
+	if not is_instance_valid(Game):
+		_yushou_提示("御兽堂数据未就绪（Game 未加载）。", false)
+		_yushou_重绘()
+		return false
+	if not Game.has_method(方法名):
+		_yushou_提示("操作失败：数据层缺 %s()。" % 方法名, false)
+		_yushou_重绘()
+		return false
+	return true
+
+func _队列序号合法(序号: int) -> bool:
+	return 序号 >= 0 and 序号 < _as_array(Game.get("灵兽兑换队列")).size()
+
+# 御兽堂重绘（handler 专用）：一律延后到 idle 帧，绝不在按钮 pressed 回调内同步重建子树。
+# 依据 main.gd L379 的既有裁定注释「避免招徒等 pressed 回调内同步刷新重建当前页→释放发射者节点崩溃」，
+# 以及 main.gd _on_卸下/_on_绑定 开头那句 await get_tree().process_frame —— 二者是同一个躲避动作。
+# 本页 _enter_tree() 早已用 refresh.call_deferred() 处理过同类重入风险，此处沿用同一手法。
+# 注：卸下/绑定还会经 弟子变动(CONNECT_DEFERRED) → refresh_all() 再刷一次；两次重绘幂等，不冲突。
+func _yushou_重绘() -> void:
+	_refresh_yushou.call_deferred()
+
+func _yushou_提示(文本: String, 成功: bool) -> void:
+	_yushou_状态 = 文本
+	_yushou_状态_成功 = 成功
+	if not 成功:
+		push_warning("[hall_yushou] " + 文本)
+
+# 御兽堂顶部结果行：由 _refresh_yushou() 在清空子节点后第一个渲染，无内容时不占位。
+func _yushou_状态行() -> void:
+	if _yushou_状态 == "" or _yushou_vbox == null:
+		return
+	var l := Label.new()
+	l.name = "YushouStatus"
+	l.text = _yushou_状态
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_font_sized(l, YUSHOU_FONT_AUX)
+	l.add_theme_color_override("font_color", UITheme.color_status_success() if _yushou_状态_成功 else UITheme.color_status_danger())
+	_yushou_vbox.add_child(l)
 
 func _as_array(v: Variant) -> Array:
 	if v is Array:
