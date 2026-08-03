@@ -1,0 +1,2 @@
+# 本目录为场景背景代码化生产管线（工具/配置/报告），非游戏运行时资源。
+# 加 .gdignore 让 Godot 跳过导入扫描，避免 scene_manifest.csv 等被误判为翻译表生成 *.import/*.translation 污染。

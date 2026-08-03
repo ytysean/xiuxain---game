@@ -1,30 +1,62 @@
 extends Control
 
-# 建筑页（§4 · 核心经营）：只读展示 建筑总览（堂口数 + Σ等级）+ 堂口列表（12 行）+ 底部 建筑被动_负面事件减免。
+# 殿阁页（§4 · 核心经营）：只读展示 殿阁总览（司职数 + Σ等级）+ 司职列表（12 行）+ 底部 殿阁被动_负面事件减免。
 # 零 GameState 写入；升级/任免/开关按钮仅 emit 占位信号（实际写操作由宿主后续接线）。读数经 is_instance_valid(Game) + .get() 守卫。
-# P1：新增建筑详情二级子视图（ListRoot / DetailRoot 显隐模式，复用 page_disciple 的 DetailRoot 范式）。
+# P1：新增殿阁详情二级子视图（ListRoot / DetailRoot 显隐模式，复用 page_disciple 的 DetailRoot 范式）。
+# S1 ENG-S1-HALLYUSHOU：新增 hall_yushou（御兽堂）分区（完整UX设计规范 §2.2 / §7 命名表 / Q1 裁定
+#   「灵兽入口 → 殿阁 hall_yushou 分区」）。灵兽展示逻辑只读移植自 main.gd 刷新御兽()（R8 复用端口，未删），
+#   但完全用本页自己的 PanelContainer + UITheme 范式重写，不调用 main.gd 任何私有 helper / mutation handler。
 
-signal 建筑详情请求(key: String)
-signal 建筑升级请求(key: String)
-signal 建筑任免请求(key: String)
-signal 建筑开关请求(key: String, 开启: bool)
-signal 建筑详情返回()
+signal 殿阁详情请求(key: String)
+signal 殿阁升级请求(key: String)
+signal 殿阁任免请求(key: String)
+signal 殿阁开关请求(key: String, 开启: bool)
+signal 殿阁详情返回()
 
-# 建筑等级上限派生常量：设计规格 §2.4 指定「上限取常量 10」；真实上限来自 Game._建筑等级上限() (min(门派等级,7))。
-const 建筑等级上限_兜底: int = 10
+# hall_yushou 占位信号（与本页既有 signal 范式一致：只 emit，不写 GameState；
+# 实际 mutation（Game.解绑灵兽 / 绑定 / 兑换队列增删启停）由宿主后续接线）。
+signal 灵兽_卸下_request(弟子, 槽: String)
+signal 灵兽_绑定_request(灵兽)
+signal 灵兽_兑换_启停_request(序号: int)
+signal 灵兽_兑换_删除_request(序号: int)
+signal 灵兽_兑换_新增_request()
+
+# 殿阁等级上限派生常量：设计规格 §2.4 指定「上限取常量 10」；真实上限来自 Game._殿阁等级上限() (min(门派等级,7))。
+const 殿阁等级上限_兜底: int = 10
+
+# hall_yushou 字号：锁定合法字号集 {22,18,17,16,15,13}（完整UX设计规范 §3.3 / 附录 Q6）。
+# 注：不走 apply_title_font(30) / apply_aux_font(14)（两者超出合法集），改用可控字号版 helper。
+const YUSHOU_FONT_TITLE: int = 18
+const YUSHOU_FONT_SUB: int = 15
+const YUSHOU_FONT_BODY: int = 15
+const YUSHOU_FONT_AUX: int = 13
 
 var _built: bool = false
 var _list_root: Control
 var _detail_root: Control
 var _detail_vbox: VBoxContainer
-var _overview_堂口数: Label
+var _overview_司职数: Label
 var _overview_总等级: Label
 var _list_vbox: VBoxContainer
 var _passive_label: Label
+var _scroll_vbox: VBoxContainer
+var _yushou_root: VBoxContainer
+var _yushou_vbox: VBoxContainer
 
 func _ready() -> void:
 	_build()
 	refresh()
+
+# 切 Tab 重挂载时自动重拉只读数据。
+# game_ui._show_page() 是「从 PageContainer 摘除旧页 / 挂入新页」，并不会调 page.refresh()
+# （refresh 只在首屏 _apply_safe_defaults 与 推演/读档 的 refresh_all 时统一触发）。
+# 故本页自行在重新入树时补一次刷新，保证切到「殿阁」Tab 看到的御兽堂是最新数据。
+# 仅改本文件、不动 game_ui 路由；_built 守卫使首次入树（此时尚未 _build）交给 _ready 首刷，不重复。
+# 用 call_deferred：refresh() 会 remove_child/queue_free 重建子节点，而 _enter_tree 正处于引擎
+# 「入树传播」窗口内，直接改子节点树有重入风险；延后到本帧空闲执行，行为等价且安全。
+func _enter_tree() -> void:
+	if _built:
+		refresh.call_deferred()
 
 func _build() -> void:
 	if _built:
@@ -67,7 +99,7 @@ func _build_overview(parent: Control) -> void:
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
 
-	var 图标 = UITheme.load_icon_sized("建筑", UITheme.SIZE_SM)
+	var 图标 = UITheme.load_icon_sized("殿阁", UITheme.SIZE_SM)
 	if 图标 != null:
 		var tr := TextureRect.new()
 		tr.texture = 图标
@@ -77,22 +109,22 @@ func _build_overview(parent: Control) -> void:
 		hb.add_child(tr)
 
 	var title := Label.new()
-	title.text = "建筑总览"
+	title.text = "殿阁总览"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_title_font(title)
 	hb.add_child(title)
 
-	var 堂口_cell := VBoxContainer.new()
-	堂口_cell.alignment = BoxContainer.ALIGNMENT_CENTER
-	var 堂口_cap := Label.new()
-	堂口_cap.text = "堂口"
-	UITheme.apply_aux_font(堂口_cap)
-	堂口_cell.add_child(堂口_cap)
-	_overview_堂口数 = Label.new()
-	_overview_堂口数.text = "—"
-	UITheme.apply_value_font(_overview_堂口数, false)
-	堂口_cell.add_child(_overview_堂口数)
-	hb.add_child(堂口_cell)
+	var 司职_cell := VBoxContainer.new()
+	司职_cell.alignment = BoxContainer.ALIGNMENT_CENTER
+	var 司职_cap := Label.new()
+	司职_cap.text = "司职"
+	UITheme.apply_aux_font(司职_cap)
+	司职_cell.add_child(司职_cap)
+	_overview_司职数 = Label.new()
+	_overview_司职数.text = "—"
+	UITheme.apply_value_font(_overview_司职数, false)
+	司职_cell.add_child(_overview_司职数)
+	hb.add_child(司职_cell)
 
 	var 等级_cell := VBoxContainer.new()
 	等级_cell.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -115,11 +147,27 @@ func _build_list_scroll(parent: Control) -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(scroll)
+
+	# ScrollVBox：单一滚动容器内纵向串联「司职列表 + hall_yushou 御兽堂」。
+	# 不用二级 sub-scroll —— 480×854 竖屏内嵌套滚动会抢手势且易出现内层被压扁/溢出；
+	# 同一个 ScrollVBox 让御兽堂随司职列表整体滚动，切到殿阁 Tab 后向下滑即达。
+	_scroll_vbox = VBoxContainer.new()
+	_scroll_vbox.name = "ScrollVBox"
+	_scroll_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# 刻意不加 SIZE_EXPAND_FILL 垂直：保持与改造前 ListVBox 直挂 ScrollContainer 完全一致的
+	# 「取自然最小高度、顶对齐、超出即滚动」语义，避免内容短时被拉伸、内容长时高度计算歧义。
+	_scroll_vbox.add_theme_constant_override("separation", UITheme.GRID * 2)
+	scroll.add_child(_scroll_vbox)
+
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.name = "ListVBox"
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
-	scroll.add_child(_list_vbox)
+	_scroll_vbox.add_child(_list_vbox)
+
+	# hall_yushou 御兽堂：挂在 ListVBox 之后、同一滚动流内。
+	# 注意：_populate_list() 只清空 _list_vbox 的子节点，故本分区节点不会被司职列表刷新误删。
+	_build_yushou(_scroll_vbox)
 
 func _build_passive_bar(parent: Control) -> void:
 	var panel := PanelContainer.new()
@@ -129,7 +177,7 @@ func _build_passive_bar(parent: Control) -> void:
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	panel.add_child(hb)
 	var cap := Label.new()
-	cap.text = "建筑被动"
+	cap.text = "殿阁被动"
 	UITheme.apply_aux_font(cap)
 	hb.add_child(cap)
 	_passive_label = Label.new()
@@ -144,27 +192,28 @@ func refresh() -> void:
 	_populate()
 
 func _populate() -> void:
-	var 堂口数 := 0
+	var 司职数 := 0
 	var 总等级 := 0
 	if is_instance_valid(Game):
-		var 列表 = Game.get("堂口列表")
+		var 列表 = Game.get("司职列表")
 		if 列表 is Dictionary:
-			堂口数 = 列表.size()
+			司职数 = 列表.size()
 			for k in 列表.keys():
 				var e = 列表[k]
 				if e is Dictionary:
 					总等级 += int(e.get("等级", 1))
-	_overview_堂口数.text = str(堂口数)
+	_overview_司职数.text = str(司职数)
 	_overview_总等级.text = str(总等级)
 
 	var 减免 = 0.0
 	if is_instance_valid(Game):
-		减免 = Game.get("建筑被动_负面事件减免")
+		减免 = Game.get("殿阁被动_负面事件减免")
 		if typeof(减免) != TYPE_FLOAT and typeof(减免) != TYPE_INT:
 			减免 = 0.0
 	_passive_label.text = "负面事件减免 %d%%" % int(abs(减免))
 
 	_populate_list()
+	_refresh_yushou()
 
 func _populate_list() -> void:
 	if _list_vbox == null:
@@ -174,7 +223,7 @@ func _populate_list() -> void:
 		child.queue_free()
 	if not is_instance_valid(Game):
 		return
-	var 列表 = Game.get("堂口列表")
+	var 列表 = Game.get("司职列表")
 	if 列表 == null or not (列表 is Dictionary):
 		return
 	for key in 列表.keys():
@@ -268,15 +317,253 @@ func _on_hall_gui_input(event: InputEvent, key: String) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-			建筑详情请求.emit(key)
+			殿阁详情请求.emit(key)
 			_show_detail(key)
 
 func _on_升级_pressed(key: String, btn: Button = null) -> void:
 	if btn != null:
 		UITween.button_press(btn)
-	建筑升级请求.emit(key)
+	殿阁升级请求.emit(key)
 
-# ───────── 建筑详情二级子视图（ListRoot / DetailRoot 显隐，复用 page_disciple 范式）─────────
+# ═════════ hall_yushou · 御兽堂分区（S1 ENG-S1-HALLYUSHOU）═════════
+# 来源裁定：完整UX设计规范 §2.2 分区表 / §7 命名铁则 / §9 Q1「灵兽入口 → 殿阁 hall_yushou 分区（S1）」。
+# 展示逻辑只读移植自 main.gd 刷新御兽()（L2428+，R8 复用端口保留未删），但：
+#   · 不调用 main.gd 私有 helper 小标题()/新面板()（跨文件私有，禁用），改用本页 PanelContainer + UITheme 范式；
+#   · 不调用 main.gd mutation handler _on_卸下/_on_绑定/_on_兑换*，一律 emit 本页占位信号；
+#   · 全程零 GameState 写入，读数经 is_instance_valid(Game) + .get() 守卫（与本页既有 refresh 纪律一致）。
+func _build_yushou(parent: Control) -> void:
+	_yushou_root = VBoxContainer.new()
+	_yushou_root.name = "Hall_Yushou"
+	_yushou_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_yushou_root.add_theme_constant_override("separation", UITheme.GRID)
+	parent.add_child(_yushou_root)
+
+	# 与上方司职列表之间的分区分隔（云纹分隔线，UITheme 统一资产）
+	_yushou_root.add_child(UITheme.make_divider_control())
+
+	var title := Label.new()
+	title.name = "YushouTitle"
+	title.text = "御兽堂"
+	UITheme.apply_title_font_sized(title, YUSHOU_FONT_TITLE)
+	title.add_theme_color_override("font_color", UITheme.color_text_title1())
+	_yushou_root.add_child(title)
+
+	_yushou_vbox = VBoxContainer.new()
+	_yushou_vbox.name = "YushouVBox"
+	_yushou_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_yushou_vbox.add_theme_constant_override("separation", UITheme.GRID)
+	_yushou_root.add_child(_yushou_vbox)
+
+# 御兽堂只读刷新入口：由 _populate() 调用（refresh() → _populate() → _refresh_yushou()）。
+func _refresh_yushou() -> void:
+	if _yushou_vbox == null:
+		return
+	for child in _yushou_vbox.get_children():
+		_yushou_vbox.remove_child(child)
+		child.queue_free()
+	if not is_instance_valid(Game):
+		_yushou_空行("（御兽堂暂无灵兽）")
+		return
+
+	var 弟子列表: Array = _as_array(Game.get("弟子列表"))
+	var 蛋列表: Array = _as_array(Game.get("灵兽蛋列表"))
+	var 库存: Array = _as_array(Game.get("灵兽库存"))
+	var 队列: Array = _as_array(Game.get("灵兽兑换队列"))
+
+	# 是否已有任意已契约灵兽（双槽）——判定与 main.gd 刷新御兽() 一致
+	var 有契约: bool = false
+	for d in 弟子列表:
+		if d == null or not (d is Object):
+			continue
+		if d.get("主宠灵兽") != null or d.get("副宠灵兽") != null:
+			有契约 = true
+			break
+
+	if 蛋列表.is_empty() and 库存.is_empty() and not 有契约:
+		_yushou_空行("（御兽堂暂无灵兽）")
+	else:
+		_yushou_契约区(弟子列表)
+		_yushou_蛋区(蛋列表)
+		_yushou_库存区(库存)
+	# 引育计划队列独立于「有无灵兽」渲染：队列数据源是 Game.灵兽兑换队列（与蛋/库存/契约无关），
+	# 且开局空态下若一并隐藏，「＋ 新增引育计划」入口将不可达 —— 与本任务「让灵兽系统正式可达」相悖。
+	# 这是相对 main.gd 刷新御兽()（空态 return 前置、连队列一起吞掉）的唯一有意微调，仍为纯只读。
+	_yushou_队列区(队列)
+
+# ── 已契约灵兽（双槽：主宠 / 副宠）──
+func _yushou_契约区(弟子列表: Array) -> void:
+	var 行号: int = 0
+	for d in 弟子列表:
+		if d == null or not (d is Object):
+			continue
+		for 槽 in ["主宠", "副宠"]:
+			var 槽名: String = str(槽)
+			var 兽 = d.get("%s灵兽" % 槽名)
+			if 兽 == null:
+				continue
+			if 行号 == 0:
+				_yushou_子标题("已契约灵兽")
+			行号 += 1
+			var vb: VBoxContainer = _yushou_新面板("Contract_%d" % 行号)
+			var 姓名: String = str(_safe_get(d, "姓名", "—"))
+			_yushou_正文(vb, "【%s】%s灵兽：%s" % [姓名, 槽名, _兽_简介(兽)])
+			var 卸: Button = _yushou_按钮(vb, "卸下%s" % 槽名)
+			卸.pressed.connect(_on_灵兽卸下_pressed.bind(d, 槽名, 卸))
+
+# ── 灵兽蛋（孵化中，纯文本行）──
+func _yushou_蛋区(蛋列表: Array) -> void:
+	if 蛋列表.is_empty():
+		return
+	_yushou_子标题("灵兽蛋")
+	for 蛋 in 蛋列表:
+		if 蛋 == null:
+			continue
+		var vb: VBoxContainer = _yushou_新面板("Egg_%d" % _yushou_vbox.get_child_count())
+		# 蛋走无参 简介()（孵化中分支不看本体战力），与 main.gd 刷新御兽() 一致
+		_yushou_正文(vb, _兽_简介(蛋, false))
+
+# ── 库存未绑定灵兽 ──
+func _yushou_库存区(库存: Array) -> void:
+	if 库存.is_empty():
+		return
+	_yushou_子标题("待契约灵兽（库存）")
+	for 灵兽 in 库存:
+		if 灵兽 == null:
+			continue
+		var vb: VBoxContainer = _yushou_新面板("Stock_%d" % _yushou_vbox.get_child_count())
+		_yushou_正文(vb, _兽_简介(灵兽))
+		var 绑: Button = _yushou_按钮(vb, "绑定给空闲弟子", true)
+		绑.pressed.connect(_on_灵兽绑定_pressed.bind(灵兽, 绑))
+
+# ── T03 引育计划队列（拨付经费）──
+func _yushou_队列区(队列: Array) -> void:
+	_yushou_子标题("引育计划队列（拨付经费）")
+	if 队列.is_empty():
+		_yushou_空行("（未设置引育计划，点击下方按钮添加）")
+	for i in 队列.size():
+		var 条目 = 队列[i]
+		if not (条目 is Dictionary):
+			continue
+		var vb: VBoxContainer = _yushou_新面板("Breed_%d" % i)
+		var 启用: bool = bool(条目.get("启用", false))
+		_yushou_正文(vb, "模式：%s | 拨付经费 %d 灵石 | %s" % [
+			_引育模式文本(条目), int(条目.get("cost", 0)), ("启用" if 启用 else "停用")
+		])
+		var 行 := HBoxContainer.new()
+		行.add_theme_constant_override("separation", UITheme.GRID)
+		vb.add_child(行)
+		var 启停: Button = _yushou_按钮(行, "停用" if 启用 else "启用")
+		启停.pressed.connect(_on_灵兽兑换启停_pressed.bind(i, 启停))
+		var 删: Button = _yushou_按钮(行, "删除")
+		删.pressed.connect(_on_灵兽兑换删除_pressed.bind(i, 删))
+	var 添加: Button = _yushou_按钮(_yushou_vbox, "＋ 新增引育计划", true)
+	添加.name = "BreedAddBtn"
+	添加.pressed.connect(_on_灵兽兑换新增_pressed.bind(添加))
+
+# 引育计划模式文本：读 Beast.品阶显示 / Beast.类型中文 常量表（class_name Beast 全局可见，只读）
+func _引育模式文本(条目: Dictionary) -> String:
+	var 偏好 = 条目.get("偏好", {})
+	if not (偏好 is Dictionary):
+		return "泛性引育"
+	var 品阶键: String = str(偏好.get("品阶", ""))
+	if 品阶键 != "":
+		return "定向品阶：" + str(Beast.品阶显示.get(品阶键, 品阶键))
+	var 类型键: String = str(偏好.get("类型", ""))
+	if 类型键 != "":
+		return "定向属性：" + str(Beast.类型中文.get(类型键, 类型键))
+	return "泛性引育"
+
+# 灵兽简介只读取数：带战力时走 简介(本体战力())，否则走无参 简介()；缺方法即降级为「—」，不臆造 API。
+func _兽_简介(兽: Variant, 带战力: bool = true) -> String:
+	if 兽 == null or not (兽 is Object):
+		return "—"
+	if not 兽.has_method("简介"):
+		return "—"
+	if 带战力 and 兽.has_method("本体战力"):
+		return str(兽.简介(兽.本体战力()))
+	return str(兽.简介())
+
+# ── hall_yushou UI 构件（本页私有，复用 UITheme token，无硬编码颜色/字号）──
+func _yushou_子标题(文本: String) -> void:
+	var l := Label.new()
+	l.text = "—— %s ——" % 文本
+	UITheme.apply_body_font_sized(l, YUSHOU_FONT_SUB)
+	l.add_theme_color_override("font_color", UITheme.color_text_title2())
+	_yushou_vbox.add_child(l)
+
+func _yushou_空行(文本: String) -> void:
+	var l := Label.new()
+	l.text = 文本
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_font_sized(l, YUSHOU_FONT_AUX)
+	l.add_theme_color_override("font_color", UITheme.color_text_body_dim())
+	_yushou_vbox.add_child(l)
+
+func _yushou_新面板(节点名: String) -> VBoxContainer:
+	var panel := PanelContainer.new()
+	panel.name = 节点名
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
+	var vb := VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", UITheme.GRID)
+	panel.add_child(vb)
+	_yushou_vbox.add_child(panel)
+	return vb
+
+func _yushou_正文(parent: Control, 文本: String) -> void:
+	var l := Label.new()
+	l.text = 文本
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# 竖屏 480 宽 + 灵兽简介偏长，必须自动换行，否则会横向溢出面板
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_font_sized(l, YUSHOU_FONT_BODY)
+	parent.add_child(l)
+
+func _yushou_按钮(parent: Control, 文本: String, 主要: bool = false) -> Button:
+	var btn := Button.new()
+	btn.text = 文本
+	btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if 主要:
+		UITheme.apply_primary_button_style(btn)
+	else:
+		UITheme.apply_secondary_button_style(btn)
+	parent.add_child(btn)
+	return btn
+
+# ── hall_yushou 事件：一律只 emit 占位信号（零 GameState 写入 / 不碰 main.gd handler）──
+func _on_灵兽卸下_pressed(弟子: Variant, 槽: String, btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	灵兽_卸下_request.emit(弟子, 槽)
+
+func _on_灵兽绑定_pressed(灵兽: Variant, btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	灵兽_绑定_request.emit(灵兽)
+
+func _on_灵兽兑换启停_pressed(序号: int, btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	灵兽_兑换_启停_request.emit(序号)
+
+func _on_灵兽兑换删除_pressed(序号: int, btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	灵兽_兑换_删除_request.emit(序号)
+
+func _on_灵兽兑换新增_pressed(btn: Button = null) -> void:
+	if btn != null:
+		UITween.button_press(btn)
+	灵兽_兑换_新增_request.emit()
+
+func _as_array(v: Variant) -> Array:
+	if v is Array:
+		return v
+	return []
+
+# ───────── 殿阁详情二级子视图（ListRoot / DetailRoot 显隐，复用 page_disciple 范式）─────────
 func _build_detail_root() -> void:
 	var bar := HBoxContainer.new()
 	bar.name = "BackBar"
@@ -289,7 +576,7 @@ func _build_detail_root() -> void:
 	back_btn.pressed.connect(_on_back_pressed)
 	bar.add_child(back_btn)
 	var title := Label.new()
-	title.text = "建筑详情"
+	title.text = "殿阁详情"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_title_font(title)
 	bar.add_child(title)
@@ -317,7 +604,7 @@ func _show_detail(key: String) -> void:
 	UITween.fade_in(_detail_root)
 
 func _on_back_pressed() -> void:
-	建筑详情返回.emit()
+	殿阁详情返回.emit()
 	_detail_root.visible = false
 	if _list_root != null:
 		_list_root.visible = true
@@ -331,7 +618,7 @@ func _populate_building_detail(key: String) -> void:
 
 	if not is_instance_valid(Game):
 		return
-	var 列表 = Game.get("堂口列表")
+	var 列表 = Game.get("司职列表")
 	if 列表 == null or not (列表 is Dictionary):
 		return
 	var entry = 列表.get(key, null)
@@ -339,15 +626,15 @@ func _populate_building_detail(key: String) -> void:
 		return
 
 	var 等级: int = int(_safe_get(entry, "等级", 1))
-	var 上限: int = _建筑上限()
+	var 上限: int = _殿阁上限()
 
 	_build_header(entry, 等级, 上限)
 
 	var 产出区: VBoxContainer = _add_section("产出信息")
 	_add_kv_row(产出区, "产出", str(_safe_get(entry, "产出", "—")))
 	var 预估: int = 0
-	if Game.has_method("预估建筑产出"):
-		预估 = int(Game.预估建筑产出(key))
+	if Game.has_method("预估殿阁产出"):
+		预估 = int(Game.预估殿阁产出(key))
 	_add_kv_row(产出区, "预估月产出", "%d" % 预估)
 	var 等级乘区: float = 1.0 + 0.02 * max(0, 等级 - 1)
 	_add_kv_row(产出区, "等级乘区", "x%.2f" % 等级乘区)
@@ -553,18 +840,18 @@ func _build_footer(key: String, 等级: int, 上限: int) -> void:
 
 func _on_任免_pressed(btn: Button, key: String) -> void:
 	UITween.button_press(btn)
-	建筑任免请求.emit(key)
+	殿阁任免请求.emit(key)
 
 func _on_lock_pressed(btn: Button) -> void:
 	UITween.button_press(btn)
 
 func _on_lock_toggled(开启: bool, key: String) -> void:
-	建筑开关请求.emit(key, 开启)
+	殿阁开关请求.emit(key, 开启)
 
-func _建筑上限() -> int:
-	if is_instance_valid(Game) and Game.has_method("_建筑等级上限"):
-		return int(Game._建筑等级上限())
-	return 建筑等级上限_兜底
+func _殿阁上限() -> int:
+	if is_instance_valid(Game) and Game.has_method("_殿阁等级上限"):
+		return int(Game._殿阁等级上限())
+	return 殿阁等级上限_兜底
 
 func _safe_get(obj: Variant, prop: String, default: Variant = null) -> Variant:
 	if obj == null:

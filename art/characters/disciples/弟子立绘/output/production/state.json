@@ -1,0 +1,64 @@
+{
+  "done": {
+    "jin_chen_common_01": {
+      "path": "../弟子立绘/output/production\\jin\\chen\\common\\disciple_jin_chen_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_chen_elite_01": {
+      "path": "../弟子立绘/output/production\\jin\\chen\\elite\\disciple_jin_chen_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_chen_top_01": {
+      "path": "../弟子立绘/output/production\\jin\\chen\\top\\disciple_jin_chen_top_01.png",
+      "status": "dryrun"
+    },
+    "jin_huo2_common_01": {
+      "path": "../弟子立绘/output/production\\jin\\huo2\\common\\disciple_jin_huo2_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_huo2_elite_01": {
+      "path": "../弟子立绘/output/production\\jin\\huo2\\elite\\disciple_jin_huo2_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_huo2_top_01": {
+      "path": "../弟子立绘/output/production\\jin\\huo2\\top\\disciple_jin_huo2_top_01.png",
+      "status": "dryrun"
+    },
+    "jin_gu_common_01": {
+      "path": "../弟子立绘/output/production\\jin\\gu\\common\\disciple_jin_gu_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_gu_elite_01": {
+      "path": "../弟子立绘/output/production\\jin\\gu\\elite\\disciple_jin_gu_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_gu_top_01": {
+      "path": "../弟子立绘/output/production\\jin\\gu\\top\\disciple_jin_gu_top_01.png",
+      "status": "dryrun"
+    },
+    "jin_bao_common_01": {
+      "path": "../弟子立绘/output/production\\jin\\bao\\common\\disciple_jin_bao_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_bao_elite_01": {
+      "path": "../弟子立绘/output/production\\jin\\bao\\elite\\disciple_jin_bao_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_bao_top_01": {
+      "path": "../弟子立绘/output/production\\jin\\bao\\top\\disciple_jin_bao_top_01.png",
+      "status": "dryrun"
+    },
+    "jin_wen_common_01": {
+      "path": "../弟子立绘/output/production\\jin\\wen\\common\\disciple_jin_wen_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_wen_elite_01": {
+      "path": "../弟子立绘/output/production\\jin\\wen\\elite\\disciple_jin_wen_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_wen_top_01": {
+      "path": "../弟子立绘/output/production\\jin\\wen\\top\\disciple_jin_wen_top_01.png",
+      "status": "dryrun"
+    }
+  }
+}

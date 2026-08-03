@@ -9,13 +9,13 @@ import random
 
 # ============ 常量（与 BattleCalculator.gd 完全一致）============
 五行序 = ["金", "木", "土", "水", "火"]
-职业克制 = {"道修": "法修", "体修": "道修", "法修": "体修"}
+道途克制 = {"道修": "法修", "体修": "道修", "法修": "体修"}
 纯度克制 = {"单": 1.25, "双": 1.0, "三": 0.75, "四+": 0.5}
 纯度被克 = {"单": 0.82, "双": 1.0, "三": 0.67, "四+": 0.33}
 五行上限 = 1.25
 五行下限 = 0.82
-职业克制乘率 = 1.20
-职业被克乘率 = 0.85
+道途克制乘率 = 1.20
+道途被克乘率 = 0.85
 防御减伤基准 = 200.0
 防御减伤上限 = 0.75
 暴击率上限 = 0.70
@@ -55,14 +55,14 @@ def wuxing_multiplier(atk_attr, def_attr, root_purity, is_true_damage=False):
     return mult
 
 
-# ============ 纯函数：职业克制乘率（AC3 / D2）============
+# ============ 纯函数：道途克制乘率（AC3 / D2）============
 def profession_multiplier(atk_prof, def_prof):
     if atk_prof == "" or def_prof == "":
         return 1.0
-    if 职业克制.get(atk_prof, "") == def_prof:
-        return 职业克制乘率
-    if 职业克制.get(def_prof, "") == atk_prof:
-        return 职业被克乘率
+    if 道途克制.get(atk_prof, "") == def_prof:
+        return 道途克制乘率
+    if 道途克制.get(def_prof, "") == atk_prof:
+        return 道途被克乘率
     return 1.0
 
 
@@ -96,7 +96,7 @@ def calc_hit_damage(atk, def_, float_factor, crit_mult, dodge_mult, is_true=Fals
     )
     dmg = (
         攻击
-        * profession_multiplier(atk.get("职业", ""), def_.get("职业", ""))
+        * profession_multiplier(atk.get("道途", ""), def_.get("道途", ""))
         * (1.0 + float(atk.get("通用增益", 0.0)))
         * (1.0 + float(atk.get("道心增益", 0.0)))
         * wux
@@ -330,7 +330,7 @@ def _select_skill(actor_st, target_st):
     if not cands:
         return {}
     # §9.8.5：体修残血优先护盾/防御技；法修多目标优先群体（1v1 退化为高伤优先）
-    prof = actor_st["snapshot"].get("职业", "")
+    prof = actor_st["snapshot"].get("道途", "")
     hp_pct = float(actor_st["cur属性"]["血"]) / max(1.0, float(actor_st["base属性"]["血"]))
     if prof == "体修" and hp_pct < 0.5:
         for sk in cands:
@@ -380,7 +380,7 @@ def _cast_skill(actor_st, target_st, skill, 回合, 日志, rng=None):
     # cast_skill 日志（带 ref）
     日志.append(_log_entry(回合, actor_st["snapshot"].get("名称", "攻方"), target_st["snapshot"].get("名称", "守方"), 伤害,
         crit_mult > 1.0,
-        profession_multiplier(actor_view.get("职业", ""), target_view.get("职业", "")) > 1.0,
+        profession_multiplier(actor_view.get("道途", ""), target_view.get("道途", "")) > 1.0,
         int(actor_st["cur属性"]["血"]), int(target_st["cur属性"]["血"]),
         "cast_skill", "", "skill", skill.get("skill_id", ""), skill.get("skill_name", "")))
     # 冷却 + 灵力
@@ -451,7 +451,7 @@ def _结算_1v1_原版(atk, def_, mode="full", rng=None):
                 a_hp -= 伤害
             # D7 强制结构化日志：每回合双方出手均记录（行动单位/伤害/暴击/克制/双方剩余血量）
             日志.append(_log_entry(回合, actor_label, target_label, 伤害, crit_mult > 1.0,
-                profession_multiplier(actor.get("职业", ""), target.get("职业", "")) > 1.0,
+                profession_multiplier(actor.get("道途", ""), target.get("道途", "")) > 1.0,
                 a_hp, d_hp))
         if a_hp <= 0 or d_hp <= 0:
             break
@@ -534,7 +534,7 @@ def _结算_1v1_增强(atk, def_, mode="full", rng=None):
                 a_state["cur属性"]["血"] = float(a_state["cur属性"]["血"]) - 伤害
             # D7 强制结构化日志：每次普攻均记录
             日志.append(_log_entry(回合, actor_label, target_label, 伤害, crit_mult > 1.0,
-                profession_multiplier(actor_view.get("职业", ""), target_view.get("职业", "")) > 1.0,
+                profession_multiplier(actor_view.get("道途", ""), target_view.get("道途", "")) > 1.0,
                 int(a_state["cur属性"]["血"]), int(d_state["cur属性"]["血"])))
         # 回合末冷却 tick
         _tick_cooldowns(a_state)
@@ -558,11 +558,11 @@ def _结算_1v1_增强(atk, def_, mode="full", rng=None):
     }
 
 
-def make_unit(攻, 防, 血, 速, 职业, 灵根主, 纯度, 暴击=0.0, 闪避=0.0, 名称="", 通用增益=0.0, 道心增益=0.0, 灵兽=None):
+def make_unit(攻, 防, 血, 速, 道途, 灵根主, 纯度, 暴击=0.0, 闪避=0.0, 名称="", 通用增益=0.0, 道心增益=0.0, 灵兽=None):
     """测试用快照工厂：结构与 disciple.get_final_combat_attr() 一致。灵兽=S1 出战灵兽快照列表。"""
     return {
         "属性": {"攻": 攻, "防": 防, "血": 血, "速": 速},
-        "职业": 职业,
+        "道途": 道途,
         "灵根": {"主": 灵根主, "纯度": 纯度},
         "通用增益": 通用增益,
         "道心增益": 道心增益,

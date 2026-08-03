@@ -1,0 +1,29 @@
+{
+  "role_id": "disciple_003",
+  "name": "慈音",
+  "gender": "女",
+  "age_range": "青年",
+  "temperament": "温润亲和",
+  "face_shape": "圆脸",
+  "hair_style": "垂鬟披发",
+  "hair_color": "栗棕",
+  "costume_type": "素白道袍",
+  "main_color": "素白+淡金",
+  "weapon": "玉葫芦",
+  "weapon_verb": "手捧",
+  "negative_extra_cn": "凌厉、阴郁、华丽张扬、血腥",
+  "negative_extra_en": "fierce, gloomy, flamboyant, bloody",
+  "personality": "wen",
+  "poses": {
+    "stand": {
+      "pose_type": "stand",
+      "desc_cn": "微躬约8°，双肩内收，双手拢于袖中于腹前捧玉葫芦，眉眼含笑，温润亲和",
+      "desc_en": "slightly bowed about 8 degrees, shoulders drawn in, hands gathered in sleeves holding the jade gourd at the front, warm smiling eyes, gentle and kindly"
+    },
+    "halfbody": {
+      "pose_type": "halfbody",
+      "desc_cn": "半身像，微微躬身，双手交于身前捧玉葫芦，暖光萦绕，神态安宁慈和",
+      "desc_en": "half-body, slight bow, hands clasped in front holding the jade gourd, warm light lingering, serene and compassionate expression"
+    }
+  }
+}

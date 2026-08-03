@@ -1,0 +1,47 @@
+{
+	"generated_by": "taixuan_auto_ui",
+	"generated_at": "2026-07-30T22:01:41",
+	"canvas": {
+		"width": 768,
+		"height": 1344
+	},
+	"note": "本清单由自动化管线生成；main.gd 可用 FileAccess 读取后按 role 取资源/场景，直接实例化为游戏界面与内容。",
+	"assets": {
+		"background": [
+			"res://art/auto_ui/background_01.png",
+			"res://art/auto_ui/background_02.png",
+			"res://art/auto_ui/background_03.png",
+			"res://art/auto_ui/background_04.png",
+			"res://art/auto_ui/background_05.png",
+			"res://art/auto_ui/background_06.png"
+		],
+		"avatar_frame": [
+			"res://art/auto_ui/avatar_frame_01.png"
+		],
+		"panel": [
+			"res://art/auto_ui/panel_01.png"
+		],
+		"button": [
+			"res://art/auto_ui/button_01.png"
+		],
+		"portrait": [
+			"res://art/auto_ui/portrait_01.png",
+			"res://art/auto_ui/portrait_02.png",
+			"res://art/auto_ui/portrait_03.png",
+			"res://art/auto_ui/portrait_04.png",
+			"res://art/auto_ui/portrait_05.png",
+			"res://art/auto_ui/portrait_06.png",
+			"res://art/auto_ui/portrait_07.png",
+			"res://art/auto_ui/portrait_08.png",
+			"res://art/auto_ui/portrait_09.png",
+			"res://art/auto_ui/portrait_10.png",
+			"res://art/auto_ui/portrait_11.png",
+			"res://art/auto_ui/portrait_12.png"
+		]
+	},
+	"spritesheets": [],
+	"scenes": {
+		"main_menu": "res://art/auto_ui/scenes/main_menu.tscn",
+		"disciple_portrait": "res://art/auto_ui/scenes/disciple_portrait.tscn"
+	}
+}

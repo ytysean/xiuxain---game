@@ -1,0 +1,583 @@
+[gd_scene format=3 uid="uid://bhujsv1nk8r4s"]
+
+[ext_resource type="Texture2D" uid="uid://1vquvcybwxfi" path="res://art/backgrounds/home_bg_season_spring.png" id="1_bg"]
+[ext_resource type="Texture2D" uid="uid://2crfvqt8dfdo" path="res://art/ui/buttons/nav_jy_normal.png" id="2_navjy"]
+[ext_resource type="Texture2D" uid="uid://c7fbk2ewqt4gi" path="res://art/ui/buttons/nav_dz_normal.png" id="3_navdz"]
+[ext_resource type="Texture2D" uid="uid://tbf6v4lo0opt" path="res://art/ui/buttons/grid_jz.png" id="4_jz"]
+[ext_resource type="Texture2D" uid="uid://c47wwyajfbg5k" path="res://art/ui/buttons/nav_ll_normal.png" id="5_navll"]
+[ext_resource type="Texture2D" uid="uid://cd0lulx31bbma" path="res://art/ui/buttons/nav_js_normal.png" id="6_navjs"]
+[ext_resource type="Texture2D" uid="uid://1wrur60n566j" path="res://art/ui/buttons/grid_dq.png" id="7_dq"]
+[ext_resource type="Texture2D" uid="uid://r50w8wv5i14m" path="res://art/ui/buttons/grid_df.png" id="8_df"]
+[ext_resource type="Texture2D" uid="uid://cs5vu7he5jb4r" path="res://art/ui/buttons/grid_rw.png" id="9_rw"]
+[ext_resource type="Texture2D" uid="uid://clecckkaww7gj" path="res://art/ui/buttons/grid_zc.png" id="10_zc"]
+[ext_resource type="Texture2D" uid="uid://dbiigsspd84no" path="res://art/ui/buttons/grid_dz.png" id="11_dz"]
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.118, 0.169, 0.157, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.784, 0.659, 0.416, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="HomePage" type="Control" unique_id=1466735483]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BG" type="TextureRect" parent="." unique_id=1996326930]
+z_index = -100
+layout_mode = 0
+offset_left = -1073.0
+offset_top = -531.0
+offset_right = -113.0
+offset_bottom = 1177.0
+mouse_filter = 2
+texture = ExtResource("1_bg")
+stretch_mode = 6
+
+[node name="Overlay" type="ColorRect" parent="." unique_id=892931109]
+z_index = -99
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 854.0
+mouse_filter = 2
+color = Color(0.086, 0.133, 0.114, 0.5)
+
+[node name="TopMask" type="ColorRect" parent="." unique_id=29788566]
+z_index = -98
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 180.0
+mouse_filter = 2
+color = Color(0.055, 0.082, 0.09, 0.45)
+
+[node name="TopBar" type="Control" parent="." unique_id=1821757693]
+z_index = 5
+anchors_preset = 0
+offset_right = 480.0
+offset_bottom = 48.0
+
+[node name="TopBG" type="ColorRect" parent="TopBar" unique_id=2035659775]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 48.0
+color = Color(0.055, 0.082, 0.09, 0.88)
+
+[node name="Divider" type="ColorRect" parent="TopBar" unique_id=1904558671]
+layout_mode = 0
+offset_top = 47.0
+offset_right = 480.0
+offset_bottom = 48.0
+color = Color(0.784, 0.659, 0.416, 1)
+
+[node name="Title" type="Label" parent="TopBar" unique_id=1723115098]
+layout_mode = 0
+offset_left = 16.0
+offset_right = 200.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 17
+text = "太玄宗门录"
+vertical_alignment = 1
+
+[node name="Res_灵石" type="Label" parent="TopBar" unique_id=1408389220]
+layout_mode = 0
+offset_left = 200.0
+offset_right = 296.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 16
+text = "灵石 8.2万"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Res_体力" type="Label" parent="TopBar" unique_id=1735125889]
+layout_mode = 0
+offset_left = 300.0
+offset_right = 386.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 16
+text = "体力 86"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Res_声望" type="Label" parent="TopBar" unique_id=668883247]
+layout_mode = 0
+offset_left = 390.0
+offset_right = 472.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 16
+text = "声望 尊敬"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="C1_宗门正殿" type="Panel" parent="." unique_id=936796977]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 56.0
+offset_right = 468.0
+offset_bottom = 160.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="C1_宗门正殿" unique_id=772748103]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 17
+text = "宗门正殿"
+vertical_alignment = 1
+
+[node name="Line1" type="Label" parent="C1_宗门正殿" unique_id=2102919412]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 46.0
+offset_right = 444.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 15
+text = "繁荣 560 · 声望 120 · 弟子 12"
+vertical_alignment = 1
+
+[node name="Line2" type="Label" parent="C1_宗门正殿" unique_id=316964641]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 78.0
+offset_right = 444.0
+offset_bottom = 104.0
+theme_override_font_sizes/font_size = 15
+text = "当前等级 3 · 修炼速度 +12%"
+vertical_alignment = 1
+
+[node name="C2_今日资源产出" type="Panel" parent="." unique_id=482641132]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 168.0
+offset_right = 468.0
+offset_bottom = 264.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="C2_今日资源产出" unique_id=396671832]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 15
+text = "今日资源产出"
+vertical_alignment = 1
+
+[node name="Line1" type="Label" parent="C2_今日资源产出" unique_id=1235234281]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 46.0
+offset_right = 444.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 15
+text = "灵石 +120 · 灵草 +45 · 矿石 +30 · 灵气 +88 · 贡献 +12"
+vertical_alignment = 1
+
+[node name="Line2" type="Label" parent="C2_今日资源产出" unique_id=1270967615]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 78.0
+offset_right = 444.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 13
+text = "（每小时产出，随时间推演）"
+vertical_alignment = 1
+
+[node name="C3_弟子概览" type="Panel" parent="." unique_id=654025848]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 272.0
+offset_right = 468.0
+offset_bottom = 376.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="C3_弟子概览" unique_id=667635038]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 15
+text = "弟子概览"
+vertical_alignment = 1
+
+[node name="Line1" type="Label" parent="C3_弟子概览" unique_id=1867961920]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 46.0
+offset_right = 444.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 15
+text = "弟子总数 12 · 可招募 3"
+vertical_alignment = 1
+
+[node name="Line2" type="Label" parent="C3_弟子概览" unique_id=1977429828]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 78.0
+offset_right = 444.0
+offset_bottom = 104.0
+theme_override_font_sizes/font_size = 15
+text = "境界：练气6 / 筑基4 / 金丹2"
+vertical_alignment = 1
+
+[node name="C4_近期事件" type="Panel" parent="." unique_id=2093459383]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 384.0
+offset_right = 468.0
+offset_bottom = 510.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="C4_近期事件" unique_id=1171368095]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 15
+text = "近期事件"
+vertical_alignment = 1
+
+[node name="Event1" type="Label" parent="C4_近期事件" unique_id=1573259138]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 46.0
+offset_right = 444.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 15
+text = "· 弟子「清岚」突破至筑基"
+vertical_alignment = 1
+
+[node name="Event2" type="Label" parent="C4_近期事件" unique_id=1184817938]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 74.0
+offset_right = 444.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 15
+text = "· 灵田丰收，灵草 +45"
+vertical_alignment = 1
+
+[node name="Event3" type="Label" parent="C4_近期事件" unique_id=815084672]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 102.0
+offset_right = 444.0
+offset_bottom = 126.0
+theme_override_font_sizes/font_size = 15
+text = "· 外门大比下月开启"
+vertical_alignment = 1
+
+[node name="C5_快捷入口" type="Panel" parent="." unique_id=881440263]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 512.0
+offset_right = 468.0
+offset_bottom = 732.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="C5_快捷入口" unique_id=809194541]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 34.0
+theme_override_font_sizes/font_size = 15
+text = "快捷入口"
+vertical_alignment = 1
+
+[node name="Btn0" type="TextureButton" parent="C5_快捷入口" unique_id=993284910]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 44.0
+offset_right = 88.0
+offset_bottom = 116.0
+texture_normal = ExtResource("4_jz")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl0" type="Label" parent="C5_快捷入口" unique_id=1696122124]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 116.0
+offset_right = 88.0
+offset_bottom = 134.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "建筑总览"
+horizontal_alignment = 1
+
+[node name="Btn1" type="TextureButton" parent="C5_快捷入口" unique_id=415807448]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 176.0
+offset_top = 44.0
+offset_right = 248.0
+offset_bottom = 116.0
+texture_normal = ExtResource("7_dq")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl1" type="Label" parent="C5_快捷入口" unique_id=677307748]
+layout_mode = 0
+offset_left = 176.0
+offset_top = 116.0
+offset_right = 248.0
+offset_bottom = 134.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "修炼"
+horizontal_alignment = 1
+
+[node name="Btn2" type="TextureButton" parent="C5_快捷入口" unique_id=1940287760]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 336.0
+offset_top = 44.0
+offset_right = 408.0
+offset_bottom = 116.0
+texture_normal = ExtResource("8_df")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl2" type="Label" parent="C5_快捷入口" unique_id=1235791992]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 116.0
+offset_right = 408.0
+offset_bottom = 134.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "坊市"
+horizontal_alignment = 1
+
+[node name="Btn3" type="TextureButton" parent="C5_快捷入口" unique_id=1761966266]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 124.0
+offset_right = 88.0
+offset_bottom = 196.0
+texture_normal = ExtResource("9_rw")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl3" type="Label" parent="C5_快捷入口" unique_id=718391152]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 196.0
+offset_right = 88.0
+offset_bottom = 214.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "任务"
+horizontal_alignment = 1
+
+[node name="Btn4" type="TextureButton" parent="C5_快捷入口" unique_id=1031162310]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 176.0
+offset_top = 124.0
+offset_right = 248.0
+offset_bottom = 196.0
+texture_normal = ExtResource("10_zc")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl4" type="Label" parent="C5_快捷入口" unique_id=1207626912]
+layout_mode = 0
+offset_left = 176.0
+offset_top = 196.0
+offset_right = 248.0
+offset_bottom = 214.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "账册"
+horizontal_alignment = 1
+
+[node name="Btn5" type="TextureButton" parent="C5_快捷入口" unique_id=1965224447]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 0
+offset_left = 336.0
+offset_top = 124.0
+offset_right = 408.0
+offset_bottom = 196.0
+texture_normal = ExtResource("11_dz")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Lbl5" type="Label" parent="C5_快捷入口" unique_id=1607123000]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 196.0
+offset_right = 408.0
+offset_bottom = 214.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "洞府"
+horizontal_alignment = 1
+
+[node name="BottomBar" type="Control" parent="." unique_id=136797765]
+z_index = 5
+anchors_preset = 0
+offset_top = 774.0
+offset_right = 480.0
+offset_bottom = 854.0
+
+[node name="BarBG" type="ColorRect" parent="BottomBar" unique_id=2014417597]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 80.0
+color = Color(0.118, 0.169, 0.157, 0.95)
+
+[node name="TopLine" type="ColorRect" parent="BottomBar" unique_id=145004645]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 1.0
+color = Color(0.784, 0.659, 0.416, 1)
+
+[node name="Tab0" type="Control" parent="BottomBar" unique_id=436582840]
+anchors_preset = 0
+offset_right = 96.0
+offset_bottom = 80.0
+
+[node name="Tab1" type="Control" parent="BottomBar" unique_id=1268012048]
+anchors_preset = 0
+offset_left = 96.0
+offset_right = 192.0
+offset_bottom = 80.0
+
+[node name="Tab2" type="Control" parent="BottomBar" unique_id=2131668912]
+anchors_preset = 0
+offset_left = 192.0
+offset_right = 288.0
+offset_bottom = 80.0
+
+[node name="Tab3" type="Control" parent="BottomBar" unique_id=1369167983]
+anchors_preset = 0
+offset_left = 288.0
+offset_right = 384.0
+offset_bottom = 80.0
+
+[node name="Tab4" type="Control" parent="BottomBar" unique_id=1427809432]
+anchors_preset = 0
+offset_left = 384.0
+offset_right = 480.0
+offset_bottom = 80.0
+
+[node name="Tab0#Icon" type="TextureButton" parent="." unique_id=1437263042]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 52.0
+texture_normal = ExtResource("2_navjy")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Tab0#Label" type="Label" parent="." unique_id=423830142]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "宗门"
+horizontal_alignment = 1
+
+[node name="Tab1#Icon" type="TextureButton" parent="." unique_id=1784917579]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 52.0
+texture_normal = ExtResource("3_navdz")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Tab1#Label" type="Label" parent="." unique_id=868614326]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "弟子"
+horizontal_alignment = 1
+
+[node name="Tab2#Icon" type="TextureButton" parent="." unique_id=1426553830]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 52.0
+texture_normal = ExtResource("4_jz")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Tab2#Label" type="Label" parent="." unique_id=61325995]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "殿阁"
+horizontal_alignment = 1
+
+[node name="Tab3#Icon" type="TextureButton" parent="." unique_id=936625264]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 52.0
+texture_normal = ExtResource("5_navll")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Tab3#Label" type="Label" parent="." unique_id=479997749]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "历练"
+horizontal_alignment = 1
+
+[node name="Tab4#Icon" type="TextureButton" parent="." unique_id=1759971878]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 52.0
+texture_normal = ExtResource("6_navjs")
+ignore_texture_size = true
+stretch_mode = 1
+
+[node name="Tab4#Label" type="Label" parent="." unique_id=1595065550]
+layout_mode = 0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+theme_override_font_sizes/font_size = 13
+text = "纪事"
+horizontal_alignment = 1

@@ -1,0 +1,518 @@
+{
+	"format": "taixuan_ui",
+	"version": "1.0",
+	"doc": {
+		"version": "1.0",
+		"generator": "太玄UI编辑器",
+		"canvas": {
+			"width": 480,
+			"height": 854,
+			"background_color": [0.06, 0.09, 0.08, 1.0]
+		},
+		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"reference_image": {
+			"path": "",
+			"opacity": 1.0,
+			"locked": false,
+			"visible": true,
+			"fit": "contain"
+		},
+		"controls": [
+			{
+				"type": "TextureRect",
+				"name": "BgImage",
+				"position": [0, 0],
+				"size": [480, 854],
+				"min_size": [480, 854],
+				"z_index": 0,
+				"anchor_preset": 0,
+				"style": {
+					"texture_path": "res://art/backgrounds/home_bg_sect_a.png",
+					"modulate_alpha": 1.0,
+					"stretch_mode": 6
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "Overlay",
+				"position": [0, 0],
+				"size": [480, 854],
+				"min_size": [480, 854],
+				"z_index": 1,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [0.086, 0.133, 0.114, 0.50],
+					"border_color": [0.0, 0.0, 0.0, 0.0],
+					"border_width": 0,
+					"corner_radius": 0
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_建筑",
+				"position": [12, 24],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_jz.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_坊市",
+				"position": [12, 120],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_df.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_修炼",
+				"position": [12, 216],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_dq.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_洞府",
+				"position": [384, 24],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_dz.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_任务",
+				"position": [384, 120],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_rw.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Button",
+				"name": "Entry_账册",
+				"position": [384, 216],
+				"size": [84, 84],
+				"min_size": [84, 84],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "",
+					"icon_path": "",
+					"bg_path": "res://art/ui/buttons/grid_zc.png",
+					"bg_nine_patch": false,
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"bg_color": [0.173, 0.243, 0.271, 0.92],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 0,
+					"corner_radius": 8
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "DynamicsPanel",
+				"position": [108, 320],
+				"size": [264, 150],
+				"min_size": [264, 150],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [0.173, 0.243, 0.271, 0.88],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 2,
+					"corner_radius": 12
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynTitle",
+				"position": [124, 332],
+				"size": [232, 22],
+				"min_size": [232, 22],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "宗门动态",
+					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynLabel_弟子数量",
+				"position": [124, 372],
+				"size": [200, 20],
+				"min_size": [200, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "弟子数量",
+					"font_path": "",
+					"font_size": 16,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynValue_弟子数量",
+				"position": [320, 372],
+				"size": [36, 20],
+				"min_size": [36, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "6",
+					"font_path": "",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynLabel_繁荣度",
+				"position": [124, 400],
+				"size": [200, 20],
+				"min_size": [200, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "繁荣度",
+					"font_path": "",
+					"font_size": 16,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynValue_繁荣度",
+				"position": [320, 400],
+				"size": [36, 20],
+				"min_size": [36, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "120",
+					"font_path": "",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynLabel_声望",
+				"position": [124, 428],
+				"size": [200, 20],
+				"min_size": [200, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "声望",
+					"font_path": "",
+					"font_size": 16,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "DynValue_声望",
+				"position": [320, 428],
+				"size": [36, 20],
+				"min_size": [36, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "88",
+					"font_path": "",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "Panel_修炼收益",
+				"position": [108, 486],
+				"size": [130, 232],
+				"min_size": [130, 232],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [0.173, 0.243, 0.271, 0.88],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 2,
+					"corner_radius": 12
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubTitle_修炼收益",
+				"position": [124, 498],
+				"size": [98, 20],
+				"min_size": [98, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "修炼收益",
+					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubLabel_灵气",
+				"position": [124, 538],
+				"size": [74, 20],
+				"min_size": [74, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "灵气",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubValue_灵气",
+				"position": [206, 538],
+				"size": [20, 20],
+				"min_size": [20, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "—",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubLabel_灵草",
+				"position": [124, 566],
+				"size": [74, 20],
+				"min_size": [74, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "灵草",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubValue_灵草",
+				"position": [206, 566],
+				"size": [20, 20],
+				"min_size": [20, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "—",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "Panel_历练事件",
+				"position": [254, 486],
+				"size": [118, 232],
+				"min_size": [118, 232],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [0.173, 0.243, 0.271, 0.88],
+					"border_color": [0.788, 0.651, 0.337, 1.0],
+					"border_width": 2,
+					"corner_radius": 12
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubTitle_历练事件",
+				"position": [270, 498],
+				"size": [86, 20],
+				"min_size": [86, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "历练事件",
+					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_size": 18,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubLabel_关卡",
+				"position": [270, 538],
+				"size": [62, 20],
+				"min_size": [62, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "关卡",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubValue_关卡",
+				"position": [342, 538],
+				"size": [12, 20],
+				"min_size": [12, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "—",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubLabel_奖励",
+				"position": [270, 566],
+				"size": [62, 20],
+				"min_size": [62, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "奖励",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.831, 0.722, 0.416, 1.0],
+					"horizontal_alignment": 0,
+					"vertical_alignment": 1
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SubValue_奖励",
+				"position": [342, 566],
+				"size": [12, 20],
+				"min_size": [12, 20],
+				"z_index": 6,
+				"anchor_preset": 0,
+				"style": {
+					"text": "—",
+					"font_path": "",
+					"font_size": 15,
+					"color": [0.902, 0.780, 0.471, 1.0],
+					"horizontal_alignment": 2,
+					"vertical_alignment": 1
+				}
+			}
+		]
+	}
+}

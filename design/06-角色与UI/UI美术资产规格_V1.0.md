@@ -132,8 +132,8 @@ ui/assets/
 
 | 文件 | res:// 路径 |
 |---|---|
-| panel_ink.svg | `res://ui/assets/panel_ink.svg` |
-| divider_cloud.svg | `res://ui/assets/divider_cloud.svg` |
+| panel_ink.svg | `res://art/panel_ink.svg` |
+| divider_cloud.svg | `res://art/divider_cloud.svg` |
 
 ---
 
@@ -145,8 +145,8 @@ ui/assets/
 
 | 层级 | 字体族 | 类型 | 来源与许可 | 落盘路径 | 取舍 |
 |---|---|---|---|---|---|
-| 面板大标题（24dp） | **Ma Shan Zheng**（马善政楷书） | 楷书 / 书法体 | Google Fonts · OFL 1.1 开源 | `res://ui/assets/fonts/MaShanZheng-Regular.ttf` | 笔意圆融契合修真世界观，免费可商用，与暗金描边搭调 |
-| 正文印刷（16/18/12dp） | **Noto Serif SC**（思源宋体） | 衬线 / 印刷宋体 | Google Fonts / Adobe · OFL 1.1 开源 | `res://ui/assets/fonts/NotoSerifSC-Regular.otf` | V1.0 §3.1 要求"清晰古风印刷类字体"，宋体是修真出版物（玉牒、典籍）的天然承载 |
+| 面板大标题（24dp） | **Ma Shan Zheng**（马善政楷书） | 楷书 / 书法体 | Google Fonts · OFL 1.1 开源 | `res://art/fonts/MaShanZheng-Regular.ttf` | 笔意圆融契合修真世界观，免费可商用，与暗金描边搭调 |
+| 正文印刷（16/18/12dp） | **Noto Serif SC**（思源宋体） | 衬线 / 印刷宋体 | Google Fonts / Adobe · OFL 1.1 开源 | `res://art/fonts/NotoSerifSC-Regular.otf` | V1.0 §3.1 要求"清晰古风印刷类字体"，宋体是修真出版物（玉牒、典籍）的天然承载 |
 
 ### 5.2 加载方式
 
@@ -170,7 +170,7 @@ ui/assets/
 ### 6.1 路径常量（新增节：`美术资产路径`）
 
 ```gdscript
-const ASSET_DIR: String = "res://ui/assets/"
+const ASSET_DIR: String = "res://art/"
 const ICON_DIR: String = ASSET_DIR + "icons/"
 const PANEL_INK_TEX: String = ASSET_DIR + "panel_ink.svg"
 const DIVIDER_TEX: String = ASSET_DIR + "divider_cloud.svg"
@@ -280,8 +280,8 @@ const ICON_BY_LABEL: Dictionary = {
 
   | 文件 | 落盘路径 | 体积 | 字体魔数 | 状态 |
   |---|---|---|---|---|
-  | `MaShanZheng-Regular.ttf`（标题书法） | `res://ui/assets/fonts/MaShanZheng-Regular.ttf` | 5,857,936 B（≈5.59 MB） | `00 01 00 00`（TrueType） | ✅ 已落盘 |
-  | `NotoSerifSC-Regular.otf`（正文宋体 · SC 子集） | `res://ui/assets/fonts/NotoSerifSC-Regular.otf` | 11,625,800 B（≈11.09 MB） | `OTTO`（CFF/OpenType） | ✅ 已落盘 |
+  | `MaShanZheng-Regular.ttf`（标题书法） | `res://art/fonts/MaShanZheng-Regular.ttf` | 5,857,936 B（≈5.59 MB） | `00 01 00 00`（TrueType） | ✅ 已落盘 |
+  | `NotoSerifSC-Regular.otf`（正文宋体 · SC 子集） | `res://art/fonts/NotoSerifSC-Regular.otf` | 11,625,800 B（≈11.09 MB） | `OTTO`（CFF/OpenType） | ✅ 已落盘 |
 
 - **拾取机制**：`UITheme._ensure_fonts()` 在首次 `apply_*_font` / `apply_fonts()` 调用时按 `FONT_TITLE_PATH` / `FONT_BODY_PATH` 探测；两文件就位后 `apply_fonts()` 返回 `true`，`apply_title_font` / `apply_value_font` / `apply_body_font` / `apply_aux_font` 自动将字体 override 叠加到对应 Label（缺失时退回 `font_size` + `font_color` override，不阻断）。**组件零改动即可生效。**
 - **来源说明**：`MaShanZheng-Regular.ttf` 取自 Google Fonts（`ofl/mashanzheng`）。`NotoSerifSC-Regular.otf` 原 `google/fonts/main/ofl/notoserifsc/NotoSerifSC-Regular.otf` 路径经实测返回 **404**，故改用 `notofonts/noto-cjk` 的 `Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf`（OFL 1.1，SC 子集覆盖简体，体积更省）；经 jsDelivr 镜像断点续传补全，魔数 `OTTO` 校验通过，与 `FONT_BODY_PATH` 完全对齐。

@@ -1,0 +1,65 @@
+[gd_scene load_steps=4 format=3]
+[ext_resource type="Texture2D" path="res://art/auto_ui/background_01.png" id="1"]
+[ext_resource type="Texture2D" path="res://art/auto_ui/portrait_01.png" id="2"]
+[ext_resource type="Texture2D" path="res://art/auto_ui/avatar_frame_01.png" id="3"]
+[node name="UI" type="Control"]
+layout_mode = 3
+offset_left = 0
+offset_top = 0
+offset_right = 768
+offset_bottom = 1344
+[node name="BgColor" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+offset_left = 0
+offset_top = 0
+offset_right = 768
+offset_bottom = 1344
+color = Color(0.02, 0.03, 0.03, 1.0)
+[node name="Bg" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 768.0
+offset_bottom = 1344.0
+custom_minimum_size = Vector2(768.0, 1344.0)
+texture = ExtResource("1")
+expand_mode = 1
+stretch_mode = 6
+modulate = Color(1, 1, 1, 0.35)
+[node name="Portrait" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 154.0
+offset_top = 342.0
+offset_right = 614.0
+offset_bottom = 1002.0
+custom_minimum_size = Vector2(460.0, 660.0)
+z_index = 1
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 4
+modulate = Color(1, 1, 1, 1.0)
+[node name="AvatarFrame" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 284.0
+offset_top = 322.0
+offset_right = 484.0
+offset_bottom = 522.0
+custom_minimum_size = Vector2(200.0, 200.0)
+z_index = 2
+texture = ExtResource("3")
+expand_mode = 1
+stretch_mode = 0
+modulate = Color(1, 1, 1, 1.0)

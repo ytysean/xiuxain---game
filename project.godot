@@ -28,6 +28,11 @@ window/size/viewport_width=480
 window/size/viewport_height=854
 window/handheld/orientation="portrait"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/taixuan_ui_editor/plugin.cfg")
+
 [gui]
 
+theme/custom="uid://cdacbo1s6f55c"
 theme="res://theme/main_theme.tres"

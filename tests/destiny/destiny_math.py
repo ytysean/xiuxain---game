@@ -45,7 +45,7 @@ def apply_cultivation(spd, did, rows):
 
 
 def manage_coef(member_ids, rows):
-    """镜像 game_state._资源建筑产出()：经营型命格驻守乘性加成"""
+    """镜像 game_state._资源殿阁产出()：经营型命格驻守乘性加成"""
     coef = 0.0
     for did in member_ids:
         dg = get_destiny(did, rows)
@@ -66,7 +66,7 @@ def test():
     spd = apply_cultivation(1.8, "D_JULING", rows)
     assert abs(spd - 1.962) < 1e-6, "cultivation+9% expected 1.962, got " + str(spd)
 
-    # 断言3：经营型命格使建筑产出系数匹配（产出 +9%，系数 1.09）
+    # 断言3：经营型命格使殿阁产出系数匹配（产出 +9%，系数 1.09）
     coef = manage_coef(["D_DANXIN"], rows)
     assert abs(coef - 1.09) < 1e-9, "manage+9% expected 1.09, got " + str(coef)
 

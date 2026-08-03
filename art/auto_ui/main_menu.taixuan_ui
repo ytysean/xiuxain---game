@@ -1,0 +1,208 @@
+{
+	"format": "taixuan_ui",
+	"version": "1.0",
+	"doc": {
+		"version": "1.0",
+		"generator": "太玄UI编辑器-自动管线",
+		"canvas": {
+			"width": 768,
+			"height": 1344,
+			"background_color": [
+				0.04,
+				0.06,
+				0.05,
+				1.0
+			]
+		},
+		"reference_image": {
+			"path": "",
+			"opacity": 1.0,
+			"locked": false,
+			"visible": true,
+			"fit": "contain"
+		},
+		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"controls": [
+			{
+				"type": "TextureRect",
+				"name": "Bg",
+				"position": [
+					0,
+					0
+				],
+				"size": [
+					768,
+					1344
+				],
+				"min_size": [
+					768,
+					1344
+				],
+				"z_index": 0,
+				"anchor_preset": 0,
+				"style": {
+					"texture_path": "res://art/auto_ui/background_01.png",
+					"modulate_alpha": 1.0,
+					"stretch_mode": 6
+				}
+			},
+			{
+				"type": "Label",
+				"name": "Title",
+				"position": [
+					144,
+					64
+				],
+				"size": [
+					480,
+					64
+				],
+				"min_size": [
+					480,
+					64
+				],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"text": "太玄宗",
+					"font_size": 44,
+					"color": [
+						0.78,
+						0.66,
+						0.42,
+						1.0
+					],
+					"horizontal_alignment": 1,
+					"vertical_alignment": 1,
+					"font_path": ""
+				}
+			},
+			{
+				"type": "TextureRect",
+				"name": "Portrait",
+				"position": [
+					194,
+					376
+				],
+				"size": [
+					380,
+					540
+				],
+				"min_size": [
+					380,
+					540
+				],
+				"z_index": 1,
+				"anchor_preset": 0,
+				"style": {
+					"texture_path": "res://art/auto_ui/portrait_01.png",
+					"modulate_alpha": 1.0,
+					"stretch_mode": 4
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "Panel",
+				"position": [
+					84,
+					618
+				],
+				"size": [
+					600,
+					360
+				],
+				"min_size": [
+					600,
+					360
+				],
+				"z_index": 2,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [
+						0.07,
+						0.13,
+						0.11,
+						0.92
+					],
+					"border_color": [
+						0.78,
+						0.66,
+						0.42,
+						1.0
+					],
+					"border_width": 3,
+					"corner_radius": 12,
+					"bg_path": "",
+					"bg_nine_patch": true,
+					"bg_margin_left": 0,
+					"bg_margin_top": 0,
+					"bg_margin_right": 0,
+					"bg_margin_bottom": 0,
+					"bg_axis_h": 0,
+					"bg_axis_v": 0
+				}
+			},
+			{
+				"type": "TextureRect",
+				"name": "AvatarFrame",
+				"position": [
+					594,
+					24
+				],
+				"size": [
+					150,
+					150
+				],
+				"min_size": [
+					150,
+					150
+				],
+				"z_index": 3,
+				"anchor_preset": 0,
+				"style": {
+					"texture_path": "res://art/auto_ui/avatar_frame_01.png",
+					"modulate_alpha": 1.0,
+					"stretch_mode": 0
+				}
+			},
+			{
+				"type": "Button",
+				"name": "EnterBtn",
+				"position": [
+					254,
+					1174
+				],
+				"size": [
+					260,
+					80
+				],
+				"min_size": [
+					260,
+					80
+				],
+				"z_index": 4,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "进入宗门",
+					"icon_path": "",
+					"bg_path": "res://art/auto_ui/button_01.png",
+					"font_size": 26,
+					"color": [
+						1.0,
+						1.0,
+						1.0,
+						1.0
+					],
+					"bg_nine_patch": true,
+					"bg_margin_left": 24,
+					"bg_margin_top": 24,
+					"bg_margin_right": 24,
+					"bg_margin_bottom": 24,
+					"bg_axis_h": 0,
+					"bg_axis_v": 0
+				}
+			}
+		]
+	},
+	"editor": {}
+}

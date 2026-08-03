@@ -1,0 +1,11 @@
+﻿role_id,name,gender,age_range,temperament,face_shape,hair_style,hair_color,costume_type,main_color,weapon,pose_id,priority,ref_path,status,notes
+"disciple_001","铁骨","男","青年","刚毅沉稳","方脸","束发短须","玄黑","玄铁重甲","暗金+玄铁灰","巨阙重剑","stand; battle","1","reference/character_001_ref.jpg","未生成","近战男弟子验证组；战甲金属质感写实；姿态含战斗起手"
+"disciple_002","凌霜","女","少女","清冷孤傲","鹅蛋脸","高马尾长直发","墨黑霜白","青碧法袍长裙","青碧+月白","玉箫（远程法器）","stand; halfbody","1","reference/character_002_ref.jpg","未生成","远程女弟子验证组；飘逸长裙；远程施法姿态"
+"disciple_003","慈音","女","青年","温润亲和","圆脸","垂鬟披发","栗棕","素白道袍","素白+淡金","玉葫芦（疗伤法器）","stand; halfbody","1","reference/character_003_ref.jpg","未生成","辅助治疗型验证组；柔和光感；半身教辅姿态"
+
+
+
+
+
+
+

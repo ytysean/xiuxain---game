@@ -1,0 +1,5 @@
+﻿scene_id,scene_name,season,season_label,priority,brightness_target,color_overlay,out_name,status
+sect_gate,宗门山门,spring,春,P0,0.47,#FFE4EC,home_bg_spring.png,已验收
+sect_gate,宗门山门,summer,夏,P0,0.36,#BFE3FF,home_bg_summer.png,已验收
+sect_gate,宗门山门,autumn,秋,P0,0.29,#FFB066,home_bg_autumn.png,已验收
+sect_gate,宗门山门,winter,冬,P0,0.31,#Bcd4FF,home_bg_winter.png,已验收

@@ -1,9 +1,9 @@
 extends Control
 
 # 《太玄宗门录》S1 根 UI 合成场景（GameUI）。
-# 组合：TopBar（顶 48dp）+ 页面容器（中）+ BottomTabBar（底 64dp）。
+# 组合：TopBar（顶 56dp）+ 页面容器（中）+ BottomTabBar（底 60dp）。
 # 本场景仅做 UI 合成与信号转发，绝不连玩法 / 写 GameState / 写任何数值逻辑（铁律红线）。
-# 仅 宗门（SectHomePage）已建成；其余 Tab 显示轻量「建设中」占位，待后续真页面接入。
+# 仅 宗门（SectHomePage 展示型首页）已建成；其余 Tab 显示轻量「建设中」占位，待后续真页面接入。
 # 子节点在 _ready 内由代码构建（.tscn 仅含根节点 + 本脚本），保证场景可独立实例化。
 
 const TopBarScene: PackedScene = preload("res://ui/top_bar.tscn")
@@ -14,14 +14,19 @@ const PageBuildingScene: PackedScene = preload("res://ui/page_building.tscn")
 const PageExploreScene: PackedScene = preload("res://ui/page_explore.tscn")
 const PageChronicleScene: PackedScene = preload("res://ui/page_chronicle.tscn")
 
-# 与 BottomTabBar.TABS 保持一致（§7.1）；首位 宗门 为已建成页。
-const PAGE_IDS: Array = ["宗门", "弟子", "建筑", "历练", "纪事"]
+# 与 BottomTabBar.TABS 保持一致（§7.1）；首位 宗门 为已建成展示型首页（SectHomePage）。
+const PAGE_IDS: Array = ["宗门", "弟子", "殿阁", "历练", "纪事"]
+
+# 宗门首页网格入口别名路由（纯 UI 跳转，不碰玩法/战斗红线）：
+#   灵植 / 库藏 → 殿阁 Tab；秘境 → 历练 Tab。其余入口 id 与一级页同名，直跳。
+const ENTRY_ALIAS: Dictionary = {"灵植": "殿阁", "秘境": "历练", "库藏": "殿阁"}
 
 var _top_bar: Control
 var _bottom_bar: Control
 var _page_container: Control
 var _pages: Dictionary = {}
 var _current: Control
+var _页_宗门: Control = null
 
 func _ready() -> void:
 	_build()
@@ -57,10 +62,13 @@ func _build() -> void:
 	for id in PAGE_IDS:
 		match id:
 			"宗门":
-				_pages[id] = _make_real_page(SectHomePageScene, id)
+				var 宗门页: Control = _make_real_page(SectHomePageScene, id)
+				_页_宗门 = 宗门页
+				宗门页.entry_selected.connect(_on_首页入口)
+				_pages[id] = 宗门页
 			"弟子":
 				_pages[id] = _make_real_page(PageDiscipleScene, id)
-			"建筑":
+			"殿阁":
 				_pages[id] = _make_real_page(PageBuildingScene, id)
 			"历练":
 				_pages[id] = _make_real_page(PageExploreScene, id)
@@ -85,15 +93,9 @@ func add_top_corner_control(control: Control) -> void:
 
 # ───────── 首屏安全默认值 + 概览刷新 ─────────
 func _apply_safe_defaults() -> void:
-	# 只读安全默认值（零/空），绝不读 Game / 改玩法。
-	_top_bar.set_time("时辰")
-	_top_bar.set_sect_level("宗门")
-	_top_bar.set_level_progress(0.0)
-	_top_bar.set_resource("灵石", "", false)
-	_top_bar.set_resource("灵气", "", false)
-	_top_bar.set_resource("弟子", "", false)
-	# 首屏刷新：所有真实页统一 refresh()（宗门页提供 refresh_overview()，其余提供 refresh()）。
-	# 全部只读 Game，内部已做 null 守卫；绝不写 GameState / 玩法。
+	# 顶部栏资源只读刷新（Game 已就绪；top_bar._ready 亦会刷一次，此处确保首屏安全值）。
+	_top_bar.refresh_resources()
+	# 首屏刷新：所有真实页统一 refresh()（首页与其余页均提供 refresh()，只读 Game，绝不写 GameState / 玩法）。
 	_refresh_all_pages()
 
 func _select_initial() -> void:
@@ -115,6 +117,12 @@ func _show_page(tab_id: String) -> void:
 func _on_tab_selected(tab_id: String) -> void:
 	_show_page(tab_id)
 
+# 首页网格入口（sect_home_page.entry_selected）：纯 UI 别名路由 → 一级页切页，不碰玩法/战斗红线
+func _on_首页入口(entry_id: String) -> void:
+	var target: String = ENTRY_ALIAS.get(entry_id, entry_id)
+	if target in PAGE_IDS:
+		_show_page(target)
+
 # 推演时日：时间推进待玩法侧接入；当前仅占位日志，不写任何玩法/战斗逻辑。
 func _on_time_advance_requested() -> void:
 	print("[GameUI] 推演时日 触发（时间推进待玩法侧接入，当前仅占位日志，未触碰玩法/战斗）")
@@ -123,6 +131,8 @@ func _on_time_advance_requested() -> void:
 
 # 对所有真实页触发只读刷新（宗门→refresh_overview，其余→refresh）。
 func _refresh_all_pages() -> void:
+	# 顶部栏资源只读刷新（推演 / 新游戏 / 读档后统一重拉，零玩法/战斗触碰）。
+	_top_bar.refresh_resources()
 	for id in PAGE_IDS:
 		var page: Control = _pages.get(id, null)
 		if page == null:

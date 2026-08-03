@@ -1,10 +1,250 @@
-[gd_scene format=3]
+[gd_scene format=3 load_steps=10]
 
 [ext_resource type="Script" path="res://ui/top_bar.gd" id="1_tb"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingshi.png" id="2_ls"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingqi.png" id="3_lq"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingzhi.png" id="4_cy"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/res_shengwang.png" id="5_sw"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ls"]
+bg_color = Color(0.12, 0.2, 0.24, 1)
+corner_radius_top_left = 11
+corner_radius_top_right = 11
+corner_radius_bottom_right = 11
+corner_radius_bottom_left = 11
+border_color = Color(0.78, 0.66, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lq"]
+bg_color = Color(0.12, 0.22, 0.2, 1)
+corner_radius_top_left = 11
+corner_radius_top_right = 11
+corner_radius_bottom_right = 11
+corner_radius_bottom_left = 11
+border_color = Color(0.78, 0.66, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cy"]
+bg_color = Color(0.1, 0.18, 0.12, 1)
+corner_radius_top_left = 11
+corner_radius_top_right = 11
+corner_radius_bottom_right = 11
+corner_radius_bottom_left = 11
+border_color = Color(0.78, 0.66, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sw"]
+bg_color = Color(0.25, 0.2, 0.12, 1)
+corner_radius_top_left = 11
+corner_radius_top_right = 11
+corner_radius_bottom_right = 11
+corner_radius_bottom_left = 11
+border_color = Color(0.78, 0.66, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
 
 [node name="TopBar" type="Control"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_bottom = 56.0
+grow_horizontal = 2
 script = ExtResource("1_tb")
+
+[node name="Capsule" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 6.0
+offset_right = 468.0
+offset_bottom = 50.0
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 7.0
+offset_right = 160.0
+offset_bottom = 37.0
+text = "太玄宗门录"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="BG_灵石" type="Panel" parent="Capsule"]
+layout_mode = 0
+offset_left = 166.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 34.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ls")
+
+[node name="Icon_灵石" type="TextureRect" parent="Capsule"]
+layout_mode = 0
+offset_left = 168.0
+offset_top = 12.0
+offset_right = 188.0
+offset_bottom = 32.0
+mouse_filter = 2
+stretch_mode = 5
+expand_mode = 1
+texture = ExtResource("2_ls")
+
+[node name="Name_灵石" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 192.0
+offset_top = 10.0
+offset_right = 240.0
+offset_bottom = 24.0
+text = "灵石"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_灵石" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 192.0
+offset_top = 24.0
+offset_right = 240.0
+offset_bottom = 44.0
+text = "0"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="BG_灵气" type="Panel" parent="Capsule"]
+layout_mode = 0
+offset_left = 238.0
+offset_top = 10.0
+offset_right = 262.0
+offset_bottom = 34.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_lq")
+
+[node name="Icon_灵气" type="TextureRect" parent="Capsule"]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 12.0
+offset_right = 260.0
+offset_bottom = 32.0
+mouse_filter = 2
+stretch_mode = 5
+expand_mode = 1
+texture = ExtResource("3_lq")
+
+[node name="Name_灵气" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 10.0
+offset_right = 312.0
+offset_bottom = 24.0
+text = "灵气"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_灵气" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 264.0
+offset_top = 24.0
+offset_right = 312.0
+offset_bottom = 44.0
+text = "0"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="BG_灵植" type="Panel" parent="Capsule"]
+layout_mode = 0
+offset_left = 310.0
+offset_top = 10.0
+offset_right = 334.0
+offset_bottom = 34.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_cy")
+
+[node name="Icon_灵植" type="TextureRect" parent="Capsule"]
+layout_mode = 0
+offset_left = 312.0
+offset_top = 12.0
+offset_right = 332.0
+offset_bottom = 32.0
+mouse_filter = 2
+stretch_mode = 5
+expand_mode = 1
+texture = ExtResource("4_cy")
+
+[node name="Name_灵植" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 10.0
+offset_right = 384.0
+offset_bottom = 24.0
+text = "灵植"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_灵植" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 24.0
+offset_right = 384.0
+offset_bottom = 44.0
+text = "0"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="BG_声望" type="Panel" parent="Capsule"]
+layout_mode = 0
+offset_left = 382.0
+offset_top = 10.0
+offset_right = 406.0
+offset_bottom = 34.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_sw")
+
+[node name="Icon_声望" type="TextureRect" parent="Capsule"]
+layout_mode = 0
+offset_left = 384.0
+offset_top = 12.0
+offset_right = 404.0
+offset_bottom = 32.0
+mouse_filter = 2
+stretch_mode = 5
+expand_mode = 1
+texture = ExtResource("5_sw")
+
+[node name="Name_声望" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 408.0
+offset_top = 10.0
+offset_right = 456.0
+offset_bottom = 24.0
+text = "声望"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Value_声望" type="Label" parent="Capsule"]
+layout_mode = 0
+offset_left = 408.0
+offset_top = 24.0
+offset_right = 456.0
+offset_bottom = 44.0
+text = "0"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2

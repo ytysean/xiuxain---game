@@ -46,8 +46,8 @@ func _测是否需干预():
 func _测抽取契约键():
 	var d := Disciple.new()
 	var q: Dictionary = Quest.抽取(d)
-	assert(q.has("文案") and q.has("稀有度") and q.has("需干预") and q.has("奖励"), "抽取缺契约键")
-	assert(q["奖励"] == null, "兜底期奖励应 null")
+	assert(q.has("文案") and q.has("稀有度") and q.has("需干预") and q.has("赏赐"), "抽取缺契约键")
+	assert(q["赏赐"] == null, "兜底期赏赐应 null")
 	assert(q["需干预"] == false, "兜底期需干预应 false")
 	assert(q["文案"] != "", "文案不应空")
 	assert(Quest.干预选项.size() == 3, "干预选项应 3 档")

@@ -28,7 +28,7 @@ reps.append((
     1,
 ))
 
-# ---- C) 新手阶梯 UI 函数块（插在 _引导_收尾 前）----
+# ---- C) 新手阶梯 UI 函数块（插在 _入门指引_收尾 前）----
 UI_BLOCK = (
     "# ===== P0 目标链系统 · 新手阶梯 UI（玉牌入口 / 宗门要务面板 / Tab 红点 / 跳转 / 数值跳字）=====\n"
     "var _last_新手完成数: int = 0\n"
@@ -166,7 +166,7 @@ UI_BLOCK = (
     "\t\t\"宗门\":\n"
     "\t\t\t_on_主导航切换(0)\n"
     "\t\t\tif 段.size() > 1 and 段[1] == \"收益栏\":\n"
-    "\t\t\t\t_进_二级页(\"账册\")\n"
+    "\t\t\t\t_进_二级页(\"库藏\")\n"
     "\t\t\"弟子\":\n"
     "\t\t\tif 段.size() > 1:\n"
     "\t\t\t\tmatch 段[1]:\n"
@@ -196,8 +196,8 @@ UI_BLOCK = (
     "\n"
 )
 reps.append((
-    "func _引导_收尾():",
-    UI_BLOCK + "func _引导_收尾():",
+    "func _入门指引_收尾():",
+    UI_BLOCK + "func _入门指引_收尾():",
     1,
 ))
 
@@ -216,7 +216,7 @@ reps.append((
     "\t文.add_theme_color_override(\"font_color\", 宣纸亮)\n"
     "\t泡.add_child(文)\n"
     "\tvar 关 := Button.new(); 关.text = \"知道了\"\n"
-    "\t关.pressed.connect(func(): _引导_清除())\n"
+    "\t关.pressed.connect(func(): _入门指引_清除())\n"
     "\t泡.add_child(关)",
     "\tvar 文 := Label.new()\n"
     "\t文.text = \"【宗门初立指南】掌门既已立足，宗门初立，诸事待举。谨奉三策：\\n一、开坛接引，广纳门人；\\n二、稽核收益，开源节流；\\n三、遣徒历练，访道寻机。\\n愿掌门循序渐进，早壮玄门。\"\n"
@@ -227,47 +227,47 @@ reps.append((
     "\tvar 跳1 := Button.new(); 跳1.text = \"前往·接引弟子\"\n"
     "\t跳1.add_theme_stylebox_override(\"normal\", _主按钮样式())\n"
     "\t跳1.add_theme_color_override(\"font_color\", BTN_主字)\n"
-    "\t跳1.pressed.connect(func(): _引导_清除(); _跳转(\"弟子/接引\"))\n"
+    "\t跳1.pressed.connect(func(): _入门指引_清除(); _跳转(\"弟子/接引\"))\n"
     "\tvar 跳2 := Button.new(); 跳2.text = \"查看·宗门收益\"\n"
     "\t跳2.add_theme_stylebox_override(\"normal\", _主按钮样式())\n"
     "\t跳2.add_theme_color_override(\"font_color\", BTN_主字)\n"
-    "\t跳2.pressed.connect(func(): _引导_清除(); _跳转(\"宗门/收益栏\"))\n"
+    "\t跳2.pressed.connect(func(): _入门指引_清除(); _跳转(\"宗门/收益栏\"))\n"
     "\tvar 跳3 := Button.new(); 跳3.text = \"开启·历练\"\n"
     "\t跳3.add_theme_stylebox_override(\"normal\", _主按钮样式())\n"
     "\t跳3.add_theme_color_override(\"font_color\", BTN_主字)\n"
-    "\t跳3.pressed.connect(func(): _引导_清除(); _跳转(\"历练/秘境\"))\n"
+    "\t跳3.pressed.connect(func(): _入门指引_清除(); _跳转(\"历练/秘境\"))\n"
     "\t跳行.add_child(跳1); 跳行.add_child(跳2); 跳行.add_child(跳3)\n"
     "\t泡.add_child(跳行)\n"
     "\tvar 关 := Button.new(); 关.text = \"知道了\"\n"
     "\t关.add_theme_stylebox_override(\"normal\", _次按钮样式())\n"
     "\t关.add_theme_color_override(\"font_color\", BTN_次字)\n"
-    "\t关.pressed.connect(func(): _引导_清除())\n"
+    "\t关.pressed.connect(func(): _入门指引_清除())\n"
     "\t泡.add_child(关)",
     1,
 ))
 
-# ---- F+G) 每日任务：领取数值跳字 + 前往按钮（按 jump_path）；合并为唯一锚点（仅每日领取闭包）----
+# ---- F+G) 每日差事：领取数值跳字 + 前往按钮（按 jump_path）；合并为唯一锚点（仅每日领取闭包）----
 reps.append((
     "\t\tvar 领 := Button.new(); 领.text = \"领取\" if not 已领 else \"已领\"\n"
     "\t\t领.disabled = 已领\n"
     "\t\t领.pressed.connect(func():\n"
     "\t\t\tvar res: Dictionary = Game.领取日常(i)\n"
-    "\t\t\t_任务提示 = res.get(\"msg\", \"\")\n"
-    "\t\t\t_刷新_任务页(结果)\n"
+    "\t\t\t_差事提示 = res.get(\"msg\", \"\")\n"
+    "\t\t\t_刷新_差事页(结果)\n"
     "\t\t)\n"
     "\t\t行.add_child(标); 行.add_child(领)\n"
-    "\t\t任务列.add_child(行)",
+    "\t\t差事列.add_child(行)",
     "\t\tvar 领 := Button.new(); 领.text = \"领取\" if not 已领 else \"已领\"\n"
     "\t\t领.disabled = 已领\n"
     "\t\t领.pressed.connect(func():\n"
     "\t\t\tvar res: Dictionary = Game.领取日常(i)\n"
-    "\t\t\t_任务提示 = res.get(\"msg\", \"\")\n"
+    "\t\t\t_差事提示 = res.get(\"msg\", \"\")\n"
     "\t\t\tif res.get(\"ok\", false):\n"
     "\t\t\t\tvar qq: Dictionary = Game.当前日常[i]\n"
-    "\t\t\t\tvar 灵: int = int(float(qq.get(\"reward_lingjing\", \"0\")) * Game.任务奖励系数())\n"
-    "\t\t\t\tvar 气: int = int(float(qq.get(\"reward_lingqi\", \"0\")) * Game.任务奖励系数())\n"
-    "\t\t\t\t_数值跳字(任务列, \"灵石+%d 灵气+%d\" % [灵, 气], 玉石绿)\n"
-    "\t\t\t_刷新_任务页(结果)\n"
+    "\t\t\t\tvar 灵: int = int(float(qq.get(\"reward_lingjing\", \"0\")) * Game.差事赏赐系数())\n"
+    "\t\t\t\tvar 气: int = int(float(qq.get(\"reward_lingqi\", \"0\")) * Game.差事赏赐系数())\n"
+    "\t\t\t\t_数值跳字(差事列, \"灵石+%d 灵气+%d\" % [灵, 气], 玉石绿)\n"
+    "\t\t\t_刷新_差事页(结果)\n"
     "\t\t)\n"
     "\t\t行.add_child(标); 行.add_child(领)\n"
     "\t\tif not 已领 and q.get(\"jump_path\", \"\") != \"\":\n"
@@ -276,7 +276,7 @@ reps.append((
     "\t\t\t往.add_theme_color_override(\"font_color\", BTN_次字)\n"
     "\t\t\t往.pressed.connect(_跳转.bind(q.get(\"jump_path\", \"\")))\n"
     "\t\t\t行.add_child(往)\n"
-    "\t\t任务列.add_child(行)",
+    "\t\t差事列.add_child(行)",
     1,
 ))
 

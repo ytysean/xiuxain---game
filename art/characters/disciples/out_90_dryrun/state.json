@@ -1,0 +1,28 @@
+{
+  "done": {
+    "jin_chen_common_01": {
+      "path": "../out_90_dryrun\\jin\\chen\\common\\disciple_jin_chen_common_01.png",
+      "status": "dryrun"
+    },
+    "jin_chen_common_02": {
+      "path": "../out_90_dryrun\\jin\\chen\\common\\disciple_jin_chen_common_02.png",
+      "status": "dryrun"
+    },
+    "jin_chen_common_03": {
+      "path": "../out_90_dryrun\\jin\\chen\\common\\disciple_jin_chen_common_03.png",
+      "status": "dryrun"
+    },
+    "jin_chen_elite_01": {
+      "path": "../out_90_dryrun\\jin\\chen\\elite\\disciple_jin_chen_elite_01.png",
+      "status": "dryrun"
+    },
+    "jin_chen_elite_02": {
+      "path": "../out_90_dryrun\\jin\\chen\\elite\\disciple_jin_chen_elite_02.png",
+      "status": "dryrun"
+    },
+    "jin_chen_elite_03": {
+      "path": "../out_90_dryrun\\jin\\chen\\elite\\disciple_jin_chen_elite_03.png",
+      "status": "dryrun"
+    }
+  }
+}

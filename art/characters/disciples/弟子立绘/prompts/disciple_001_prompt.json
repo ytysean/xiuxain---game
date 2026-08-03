@@ -1,0 +1,29 @@
+{
+  "role_id": "disciple_001",
+  "name": "铁骨",
+  "gender": "男",
+  "age_range": "青年",
+  "temperament": "刚毅沉稳",
+  "face_shape": "方脸",
+  "hair_style": "束发短须",
+  "hair_color": "玄黑",
+  "costume_type": "玄铁重甲",
+  "main_color": "暗金+玄铁灰",
+  "weapon": "巨阙重剑",
+  "weapon_verb": "背负",
+  "negative_extra_cn": "柔弱、女气、轻浮、花哨纹样、铠甲破损",
+  "negative_extra_en": "feminine, weak, frivolous, ornate patterns, broken armor",
+  "personality": "chen",
+  "poses": {
+    "stand": {
+      "pose_type": "stand",
+      "desc_cn": "直立端正，肩线水平，重心垂直，双手握巨阙重剑垂于身前，气机沉稳内敛，不偏头不晃身",
+      "desc_en": "upright composed stance, level shoulders, vertical center of gravity, holding the great sword vertically in front, steady restrained aura, no head tilt"
+    },
+    "battle": {
+      "pose_type": "battle",
+      "desc_cn": "前倾跨步，右臂高举巨阙重剑欲劈，左臂前伸格挡，双肩绷紧，杀机外显，战斗起手式",
+      "desc_en": "leaning forward mid-stride, right arm raising the great sword to strike, left arm extended to guard, shoulders tense, battle-ready starting stance"
+    }
+  }
+}

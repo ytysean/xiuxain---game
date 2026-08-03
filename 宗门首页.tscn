@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://j8r51qt4hqvn"]
+
+[ext_resource type="Texture2D" uid="uid://c7bqcpmojbtju" path="res://art/backgrounds/home_bg_season_autumn.png" id="1_fvxuu"]
+
+[node name="宗门首页" type="Control" unique_id=1204833873]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 480.0
+offset_bottom = 854.0
+
+[node name="背景" type="TextureRect" parent="." unique_id=99619219]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_fvxuu")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="状态栏背景" type="ColorRect" parent="." unique_id=800163062]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 48.0
+color = Color(0.05882353, 0.09411765, 0.08235294, 0.54901963)
+
+[node name="顶部状态栏" type="HBoxContainer" parent="." unique_id=575515182]
+layout_mode = 0
+offset_right = 480.0
+offset_bottom = 48.0
+alignment = 1
+
+[node name="灵石" type="Label" parent="顶部状态栏" unique_id=393768686]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "灵石 999
+"
+
+[node name="体力" type="Label" parent="顶部状态栏" unique_id=1080727272]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "体力 50
+"
+
+[node name="声望" type="Label" parent="顶部状态栏" unique_id=775169741]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "声望 120
+"
+
+[node name="底部tab栏" type="HBoxContainer" parent="." unique_id=1963375248]
+layout_mode = 0
+offset_top = 774.0
+offset_right = 480.0
+offset_bottom = 854.0
+
+[node name="宗门" type="Label" parent="底部tab栏" unique_id=1282705549]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "宗门"
+
+[node name="弟子" type="Label" parent="底部tab栏" unique_id=1375242490]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "弟子"
+
+[node name="殿阁" type="Label" parent="底部tab栏" unique_id=1149362521]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "殿阁"
+
+[node name="历练" type="Label" parent="底部tab栏" unique_id=410996851]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "历练"
+
+[node name="纪事" type="Label" parent="底部tab栏" unique_id=787541115]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "纪事"

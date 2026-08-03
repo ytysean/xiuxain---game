@@ -1,0 +1,120 @@
+{
+  "meta": {
+    "project": "太玄宗门录",
+    "purpose": "UI 核心按钮无水印重出 · 单一事实源（对接 batch_generate_ui.py）",
+    "style": "写实国漫油画风修真 UI",
+    "color_lock": {
+      "墨青底板": "#1E2B28",
+      "暗金描边": "#C8A86A",
+      "宣纸米白文字": "#F4EFE3"
+    },
+    "prompt_template_cn": "写实国漫油画风修真UI组件，深青灰哑光金属底板 (#1E2B28)，暗金 (#C8A86A) 浮雕外描边与细内描边，表面细密祥云暗纹浮雕，中心主体为「{icon}」，{state}无文字无字母无数字，纯透明背景，绝对无背景无地面无投影无白边，高质量精细笔触，柔和体积光，4K级细节",
+    "prompt_template_en": "realistic guoman oil-painting style xianxia UI component, dark teal-grey matte metal baseplate (#1E2B28), dark gold (#C8A86A) embossed outer and inner border, fine cloud-pattern relief on surface, center subject: {icon}, {state}no text no letters no numbers, pure transparent background, absolutely no background no floor no shadow no white edge, high quality fine brushwork, soft volumetric light, 4K detail",
+    "state_desc_cn": {
+      "normal": "常态平面受光，",
+      "hover": "悬浮态整体微提亮、顶部高光增强，",
+      "press": "点击态下沉、暗部加深、内阴影，",
+      "selected": "选中态暗金描边发光增强、外晕暖金光，"
+    },
+    "state_desc_en": {
+      "normal": "neutral flat lighting, ",
+      "hover": "hover state slightly brighter with enhanced top highlight, ",
+      "press": "pressed state recessed with deepened shadows and inner shadow, ",
+      "selected": "selected state enhanced glowing dark-gold border with warm outer halo, "
+    },
+    "negative_prompt": "文字, 字母, 数字, 水印, logo, 签名, 白色粗边框, 扁平矢量, 卡通Q版, 简化, 低质量, 低分辨率, 纯白背景, 杂乱背景, 现代元素, 赛博朋克, 霓虹, 过曝, 模糊, 畸变, 多余手指",
+    "gen_size": {
+      "square": [1024, 1024],
+      "bar": [1024, 256]
+    },
+    "deliver_size": {
+      "square": [256, 256],
+      "bar": [512, 128]
+    },
+    "watermark_clean_default": false,
+    "comfyui_ckpt": "请替换为你的本地 checkpoint 文件名（如 juggernautXL_v8.safetensors / 麦橘超然V8.safetensors），或在命令行用 --ckpt 覆盖",
+    "backend_note": "DryRun 仅产出参数日志（本沙箱可验证）；ComfyUI/A1111 需本地带卡端点。本地 SD 输出天然无水印，--watermark-clean 仅作平台通道应急兜底。透明背景需 --rmbg（rembg）或 ComfyUI 内 alpha 节点（如 LayerDiffuse）。"
+  },
+  "prompts": [
+    {"id": "nav_jy_normal", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "宗门大殿飞檐建筑剪影", "icon_en": "sect grand hall with flying-eave silhouette", "state": "normal"},
+    {"id": "nav_jy_selected", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "宗门大殿飞檐建筑剪影", "icon_en": "sect grand hall with flying-eave silhouette", "state": "selected"},
+    {"id": "nav_dz_normal", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "道冠修士侧身像", "icon_en": " Daoist-crowned cultivator in profile", "state": "normal"},
+    {"id": "nav_dz_selected", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "道冠修士侧身像", "icon_en": " Daoist-crowned cultivator in profile", "state": "selected"},
+    {"id": "nav_ll_normal", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "古朴飞剑斜插", "icon_en": "ancient flying sword planted diagonally", "state": "normal"},
+    {"id": "nav_ll_selected", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "古朴飞剑斜插", "icon_en": "ancient flying sword planted diagonally", "state": "selected"},
+    {"id": "nav_js_normal", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "卷云玉简", "icon_en": "cloud-scrolled jade slip", "state": "normal"},
+    {"id": "nav_js_selected", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "卷云玉简", "icon_en": "cloud-scrolled jade slip", "state": "selected"},
+    {"id": "nav_gd_normal", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "三枚并列圆点", "icon_en": "three equidistant dots", "state": "normal"},
+    {"id": "nav_gd_selected", "priority": "P0", "kind": "nav_tab", "shape": "square", "icon_cn": "三枚并列圆点", "icon_en": "three equidistant dots", "state": "selected"},
+
+    {"id": "btn_primary_normal", "priority": "P0", "kind": "primary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "btn_primary_hover", "priority": "P0", "kind": "primary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "hover"},
+    {"id": "btn_primary_press", "priority": "P0", "kind": "primary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "press"},
+    {"id": "btn_back_normal", "priority": "P0", "kind": "back_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "btn_back_press", "priority": "P0", "kind": "back_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "press"},
+
+    {"id": "grid_jz", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "层叠楼阁建筑微缩", "icon_en": "tiered pavilion miniature", "state": "normal"},
+    {"id": "grid_dz", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "弟子名册卷轴", "icon_en": "disciple roster scroll", "state": "normal"},
+    {"id": "grid_dq", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "丹炉与灵剑交叉", "icon_en": "alchemy cauldron crossed with spirit sword", "state": "normal"},
+    {"id": "grid_df", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "洞府山门牌坊", "icon_en": "cave-mansion mountain gate archway", "state": "normal"},
+    {"id": "grid_rw", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "任务玉牌", "icon_en": "quest jade tablet", "state": "normal"},
+    {"id": "grid_zc", "priority": "P1", "kind": "grid_entry", "shape": "square", "icon_cn": "账册算筹", "icon_en": "ledger with counting rods", "state": "normal"},
+
+    {"id": "bld_zd", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "宗门正殿巍峨剪影", "icon_en": "majestic sect main hall silhouette", "state": "normal"},
+    {"id": "bld_jy", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "接引堂迎客牌楼", "icon_en": "welcoming archway of reception hall", "state": "normal"},
+    {"id": "bld_lt", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "灵田梯田与灵气光点", "icon_en": "spirit-field terraces with qi light motes", "state": "normal"},
+    {"id": "bld_km", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "矿脉晶簇", "icon_en": "ore-vein crystal cluster", "state": "normal"},
+    {"id": "bld_tw", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "探微阁星盘浑天仪", "icon_en": "astronomical armillary sphere", "state": "normal"},
+    {"id": "bld_dt", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "丹堂三足丹炉", "icon_en": "three-legged alchemy cauldron", "state": "normal"},
+    {"id": "bld_qt", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "器堂锻造铁砧", "icon_en": "forge anvil", "state": "normal"},
+    {"id": "bld_gx", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "功勋阁勋章令旗", "icon_en": "merit hall medal and banner", "state": "normal"},
+    {"id": "bld_zt", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "阵堂八卦阵盘", "icon_en": "bagua formation disk", "state": "normal"},
+    {"id": "bld_cs", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "多层楼阁与成捆竹简", "icon_en": "scripture hall with bamboo slips", "state": "normal"},
+    {"id": "bld_sy", "priority": "P1", "kind": "building_icon", "shape": "square", "icon_cn": "商驿货箱铜钱", "icon_en": "trading post crate and coins", "state": "normal"},
+
+    {"id": "btn_secondary_normal", "priority": "P1", "kind": "secondary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "btn_secondary_hover", "priority": "P1", "kind": "secondary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "hover"},
+    {"id": "btn_secondary_press", "priority": "P1", "kind": "secondary_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "press"},
+
+    {"id": "subtab_normal", "priority": "P1", "kind": "sub_tab", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "subtab_selected", "priority": "P1", "kind": "sub_tab", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央暗金高亮", "icon_en": "clean metal baseplate with dark-gold highlight center", "state": "selected"},
+
+    {"id": "slot_fan", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "素银灰品级辉光的空物品格", "icon_en": "empty item slot with plain silver-grey grade glow", "state": "normal"},
+    {"id": "slot_ling", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "青玉品级辉光的空物品格", "icon_en": "empty item slot with jade-green grade glow", "state": "normal"},
+    {"id": "slot_bao", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "碧绿品级辉光的空物品格", "icon_en": "empty item slot with emerald grade glow", "state": "normal"},
+    {"id": "slot_wang", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "赤金品级辉光的空物品格", "icon_en": "empty item slot with red-gold grade glow", "state": "normal"},
+    {"id": "slot_sheng", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "紫晶品级辉光的空物品格", "icon_en": "empty item slot with amethyst grade glow", "state": "normal"},
+    {"id": "slot_xian", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "月白品级辉光的空物品格", "icon_en": "empty item slot with moon-white grade glow", "state": "normal"},
+    {"id": "slot_dao", "priority": "P1", "kind": "item_slot", "shape": "square", "icon_cn": "混沌玄金品级辉光的空物品格", "icon_en": "empty item slot with primordial dark-gold grade glow", "state": "normal"},
+
+    {"id": "play_lj", "priority": "P1", "kind": "play_btn", "shape": "square", "icon_cn": "飞剑与远山（历练派遣）", "icon_en": "flying sword and distant mountains (dispatch)", "state": "normal"},
+    {"id": "play_lz", "priority": "P1", "kind": "play_btn", "shape": "square", "icon_cn": "丹炉火纹（炼制）", "icon_en": "cauldron flame pattern (refine)", "state": "normal"},
+    {"id": "play_zm", "priority": "P1", "kind": "play_btn", "shape": "square", "icon_cn": "令旗与号角", "icon_en": "talent-recruit banner (recruit)", "state": "normal"},
+    {"id": "play_tp", "priority": "P1", "kind": "play_btn", "shape": "square", "icon_cn": "破境雷纹（突破）", "icon_en": "tribulation thunder pattern (breakthrough)", "state": "normal"},
+
+    {"id": "op_renming", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "朱砂官印与绶带", "icon_en": "official seal of appointment", "state": "normal"},
+    {"id": "op_bamian", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "破碎官印与断裂绶带", "icon_en": "broken seal of dismissal", "state": "normal"},
+    {"id": "op_auto", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "齿轮循环（自动管理）", "icon_en": "gear loop (auto-manage)", "state": "normal"},
+    {"id": "op_tiaopei", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "调配天平", "icon_en": "allocation balance scale", "state": "normal"},
+    {"id": "op_shenhe", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "朱红毛笔与卷宗", "icon_en": "vermilion review (audit)", "state": "normal"},
+    {"id": "op_jilu", "priority": "P2", "kind": "op_btn", "shape": "square", "icon_cn": "玉简与毛笔", "icon_en": "jade-slip record", "state": "normal"},
+
+    {"id": "refine_start", "priority": "P2", "kind": "refine_btn", "shape": "square", "icon_cn": "点燃丹火（开始炼制）", "icon_en": "ignite cauldron fire (start refine)", "state": "normal"},
+    {"id": "refine_speed", "priority": "P2", "kind": "refine_btn", "shape": "square", "icon_cn": "加速风纹（加速）", "icon_en": "acceleration wind pattern (speed up)", "state": "normal"},
+    {"id": "refine_recipe", "priority": "P2", "kind": "refine_btn", "shape": "square", "icon_cn": "丹方卷轴与草药", "icon_en": "swap recipe slip (change recipe)", "state": "normal"},
+    {"id": "refine_array", "priority": "P2", "kind": "refine_btn", "shape": "square", "icon_cn": "布阵星图（布阵）", "icon_en": "deploy formation star-map (array)", "state": "normal"},
+
+    {"id": "filter_normal", "priority": "P2", "kind": "filter_tab", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "filter_selected", "priority": "P2", "kind": "filter_tab", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央暗金高亮", "icon_en": "clean metal baseplate with dark-gold highlight center", "state": "selected"},
+
+    {"id": "shop_signin", "priority": "P2", "kind": "shop_btn", "shape": "square", "icon_cn": "签到日晷", "icon_en": "sign-in sundial", "state": "normal"},
+    {"id": "shop_mall", "priority": "P2", "kind": "shop_btn", "shape": "square", "icon_cn": "宝阁楼阁与珍宝", "icon_en": "treasure pavilion", "state": "normal"},
+    {"id": "shop_event", "priority": "P2", "kind": "shop_btn", "shape": "square", "icon_cn": "节庆灯笼", "icon_en": "festival lantern", "state": "normal"},
+    {"id": "shop_firstpay", "priority": "P2", "kind": "shop_btn", "shape": "square", "icon_cn": "首充玉匣", "icon_en": "first-pay jade chest", "state": "normal"},
+
+    {"id": "confirm_ok", "priority": "P2", "kind": "confirm_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "confirm_cancel", "priority": "P2", "kind": "confirm_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"},
+    {"id": "confirm_danger", "priority": "P2", "kind": "confirm_btn", "shape": "bar", "icon_cn": "无中心图案的暗红警示底板，中央留白", "icon_en": "clean dark-red warning baseplate with empty center", "state": "normal"},
+    {"id": "confirm_close", "priority": "P2", "kind": "confirm_btn", "shape": "bar", "icon_cn": "无中心图案的纯净金属底板，中央留白", "icon_en": "clean metal baseplate with empty center", "state": "normal"}
+  ]
+}

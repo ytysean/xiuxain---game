@@ -1,10 +1,233 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bcxfhaviwyp72"]
 
-[ext_resource type="Script" path="res://ui/bottom_tab_bar.gd" id="1_bt"]
+[ext_resource type="Script" uid="uid://bba0eg4uacp2j" path="res://ui/bottom_tab_bar.gd" id="1_bt"]
+[ext_resource type="Texture2D" uid="uid://cv7x8kde00tro" path="res://art/ui/buttons/nav_jy_normal.png" id="2_jy_n"]
+[ext_resource type="Texture2D" uid="uid://cv7x8kde00trp" path="res://art/ui/buttons/nav_jy_selected.png" id="2_jy_s"]
+[ext_resource type="Texture2D" uid="uid://dwubvq0mi20rt" path="res://art/ui/buttons/nav_dz_normal.png" id="3_dz_n"]
+[ext_resource type="Texture2D" uid="uid://dwubvq0mi20ru" path="res://art/ui/buttons/nav_dz_selected.png" id="3_dz_s"]
+[ext_resource type="Texture2D" uid="uid://drac8eqbgbdju" path="res://art/ui/buttons/grid_jz.png" id="4_jz"]
+[ext_resource type="Texture2D" uid="uid://gc6soslytv4f" path="res://art/ui/buttons/nav_ll_normal.png" id="5_ll_n"]
+[ext_resource type="Texture2D" uid="uid://gc6soslytv4g" path="res://art/ui/buttons/nav_ll_selected.png" id="5_ll_s"]
+[ext_resource type="Texture2D" uid="uid://6dosawnhisgt" path="res://art/ui/buttons/nav_js_normal.png" id="6_js_n"]
+[ext_resource type="Texture2D" uid="uid://6dosawnhishu" path="res://art/ui/buttons/nav_js_selected.png" id="6_js_s"]
 
-[node name="BottomTabBar" type="Control"]
+[node name="BottomTabBar" type="Control" unique_id=271650296]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("1_bt")
+
+[node name="BG" type="ColorRect" parent="." unique_id=1897169423]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_bt")
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.173, 0.243, 0.271, 0.92)
+
+[node name="TopDivider" type="ColorRect" parent="." unique_id=21045195]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 1.0
+color = Color(0.788, 0.651, 0.337, 1)
+
+[node name="Tab_宗门" type="TextureButton" parent="." unique_id=637561083]
+layout_mode = 0
+offset_top = 1.0
+offset_right = 96.0
+offset_bottom = 80.0
+
+[node name="Icon" type="TextureRect" parent="Tab_宗门" unique_id=1121700207]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("2_jy_n")
+
+[node name="Label" type="Label" parent="Tab_宗门" unique_id=539936724]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+text = "宗门"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+mouse_filter = 2
+
+[node name="Underline" type="ColorRect" parent="Tab_宗门" unique_id=335539990]
+visible = false
+layout_mode = 0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.902, 0.78, 0.471, 1)
+
+[node name="Tab_弟子" type="TextureButton" parent="." unique_id=308680821]
+layout_mode = 0
+offset_left = 96.0
+offset_top = 1.0
+offset_right = 192.0
+offset_bottom = 80.0
+
+[node name="Icon" type="TextureRect" parent="Tab_弟子" unique_id=1953017009]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("3_dz_n")
+
+[node name="Label" type="Label" parent="Tab_弟子" unique_id=52663355]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+text = "弟子"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+mouse_filter = 2
+
+[node name="Underline" type="ColorRect" parent="Tab_弟子" unique_id=1582530282]
+visible = false
+layout_mode = 0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.902, 0.78, 0.471, 1)
+
+[node name="Tab_殿阁" type="TextureButton" parent="." unique_id=198379330]
+layout_mode = 0
+offset_left = 192.0
+offset_top = 1.0
+offset_right = 288.0
+offset_bottom = 80.0
+
+[node name="Icon" type="TextureRect" parent="Tab_殿阁" unique_id=360901361]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("4_jz")
+
+[node name="Label" type="Label" parent="Tab_殿阁" unique_id=637813097]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+text = "殿阁"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+mouse_filter = 2
+
+[node name="Underline" type="ColorRect" parent="Tab_殿阁" unique_id=1279183104]
+visible = false
+layout_mode = 0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.902, 0.78, 0.471, 1)
+
+[node name="Tab_历练" type="TextureButton" parent="." unique_id=1054914546]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 1.0
+offset_right = 384.0
+offset_bottom = 80.0
+
+[node name="Icon" type="TextureRect" parent="Tab_历练" unique_id=202105613]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("5_ll_n")
+
+[node name="Label" type="Label" parent="Tab_历练" unique_id=406193818]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+text = "历练"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+mouse_filter = 2
+
+[node name="Underline" type="ColorRect" parent="Tab_历练" unique_id=1599068553]
+visible = false
+layout_mode = 0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.902, 0.78, 0.471, 1)
+
+[node name="Tab_纪事" type="TextureButton" parent="." unique_id=1758803624]
+layout_mode = 0
+offset_left = 384.0
+offset_top = 1.0
+offset_right = 480.0
+offset_bottom = 80.0
+
+[node name="Icon" type="TextureRect" parent="Tab_纪事" unique_id=464741449]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 68.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+texture = ExtResource("6_js_n")
+
+[node name="Label" type="Label" parent="Tab_纪事" unique_id=1785214762]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 54.0
+offset_right = 96.0
+offset_bottom = 74.0
+text = "纪事"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
+mouse_filter = 2
+
+[node name="Underline" type="ColorRect" parent="Tab_纪事" unique_id=1537878239]
+visible = false
+layout_mode = 0
+offset_top = 78.0
+offset_right = 96.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.902, 0.78, 0.471, 1)

@@ -1,0 +1,156 @@
+{
+	"format": "taixuan_ui",
+	"version": "1.0",
+	"doc": {
+		"version": "1.0",
+		"generator": "太玄UI编辑器",
+		"canvas": {
+			"width": 768,
+			"height": 1344,
+			"background_color": [0.06, 0.09, 0.08, 1.0]
+		},
+		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"reference_image": {
+			"path": "",
+			"opacity": 1.0,
+			"locked": false,
+			"visible": true,
+			"fit": "contain"
+		},
+		"controls": [
+			{
+				"type": "TextureRect",
+				"name": "BgImage",
+				"position": [0, 0],
+				"size": [768, 1344],
+				"min_size": [768, 1344],
+				"z_index": 0,
+				"anchor_preset": 0,
+				"style": {
+					"texture_path": "res://art/_legacy_assets/2cd711c2-5520-40f9-977d-2db8bd14131e.png",
+					"modulate_alpha": 0.55,
+					"stretch_mode": 6
+				}
+			},
+			{
+				"type": "Panel",
+				"name": "TitlePanel",
+				"position": [84, 360],
+				"size": [600, 520],
+				"min_size": [600, 520],
+				"z_index": 2,
+				"anchor_preset": 0,
+				"style": {
+					"bg_color": [0.07, 0.12, 0.10, 0.96],
+					"border_color": [0.78, 0.66, 0.42, 1.0],
+					"border_width": 3,
+					"corner_radius": 16
+				}
+			},
+			{
+				"type": "Label",
+				"name": "TitleLabel",
+				"position": [84, 400],
+				"size": [600, 60],
+				"min_size": [600, 60],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"text": "太玄宗",
+					"font_size": 22,
+					"color": [0.78, 0.66, 0.42, 1.0],
+					"horizontal_alignment": 1,
+					"vertical_alignment": 1,
+					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+				}
+			},
+			{
+				"type": "Label",
+				"name": "SloganLabel",
+				"position": [104, 480],
+				"size": [560, 44],
+				"min_size": [560, 44],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"text": "执掌太玄宗——从一座破落山门，重振仙宗。",
+					"font_size": 15,
+					"color": [0.93, 0.90, 0.84, 1.0],
+					"horizontal_alignment": 1,
+					"vertical_alignment": 1,
+					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+				}
+			},
+			{
+				"type": "Button",
+				"name": "EnterBtn",
+				"position": [214, 580],
+				"size": [340, 86],
+				"min_size": [340, 86],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "开新宗门",
+					"icon_path": "",
+					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf",
+					"font_size": 22,
+					"color": [1.0, 1.0, 1.0, 1.0],
+					"bg_path": "res://art/ui/buttons/_legacy_local/rect_pos_N.png",
+					"bg_nine_patch": true,
+					"bg_margin_left": 0,
+					"bg_margin_top": 0,
+					"bg_margin_right": 0,
+					"bg_margin_bottom": 0,
+					"bg_axis_h": 0,
+					"bg_axis_v": 0
+				}
+			},
+			{
+				"type": "Button",
+				"name": "BtnContinue",
+				"position": [214, 690],
+				"size": [340, 86],
+				"min_size": [340, 86],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"button_text": "继续",
+					"icon_path": "",
+					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf",
+					"font_size": 18,
+					"color": [1.0, 1.0, 1.0, 1.0],
+					"bg_path": "res://art/ui/buttons/_legacy_local/rect_neg_N.png",
+					"bg_nine_patch": true,
+					"bg_margin_left": 0,
+					"bg_margin_top": 0,
+					"bg_margin_right": 0,
+					"bg_margin_bottom": 0,
+					"bg_axis_h": 0,
+					"bg_axis_v": 0
+				}
+			},
+			{
+				"type": "Label",
+				"name": "FootnoteLabel",
+				"position": [84, 820],
+				"size": [600, 36],
+				"min_size": [600, 36],
+				"z_index": 5,
+				"anchor_preset": 0,
+				"style": {
+					"text": "又名：开局接手太玄宗",
+					"font_size": 13,
+					"color": [0.93, 0.90, 0.84, 1.0],
+					"horizontal_alignment": 1,
+					"vertical_alignment": 1,
+					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+				}
+			}
+		]
+	},
+	"editor": {
+		"grid_size": 40,
+		"zoom": 1.0,
+		"pan": [40, 40]
+	}
+}

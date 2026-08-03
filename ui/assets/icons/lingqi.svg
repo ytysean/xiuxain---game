@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- 灵气 / Spirit Qi — 状态栏"灵气"图标。流动气旋（两段流云），取天地灵气之象。-->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="#C8A86A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-  <!-- 主气旋（大回转的流云） -->
-  <path d="M14 44 Q20 32 30 38 Q42 44 38 28 Q32 16 46 22"/>
-  <!-- 小回旋（增强气流感） -->
-  <path d="M20 48 Q26 42 24 34"/>
-</svg>

@@ -1,0 +1,168 @@
+[gd_scene load_steps=8 format=3]
+[ext_resource type="Texture2D" uid="uid://1vquvcybwxfi" path="res://art/backgrounds/home_bg_season_spring.png" id="1"]
+[ext_resource type="FontFile" path="res://art/fonts/NotoSerifSC-Subset.otf" id="2"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/_legacy_local/rect_pos_N.png" id="3"]
+[ext_resource type="Texture2D" path="res://art/ui/buttons/_legacy_local/rect_neg_N.png" id="4"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.07, 0.12, 0.1, 0.96)
+border_color = Color(0.78, 0.66, 0.42, 1.0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_left = 16
+corner_radius_bottom_right = 16
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_2"]
+texture = ExtResource("3")
+nine_patch_stretch = true
+margin_left = 0.0
+margin_top = 0.0
+margin_right = 0.0
+margin_bottom = 0.0
+axis_stretch_horizontal = 0
+axis_stretch_vertical = 0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3"]
+texture = ExtResource("4")
+nine_patch_stretch = true
+margin_left = 0.0
+margin_top = 0.0
+margin_right = 0.0
+margin_bottom = 0.0
+axis_stretch_horizontal = 0
+axis_stretch_vertical = 0
+[node name="UI" type="Control"]
+layout_mode = 3
+offset_left = 0
+offset_top = 0
+offset_right = 768
+offset_bottom = 1344
+[node name="BgColor" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+offset_left = 0
+offset_top = 0
+offset_right = 768
+offset_bottom = 1344
+color = Color(0.06, 0.09, 0.08, 1.0)
+[node name="BgImage" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 768.0
+offset_bottom = 1344.0
+custom_minimum_size = Vector2(768.0, 1344.0)
+texture = ExtResource("1")
+expand_mode = 1
+stretch_mode = 6
+modulate = Color(1, 1, 1, 0.55)
+[node name="TitlePanel" type="Panel" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 84.0
+offset_top = 360.0
+offset_right = 684.0
+offset_bottom = 880.0
+custom_minimum_size = Vector2(600.0, 520.0)
+z_index = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_1")
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 84.0
+offset_top = 400.0
+offset_right = 684.0
+offset_bottom = 460.0
+custom_minimum_size = Vector2(600.0, 60.0)
+z_index = 5
+text = "太玄宗"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.78, 0.66, 0.42, 1.0)
+theme_override_fonts/font = ExtResource("2")
+[node name="SloganLabel" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 104.0
+offset_top = 480.0
+offset_right = 664.0
+offset_bottom = 524.0
+custom_minimum_size = Vector2(560.0, 44.0)
+z_index = 5
+text = "执掌太玄宗——从一座破落山门，重振仙宗。"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.93, 0.9, 0.84, 1.0)
+theme_override_fonts/font = ExtResource("2")
+[node name="EnterBtn" type="Button" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 214.0
+offset_top = 580.0
+offset_right = 554.0
+offset_bottom = 666.0
+custom_minimum_size = Vector2(340.0, 86.0)
+z_index = 5
+text = "开新宗门"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(1.0, 1.0, 1.0, 1.0)
+theme_override_fonts/font = ExtResource("2")
+theme_override_styles/normal = SubResource("StyleBoxTexture_2")
+theme_override_styles/hover = SubResource("StyleBoxTexture_2")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_2")
+[node name="BtnContinue" type="Button" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 214.0
+offset_top = 690.0
+offset_right = 554.0
+offset_bottom = 776.0
+custom_minimum_size = Vector2(340.0, 86.0)
+z_index = 5
+text = "继续"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1.0, 1.0, 1.0, 1.0)
+theme_override_fonts/font = ExtResource("2")
+theme_override_styles/normal = SubResource("StyleBoxTexture_3")
+theme_override_styles/hover = SubResource("StyleBoxTexture_3")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_3")
+[node name="FootnoteLabel" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 84.0
+offset_top = 820.0
+offset_right = 684.0
+offset_bottom = 856.0
+custom_minimum_size = Vector2(600.0, 36.0)
+z_index = 5
+text = "又名：开局接手太玄宗"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.93, 0.9, 0.84, 1.0)
+theme_override_fonts/font = ExtResource("2")

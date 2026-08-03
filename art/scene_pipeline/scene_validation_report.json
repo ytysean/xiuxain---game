@@ -1,0 +1,43 @@
+{
+  "canvas": [
+    960,
+    1708
+  ],
+  "center_max_brightness": 0.304,
+  "summary": {
+    "total": 1,
+    "合格": 1,
+    "需复核_构图": 0,
+    "不合格_亮度": 0,
+    "不合格_规格": 0
+  },
+  "details": [
+    {
+      "file": "E:/Xiuxian/taixuanzongmenlu\\art/backgrounds\\home_bg_sect_a.png",
+      "status": "合格",
+      "mode": "RGB",
+      "size": [
+        960,
+        1708
+      ],
+      "overall_brightness": 0.287,
+      "center_brightness": 0.257,
+      "center_max_allowed": 0.304,
+      "lower_center_mean": 0.293,
+      "lower_center_std": 0.125,
+      "sky_std": 0.105,
+      "mirror_diff": 0.128,
+      "mountain_centroid": 0.488,
+      "checks": {
+        "center_brightness_ok": true,
+        "resolution_ok": true,
+        "colorspace_ok": true,
+        "composition_suspicious": false,
+        "foreground_heavy_suspect": false,
+        "mirror_suspect": false,
+        "mountain_imbalance_suspect": false
+      },
+      "note": "构图最终需人工/视觉复核（脚本仅做启发式可疑标记，不假自动通过）"
+    }
+  ]
+}

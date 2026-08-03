@@ -100,7 +100,7 @@ A = {
     "treasure_sup":("support spirit treasure",
                     "jade ring-charm with simple inlay, matte",
                     "heavy dark gold ring-treasure with jade inlay and faint glow"),
-    # ---- 渡劫 / 任务 / 阵图 ----
+    # ---- 渡劫 / 差事 / 阵图 ----
     "tribulation": ("tribulation thunder motif relic",
                     "stylized lightning bolt relic, matte",
                     "heavy dark thunder relic with gold arc inlays and inner glow"),

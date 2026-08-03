@@ -1,14 +1,14 @@
 extends Control
 
-# 核心操作宫格（§7.2：上排3大按钮 建筑/坊市/修炼 + 下排3小按钮 洞府/任务/账册）。
+# 核心操作宫格（§7.2：上排3大按钮 殿阁/坊市/修炼 + 下排3小按钮 洞府/差事/库藏）。
 # 每个按钮发信号 action_requested(action_id)；仅发信号，不连玩法。
 
 signal action_requested(action_id: String)
 
 const ActionButtonScene: PackedScene = preload("res://ui/action_button.tscn")
 
-const BIG_ACTIONS: Array = ["建筑", "坊市", "修炼"]
-const SMALL_ACTIONS: Array = ["洞府", "任务", "账册"]
+const BIG_ACTIONS: Array = ["殿阁", "坊市", "修炼"]
+const SMALL_ACTIONS: Array = ["洞府", "差事", "库藏"]
 
 func _ready() -> void:
 	_build()

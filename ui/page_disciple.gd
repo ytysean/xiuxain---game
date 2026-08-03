@@ -275,17 +275,17 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	_list_vbox.add_child(UITheme.make_divider_control())
 
 func _derive_status(d: Object) -> String:
-	var 堂口 = _safe_get(d, "堂口", "")
-	if 堂口 == "" or 堂口 == null:
+	var 司职 = _safe_get(d, "司职", "")
+	if 司职 == "" or 司职 == null:
 		return "未入门"
 	var 突破 = _safe_get(d, "突破冷却剩余", 0)
 	if typeof(突破) == TYPE_FLOAT or typeof(突破) == TYPE_INT:
 		if float(突破) > 0.0:
 			return "闭关养伤"
-	var 考核 = _safe_get(d, "考核冷却剩余", 0)
-	if typeof(考核) == TYPE_INT or typeof(考核) == TYPE_FLOAT:
-		if int(考核) > 0:
-			return "考核冷却"
+	var 试炼 = _safe_get(d, "试炼冷却剩余", 0)
+	if typeof(试炼) == TYPE_INT or typeof(试炼) == TYPE_FLOAT:
+		if int(试炼) > 0:
+			return "试炼冷却"
 	return "在岗"
 
 func _on_disciple_item_selected(data: Dictionary) -> void:
@@ -465,8 +465,8 @@ func _populate_detail(d: Object, 索引: int) -> void:
 			命格文本 = str(dt.get("名称", did))
 		else:
 			命格文本 = str(did)
-	var 职业v = _safe_get(d, "职业", "")
-	var 职业文本 = "未入门" if (职业v == "" or 职业v == null) else str(职业v)
+	var 道途v = _safe_get(d, "道途", "")
+	var 道途文本 = "未入门" if (道途v == "" or 道途v == null) else str(道途v)
 	var 灵根品阶文本 = str(_safe_get(d, "灵根品阶", "—"))
 	var 灵根stem = _LINGGEN_QUALITY_STEM.get(灵根品阶文本, "fan")
 	var 灵根色 = UIThemeConfig.get_quality_color(灵根stem)
@@ -476,7 +476,7 @@ func _populate_detail(d: Object, 索引: int) -> void:
 		["灵根品阶", 灵根品阶文本, false, 灵根色],
 		["命格", 命格文本],
 		["性格", str(_safe_get(d, "性格", "—"))],
-		["职业", 职业文本],
+		["道途", 道途文本],
 	]
 	_add_section("资质灵根", 资质灵根)
 
@@ -511,10 +511,10 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	_add_section("修炼状态", 修炼状态, "danger" if 突破红点 else "", 修炼状态_extra)
 
 	var 任职: Array = [
-		["堂口", str(_safe_get(d, "堂口", "—"))],
+		["司职", str(_safe_get(d, "司职", "—"))],
 		["阶位", str(_safe_get(d, "阶位", "—"))],
-		["考核冷却剩余", str(_safe_get(d, "考核冷却剩余", "—"))],
-		["考核心得", str(_safe_get(d, "考核心得", "—"))],
+		["试炼冷却剩余", str(_safe_get(d, "试炼冷却剩余", "—"))],
+		["试炼心得", str(_safe_get(d, "试炼心得", "—"))],
 	]
 	_add_section("任职", 任职, "gold" if 有抉择 else "")
 

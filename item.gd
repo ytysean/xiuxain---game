@@ -2,7 +2,7 @@
 # 设计要点：
 #  · 五大类：丹药 / 灵材 / 法器 / 神兵 / 法宝
 #  · 七品阶：凡→灵→宝→王→圣→仙→道阶（天道），对应弟子境界与词缀数量
-#  · 法器/神兵/法宝可穿戴（9个位），神兵分剑/体/法三职业，法宝为本命独占位
+#  · 法器/神兵/法宝可穿戴（9个位），神兵分剑/体/法三道途，法宝为本命独占位
 #  · 暗黑式前后缀随机词缀（白/蓝/紫三档数值浮动），仙/道阶额外刷传奇极品特异
 #  · 词缀只增幅效率/buff/特效，绝不突破弟子资质境界天花板（守数值底线）
 class_name Item
@@ -14,7 +14,7 @@ const 类别权重 := {"dan_yao": 20.0, "ling_cai": 30.0, "fa_qi": 30.0, "shen_b
 # 类别拼音key→中文展示名（简介/显示用，杜绝拼音泄露到UI）
 const 类别中文名 := {"dan_yao": "丹药", "ling_cai": "灵材", "fa_qi": "法器", "shen_bing": "神兵", "fabao": "法宝"}
 # 历史bug兜底：drop_pool 中材料/碎片名曾被误生成到法器/神兵/法宝类别，按名称强制归回灵材
-const 掉落材料名白名单 := ["草药", "灵材", "凡品装备碎片", "良品装备碎片"]
+const 掉落材料名白名单 := ["灵植", "灵材", "凡品装备碎片", "良品装备碎片"]
 
 const 品阶序 := ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
 const 品阶序key := 品阶序  # 别名，统一使用中文 key（与 var 品阶 值口径一致）
@@ -26,7 +26,7 @@ const 基础战力表 := {"凡阶": 20, "灵阶": 80, "宝阶": 250, "王阶": 6
 const 穿戴位名 := ["法兵", "道冠", "法袍", "灵腕", "束灵带", "灵裤", "云靴", "灵饰", "本命法宝"]
 # 槽显示：展示层修真称谓映射（P0 方案A）。key 为底层字段(存英文/本命法宝)，value 仅前端展示，改动不影响存档/校验。
 const 槽显示 := {"wuqi": "法兵", "toukui": "道冠", "yipao": "法袍", "huzhi": "灵腕", "yaodai": "束灵带", "changku": "灵裤", "xuezi": "云靴", "peishi": "灵饰", "本命法宝": "本命法宝"}
-const 职业名 := ["道修", "体修", "法修"]
+const 道途名 := ["道修", "体修", "法修"]
 
 # ============ 词缀池（暗黑式）============
 const 前缀池 := {
@@ -39,7 +39,7 @@ const 后缀池 := {
 	"mijing_zhanlipin_zengfu": [5, 20], "jiban_xiaoguo_qianghua": [3, 15], "zhanchang_shanbi": [3, 12], "zhanbai_baoming": [3, 15],
 	"fumian_zhuangtai_chixu_duan suo": [5, 25], "zongmen_buff_diejia_zengfu": [3, 15],
 }
-const 职业词缀范围 := {
+const 道途词缀范围 := {
 	"pofa_chuantou": [5, 25], "jianyi_zengsu": [5, 20], "faxiu_kezhi_zengshang": [5, 25], "jinshen_tuxi_jiacheng": [3, 15],
 	"roushen_fanzhen": [5, 25], "gaoe_mianshang": [3, 15], "xueliang_zaisheng": [3, 15], "jianxiu_kezhi_jianshang": [5, 25],
 	"shufa_fanwei_zengkuo": [5, 20], "kongzhi_jinguoyanchang": [3, 15], "tixiu_kezhi_zengshang": [5, 25], "yuancheng_jianshang": [3, 15],
@@ -64,7 +64,7 @@ const 词缀中文名 := {
 	"jiban_xiaoguo_qianghua": "羁绊效果强化", "zhanchang_shanbi": "战场闪避",
 	"zhanbai_baoming": "战败保命", "fumian_zhuangtai_chixu_duan suo": "负面状态缩短",
 	"zongmen_buff_diejia_zengfu": "宗门buff叠加",
-	# 职业词缀
+	# 道途词缀
 	"pofa_chuantou": "破甲穿透", "jianyi_zengsu": "剑意增速", "faxiu_kezhi_zengshang": "法修克制增伤",
 	"jinshen_tuxi_jiacheng": "近身突袭强化", "roushen_fanzhen": "肉身反震", "gaoe_mianshang": "高格挡免伤",
 	"xueliang_zaisheng": "血量再生", "jianxiu_kezhi_jianshang": "剑道克制减伤",
@@ -151,7 +151,7 @@ const 法宝描述 := [
 var 类别 := "法器"
 var 品阶 := "凡阶"
 var 穿戴位 := ""
-var 职业 := ""
+var 道途 := ""
 var 名称 := ""
 var 功效 := ""
 var 描述 := ""
@@ -175,7 +175,7 @@ func 构建基础库():
 	for 槽 in 法器槽名.keys():
 		基础库["fa_qi"][槽] = _按阶造(法器槽名[槽], 法器功效, 法器描述)
 	基础库["shen_bing"] = {}
-	for 职 in 职业名:
+	for 职 in 道途名:
 		var 名表: Array = 神兵名[职]
 		var 功效表 := []
 		for t in 神兵功效:
@@ -251,8 +251,8 @@ func 随机生成():
 			穿戴位 = 法器槽名.keys().pick_random()
 			_填模板(_取随机(基础库["fa_qi"][穿戴位][品阶]))
 		"shen_bing":
-			职业 = 职业名.pick_random()
-			_填模板(_取随机(基础库["shen_bing"][职业][品阶]))
+			道途 = 道途名.pick_random()
+			_填模板(_取随机(基础库["shen_bing"][道途][品阶]))
 		"fabao":
 			穿戴位 = "本命法宝"
 			_填模板(_取随机(基础库["fabao"][品阶]))
@@ -280,8 +280,8 @@ func 滚词缀():
 		if 是前缀:
 			var 池: Dictionary = 前缀池.duplicate()
 			if 类别 == "shen_bing":
-				for k in 职业词缀范围:
-					池[k] = 职业词缀范围[k]
+				for k in 道途词缀范围:
+					池[k] = 道途词缀范围[k]
 			名 = 池.keys().pick_random()
 			区间 = 池[名]
 		else:
@@ -308,7 +308,7 @@ func _取极品(渡劫: bool) -> Dictionary:
 	if 渡劫:
 		return _随机极品(极品道祖)
 	if 类别 == "shen_bing":
-		return _随机极品({"道修": 极品道修, "体修": 极品体修, "法修": 极品法修}[职业])
+		return _随机极品({"道修": 极品道修, "体修": 极品体修, "法修": 极品法修}[道途])
 	return _随机极品(极品通用)
 
 func _随机极品(库: Dictionary) -> Dictionary:
@@ -345,8 +345,8 @@ func 简介() -> String:
 	s += " [%s·%s" % [类别名显示, 品阶显示[品阶]]
 	if 穿戴位 != "":
 		s += "·" + 槽显示.get(穿戴位, 穿戴位)
-	if 职业 != "":
-		s += "·" + 职业
+	if 道途 != "":
+		s += "·" + 道途
 	s += "] 战力+%d" % 战力加成
 	if 极品属性 != null:
 		s += " ★极品特异"
@@ -365,7 +365,7 @@ func 简介() -> String:
 
 func to_dict() -> Dictionary:
 	return {
-		"类别": 类别, "品阶": 品阶, "穿戴位": 穿戴位, "职业": 职业,
+		"类别": 类别, "品阶": 品阶, "穿戴位": 穿戴位, "道途": 道途,
 		"名称": 名称, "功效": 功效, "描述": 描述,
 		"战力加成": 战力加成, "极品": 极品, "特殊": 特殊,
 		"词缀": 词缀, "极品属性": 极品属性, "奇遇版": 奇遇版,
@@ -387,13 +387,14 @@ func from_dict(d: Dictionary):
 	穿戴位 = d.get("穿戴位", "")
 	if 类别 in ["dan_yao", "ling_cai"]:
 		穿戴位 = ""
-	职业 = d.get("职业", "")
+	# @LEGACY-MIGRATION 旧档兼容：S1 批「职业→道途」定名迁移（老大 2026-08-02 拍板）
+	道途 = d.get("道途", d.get("职业", ""))
 	名称 = d.get("名称", "")
 	# 旧档兼容：曾被误存为法器/神兵/法宝的材料，按名称强制归回灵材并清空穿戴属性
 	if 是材料名称(名称) and not (类别 in ["dan_yao", "ling_cai"]):
 		类别 = "ling_cai"
 		穿戴位 = ""
-		职业 = ""
+		道途 = ""
 	功效 = d.get("功效", "")
 	描述 = d.get("描述", "")
 	战力加成 = d.get("战力加成", 0)

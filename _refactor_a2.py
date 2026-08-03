@@ -9,8 +9,8 @@ reps = []
 
 # === 类型注解修正（第10道门：var x := 函数调用 须显式类型）===
 reps.append(('var 页 := _新页容器()', 'var 页: ScrollContainer = _新页容器()', 6))
-reps.append(('var 入口 := ["洞府", "修炼", "建筑", "坊市", "任务", "账册"]',
-             'var 入口: Array = ["洞府", "修炼", "建筑", "坊市", "任务", "账册"]', 1))
+reps.append(('var 入口 := ["洞府", "修炼", "殿阁", "坊市", "差事", "库藏"]',
+             'var 入口: Array = ["洞府", "修炼", "殿阁", "坊市", "差事", "库藏"]', 1))
 reps.append(('var 接引框 := 抉择区.get_parent()', 'var 接引框: Node = 抉择区.get_parent()', 1))
 reps.append(('var 遮 := get_node_or_null("离山简报遮")', 'var 遮: Node = get_node_or_null("离山简报遮")', 1))
 reps.append(('var 卡 := 新面板(', 'var 卡: PanelContainer = 新面板(', 2))
@@ -174,27 +174,27 @@ reps.append((
     1,
 ))
 
-# === _on_任务 + _任务面板 + _任务面板_重建 -> _建_二级页 + _填_任务页 + _刷新_任务页 ===
+# === _on_差事 + _差事面板 + _差事面板_重建 -> _建_二级页 + _填_差事页 + _刷新_差事页 ===
 reps.append((
-    'func _on_任务():\n'
-    '\t_任务面板()\n'
+    'func _on_差事():\n'
+    '\t_差事面板()\n'
     '\n'
-    'func _任务面板():\n'
+    'func _差事面板():\n'
     '\tvar 遮 := ColorRect.new()\n'
     '\t遮.color = 弹窗遮罩\n'
     '\t遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)\n'
     '\t遮.mouse_filter = Control.MOUSE_FILTER_STOP\n'
-    '\t遮.name = "任务面板"\n'
+    '\t遮.name = "差事面板"\n'
     '\tadd_child(遮)\n'
-    '\tvar pc: PanelContainer = 新面板("✦ 任务中心")\n'
+    '\tvar pc: PanelContainer = 新面板("✦ 差事中心")\n'
     '\tpc.anchor_left = 0.5; pc.anchor_top = 0.5; pc.anchor_right = 0.5; pc.anchor_bottom = 0.5\n'
     '\tpc.offset_left = -200; pc.offset_top = -260; pc.offset_right = 200; pc.offset_bottom = 260\n'
     '\t遮.add_child(pc)\n'
     '\tvar 内容: Control = pc.get_child(0)\n'
-    '\tvar 结果 := Label.new(); 结果.text = _任务提示; 内容.add_child(结果)\n'
+    '\tvar 结果 := Label.new(); 结果.text = _差事提示; 内容.add_child(结果)\n'
     '\tvar 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(380, 400); 内容.add_child(滚)\n'
     '\tvar 列 := VBoxContainer.new(); 滚.add_child(列)\n'
-    '\t# —— 日常任务 ——\n'
+    '\t# —— 日常差事 ——\n'
     '\tvar 日常倒计: int = max(0, (Game.上次日常日 + 1) - Game.累计游戏日)\n'
     '\tvar 日头 := Label.new(); 日头.text = "【日常】每日刷新(距%d日) 领灵石/灵气" % 日常倒计; 列.add_child(日头)\n'
     '\tfor i in Game.当前日常.size():\n'
@@ -207,12 +207,12 @@ reps.append((
     '\t\t领.disabled = 已领\n'
     '\t\t领.pressed.connect(func():\n'
     '\t\t\tvar res: Dictionary = Game.领取日常(i)\n'
-    '\t\t\t_任务提示 = res.get("msg", "")\n'
-    '\t\t\t_任务面板_重建(遮)\n'
+    '\t\t\t_差事提示 = res.get("msg", "")\n'
+    '\t\t\t_差事面板_重建(遮)\n'
     '\t\t)\n'
     '\t\t行.add_child(标); 行.add_child(领)\n'
     '\t\t列.add_child(行)\n'
-    '\t# —— 周常任务 ——\n'
+    '\t# —— 周常差事 ——\n'
     '\tvar 周常倒计: int = max(0, (Game.上次周常日 + 7) - Game.累计游戏日)\n'
     '\tvar 周头 := Label.new(); 周头.text = "【周常】每7日刷新(距%d日)" % 周常倒计; 列.add_child(周头)\n'
     '\tif Game.当前周常.is_empty():\n'
@@ -226,8 +226,8 @@ reps.append((
     '\t\t领.disabled = Game.周常已领\n'
     '\t\t领.pressed.connect(func():\n'
     '\t\t\tvar res: Dictionary = Game.领取周常()\n'
-    '\t\t\t_任务提示 = res.get("msg", "")\n'
-    '\t\t\t_任务面板_重建(遮)\n'
+    '\t\t\t_差事提示 = res.get("msg", "")\n'
+    '\t\t\t_差事面板_重建(遮)\n'
     '\t\t)\n'
     '\t\t行.add_child(标); 行.add_child(领)\n'
     '\t\t列.add_child(行)\n'
@@ -241,34 +241,34 @@ reps.append((
     '\t\tif not Game.当前周常.is_empty() and not Game.周常已领:\n'
     '\t\t\tvar rw: Dictionary = Game.领取周常()\n'
     '\t\t\tif rw.get("ok", false): 领了 += 1\n'
-    '\t\t_任务提示 = "已领取 %d 项" % 领了\n'
-    '\t\t_任务面板_重建(遮)\n'
+    '\t\t_差事提示 = "已领取 %d 项" % 领了\n'
+    '\t\t_差事面板_重建(遮)\n'
     '\t)\n'
     '\t列.add_child(一键)\n'
-    '\tvar 关 := Button.new(); 关.text = "归藏"; 关.pressed.connect(func(): _任务提示 = ""; 遮.queue_free()); 列.add_child(关)\n'
+    '\tvar 关 := Button.new(); 关.text = "归藏"; 关.pressed.connect(func(): _差事提示 = ""; 遮.queue_free()); 列.add_child(关)\n'
     '\n'
-    '# 任务面板局部重建（保留遮罩，刷新列表与提示）\n'
-    'func _任务面板_重建(遮: ColorRect):\n'
-    '\t_任务提示 = _任务提示\n'
+    '# 差事面板局部重建（保留遮罩，刷新列表与提示）\n'
+    'func _差事面板_重建(遮: ColorRect):\n'
+    '\t_差事提示 = _差事提示\n'
     '\t遮.queue_free()\n'
-    '\t_任务面板()\n',
-    'func _on_任务():\n'
-    '\t_建_二级页("任务")\n'
+    '\t_差事面板()\n',
+    'func _on_差事():\n'
+    '\t_建_二级页("差事")\n'
     '\n'
-    'func _填_任务页(内容: Control):\n'
-    '\tvar 结果 := Label.new(); 结果.text = _任务提示; 内容.add_child(结果)\n'
+    'func _填_差事页(内容: Control):\n'
+    '\tvar 结果 := Label.new(); 结果.text = _差事提示; 内容.add_child(结果)\n'
     '\tvar 滚 := ScrollContainer.new(); 滚.custom_minimum_size = Vector2(380, 400); 内容.add_child(滚)\n'
-    '\t任务列 = VBoxContainer.new(); 滚.add_child(任务列)\n'
-    '\t_刷新_任务页(结果)\n'
+    '\t差事列 = VBoxContainer.new(); 滚.add_child(差事列)\n'
+    '\t_刷新_差事页(结果)\n'
     '\n'
-    'func _刷新_任务页(结果: Label):\n'
-    '\tif 任务列 == null or not is_instance_valid(任务列):\n'
+    'func _刷新_差事页(结果: Label):\n'
+    '\tif 差事列 == null or not is_instance_valid(差事列):\n'
     '\t\treturn\n'
-    '\tfor c in 任务列.get_children():\n'
+    '\tfor c in 差事列.get_children():\n'
     '\t\tc.queue_free()\n'
-    '\t# —— 日常任务 ——\n'
+    '\t# —— 日常差事 ——\n'
     '\tvar 日常倒计: int = max(0, (Game.上次日常日 + 1) - Game.累计游戏日)\n'
-    '\tvar 日头 := Label.new(); 日头.text = "【日常】每日刷新(距%d日) 领灵石/灵气" % 日常倒计; 任务列.add_child(日头)\n'
+    '\tvar 日头 := Label.new(); 日头.text = "【日常】每日刷新(距%d日) 领灵石/灵气" % 日常倒计; 差事列.add_child(日头)\n'
     '\tfor i in Game.当前日常.size():\n'
     '\t\tvar q: Dictionary = Game.当前日常[i]\n'
     '\t\tvar 已领: bool = Game.日常已领[i] if i < Game.日常已领.size() else false\n'
@@ -279,16 +279,16 @@ reps.append((
     '\t\t领.disabled = 已领\n'
     '\t\t领.pressed.connect(func():\n'
     '\t\t\tvar res: Dictionary = Game.领取日常(i)\n'
-    '\t\t\t_任务提示 = res.get("msg", "")\n'
-    '\t\t\t_刷新_任务页(结果)\n'
+    '\t\t\t_差事提示 = res.get("msg", "")\n'
+    '\t\t\t_刷新_差事页(结果)\n'
     '\t\t)\n'
     '\t\t行.add_child(标); 行.add_child(领)\n'
-    '\t\t任务列.add_child(行)\n'
-    '\t# —— 周常任务 ——\n'
+    '\t\t差事列.add_child(行)\n'
+    '\t# —— 周常差事 ——\n'
     '\tvar 周常倒计: int = max(0, (Game.上次周常日 + 7) - Game.累计游戏日)\n'
-    '\tvar 周头 := Label.new(); 周头.text = "【周常】每7日刷新(距%d日)" % 周常倒计; 任务列.add_child(周头)\n'
+    '\tvar 周头 := Label.new(); 周头.text = "【周常】每7日刷新(距%d日)" % 周常倒计; 差事列.add_child(周头)\n'
     '\tif Game.当前周常.is_empty():\n'
-    '\t\tvar 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 任务列.add_child(无)\n'
+    '\t\tvar 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 差事列.add_child(无)\n'
     '\telse:\n'
     '\t\tvar qw: Dictionary = Game.当前周常\n'
     '\t\tvar 行 := HBoxContainer.new()\n'
@@ -298,11 +298,11 @@ reps.append((
     '\t\t领.disabled = Game.周常已领\n'
     '\t\t领.pressed.connect(func():\n'
     '\t\t\tvar res: Dictionary = Game.领取周常()\n'
-    '\t\t\t_任务提示 = res.get("msg", "")\n'
-    '\t\t\t_刷新_任务页(结果)\n'
+    '\t\t\t_差事提示 = res.get("msg", "")\n'
+    '\t\t\t_刷新_差事页(结果)\n'
     '\t\t)\n'
     '\t\t行.add_child(标); 行.add_child(领)\n'
-    '\t\t任务列.add_child(行)\n'
+    '\t\t差事列.add_child(行)\n'
     '\tvar 一键 := Button.new(); 一键.text = "一键领取"\n'
     '\t一键.pressed.connect(func():\n'
     '\t\tvar 领了: int = 0\n'
@@ -313,33 +313,33 @@ reps.append((
     '\t\tif not Game.当前周常.is_empty() and not Game.周常已领:\n'
     '\t\t\tvar rw: Dictionary = Game.领取周常()\n'
     '\t\t\tif rw.get("ok", false): 领了 += 1\n'
-    '\t\t_任务提示 = "已领取 %d 项" % 领了\n'
-    '\t\t_刷新_任务页(结果)\n'
+    '\t\t_差事提示 = "已领取 %d 项" % 领了\n'
+    '\t\t_刷新_差事页(结果)\n'
     '\t)\n'
-    '\t任务列.add_child(一键)\n',
+    '\t差事列.add_child(一键)\n',
     1,
 ))
 
-# === _on_建筑总览 -> 二级页 ===
+# === _on_殿阁总览 -> 二级页 ===
 reps.append((
-    'func _on_建筑总览():\n'
+    'func _on_殿阁总览():\n'
     '\t# 步骤①（点状态栏）改为由状态面板 gui_input Hook 推进，此处不再推进\n'
-    '\t_建筑总览弹窗()\n',
-    'func _on_建筑总览():\n'
-    '\t_建_二级页("建筑")\n',
+    '\t_殿阁总览弹窗()\n',
+    'func _on_殿阁总览():\n'
+    '\t_建_二级页("殿阁")\n',
     1,
 ))
 
-# === _建筑总览弹窗 -> _填_建筑页 ===
+# === _殿阁总览弹窗 -> _填_殿阁页 ===
 reps.append((
-    'func _建筑总览弹窗():\n'
+    'func _殿阁总览弹窗():\n'
     '\tvar 遮 := ColorRect.new()\n'
     '\t遮.color = 弹窗遮罩\n'
     '\t遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)\n'
     '\t遮.mouse_filter = Control.MOUSE_FILTER_STOP\n'
-    '\t遮.name = "建筑总览"\n'
+    '\t遮.name = "殿阁总览"\n'
     '\tadd_child(遮)\n'
-    '\tvar pc: PanelContainer = 新面板("—— 宗门建筑 ——")\n'
+    '\tvar pc: PanelContainer = 新面板("—— 宗门殿阁 ——")\n'
     '\tpc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)\n'
     '\tpc.offset_left = 20\n'
     '\tpc.offset_right = -20\n'
@@ -358,10 +358,10 @@ reps.append((
     '\t牌匾.pressed.connect(_on_山门牌匾)\n'
     '\t内容.add_child(牌匾)\n'
     '\t# 顶部全局汇总栏（固定一屏可见）\n'
-    '\t内容.add_child(_建筑总览_汇总栏())\n'
+    '\t内容.add_child(_殿阁总览_汇总栏())\n'
     '\t# 分类标签导航（复用 TabBar 组件，参考离山汇总/主界面分页）\n'
     '\tvar tb := TabBar.new()\n'
-    '\tfor 类别名 in 建筑类别序:\n'
+    '\tfor 类别名 in 殿阁类别序:\n'
     '\t\ttb.add_tab(类别名)\n'
     '\t内容.add_child(tb)\n'
     '\t# 滚动内容区（按类别切换，替代长列表滚动）\n'
@@ -373,15 +373,15 @@ reps.append((
     '\t列表列.size_flags_horizontal = Control.SIZE_EXPAND_FILL\n'
     '\t列表列.add_theme_constant_override("separation", 6)\n'
     '\t滚动.add_child(列表列)\n'
-    '\t_建筑总览_填充(列表列, 建筑类别序[0])\n'
+    '\t_殿阁总览_填充(列表列, 殿阁类别序[0])\n'
     '\ttb.tab_changed.connect(func(idx):\n'
-    '\t\t_建筑总览_填充(列表列, 建筑类别序[idx])\n'
+    '\t\t_殿阁总览_填充(列表列, 殿阁类别序[idx])\n'
     '\t)\n'
     '\t# 关闭按钮（复用现有术语与交互）\n'
     '\tvar 关 := Button.new(); 关.text = "归藏"\n'
     '\t关.pressed.connect(func(): 遮.queue_free(); 刷新())\n'
     '\t内容.add_child(关)\n',
-    'func _填_建筑页(内容: Control):\n'
+    'func _填_殿阁页(内容: Control):\n'
     '\t内容.add_theme_constant_override("separation", 6)\n'
     '\t内容.add_child(_玄玉占位按钮())\n'
     '\t# 山门牌匾（彩蛋钩子）：点击查看宗门立基旧事\n'
@@ -393,10 +393,10 @@ reps.append((
     '\t牌匾.pressed.connect(_on_山门牌匾)\n'
     '\t内容.add_child(牌匾)\n'
     '\t# 顶部全局汇总栏（固定一屏可见）\n'
-    '\t内容.add_child(_建筑总览_汇总栏())\n'
+    '\t内容.add_child(_殿阁总览_汇总栏())\n'
     '\t# 分类标签导航（复用 TabBar 组件，参考离山汇总/主界面分页）\n'
     '\tvar tb := TabBar.new()\n'
-    '\tfor 类别名 in 建筑类别序:\n'
+    '\tfor 类别名 in 殿阁类别序:\n'
     '\t\ttb.add_tab(类别名)\n'
     '\t内容.add_child(tb)\n'
     '\t# 滚动内容区（按类别切换，替代长列表滚动）\n'
@@ -408,9 +408,9 @@ reps.append((
     '\t列表列.size_flags_horizontal = Control.SIZE_EXPAND_FILL\n'
     '\t列表列.add_theme_constant_override("separation", 6)\n'
     '\t滚动.add_child(列表列)\n'
-    '\t_建筑总览_填充(列表列, 建筑类别序[0])\n'
+    '\t_殿阁总览_填充(列表列, 殿阁类别序[0])\n'
     '\ttb.tab_changed.connect(func(idx):\n'
-    '\t\t_建筑总览_填充(列表列, 建筑类别序[idx])\n'
+    '\t\t_殿阁总览_填充(列表列, 殿阁类别序[idx])\n'
     '\t)\n'
     '\t刷新()\n',
     1,
@@ -419,8 +419,8 @@ reps.append((
 # === _on_历练 -> 主导航切换(3) ===
 reps.append((
     'func _on_历练():\n'
-    '\tif Game.引导阶段 <= 4:   # 引导未结束：临时隐藏引导层，避免暗化遮罩盖住历练面板\n'
-    '\t\t引导_层.visible = false\n'
+    '\tif Game.引导阶段 <= 4:   # 入门指引未结束：临时隐藏入门指引层，避免暗化遮罩盖住历练面板\n'
+    '\t\t入门指引_层.visible = false\n'
     '\t_历练面板()\n',
     'func _on_历练():\n'
     '\t_on_主导航切换(3)\n',
@@ -435,9 +435,9 @@ reps.append(('页控.get("纪事", null) != null and 页控["纪事"].visible',
 reps.append((
     'func _刷新功能解锁():\n'
     '\tvar 规则: Dictionary = {\n'
-    '\t\t"坊市": 引导_坊市按钮,\n'
-    '\t\t"任务": 引导_任务按钮,\n'
-    '\t\t"历练": 引导_历练按钮,\n'
+    '\t\t"坊市": 入门指引_坊市按钮,\n'
+    '\t\t"差事": 入门指引_差事按钮,\n'
+    '\t\t"历练": 入门指引_历练按钮,\n'
     '\t}\n'
     '\tfor 名 in 规则:\n'
     '\t\tvar b: Button = 规则[名]\n'
@@ -464,10 +464,10 @@ reps.append((
     '\t\telse:\n'
     '\t\t\t标签栏.set_tab_title(2, "御兽")\n',
     'func _刷新功能解锁():\n'
-    '\t# 二级页受锁入口（坊市/任务）：disabled+🔒+tooltip，点击不跳转\n'
+    '\t# 二级页受锁入口（坊市/差事）：disabled+🔒+tooltip，点击不跳转\n'
     '\tvar 规则: Dictionary = {\n'
-    '\t\t"坊市": 引导_坊市按钮,\n'
-    '\t\t"任务": 引导_任务按钮,\n'
+    '\t\t"坊市": 入门指引_坊市按钮,\n'
+    '\t\t"差事": 入门指引_差事按钮,\n'
     '\t}\n'
     '\tfor 名 in 规则:\n'
     '\t\tvar b: Button = 规则[名]\n'
@@ -500,17 +500,17 @@ reps.append((
     1,
 ))
 
-# === _引导_刷新：自动进页（_on_主导航切换），步⑤弹离山简报 ===
+# === _入门指引_刷新：自动进页（_on_主导航切换），步⑤弹离山简报 ===
 reps.append((
-    'func _引导_刷新():\n'
-    '\t_引导_清除()\n'
+    'func _入门指引_刷新():\n'
+    '\t_入门指引_清除()\n'
     '\tif Game.引导阶段 >= 1 and Game.引导阶段 <= 5:\n'
-    '\t\t引导_跳过按钮.visible = true\n'
+    '\t\t入门指引_跳过按钮.visible = true\n'
     '\tvar 目标: Control = null\n'
-    '\tvar 文案: String = 引导_步骤文案.get(Game.引导阶段, "")\n'
+    '\tvar 文案: String = 入门指引_步骤文案.get(Game.引导阶段, "")\n'
     '\tif Game.引导阶段 == 4 and Game.弟子列表.is_empty():\n'
     '\t\t# 边缘兜底（§6.6）：理论不该发生（步③已招徒）；指向招收按钮防卡步\n'
-    '\t\t目标 = 引导_招收按钮\n'
+    '\t\t目标 = 入门指引_招收按钮\n'
     '\t\t文案 = "【宗门传承指引】尚未收录弟子，先点「开启接引大典」招徒。"\n'
     '\telif Game.引导阶段 == 4:\n'
     '\t\t目标 = 列表\n'
@@ -519,35 +519,35 @@ reps.append((
     '\t\t_自动展开首弟子()\n'
     '\telse:\n'
     '\t\tmatch Game.引导阶段:\n'
-    '\t\t\t1: 目标 = 引导_状态面板\n'
-    '\t\t\t2: 目标 = 引导_推演按钮\n'
-    '\t\t\t3: 目标 = 引导_招收按钮\n'
+    '\t\t\t1: 目标 = 入门指引_状态面板\n'
+    '\t\t\t2: 目标 = 入门指引_推演按钮\n'
+    '\t\t\t3: 目标 = 入门指引_招收按钮\n'
     '\t\t\t5: 目标 = 离山面板\n'
     '\tif 目标 != null and is_instance_valid(目标):\n'
     '\t\tif 文案.strip_edges() != "":   # 防护：空白文案不渲染气泡\n'
-    '\t\t\t_引导_显示气泡(目标, 文案)\n'
+    '\t\t\t_入门指引_显示气泡(目标, 文案)\n'
     '\telif Game.引导阶段 >= 6:\n'
-    '\t\t引导_跳过按钮.visible = false\n'
+    '\t\t入门指引_跳过按钮.visible = false\n'
     '\t_刷新功能解锁()\n'
     '\t_刷新目标条()\n',
-    'func _引导_刷新():\n'
-    '\t_引导_清除()\n'
+    'func _入门指引_刷新():\n'
+    '\t_入门指引_清除()\n'
     '\tif Game.引导阶段 >= 1 and Game.引导阶段 <= 5:\n'
-    '\t\t引导_跳过按钮.visible = true\n'
+    '\t\t入门指引_跳过按钮.visible = true\n'
     '\tvar 目标: Control = null\n'
-    '\tvar 文案: String = 引导_步骤文案.get(Game.引导阶段, "")\n'
+    '\tvar 文案: String = 入门指引_步骤文案.get(Game.引导阶段, "")\n'
     '\tmatch Game.引导阶段:\n'
-    '\t\t1: 目标 = 引导_状态面板\n'
-    '\t\t2: 目标 = 引导_推演按钮\n'
+    '\t\t1: 目标 = 入门指引_状态面板\n'
+    '\t\t2: 目标 = 入门指引_推演按钮\n'
     '\t\t3:\n'
     '\t\t\t_on_主导航切换(1)   # 切到弟子页\n'
     '\t\t\t_弟子二级tab = 1     # 跳到接引 Tab\n'
     '\t\t\t_应用_弟子二级tab()\n'
-    '\t\t\t目标 = 引导_招收按钮\n'
+    '\t\t\t目标 = 入门指引_招收按钮\n'
     '\t\t4:\n'
     '\t\t\t_on_主导航切换(1)   # 切到弟子页\n'
     '\t\t\tif Game.弟子列表.is_empty():\n'
-    '\t\t\t\t目标 = 引导_招收按钮\n'
+    '\t\t\t\t目标 = 入门指引_招收按钮\n'
     '\t\t\telse:\n'
     '\t\t\t\t目标 = 列表\n'
     '\t\t\t\t_自动展开首弟子()\n'
@@ -556,9 +556,9 @@ reps.append((
     '\t\t\t目标 = 离山面板\n'
     '\tif 目标 != null and is_instance_valid(目标):\n'
     '\t\tif 文案.strip_edges() != "":   # 防护：空白文案不渲染气泡\n'
-    '\t\t\t_引导_显示气泡(目标, 文案)\n'
+    '\t\t\t_入门指引_显示气泡(目标, 文案)\n'
     '\telif Game.引导阶段 >= 6:\n'
-    '\t\t引导_跳过按钮.visible = false\n'
+    '\t\t入门指引_跳过按钮.visible = false\n'
     '\t_刷新功能解锁()\n'
     '\t_刷新目标条()\n',
     1,
@@ -572,15 +572,15 @@ reps.append((
     '\t\t标签栏.current_tab = 0   # 切到弟子页\n'
     '\tif 弟子页头 != null:\n'
     '\t\t弟子页头.modulate = 暗金   # 高亮弟子页头\n'
-    '\tif 引导_弟子提示 != null:\n'
-    '\t\t引导_弟子提示.visible = true   # 淡提示「可前往查看弟子详情」\n',
+    '\tif 入门指引_弟子提示 != null:\n'
+    '\t\t入门指引_弟子提示.visible = true   # 淡提示「可前往查看弟子详情」\n',
     'func _招徒后高亮弟子入口():\n'
     '\t_招徒后_弟子高亮中 = true\n'
     '\t_on_主导航切换(1)   # 切到弟子页（名录）\n'
     '\tif 弟子页头 != null:\n'
     '\t\t弟子页头.modulate = 暗金   # 高亮弟子页头\n'
-    '\tif 引导_弟子提示 != null:\n'
-    '\t\t引导_弟子提示.visible = true   # 淡提示「可前往查看弟子详情」\n',
+    '\tif 入门指引_弟子提示 != null:\n'
+    '\t\t入门指引_弟子提示.visible = true   # 淡提示「可前往查看弟子详情」\n',
     1,
 ))
 
@@ -589,11 +589,11 @@ reps.append((
     'func _进入主界面():\n'
     '\tvar 报: String = Game.推演至现在()   # 自动推演延后到此（标题屏关闭后）执行\n'
     '\t刷新()\n'
-    '\t_引导_初始化()\n',
+    '\t_入门指引_初始化()\n',
     'func _进入主界面():\n'
     '\tvar 报: String = Game.推演至现在()   # 自动推演延后到此（标题屏关闭后）执行\n'
     '\t刷新()\n'
-    '\t_引导_初始化()\n'
+    '\t_入门指引_初始化()\n'
     '\t_弹_离山简报()   # 上线自动弹离线收益简报（§1.2 B3）\n',
     1,
 ))
@@ -602,26 +602,26 @@ reps.append((
     '\tGame.load_game()\n'
     '\t详情.text = "已读档"\n'
     '\t刷新()\n'
-    '\t_引导_初始化()   # 读档后续接引导（按引导阶段恢复气泡/目标条/灰锁，或清场）\n',
+    '\t_入门指引_初始化()   # 读档后续接入门指引（按引导阶段恢复气泡/目标条/灰锁，或清场）\n',
     'func _on_读档():\n'
     '\tGame.load_game()\n'
     '\t详情.text = "已读档"\n'
     '\t刷新()\n'
-    '\t_引导_初始化()   # 读档后续接引导（按引导阶段恢复气泡/目标条/灰锁，或清场）\n'
+    '\t_入门指引_初始化()   # 读档后续接入门指引（按引导阶段恢复气泡/目标条/灰锁，或清场）\n'
     '\t_弹_离山简报()   # 读档上线弹离线收益简报\n',
     1,
 ))
 
-# === _引导_显示气泡：确保气泡层位于弹窗之上 ===
+# === _入门指引_显示气泡：确保气泡层位于弹窗之上 ===
 reps.append((
-    'func _引导_显示气泡(目标: Control, 文案: String):\n'
+    'func _入门指引_显示气泡(目标: Control, 文案: String):\n'
     '\tif 文案.strip_edges() == "" or not is_instance_valid(目标):\n'
     '\t\treturn   # 防护：空白文案或无效目标不渲染气泡（避免空白弹窗）\n',
-    'func _引导_显示气泡(目标: Control, 文案: String):\n'
+    'func _入门指引_显示气泡(目标: Control, 文案: String):\n'
     '\tif 文案.strip_edges() == "" or not is_instance_valid(目标):\n'
     '\t\treturn   # 防护：空白文案或无效目标不渲染气泡（避免空白弹窗）\n'
-    '\tif 引导_层 != null and 引导_层.get_parent() != null:\n'
-    '\t\t引导_层.get_parent().move_child(引导_层, -1)   # 确保气泡层位于弹窗之上\n',
+    '\tif 入门指引_层 != null and 入门指引_层.get_parent() != null:\n'
+    '\t\t入门指引_层.get_parent().move_child(入门指引_层, -1)   # 确保气泡层位于弹窗之上\n',
     1,
 ))
 

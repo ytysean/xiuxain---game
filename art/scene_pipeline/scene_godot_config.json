@@ -1,0 +1,39 @@
+{
+  "load_template": "res://art/backgrounds/home_bg_%s.png",
+  "default": "spring",
+  "scenes": {
+    "sect_gate": {
+      "name": "宗门山门",
+      "seasons": {
+        "autumn": {
+          "file": "home_bg_autumn.png",
+          "season_label": "秋",
+          "brightness_target": 0.29,
+          "color_overlay": "#FFB066",
+          "present": true
+        },
+        "spring": {
+          "file": "home_bg_spring.png",
+          "season_label": "春",
+          "brightness_target": 0.47,
+          "color_overlay": "#FFE4EC",
+          "present": true
+        },
+        "summer": {
+          "file": "home_bg_summer.png",
+          "season_label": "夏",
+          "brightness_target": 0.36,
+          "color_overlay": "#BFE3FF",
+          "present": true
+        },
+        "winter": {
+          "file": "home_bg_winter.png",
+          "season_label": "冬",
+          "brightness_target": 0.31,
+          "color_overlay": "#Bcd4FF",
+          "present": true
+        }
+      }
+    }
+  }
+}

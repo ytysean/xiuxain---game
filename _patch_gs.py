@@ -124,8 +124,8 @@ NB_BLOCK = (
     "\tif 新手完成列表.has(qid):\n"
     "\t\treturn\n"
     "\t新手完成列表.append(qid)\n"
-    "\tvar 灵: int = int(float(q.get(\"reward_lingjing\", \"0\")) * 任务奖励系数())\n"
-    "\tvar 气: int = int(float(q.get(\"reward_lingqi\", \"0\")) * 任务奖励系数())\n"
+    "\tvar 灵: int = int(float(q.get(\"reward_lingjing\", \"0\")) * 差事赏赐系数())\n"
+    "\tvar 气: int = int(float(q.get(\"reward_lingqi\", \"0\")) * 差事赏赐系数())\n"
     "\t灵石 += 灵\n"
     "\t灵气 += 气\n"
     "\t_新手_抽池(q.get(\"reward_pool_id\", \"\"))\n"
@@ -170,7 +170,7 @@ reps.append((
     1,
 ))
 
-# ---- 3) 刷新日常任务：排除 newbie 行（插在 池.append(r) 与 池.shuffle() 之间）----
+# ---- 3) 刷新日常差事：排除 newbie 行（插在 池.append(r) 与 池.shuffle() 之间）----
 reps.append((
     "池.append(r)\n\t池.shuffle()",
     "池.append(r)\n\t\tif r.get(\"is_newbie\", \"\") == \"true\":\n\t\t\tcontinue\n\t池.shuffle()",
@@ -184,10 +184,10 @@ reps.append((
     1,
 ))
 
-# ---- 5) 已通关关卡钩子：realm_first_enter ----
+# ---- 5) 已通关秘境钩子：realm_first_enter ----
 reps.append((
-    "已通关关卡[stage_id] = true\n",
-    "已通关关卡[stage_id] = true\n\t\t_新手_检测(\"realm_first_enter\")\n",
+    "已通关秘境[stage_id] = true\n",
+    "已通关秘境[stage_id] = true\n\t\t_新手_检测(\"realm_first_enter\")\n",
     1,
 ))
 
@@ -201,8 +201,8 @@ reps.append((
 
 # ---- 7) 弟子修炼循环钩子：状态型预检（disciple_realm_3/5）----
 reps.append((
-    "待坐化.append(d)\n\t# 2. 资源建筑产出",
-    "待坐化.append(d)\n\t_新手_评估后续()   # 状态型 newbie（弟子层数达标）月内预判\n\t# 2. 资源建筑产出",
+    "待坐化.append(d)\n\t# 2. 资源殿阁产出",
+    "待坐化.append(d)\n\t_新手_评估后续()   # 状态型 newbie（弟子层数达标）月内预判\n\t# 2. 资源殿阁产出",
     1,
 ))
 
@@ -223,12 +223,12 @@ reps.append((
 
 # ---- 10) load：恢复字段 ----
 reps.append((
-    "quest_cooldown = data.get(\"qcd\", {})\n\t# 老档或空任务：补刷一次，保证面板非空",
+    "quest_cooldown = data.get(\"qcd\", {})\n\t# 老档或空差事：补刷一次，保证面板非空",
     "quest_cooldown = data.get(\"qcd\", {})\n"
     "\t# P0 目标链：新手阶梯状态（老档默认 false/[]，向后兼容）\n"
     "\t新手目标链激活 = data.get(\"newbie_active\", false)\n"
     "\t新手完成列表 = data.get(\"newbie_done\", [])\n"
-    "\t# 老档或空任务：补刷一次，保证面板非空",
+    "\t# 老档或空差事：补刷一次，保证面板非空",
     1,
 ))
 

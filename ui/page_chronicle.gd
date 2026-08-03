@@ -110,7 +110,7 @@ func _classify(entry: Dictionary) -> String:
 		return "大事件"
 	if "岁" in 名称 or "七载" in 名称 or "大典" in 名称 or "晋升" in 名称:
 		return "岁纪"
-	if 稀有度 == "琐事" or 稀有度 == "普通" or 稀有度 == "建筑被动":
+	if 稀有度 == "琐事" or 稀有度 == "普通" or 稀有度 == "殿阁被动":
 		return "庶务"
 	return "庶务"
 

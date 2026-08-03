@@ -1,0 +1,29 @@
+{
+  "role_id": "disciple_002",
+  "name": "凌霜",
+  "gender": "女",
+  "age_range": "少女",
+  "temperament": "清冷孤傲",
+  "face_shape": "鹅蛋脸",
+  "hair_style": "高马尾长直发",
+  "hair_color": "墨黑霜白",
+  "costume_type": "青碧法袍长裙",
+  "main_color": "青碧+月白",
+  "weapon": "玉箫",
+  "weapon_verb": "手持",
+  "negative_extra_cn": "艳俗、甜美可爱、杂乱配饰、风尘气",
+  "negative_extra_en": "gaudy, cute, cluttered accessories, vulgar",
+  "personality": "gu",
+  "poses": {
+    "stand": {
+      "pose_type": "stand",
+      "desc_cn": "侧身约30°，下颌微抬，目光侧前，双手自然垂落身侧，玉箫悬于腰间，疏离清冷",
+      "desc_en": "side stance about 30 degrees, slightly raised chin, gaze to the side, hands resting at sides, jade flute at waist, detached and cold"
+    },
+    "halfbody": {
+      "pose_type": "halfbody",
+      "desc_cn": "半身像，侧身微抬颌，一手轻执玉箫抵于唇边作吹奏施法状，衣袖垂落，气态疏冷",
+      "desc_en": "half-body, slight side turn with raised chin, one hand lightly holding the jade flute to the lips as if playing a spell, sleeves draping, cold demeanor"
+    }
+  }
+}

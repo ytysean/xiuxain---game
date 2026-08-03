@@ -1,0 +1,2 @@
+﻿scene_id,scene_name,season,season_label,out_name,file_path,brightness_target,color_overlay,priority,seed,backend,status,time_cost_s
+sect_gate,宗门山门,spring,春,home_bg_spring.png,E:\Xiuxian\taixuanzongmenlu\美术资源\scene_pipeline\..\..\assets\backgrounds\home_bg_spring.png,0.47,#FFE4EC,P0,20260730,emit,pending_dispatch,0.0
