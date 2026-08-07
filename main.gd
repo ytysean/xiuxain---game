@@ -99,16 +99,7 @@ const 颜色_良品 := Color(0.28, 0.65, 0.32)     # 绿色 - 良品/正向事�
 const 颜色_上品 := Color(0.26, 0.48, 0.78)     # 蓝色 - 上品/重要事件
 const 颜色_极品 := Color(0.58, 0.32, 0.68)     # 紫色 - 极品/重大事件
 const 颜色_琐事 := Color(0.55, 0.50, 0.45)     # 浅灰 - 琐事/无效事件
-# 物品七品阶标题染色（对齐 item.gd 品阶序；非奇遇四档稀有度）
-const 品阶色: Dictionary = {
-	"凡阶": Color(0.85, 0.85, 0.82),
-	"灵阶": Color(0.40, 0.85, 0.45),
-	"宝阶": Color(0.38, 0.68, 1.00),
-	"王阶": Color(0.70, 0.52, 1.00),
-	"圣阶": Color(1.00, 0.72, 0.32),
-	"仙阶": Color(0.831, 0.686, 0.216),	# D4AF37 金（经典金，醒目，区别于圣橙与暗金）
-	"道阶": Color(0.702, 0.259, 0.239),	# B3423D 朱砂红（对齐 v2.0 朱砂色）
-}
+# 物品七品阶标题染色：色值唯一来源 → UIThemeConfig.QUALITY_COLOR（见 get_rarity_color）
 # 全局品阶染色入口：物品/装备/功法/丹药等所有实体的品阶染色统一调用此函数，
 # 避免各处硬编码颜色值，保证全游戏视觉统一（键为 item.gd 的 品阶 中文字符串）
 const 殿阁彩蛋映射 := {"dantang": "egg_click_dantang", "yushou": "egg_click_yushou", "lingtian": "egg_click_lingtian"}
@@ -118,7 +109,14 @@ var 掌教点击计数: int = 0
 var 纪事筛选分类: String = "全部"   # 纪事界面分类筛选（全部/宗门大事件/宗门岁纪/日常庶务/异闻）
 
 func get_rarity_color(品阶: String) -> Color:
-	return 品阶色.get(品阶, 暗金)
+	# P1 收口：品阶色唯一数据源 = UIThemeConfig（消除 main.gd 第三硬编码源，P0 决议补全）
+	# 入参为显示阶名（凡阶/灵阶/...），映射到 stem（fan/ling/...）后取 UIThemeConfig
+	var 阶到stem: Dictionary = {
+		"凡阶": "fan", "灵阶": "ling", "宝阶": "bao", "王阶": "wang",
+		"圣阶": "sheng", "仙阶": "xian", "道阶": "dao",
+	}
+	var stem: String = 阶到stem.get(品阶, "fan")
+	return UIThemeConfig.get_quality_color(stem)
 # 符号图标映射（与 game_state.gd ET_* 枚举对应）
 const 符号表 := {
 	"breakthrough": "🔺", "appoint": "📜", "quest": "✅",

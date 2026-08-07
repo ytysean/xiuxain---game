@@ -214,7 +214,134 @@ def check_fullwidth_strings():
 # 17) 底部主导航 Tab 数恒为 5（宗门/弟子/殿阁/历练/纪事）
 # 18) 按钮色值 / 裸 hex：全文件裸 #xxxxxx 比对顶部常量 + 四类锁定 hex，未定义即 FAIL
 # 19) 背景透明度：BG_SCENE_ALPHA ≤ 0.35、BG_OVERLAY_ALPHA == 0.50、BG_OVERLAY_COLOR == #16221D
-NEW_UI_GATES = ("底部导航 Tab 数校验", "按钮色值/裸 hex 校验", "背景透明度校验")
+NEW_UI_GATES = ("底部导航 Tab 数校验", "按钮色值/裸 hex 校验", "背景透明度校验",
+                "状态色 token 漂移校验", "品阶色单一数据源校验")
+
+
+# ── P1-A 方案 C：状态色 token 漂移校验 ────────────────────────────────
+# 背景：P1-A 评审裁定「运行时不强求单一来源，改用 CI 等值断言锁死双写」。
+#   ui_theme.gd 的 COLOR_STATUS_SUCCESS / COLOR_TEXT_RED 与 ui_theme_config.gd 的
+#   STATE_COLOR.success / danger 是同一设计 token 的两处表达（前者 float Color 字面，
+#   后者 hex 字符串）。保留双写可零风险规避 Autoload 初始化顺序问题
+#   （project.godot 中 UITheme 先于 UIThemeConfig 实例化，@onready 跨单例取值会崩），
+#   但必须由本闸门保证两者永不悄悄漂移。
+# 范围红线：本闸门【仅】覆盖上述 2 组 status 常量。
+#   main.gd 的品阶色（原第三硬编码源）已于 P1 收口至 UIThemeConfig，
+#   由独立的 check_rarity_color_single_source() 闸门看守，不混入本闸门。
+COLOR_DRIFT_PAIRS = (
+    # (ui_theme.gd 常量名, ui_theme_config.gd STATE_COLOR 键, 语义)
+    ("COLOR_STATUS_SUCCESS", "success", "成功/增益"),
+    ("COLOR_TEXT_RED", "danger", "警示/异常"),
+)
+
+
+def check_color_token_drift():
+    """闸门：ui_theme.gd status 色常量 与 ui_theme_config.gd STATE_COLOR 等值断言。
+    解析两侧色值统一换算为 #RRGGBB 后逐对比对，任一不等即 FAIL；
+    任一侧常量/键缺失（误删、改名）同样 FAIL。
+    仅覆盖 COLOR_DRIFT_PAIRS 声明的 2 组（见上方范围红线）。
+
+    精度语义（刻意设计，非缺陷）：
+      比对基准是 8bit #RRGGBB，而非原始 float。因为 UIThemeConfig 侧只存 hex
+      （精度上限即 8bit），hex `#E0` 反解为 float 是 0.87843…，与 ui_theme.gd 侧
+      的字面 0.878 永不精确相等 —— 若改用 float 等值比对，每一对都会假阳性。
+      故 hex 是两侧唯一共同精度基准。
+      推论：小于 1/255 的 float 漂移（如 0.878→0.879，两者均量化为 0xE0）
+      不会被本闸门拦截 —— 但该量级漂移渲染结果逐像素相同，无视觉影响，
+      属可接受盲区。任何达到 1/255 及以上的真实漂移均会被捕获。
+
+    返回 (ok, summary, detail)。"""
+    theme_fp = os.path.join(ROOT, "ui_theme.gd")
+    config_fp = os.path.join(ROOT, "ui_theme_config.gd")
+    for fp in (theme_fp, config_fp):
+        if not os.path.exists(fp):
+            return False, "%s 缺失" % os.path.basename(fp), ""
+    try:
+        theme_src = open(theme_fp, "r", encoding="utf-8").read()
+        config_src = open(config_fp, "r", encoding="utf-8").read()
+    except Exception as e:
+        return False, "读取失败: %s" % e, ""
+
+    def to_hex(r, g, b):
+        return "#%02X%02X%02X" % (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
+
+    # 左侧：ui_theme.gd 的 const NAME: Color = Color(r, g, b[, a])
+    theme_colors = {}
+    for m in re.finditer(
+            r"const\s+(COLOR_\w+)\s*:\s*Color\s*=\s*Color\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*[\d.]+\s*)?\)",
+            theme_src):
+        theme_colors[m.group(1)] = to_hex(float(m.group(2)), float(m.group(3)), float(m.group(4)))
+
+    # 右侧：ui_theme_config.gd 的 STATE_COLOR 字典 "key": Color.from_string("#RRGGBB", ...)
+    state_block = re.search(r"STATE_COLOR\s*:\s*Dictionary\s*=\s*\{(.*?)\}", config_src, re.DOTALL)
+    if not state_block:
+        return False, "ui_theme_config.gd 未找到 STATE_COLOR 字典", ""
+    state_colors = {}
+    for m in re.finditer(r'"(\w+)"\s*:\s*Color\.from_string\(\s*"(#[0-9A-Fa-f]{6})"',
+                         state_block.group(1)):
+        state_colors[m.group(1)] = m.group(2).upper()
+
+    drift, missing = [], []
+    for const_name, state_key, semantic in COLOR_DRIFT_PAIRS:
+        left = theme_colors.get(const_name)
+        right = state_colors.get(state_key)
+        if left is None:
+            missing.append("ui_theme.gd 未找到常量 %s（%s）" % (const_name, semantic))
+            continue
+        if right is None:
+            missing.append("ui_theme_config.gd STATE_COLOR 缺键 '%s'（%s）" % (state_key, semantic))
+            continue
+        if left != right:
+            drift.append("%s[%s] = %s  ≠  STATE_COLOR['%s'] = %s"
+                         % (const_name, semantic, left, state_key, right))
+
+    if missing or drift:
+        detail = "\n".join(missing + drift)
+        n = len(missing) + len(drift)
+        return False, "状态色 token 漂移/缺失 %d 处" % n, detail
+    pairs = " / ".join("%s=%s" % (k, theme_colors[c]) for c, k, _ in COLOR_DRIFT_PAIRS)
+    return True, "status 色 token 双写一致（%d 组：%s）" % (len(COLOR_DRIFT_PAIRS), pairs), ""
+
+
+def check_rarity_color_single_source():
+    """闸门：品阶色单一数据源校验（P1 收口 · P0 决议补全）。
+    历史问题：main.gd 曾以 `const 品阶色` 自持第三份品阶色表，7 档全部与
+    UIThemeConfig.QUALITY_COLOR 冲突（灵=绿/王=紫/圣=橙/道=暗红），导致
+    P0「灵品改青蓝 #3FA9C9」的决议在真机上从未生效。
+    本闸门断言两件事：
+      1) main.gd 不得再出现 `const 品阶色` 硬编码字典定义（负向：防回归）；
+      2) main.gd 的 get_rarity_color() 必须委托 UIThemeConfig（正向：防「改名后
+         重新硬编码」绕过 —— 只查缺失会让换个变量名重新写死的情形漏网）。
+    返回 (ok, summary, detail)。"""
+    fp = os.path.join(ROOT, "main.gd")
+    if not os.path.exists(fp):
+        return True, "main.gd 不存在，跳过", ""
+    try:
+        src = open(fp, "r", encoding="utf-8").read()
+    except Exception as e:
+        return False, "读取失败: %s" % e, ""
+
+    problems = []
+    # 1) 负向：不得残留硬编码品阶色字典
+    if re.search(r"const\s+品阶色", src):
+        problems.append("main.gd 仍定义硬编码 `const 品阶色` 字典，违反单一数据源"
+                        "（应委托 UIThemeConfig.get_quality_color）")
+
+    # 2) 正向：get_rarity_color 必须存在且委托 UIThemeConfig
+    #    注意：必须先剥注释再判断 —— 本函数的说明注释里就含 "UIThemeConfig" 字样，
+    #    若带注释匹配，则「函数体改回硬编码但注释没删」的回归会漏网（已由负向测试证实）。
+    m = re.search(r"func\s+get_rarity_color\s*\([^)]*\)[^:]*:(.*?)(?=\n(?:func|const|var|@)|\Z)",
+                  src, re.DOTALL)
+    if not m:
+        problems.append("main.gd 未找到 get_rarity_color()（全局品阶染色入口缺失）")
+    else:
+        body_code = "\n".join(re.sub(r"#.*$", "", ln) for ln in m.group(1).splitlines())
+        if "UIThemeConfig" not in body_code:
+            problems.append("get_rarity_color() 未委托 UIThemeConfig，品阶色可能被重新硬编码")
+
+    if problems:
+        return False, "品阶色单一数据源校验未通过（%d 项）" % len(problems), "\n".join(problems)
+    return True, "品阶色已收口至 UIThemeConfig（main.gd 无硬编码字典，入口已委托）", ""
 
 
 def check_tab_count():
@@ -747,6 +874,8 @@ def main():
         (check_tab_count, "底部导航 Tab 数校验"),
         (check_button_hex, "按钮色值/裸 hex 校验"),
         (check_bg_alpha, "背景透明度校验"),
+        (check_color_token_drift, "状态色 token 漂移校验"),
+        (check_rarity_color_single_source, "品阶色单一数据源校验"),
     ):
         ok, summary, detail = fn()
         total = total + 1
