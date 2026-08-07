@@ -70,6 +70,7 @@ func _build() -> void:
 	var 遮 := ColorRect.new()
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	遮.color = Color(0.06, 0.08, 0.075, 1.0)  # 局部微色·保留：全屏背景遮罩 #0F1413（scrim，非 token；注：偏墨绿 g>b，待 P1-C 裁定是否收口 COLOR_STATUSBAR_BG）
+	# 页面氛围暗底色，非功能色，暂不收敛至 Theme Token（P1-C 保留裁定）
 	遮.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(遮)
 
@@ -233,6 +234,7 @@ func _build() -> void:
 	_小预览框.gui_input.connect(_on_小预览点击)
 	var 小预览样式 := StyleBoxFlat.new()
 	小预览样式.bg_color = Color(0.05, 0.07, 0.06, 1.0)  # 局部微色·保留：小预览暗底 #0D120F（组件专属，非 token；注：偏墨绿 g>b，待 P1-C 裁定）
+	# 页面氛围暗底色，非功能色，暂不收敛至 Theme Token（P1-C 保留裁定）
 	小预览样式.border_color = UITheme.COLOR_BORDER_GOLD
 	小预览样式.set_corner_radius_all(8)
 	小预览样式.border_width_left = 1.5
@@ -400,6 +402,7 @@ func _构建弹窗() -> void:
 	_弹窗面板.offset_bottom = 弹窗顶 + 弹窗高
 	var 弹窗样式 := StyleBoxFlat.new()
 	弹窗样式.bg_color = Color(0.08, 0.1, 0.09, 1.0)  # 局部微色·保留：弹窗面板暗底 #141A17（组件专属，非 token；注：偏墨绿 g>b，待 P1-C 裁定）
+	# 页面氛围暗底色，非功能色，暂不收敛至 Theme Token（P1-C 保留裁定）
 	弹窗样式.border_color = UITheme.COLOR_BORDER_GOLD
 	弹窗样式.set_corner_radius_all(12)
 	弹窗样式.border_width_left = 2
