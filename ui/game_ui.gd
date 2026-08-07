@@ -64,7 +64,8 @@ func _build() -> void:
 			"宗门":
 				var 宗门页: Control = _make_real_page(SectHomePageScene, id)
 				_页_宗门 = 宗门页
-				宗门页.entry_selected.connect(_on_首页入口)
+				# 截图还原版：首页无网格入口(entry_selected)，改用左侧导航(nav_selected)
+				# 宗门页.entry_selected.connect(_on_首页入口)
 				_pages[id] = 宗门页
 			"弟子":
 				_pages[id] = _make_real_page(PageDiscipleScene, id)

@@ -26,10 +26,10 @@ signal 弟子详情返回()
 signal 弟子装备查看请求(弟子ID: int)
 
 # ───────── 品阶/境界 中文 → UIThemeConfig stem 私有映射表（设计规格 §3.1 / 附录A）─────────
-# 弟子.灵根品阶 取值域 = 凡品/良品/上品/极品/天品（5 档）→ QUALITY_COLOR 8 档近似映射。
+# 弟子.灵根品阶 取值域 = 凡品/良品/上品/极品/天品（5 档灵根轴）→ QUALITY_COLOR 7 档近似映射（良品归入灵阶色 ling，与 game_state 掉落映射一致）。
 const _LINGGEN_QUALITY_STEM: Dictionary = {
 	"凡品": "fan",
-	"良品": "liang",
+	"良品": "ling",
 	"上品": "ling",
 	"极品": "wang",
 	"天品": "xian",

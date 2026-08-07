@@ -65,13 +65,12 @@
 
 > 表面填充（如成功提示条底色）由 engineering-lead 以本基色取低透明度（约 12%–18% alpha）派生，令牌文档只强制基色 hex，避免脆弱硬编码。
 
-### 1.5 业务色 — 品级（物品 / 装备，8 档）
+### 1.5 业务色 — 品级（物品 / 装备，7 档：凡/灵/宝/王/圣/仙/道）
 
 | Token ID | 中文 | Hex | 建议变量名 | 备注 |
 |---|---|---|---|---|
-| `tier.fan` | 凡品 | `#D6D6D6` | `COLOR_TIER_FAN` | 白灰色 |
-| `tier.liang` | 良品 | `#4CAF7A` | `COLOR_TIER_LIANG` | 绿 |
-| `tier.ling` | 灵品 | `#4CAF7A` | `COLOR_TIER_LING` | **与良品同色（spec 明示）。见 §8，建议灵品升一档区分** |
+| `tier.fan` | 凡品 | `#D6D6D6` | `COLOR_TIER_FAN` | 白灰色（原良品已并入凡品，良品档删除） |
+| `tier.ling` | 灵品 | `#3FA9C9` | `COLOR_TIER_LING` | 青蓝；与原良品绿区分，原良品已并入凡品删除（见 §8） |
 | `tier.bao` | 宝品 | `#5B8BD9` | `COLOR_TIER_BAO` | 蓝 |
 | `tier.wang` | 王品 | `#D9A04C` | `COLOR_TIER_WANG` | 金 |
 | `tier.sheng` | 圣品 | `#B04CD9` | `COLOR_TIER_SHENG` | 紫 |
@@ -83,12 +82,12 @@
 | Token ID | 中文 | Hex | 建议变量名 | 备注 |
 |---|---|---|---|---|
 | `realm.lianqi` | 练气 | `#C8B896` | `COLOR_REALM_LIANQI` | 与 `color.text.body-dim` 同值（共用调性） |
-| `realm.zhuji` | 筑基 | `#4CAF7A` | `COLOR_REALM_ZHUJI` | 与 `tier.liang/ling` 同值 |
+| `realm.zhuji` | 筑基 | `#4CAF7A` | `COLOR_REALM_ZHUJI` | 境界绿（realm 体系基色；原与 tier.liang 同值，良品已删除） |
 | `realm.jindan` | 金丹 | `#5B8BD9` | `COLOR_REALM_JINDAN` | 与 `tier.bao` 同值 |
 | `realm.yuanying` | 元婴 | `#D9A04C` | `COLOR_REALM_YUANYING` | 与 `tier.wang` 同值 |
 | `realm.huashen` | 化神 | `#B04CD9` | `COLOR_REALM_HUASHEN` | 与 `tier.sheng` 同值 |
 
-> 境界色与品级中低档（良~圣）刻意共用同一组色值，形成「品级—境界」视觉同源，利于玩家迁移认知；仅「练气 `#C8B896`」与弱化正文共用。此为有意的跨域对齐，非冲突。
+> 境界色与品级低档刻意共用同一组色值（注：原良品绿 `#4CAF7A` 现由 `realm.zhuji` 筑基沿用，灵品 `tier.ling` 已升为青蓝 `#3FA9C9` 脱离该组以与凡品灰区分），形成「品级—境界」视觉同源，利于玩家迁移认知。此为有意的跨域对齐，非冲突。
 
 ### 1.7 派生 / 控制态色（pressed / disabled / 沉浸）
 
@@ -107,7 +106,7 @@
 边框    border.gold=#C9A865
 功能    success=#7ED39A  danger=#E07878
 控制态  pressed=#141B1C*  disabled.btn=#2E3232*
-品级    fan=#D6D6D6  liang=#4CAF7A  ling=#4CAF7A*  bao=#5B8BD9  wang=#D9A04C  sheng=#B04CD9  xian=#F0E6B0  dao=#E8F0FF
+品级    fan=#D6D6D6  ling=#3FA9C9  bao=#5B8BD9  wang=#D9A04C  sheng=#B04CD9  xian=#F0E6B0  dao=#E8F0FF
 境界    lianqi=#C8B896  zhuji=#4CAF7A  jindan=#5B8BD9  yuanying=#D9A04C  huashen=#B04CD9
 （标 * 者为 spec 未明示 / 提案 / 待确认项）
 ```
@@ -120,8 +119,8 @@
 
 | 角色 | 字体 | 资源路径 | 状态 |
 |---|---|---|---|
-| 标题（毛笔体） | MaShanZheng | `res://art/fonts/MaShanZheng-Subset.ttf` | ✅ 已子集化恢复（原 5.6MB→2.04MB；原字体已移出项目避 Godot 重导入崩溃） |
-| 正文（宋体） | NotoSerifSC | `res://art/fonts/NotoSerifSC-Subset.otf` | ✅ 已子集化恢复（原 11.6MB→996KB；`ui_theme.gd` 的 `FONT_TITLE_PATH`/`FONT_BODY_PATH` 已指向 -Subset） |
+| 全局（标题/正文/控件） | Source Han Sans CN（思源黑体） | `res://art/fonts/SourceHanSansCN-Regular.otf` | ✅ 全局唯一字体（2026-08-08 收口）；MaShanZheng/NotoSerifSC/LXGWWenKai 已归档至 `art/_legacy_assets/fonts/` |
+| （旧字体，已废弃） | MaShanZheng / NotoSerifSC / LXGWWenKai | 已归档 | ⛔ 2026-08-08 起废弃；如需国风装饰标题用美术图资源替代，不引入字体 |
 
 - **恢复前**：所有文本使用 **Godot 默认回退字体**，保证可运行、不报错。
 - **`.tres` 暂不绑定字体文件**（避免引用缺失字体资源报错）；字体绑定在 `ui_theme.gd` 的 `apply_*_font` helper 中按路径探测（缺失则回退），等用户恢复子集字体后再由 engineering-lead 在 `.tres` 补 `default_font` 绑定。
@@ -154,9 +153,9 @@
 
 | 用法 | 字重 | 说明 |
 |---|---|---|
-| 标题（MaShanZheng） | 装饰体（等效 Bold） | 毛笔体自带笔锋，无需额外加粗 |
-| 二级标题 | Medium 500 | NotoSerifSC Medium |
-| 正文 / 辅助 / 密集 | Regular 400 | NotoSerifSC Regular |
+| 标题 / 二级标题 | Bold 700 | Source Han Sans CN Bold（思源黑体加粗） |
+| 正文 / 辅助 / 密集 | Regular 400 | Source Han Sans CN Regular |
+| 强调数字 | **Bold 700** + `color.text.accent` | 核心数值加粗并以 `#FFD77A` 着色 |
 | 强调数字 | **Bold 700** + `color.text.accent` | 核心数值加粗并以 `#FFD77A` 着色 |
 
 **字距**：中文默认 0；标题（`h1`/`display`）可 +2px 字距增强仪式感（可选，由 `.tres` 控制）。
@@ -274,7 +273,7 @@ UI 系统采用**混合双轨**方案，各方职责严格隔离，任一角色�
 | 项 | 类型 | 说明 | 建议处理 |
 |---|---|---|---|
 | **A. 正文色冲突** | spec 内部冲突 | spec 同时给「正文主色 `#E0D5BE`」与「文字层级 正文 `#C8B896`」 | 本文档已分置为 `body(#E0D5BE)` + `body-dim(#C8B896)`。**请主理人确认此拆分是否成立**，或指定 `#C8B896` 的正式语义 |
-| **B. 灵品 = 良品同色** | 品级歧义 | spec 明示 `灵品 #4CAF7A` 与 `良品 #4CAF7A` 同值 | 保留 spec 值，但**建议灵品升一档区分**（如青蓝 `#3FA9C9`）或保持同色仅以图标/描边区分。待主理人裁定 |
+| **B. 灵品 = 良品同色** | 品级歧义 | spec 明示 `灵品 #4CAF7A` 与 `良品 #4CAF7A` 同值 | **已裁定（P0）**：良品档删除并并入凡品；灵品升为青蓝 `#3FA9C9` 以与凡品灰区分，详见 §1.5 `tier.ling`。 |
 | **C. 内容底 `bg.content`** | spec 未给 | 面板内嵌面底色 | 提案 `#2C3D43`，待美术确认 |
 | **D. 控制态派生色** | spec 未给 | `control.pressed #141B1C`、`control.disabled #2E3232` | 沿用现状，作为提案；若要与 `bg.page` 强关联可改为相对运算 |
 

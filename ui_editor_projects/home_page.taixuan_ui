@@ -9,7 +9,7 @@
 			"height": 1344,
 			"background_color": [0.06, 0.09, 0.08, 1.0]
 		},
-		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"default_font": "res://art/fonts/SourceHanSansCN-Regular.otf",
 		"reference_image": {
 			"path": "",
 			"opacity": 1.0,
@@ -61,7 +61,7 @@
 					"color": [0.78, 0.66, 0.42, 1.0],
 					"horizontal_alignment": 1,
 					"vertical_alignment": 1,
-					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf"
 				}
 			},
 			{
@@ -78,7 +78,7 @@
 					"color": [0.93, 0.90, 0.84, 1.0],
 					"horizontal_alignment": 1,
 					"vertical_alignment": 1,
-					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf"
 				}
 			},
 			{
@@ -92,7 +92,7 @@
 				"style": {
 					"button_text": "开新宗门",
 					"icon_path": "",
-					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf",
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf",
 					"font_size": 22,
 					"color": [1.0, 1.0, 1.0, 1.0],
 					"bg_path": "res://art/ui/buttons/_legacy_local/rect_pos_N.png",
@@ -116,7 +116,7 @@
 				"style": {
 					"button_text": "继续",
 					"icon_path": "",
-					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf",
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf",
 					"font_size": 18,
 					"color": [1.0, 1.0, 1.0, 1.0],
 					"bg_path": "res://art/ui/buttons/_legacy_local/rect_neg_N.png",
@@ -143,7 +143,7 @@
 					"color": [0.93, 0.90, 0.84, 1.0],
 					"horizontal_alignment": 1,
 					"vertical_alignment": 1,
-					"font_path": "res://art/fonts/NotoSerifSC-Subset.otf"
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf"
 				}
 			}
 		]

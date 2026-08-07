@@ -28,21 +28,7 @@ const COLOR_TEXT_BODY_DIM: Color = Color(0.784, 0.722, 0.588) # color.text.body-
 const COLOR_TEXT_DISABLED: Color = Color(0.333, 0.333, 0.310) # color.text.disabled #55554F 禁用灰
 # 功能色
 const COLOR_STATUS_SUCCESS: Color = Color(0.494, 0.827, 0.604)# color.status.success #7ED39A 成功/增益
-# 业务色 — 品级（物品/装备 8 档）· 视觉基线
-const COLOR_TIER_FAN: Color = Color(0.839, 0.839, 0.839)      # tier.fan 凡品 #D6D6D6
-const COLOR_TIER_LIANG: Color = Color(0.298, 0.686, 0.478)    # tier.liang 良品 #4CAF7A
-const COLOR_TIER_LING: Color = Color(0.247, 0.663, 0.788)     # tier.ling 灵品 #3FA9C9（主理人裁定-升档区分）
-const COLOR_TIER_BAO: Color = Color(0.357, 0.545, 0.851)      # tier.bao 宝品 #5B8BD9
-const COLOR_TIER_WANG: Color = Color(0.851, 0.627, 0.298)     # tier.wang 王品 #D9A04C
-const COLOR_TIER_SHENG: Color = Color(0.690, 0.298, 0.851)    # tier.sheng 圣品 #B04CD9
-const COLOR_TIER_XIAN: Color = Color(0.941, 0.902, 0.690)     # tier.xian 仙品 #F0E6B0
-const COLOR_TIER_DAO: Color = Color(0.910, 0.941, 1.000)      # tier.dao 道品 #E8F0FF
-# 业务色 — 境界（5 档）· 视觉基线
-const COLOR_REALM_LIANQI: Color = Color(0.784, 0.722, 0.588)  # realm.lianqi 练气 #C8B896
-const COLOR_REALM_ZHUJI: Color = Color(0.298, 0.686, 0.478)   # realm.zhuji 筑基 #4CAF7A
-const COLOR_REALM_JINDAN: Color = Color(0.357, 0.545, 0.851)  # realm.jindan 金丹 #5B8BD9
-const COLOR_REALM_YUANYING: Color = Color(0.851, 0.627, 0.298)# realm.yuanying 元婴 #D9A04C
-const COLOR_REALM_HUASHEN: Color = Color(0.690, 0.298, 0.851) # realm.huashen 化神 #B04CD9
+# 品阶/境界色唯一来源 → UIThemeConfig.QUALITY_COLOR / REALM_COLOR（数据驱动换皮）
 
 # ───────── 8px 栅格常量 ─────────
 const GRID: int = 8
@@ -55,7 +41,7 @@ const SIZE_XL: int = 240
 const BTN_H_PRIMARY: int = 64
 const BTN_H_SECONDARY: int = 48
 const TAB_H: int = 60
-const TOPBAR_H: int = 56
+const TOPBAR_H: int = 108   # 截图还原版：信息栏44 + 资源栏64
 const OVERVIEW_H: int = 120
 const CORE_GRID_H: int = 240
 
@@ -80,8 +66,8 @@ const PANEL_INK_TEX: String = ASSET_DIR + "panel_ink.svg"
 const DIVIDER_TEX: String = ASSET_DIR + "divider_cloud.svg"
 # 字体路径：已落盘子集字体（tools/font_subset.py 生成，体积 < 1MB，Godot 4.7 可稳定导入）。
 # 注：FONT_TITLE / FONT_BODY 已被上方字号 int 占用 → 路径常量命名 *_PATH 以示区别。
-const FONT_TITLE_PATH: String = ASSET_DIR + "fonts/MaShanZheng-Subset.ttf"
-const FONT_BODY_PATH: String = ASSET_DIR + "fonts/NotoSerifSC-Subset.otf"
+const FONT_TITLE_PATH: String = ASSET_DIR + "fonts/SourceHanSansCN-Regular.otf"
+const FONT_BODY_PATH: String = ASSET_DIR + "fonts/SourceHanSansCN-Regular.otf"
 
 # 中文 label → 图标文件 stem（不含扩展名）。组件按其 Chinese 标签取图，统一写实国漫油画风（§3.1）。
 # 所有图标已迁移到 res://art/ui/buttons/，扩展名为 .png。
@@ -237,8 +223,8 @@ func apply_title_font(control: Control) -> void:
 	if _font_title_res != null:
 		control.add_theme_font_override("font", _font_title_res)
 
-# 小号楷体：标题 / 按钮文字 / Tab 名称 用古风楷体 MaShanZheng，但按需要缩小字号。
-# apply_title_font 固定 30px 会撑爆小控件；P2 §一 要求 Tab名称/按钮文字→楷体，§三 要求 14px，故提供可控字号版。
+# 标题字体：全局统一 Source Han Sans CN（思源黑体），标题 / 按钮文字 / Tab 名称 均走同一无衬线黑体。
+# apply_title_font 固定 30px 会撑爆小控件；P2 §一 要求 Tab名称/按钮文字字号，§三 要求 14px，故提供可控字号版。
 func apply_title_font_sized(control: Control, size: int) -> void:
 	_ensure_fonts()
 	if _font_title_res != null:
