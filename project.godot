@@ -34,5 +34,4 @@ enabled=PackedStringArray("res://addons/taixuan_ui_editor/plugin.cfg")
 
 [gui]
 
-theme/custom="uid://cdacbo1s6f55c"
 theme="res://theme/main_theme.tres"

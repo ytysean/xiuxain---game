@@ -9,7 +9,7 @@
 			"height": 854,
 			"background_color": [0.06, 0.09, 0.08, 1.0]
 		},
-		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"default_font": "res://art/fonts/SourceHanSansCN-Regular.otf",
 		"reference_image": {
 			"path": "",
 			"opacity": 1.0,
@@ -204,7 +204,7 @@
 				"anchor_preset": 0,
 				"style": {
 					"text": "宗门动态",
-					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf",
 					"font_size": 18,
 					"color": [0.902, 0.780, 0.471, 1.0],
 					"horizontal_alignment": 0,
@@ -338,7 +338,7 @@
 				"anchor_preset": 0,
 				"style": {
 					"text": "修炼收益",
-					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf",
 					"font_size": 18,
 					"color": [0.902, 0.780, 0.471, 1.0],
 					"horizontal_alignment": 0,
@@ -438,7 +438,7 @@
 				"anchor_preset": 0,
 				"style": {
 					"text": "历练事件",
-					"font_path": "res://art/fonts/MaShanZheng-Subset.ttf",
+					"font_path": "res://art/fonts/SourceHanSansCN-Regular.otf",
 					"font_size": 18,
 					"color": [0.902, 0.780, 0.471, 1.0],
 					"horizontal_alignment": 0,

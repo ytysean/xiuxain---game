@@ -36,7 +36,7 @@ const TEMPLATE_LIB_PATH: String = "res://addons/taixuan_ui_editor/template_libra
 const DEFAULT_PROJECT_PATH: String = "res://ui_editor_projects/home_page.taixuan_ui"
 const DEFAULT_JSON_PATH: String = "res://ui_editor_projects/home_page.json"
 const DEFAULT_TSCN_PATH: String = "res://art/auto_ui/scenes/main_menu.tscn"
-const DEFAULT_FONT_PATH: String = "res://art/fonts/NotoSerifSC-Subset.otf"
+const DEFAULT_FONT_PATH: String = "res://art/fonts/SourceHanSansCN-Regular.otf"
 const DEFAULT_REF_PATH: String = "res://art/scene_pipeline/home_bg_seasons_preview.png"
 
 # 子脚本（data_manager.gd 已 class_name TaixuanUIData；

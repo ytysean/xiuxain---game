@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3]
 [ext_resource type="Texture2D" uid="uid://1vquvcybwxfi" path="res://art/backgrounds/home_bg_season_spring.png" id="1"]
-[ext_resource type="FontFile" path="res://art/fonts/NotoSerifSC-Subset.otf" id="2"]
+[ext_resource type="FontFile" path="res://art/fonts/SourceHanSansCN-Regular.otf" id="2"]
 [ext_resource type="Texture2D" path="res://art/ui/buttons/_legacy_local/rect_pos_N.png" id="3"]
 [ext_resource type="Texture2D" path="res://art/ui/buttons/_legacy_local/rect_neg_N.png" id="4"]
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]

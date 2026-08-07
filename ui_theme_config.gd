@@ -8,13 +8,13 @@
 #   - 正文拆为 body(#E0D5BE) + body-dim(#C8B896)（STATE/HINT 等弱色沿用此调性）。
 extends Node
 
-# ───────── 品级（物品/装备，8 档）─────────
+# ───────── 品级（物品/装备，7 档：凡/灵/宝/王/圣/仙/道）─────────
 # 键 = tier.* 的品级 stem（与 ICON_BY_LABEL / 业务数据约定一致）。
+# 原 8 档含 liang（良品），S1 收口为 7 档，良品并入凡品，故删除 liang 键（其唯一消费者 page_disciple 灵根上色已改指 ling）。
 # 注意：GDScript 4 的 const 不允许 Color.from_string() 运行时调用，故用 @onready var。
 @onready var QUALITY_COLOR: Dictionary = {
 	"fan":   Color.from_string("#D6D6D6", Color.WHITE),   # 凡品
-	"liang": Color.from_string("#4CAF7A", Color.WHITE),   # 良品
-	"ling":  Color.from_string("#3FA9C9", Color.WHITE),   # 灵品（主理人裁定：青蓝，区别于良品）
+	"ling":  Color.from_string("#3FA9C9", Color.WHITE),   # 灵品（主理人裁定：青蓝，区别于旧良品）
 	"bao":   Color.from_string("#5B8BD9", Color.WHITE),   # 宝品
 	"wang":  Color.from_string("#D9A04C", Color.WHITE),   # 王品
 	"sheng": Color.from_string("#B04CD9", Color.WHITE),   # 圣品

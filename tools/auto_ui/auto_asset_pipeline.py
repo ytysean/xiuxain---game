@@ -179,8 +179,7 @@ def _ctrl(type_, name, x, y, w, h, style, z=0):
 # 自动识别游戏自带字体作为默认字体（让自动生成的场景文字与游戏一致）
 def detect_game_font():
     candidates = [
-        "res://ui/assets/fonts/NotoSerifSC-Subset.otf",
-        "res://ui/assets/fonts/MaShanZheng-Subset.ttf",
+        "res://art/fonts/SourceHanSansCN-Regular.otf",
     ]
     for c in candidates:
         if os.path.exists(c.replace("res://", PROJECT_ROOT + "/")):

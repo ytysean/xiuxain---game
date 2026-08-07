@@ -21,7 +21,7 @@
 			"visible": true,
 			"fit": "contain"
 		},
-		"default_font": "res://art/fonts/NotoSerifSC-Subset.otf",
+		"default_font": "res://art/fonts/SourceHanSansCN-Regular.otf",
 		"controls": [
 			{
 				"type": "TextureRect",
