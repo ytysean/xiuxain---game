@@ -938,14 +938,8 @@ func _build_upgrade_bar(parent: Control, 等级: int, 上限: int) -> void:
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0, UITheme.GRID * 2)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = UITheme.color_text_gold()
-	fill.set_corner_radius_all(UITheme.RADIUS_BUTTON)
-	bar.add_theme_stylebox_override("fill", fill)
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = UITheme.color_bg_content()
-	bg.set_corner_radius_all(UITheme.RADIUS_BUTTON)
-	bar.add_theme_stylebox_override("background", bg)
+	# D2 收口：升级进度条 fill/bg 继承 main_theme.tres 默认（sb_pbar_fill=success 绿 / sb_pbar_bg=content），
+	# 不再手写 StyleBoxFlat（原金 fill 已按主理人裁定改为绿）。radius=6 由 .tres 继承，像素等价。
 	parent.add_child(bar)
 
 	var cap := Label.new()
