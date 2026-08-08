@@ -2,10 +2,25 @@
 ; 数据源：design/06-角色与UI/UI设计令牌v1.0.md（所有色值/圆角/间距/字号唯一来源）
 ; 双轨职责：本 .tres 只放「原生控件基础样式」(StyleBox + 默认文字色)，不放业务/组件特殊样式、不放动态色。
 ; 字体：已由 tools/font_subset.py 子集化恢复（MaShanZheng-Subset.ttf / NotoSerifSC-Subset.otf）。
-;       本 .tres 不直接绑定字体文件，字号/字体资源由 ui_theme.gd 的 apply_*_font helper 按控件类型覆盖。
-; 加载步数 = 13 个子资源 + 1 个主资源 = 14。
+;       本 .tres 不直接绑定字体文件；字体资源仍由 ui_theme.gd 的 apply_*_font helper 覆盖。
+; 加载步数 = 21 个子资源 + 1 个主资源 = 22。（M2/M3 单源化新增 8 个命名 StyleBox；P1-B 未增子资源）
+;
+; ───────── P1-B Token 阶梯（design/P1B_theme_token_ladder.md v1.0，主理人已签字）─────────
+; 圆角阶梯（项目锁死，UI硬性约束规范 §3.4 / 太玄UI主题规范 §1，禁止新增 3/4/12/16 等零星半径）：
+;   R0=0  分隔线 / 满幅背景条 / Tab 选中下划线
+;   R1=6  目标条 · 气泡 · Toast · 细长条控件（进度条 / 滚动条）
+;   R2=8  面板 · 卡片 · 按钮（主力档）
+;   R3=10 弹窗主框 · 悬浮层 · 导航胶囊
+;   RC    圆形例外 — 半径 = 短边/2，仅限头像/圆形徽章（当前仅 sb_avatar 36×36 → 18）；
+;         新增此类需走设计评审，其余 StyleBox 出现 18 视为违规。
+;   遗留待办(S2)：sb_btn_* 现为 6，规范 §3.2 锁定 Button = 8，冲突记 S2（P1-B 裁定 Q2 保持 6 不动）。
+; 字号阶梯（锁定集 {22,18,17,16,15,13}，正文禁止 <15，辅助禁止 <13，禁止新增档位）：
+;   FS_TITLE=22 / FS_SUBTITLE=18 / FS_BUTTON=17 / FS_VALUE=16 / FS_BODY=15 / FS_AUX=13
+;   default_font_size 取最高频档 15，令「什么都不写」即合规；偏离默认走命名变体 Tx*（机制①）。
+;   范围说明：本轮仅收口 .tscn 侧；.gd 的 add_theme_font_size_override(112 处) 与
+;   ui_theme.gd 四个越界常量(FONT_TITLE=30/FONT_AUX=14/FONT_DISPLAY=40/FONT_H1=32) 属 P1-D，未处理。
 
-[gd_resource type="Theme" load_steps=14 format=3]
+[gd_resource type="Theme" load_steps=22 format=3]
 
 ; ───────── Button 四态 ─────────
 [sub_resource type="StyleBoxFlat" id="sb_btn_normal"]
@@ -124,10 +139,10 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 4
 content_margin_top = 4
 content_margin_right = 4
@@ -139,10 +154,10 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 4
 content_margin_top = 4
 content_margin_right = 4
@@ -154,10 +169,10 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 4
 content_margin_top = 4
 content_margin_right = 4
@@ -169,10 +184,10 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 4
 content_margin_top = 4
 content_margin_right = 4
@@ -185,10 +200,10 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 0
 content_margin_top = 0
 content_margin_right = 0
@@ -200,16 +215,137 @@ border_width_left = 0
 border_width_top = 0
 border_width_right = 0
 border_width_bottom = 0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 content_margin_left = 0
 content_margin_top = 0
 content_margin_right = 0
 content_margin_bottom = 0
 
+; ───────── M2/M3 单源化收口：首页/顶栏/宗门首页 命名 StyleBox（供 .tscn 经 theme_type_variation 引用）─────────
+[sub_resource type="StyleBoxFlat" id="sb_nav_btn"]
+bg_color = Color(0.12, 0.17, 0.23, 0.92)           ; #1F2B3B 左导航未选中底
+border_color = Color(0.65, 0.55, 0.32, 0.65)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 8.0
+content_margin_top = 10.0
+content_margin_right = 8.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="sb_nav_active"]
+bg_color = Color(0.18, 0.25, 0.32, 0.95)           ; #2E4052 左导航选中底
+border_color = Color(0.88, 0.76, 0.42, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 8.0
+content_margin_top = 10.0
+content_margin_right = 8.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="sb_fold"]
+bg_color = Color(0.1, 0.15, 0.2, 0.9)              ; #1A2633 折叠区底
+border_color = Color(0.58, 0.48, 0.28, 0.55)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="sb_avatar"]
+bg_color = Color(0.14, 0.2, 0.26, 1)               ; #243342 头像框底
+border_color = Color(0.88, 0.82, 0.65, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="sb_lv"]
+bg_color = Color(0.1, 0.15, 0.22, 0.95)            ; #1A2638 等级徽章底
+border_color = Color(0.78, 0.66, 0.38, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="sb_top_bg"]
+bg_color = Color(0.07, 0.1, 0.14, 0.94)            ; #121A24 顶栏信息条底
+
+[sub_resource type="StyleBoxFlat" id="sb_res_bg"]
+bg_color = Color(0.15, 0.21, 0.28, 0.9)            ; #263647 资源槽底
+border_color = Color(0.58, 0.5, 0.32, 0.5)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="sb_home_panel"]
+bg_color = Color(0.118, 0.169, 0.157, 1)           ; #1E2B28 首页面板底（与 COLOR_HOME_BAR_BG 同值）
+border_color = Color(0.784, 0.659, 0.416, 1)       ; #C8A86A 首页面板描边（与 COLOR_HOME_DIVIDER 同值）
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [resource]
+; ── P1-B 字号 Token：全局默认档（FS_BODY=15，正文下限，误继承也不违规）──
+default_font_size = 15
+
+; ── P1-B 字号 Token：基础控件类型档（key 为 Godot 4 真实 item 名，非规范表的语义名）──
+Label/font_sizes/font_size = 15                ; FS_BODY
+Button/font_sizes/font_size = 17               ; FS_BUTTON（规范 §2 按钮=17）
+LineEdit/font_sizes/font_size = 16             ; FS_VALUE（规范 §2 输入=16）
+OptionButton/font_sizes/font_size = 17         ; FS_BUTTON（继承 Button 语义）
+CheckBox/font_sizes/font_size = 15             ; FS_BODY
+TabBar/font_sizes/font_size = 13               ; FS_AUX（底部导航文字）
+PopupMenu/font_sizes/font_size = 15            ; FS_BODY
+TooltipLabel/font_sizes/font_size = 13         ; FS_AUX
+RichTextLabel/font_sizes/normal_font_size = 15 ; FS_BODY
+RichTextLabel/font_sizes/bold_font_size = 15   ; FS_BODY（同字号加粗，不跳档）
+RichTextLabel/font_sizes/italic_font_size = 15 ; FS_BODY
+RichTextLabel/font_sizes/mono_font_size = 15   ; FS_BODY
+
 ; ── Button ──
 Button/styles/normal = SubResource("sb_btn_normal")
 Button/styles/hover = SubResource("sb_btn_hover")
@@ -223,7 +359,8 @@ Button/colors/font_disabled_color = Color(0.3333, 0.3333, 0.3098, 1) ; disabled-
 ; ── PanelContainer ──
 PanelContainer/styles/panel = SubResource("sb_panel")
 
-; ── Label（默认色；字号由 ui_theme.gd 的 apply_*_font 控制）──
+; ── Label（默认色；字号自 P1-B 起由上方 Label/font_sizes + default_font_size 接管，
+;    apply_*_font 仅保留「设字体资源」职责；其残留的设字号行为待 P1-D 清理）──
 Label/colors/font_color = Color(0.8784, 0.8353, 0.7451, 1)        ; body #E0D5BE
 
 ; ── TabBar ──
@@ -242,3 +379,39 @@ ScrollBar/styles/grabber_pressed = SubResource("sb_grabber_pressed")
 ; ── ProgressBar ──
 ProgressBar/styles/background = SubResource("sb_pbar_bg")
 ProgressBar/styles/fill = SubResource("sb_pbar_fill")
+
+; ── M2/M3 单源化收口：命名变体（.tscn 经 theme_type_variation 引用，消除字面量）──
+SectNavBtn/styles/normal = SubResource("sb_nav_btn")
+SectNavBtn/styles/pressed = SubResource("sb_nav_btn")
+SectNavBtn/styles/hover = SubResource("sb_nav_btn")
+SectNavActive/styles/normal = SubResource("sb_nav_active")
+SectNavActive/styles/pressed = SubResource("sb_nav_active")
+SectNavActive/styles/hover = SubResource("sb_nav_active")
+SectFold/styles/panel = SubResource("sb_fold")
+SectAvatar/styles/panel = SubResource("sb_avatar")
+SectLv/styles/panel = SubResource("sb_lv")
+SectTopBg/styles/panel = SubResource("sb_top_bg")
+SectResBg/styles/panel = SubResource("sb_res_bg")
+SectHomePanel/styles/panel = SubResource("sb_home_panel")
+
+; ── M2/M3 单源化收口：命名变体 base_type 注册（Godot4 变体解析必需，否则 theme_type_variation 回落默认）──
+SectNavBtn/base_type = &"Button"
+SectNavActive/base_type = &"Button"
+SectFold/base_type = &"Panel"
+SectAvatar/base_type = &"Panel"
+SectLv/base_type = &"Panel"
+SectTopBg/base_type = &"Panel"
+SectResBg/base_type = &"Panel"
+SectHomePanel/base_type = &"Panel"
+
+; ── P1-B 字号单源化：命名变体（偏离 default 15 时使用，.tscn 经 theme_type_variation 引用）──
+; 同一 Label 类型需出多档字号，单条 Label/font_sizes/font_size 无法表达 → 必须走变体（与 M2/M3 StyleBox 同构）。
+; FS_BODY(15) 不设变体：它就是 default，直接删覆写即可。
+TxTitle17/font_sizes/font_size = 17            ; FS_BUTTON — 页内小标题
+TxValue16/font_sizes/font_size = 16            ; FS_VALUE  — 资源/数值
+TxAux13/font_sizes/font_size = 13              ; FS_AUX    — 辅助说明、导航文字
+
+; ── P1-B 变体 base_type 注册（Godot4 变体解析必需，否则 theme_type_variation 静默回落默认）──
+TxTitle17/base_type = &"Label"
+TxValue16/base_type = &"Label"
+TxAux13/base_type = &"Label"
