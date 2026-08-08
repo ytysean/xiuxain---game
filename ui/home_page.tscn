@@ -11,18 +11,23 @@
 [ext_resource type="Texture2D" uid="uid://cs5vu7he5jb4r" path="res://art/ui/buttons/grid_rw.png" id="9_rw"]
 [ext_resource type="Texture2D" uid="uid://clecckkaww7gj" path="res://art/ui/buttons/grid_zc.png" id="10_zc"]
 [ext_resource type="Texture2D" uid="uid://dbiigsspd84no" path="res://art/ui/buttons/grid_dz.png" id="11_dz"]
+[ext_resource type="Script" path="res://ui/home_page.gd" id="12_hp"]
 
-[sub_resource type="StyleBoxFlat" id="PanelStyle"]
-bg_color = Color(0.118, 0.169, 0.157, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.784, 0.659, 0.416, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+; M2/M3 颜色单源化收口：
+;   1) 原内联 StyleBoxFlat "PanelStyle" 已上移至 res://theme/main_theme.tres 的命名变体
+;      SectHomePanel，5 个卡片 Panel 改为 theme_type_variation 引用（机制①）。
+;   2) 栏底/分割线/文字色改由 res://ui/home_page.gd 从 UITheme 常量运行时赋值（机制②）。
+;   3) 仅 Overlay / TopMask 两处「非功能色·局部微色」按裁定保留内联字面量。
+; 以上替换的 RGBA 与原字面量逐位一致，无像素变化。
+;
+; P1-B 字号单源化收口（design/P1B_theme_token_ladder.md §B.3，主理人已签字）：
+;   原 29 处 theme_override_font_sizes/font_size 内联覆写全部剥离 →
+;     15px ×12 直接删覆写，继承 main_theme.tres 的 default_font_size = 15（零成本）；
+;     17px ×2  → theme_type_variation = &"TxTitle17"；
+;     16px ×3  → theme_type_variation = &"TxValue16"；
+;     13px ×12 → theme_type_variation = &"TxAux13"。
+;   三个变体均在 main_theme.tres 注册了 base_type = &"Label"，解析后字号与原值逐位一致，无像素变化。
+;   本文件不得再出现内联 font_size 覆写（P1-B 闸门 G2：计数必须为 0）。
 
 [node name="HomePage" type="Control" unique_id=1466735483]
 layout_mode = 3
@@ -31,6 +36,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("12_hp")
 
 [node name="BG" type="TextureRect" parent="." unique_id=1996326930]
 z_index = -100
@@ -49,7 +55,7 @@ layout_mode = 0
 offset_right = 480.0
 offset_bottom = 854.0
 mouse_filter = 2
-color = Color(0.086, 0.133, 0.114, 0.5)
+color = Color(0.086, 0.133, 0.114, 0.5)   ; 非功能色·局部微色·保留（页面氛围暗底 scrim #16221D@0.50，终裁 D 案，不收口）
 
 [node name="TopMask" type="ColorRect" parent="." unique_id=29788566]
 z_index = -98
@@ -57,7 +63,7 @@ layout_mode = 0
 offset_right = 480.0
 offset_bottom = 180.0
 mouse_filter = 2
-color = Color(0.055, 0.082, 0.09, 0.45)
+color = Color(0.055, 0.082, 0.09, 0.45)   ; 非功能色·局部微色·保留（顶部渐隐遮罩 mask @0.45，非 token 语义，不收口）
 
 [node name="TopBar" type="Control" parent="." unique_id=1821757693]
 z_index = 5
@@ -69,21 +75,19 @@ offset_bottom = 48.0
 layout_mode = 0
 offset_right = 480.0
 offset_bottom = 48.0
-color = Color(0.055, 0.082, 0.09, 0.88)
 
 [node name="Divider" type="ColorRect" parent="TopBar" unique_id=1904558671]
 layout_mode = 0
 offset_top = 47.0
 offset_right = 480.0
 offset_bottom = 48.0
-color = Color(0.784, 0.659, 0.416, 1)
 
 [node name="Title" type="Label" parent="TopBar" unique_id=1723115098]
 layout_mode = 0
 offset_left = 16.0
 offset_right = 200.0
 offset_bottom = 48.0
-theme_override_font_sizes/font_size = 17
+theme_type_variation = &"TxTitle17"
 text = "太玄宗门录"
 vertical_alignment = 1
 
@@ -92,7 +96,7 @@ layout_mode = 0
 offset_left = 200.0
 offset_right = 296.0
 offset_bottom = 48.0
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"TxValue16"
 text = "灵石 8.2万"
 horizontal_alignment = 2
 vertical_alignment = 1
@@ -102,7 +106,7 @@ layout_mode = 0
 offset_left = 300.0
 offset_right = 386.0
 offset_bottom = 48.0
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"TxValue16"
 text = "体力 86"
 horizontal_alignment = 2
 vertical_alignment = 1
@@ -112,7 +116,7 @@ layout_mode = 0
 offset_left = 390.0
 offset_right = 472.0
 offset_bottom = 48.0
-theme_override_font_sizes/font_size = 16
+theme_type_variation = &"TxValue16"
 text = "声望 尊敬"
 horizontal_alignment = 2
 vertical_alignment = 1
@@ -123,7 +127,7 @@ offset_left = 12.0
 offset_top = 56.0
 offset_right = 468.0
 offset_bottom = 160.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_type_variation = &"SectHomePanel"
 
 [node name="Title" type="Label" parent="C1_宗门正殿" unique_id=772748103]
 layout_mode = 0
@@ -131,7 +135,7 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = 300.0
 offset_bottom = 36.0
-theme_override_font_sizes/font_size = 17
+theme_type_variation = &"TxTitle17"
 text = "宗门正殿"
 vertical_alignment = 1
 
@@ -141,7 +145,6 @@ offset_left = 12.0
 offset_top = 46.0
 offset_right = 444.0
 offset_bottom = 72.0
-theme_override_font_sizes/font_size = 15
 text = "繁荣 560 · 声望 120 · 弟子 12"
 vertical_alignment = 1
 
@@ -151,7 +154,6 @@ offset_left = 12.0
 offset_top = 78.0
 offset_right = 444.0
 offset_bottom = 104.0
-theme_override_font_sizes/font_size = 15
 text = "当前等级 3 · 修炼速度 +12%"
 vertical_alignment = 1
 
@@ -161,7 +163,7 @@ offset_left = 12.0
 offset_top = 168.0
 offset_right = 468.0
 offset_bottom = 264.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_type_variation = &"SectHomePanel"
 
 [node name="Title" type="Label" parent="C2_今日资源产出" unique_id=396671832]
 layout_mode = 0
@@ -169,7 +171,6 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = 300.0
 offset_bottom = 34.0
-theme_override_font_sizes/font_size = 15
 text = "今日资源产出"
 vertical_alignment = 1
 
@@ -179,7 +180,6 @@ offset_left = 12.0
 offset_top = 46.0
 offset_right = 444.0
 offset_bottom = 72.0
-theme_override_font_sizes/font_size = 15
 text = "灵石 +120 · 灵草 +45 · 矿石 +30 · 灵气 +88 · 贡献 +12"
 vertical_alignment = 1
 
@@ -189,7 +189,7 @@ offset_left = 12.0
 offset_top = 78.0
 offset_right = 444.0
 offset_bottom = 98.0
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "（每小时产出，随时间推演）"
 vertical_alignment = 1
 
@@ -199,7 +199,7 @@ offset_left = 12.0
 offset_top = 272.0
 offset_right = 468.0
 offset_bottom = 376.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_type_variation = &"SectHomePanel"
 
 [node name="Title" type="Label" parent="C3_弟子概览" unique_id=667635038]
 layout_mode = 0
@@ -207,7 +207,6 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = 300.0
 offset_bottom = 34.0
-theme_override_font_sizes/font_size = 15
 text = "弟子概览"
 vertical_alignment = 1
 
@@ -217,7 +216,6 @@ offset_left = 12.0
 offset_top = 46.0
 offset_right = 444.0
 offset_bottom = 72.0
-theme_override_font_sizes/font_size = 15
 text = "弟子总数 12 · 可招募 3"
 vertical_alignment = 1
 
@@ -227,7 +225,6 @@ offset_left = 12.0
 offset_top = 78.0
 offset_right = 444.0
 offset_bottom = 104.0
-theme_override_font_sizes/font_size = 15
 text = "境界：练气6 / 筑基4 / 金丹2"
 vertical_alignment = 1
 
@@ -237,7 +234,7 @@ offset_left = 12.0
 offset_top = 384.0
 offset_right = 468.0
 offset_bottom = 510.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_type_variation = &"SectHomePanel"
 
 [node name="Title" type="Label" parent="C4_近期事件" unique_id=1171368095]
 layout_mode = 0
@@ -245,7 +242,6 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = 300.0
 offset_bottom = 34.0
-theme_override_font_sizes/font_size = 15
 text = "近期事件"
 vertical_alignment = 1
 
@@ -255,7 +251,6 @@ offset_left = 12.0
 offset_top = 46.0
 offset_right = 444.0
 offset_bottom = 70.0
-theme_override_font_sizes/font_size = 15
 text = "· 弟子「清岚」突破至筑基"
 vertical_alignment = 1
 
@@ -265,7 +260,6 @@ offset_left = 12.0
 offset_top = 74.0
 offset_right = 444.0
 offset_bottom = 98.0
-theme_override_font_sizes/font_size = 15
 text = "· 灵田丰收，灵草 +45"
 vertical_alignment = 1
 
@@ -275,7 +269,6 @@ offset_left = 12.0
 offset_top = 102.0
 offset_right = 444.0
 offset_bottom = 126.0
-theme_override_font_sizes/font_size = 15
 text = "· 外门大比下月开启"
 vertical_alignment = 1
 
@@ -285,7 +278,7 @@ offset_left = 12.0
 offset_top = 512.0
 offset_right = 468.0
 offset_bottom = 732.0
-theme_override_styles/panel = SubResource("PanelStyle")
+theme_type_variation = &"SectHomePanel"
 
 [node name="Title" type="Label" parent="C5_快捷入口" unique_id=809194541]
 layout_mode = 0
@@ -293,7 +286,6 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = 300.0
 offset_bottom = 34.0
-theme_override_font_sizes/font_size = 15
 text = "快捷入口"
 vertical_alignment = 1
 
@@ -314,8 +306,7 @@ offset_left = 16.0
 offset_top = 116.0
 offset_right = 88.0
 offset_bottom = 134.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "建筑总览"
 horizontal_alignment = 1
 
@@ -336,8 +327,7 @@ offset_left = 176.0
 offset_top = 116.0
 offset_right = 248.0
 offset_bottom = 134.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "修炼"
 horizontal_alignment = 1
 
@@ -358,8 +348,7 @@ offset_left = 336.0
 offset_top = 116.0
 offset_right = 408.0
 offset_bottom = 134.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "坊市"
 horizontal_alignment = 1
 
@@ -380,8 +369,7 @@ offset_left = 16.0
 offset_top = 196.0
 offset_right = 88.0
 offset_bottom = 214.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "任务"
 horizontal_alignment = 1
 
@@ -402,8 +390,7 @@ offset_left = 176.0
 offset_top = 196.0
 offset_right = 248.0
 offset_bottom = 214.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "账册"
 horizontal_alignment = 1
 
@@ -424,8 +411,7 @@ offset_left = 336.0
 offset_top = 196.0
 offset_right = 408.0
 offset_bottom = 214.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "洞府"
 horizontal_alignment = 1
 
@@ -440,13 +426,11 @@ offset_bottom = 854.0
 layout_mode = 0
 offset_right = 480.0
 offset_bottom = 80.0
-color = Color(0.118, 0.169, 0.157, 0.95)
 
 [node name="TopLine" type="ColorRect" parent="BottomBar" unique_id=145004645]
 layout_mode = 0
 offset_right = 480.0
 offset_bottom = 1.0
-color = Color(0.784, 0.659, 0.416, 1)
 
 [node name="Tab0" type="Control" parent="BottomBar" unique_id=436582840]
 anchors_preset = 0
@@ -493,8 +477,7 @@ layout_mode = 0
 offset_top = 54.0
 offset_right = 96.0
 offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "宗门"
 horizontal_alignment = 1
 
@@ -514,8 +497,7 @@ layout_mode = 0
 offset_top = 54.0
 offset_right = 96.0
 offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "弟子"
 horizontal_alignment = 1
 
@@ -535,8 +517,7 @@ layout_mode = 0
 offset_top = 54.0
 offset_right = 96.0
 offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "殿阁"
 horizontal_alignment = 1
 
@@ -556,8 +537,7 @@ layout_mode = 0
 offset_top = 54.0
 offset_right = 96.0
 offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "历练"
 horizontal_alignment = 1
 
@@ -577,7 +557,6 @@ layout_mode = 0
 offset_top = 54.0
 offset_right = 96.0
 offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.941, 0.902, 0.824, 1)
-theme_override_font_sizes/font_size = 13
+theme_type_variation = &"TxAux13"
 text = "纪事"
 horizontal_alignment = 1
