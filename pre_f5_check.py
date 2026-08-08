@@ -344,6 +344,45 @@ def check_rarity_color_single_source():
     return True, "品阶色已收口至 UIThemeConfig（main.gd 无硬编码字典，入口已委托）", ""
 
 
+def check_progress_bar_single_source():
+    """闸门：ProgressBar 进度条样式单源化校验（D2 收口）。
+
+    断言 ui/*.gd 中【非白名单】文件不再出现 in-code 重建 ProgressBar fill/background
+    的 StyleBoxFlat 覆盖（即 add_theme_stylebox_override("fill"/"background", ...)）。
+    进度条 fill/bg 必须统一继承 main_theme.tres 的 ProgressBar/styles/* 默认，
+    禁止在页面里手写重建（避免与 .tres 漂移、规避 G8 颜色指纹改动）。
+
+    白名单 page_disciple.gd：修炼/瓶颈/丹毒/道心等进度条 fill 为动态状态色
+    （gold/success/red/aux，均取自 UITheme.color_* getter，无裸 Color() 字面量），
+    属合法语义例外，允许保留 in-code 机制。
+
+    返回 (ok, summary, detail)。"""
+    ui_dir = os.path.join(ROOT, "ui")
+    if not os.path.isdir(ui_dir):
+        return False, "ui/ 目录缺失", ""
+    whitelist = {"page_disciple.gd"}
+    violations = []
+    for fn in sorted(os.listdir(ui_dir)):
+        if not fn.endswith(".gd"):
+            continue
+        if fn in whitelist:
+            continue
+        fp = os.path.join(ui_dir, fn)
+        try:
+            src = open(fp, "r", encoding="utf-8").read()
+        except Exception as e:
+            violations.append("%s 读取失败: %s" % (fn, e))
+            continue
+        for m in re.finditer(r'add_theme_stylebox_override\(\s*"(fill|background)"', src):
+            line_no = src[:m.start()].count("\n") + 1
+            violations.append("%s:%d 仍存在 in-code ProgressBar 样式覆盖（应继承 .tres 默认）"
+                              % (fn, line_no))
+    if violations:
+        detail = "\n".join(violations)
+        return False, "ProgressBar 单源化违规 %d 处（非白名单文件不得手写 fill/background 覆盖）" % len(violations), detail
+    return True, "ProgressBar 进度条全部继承 .tres 默认样式（白名单 page_disciple.gd 动态色除外）", ""
+
+
 def check_tab_count():
     """闸门17：底部主导航 Tab 数量恒为 5（宗门/弟子/殿阁/历练/纪事）。
     扫描 main.gd 的 `页名` 常量数组，须精确等于该 5 项，否则 FAIL。
@@ -876,6 +915,7 @@ def main():
         (check_bg_alpha, "背景透明度校验"),
         (check_color_token_drift, "状态色 token 漂移校验"),
         (check_rarity_color_single_source, "品阶色单一数据源校验"),
+        (check_progress_bar_single_source, "进度条单源化校验"),
     ):
         ok, summary, detail = fn()
         total = total + 1
