@@ -28,6 +28,9 @@ const COLOR_TEXT_BODY_DIM: Color = Color(0.784, 0.722, 0.588) # color.text.body-
 const COLOR_TEXT_DISABLED: Color = Color(0.333, 0.333, 0.310) # color.text.disabled #55554F 禁用灰
 # 功能色
 const COLOR_STATUS_SUCCESS: Color = Color(0.494, 0.827, 0.604)# color.status.success #7ED39A 成功/增益
+# ── M2/M3 首页单源化收口：原 home_page.tscn 散落的栏底/分割线色（命名收口，非全局 token）──
+const COLOR_HOME_BAR_BG: Color = Color(0.118, 0.169, 0.157)   # #1E2B28 首页栏/面板底（BarBG / PanelStyle 底）
+const COLOR_HOME_DIVIDER: Color = Color(0.784, 0.659, 0.416)  # #C8A86A 首页分割线/描边（Divider / TopLine / PanelStyle 边）
 # 品阶/境界色唯一来源 → UIThemeConfig.QUALITY_COLOR / REALM_COLOR（数据驱动换皮）
 
 # ───────── 8px 栅格常量 ─────────

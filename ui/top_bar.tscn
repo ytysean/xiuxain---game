@@ -1,4 +1,8 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=7 format=3]
+
+; M2/M3 颜色单源化：原 StyleBoxAvatar/StyleBoxLv/StyleBoxTopBg/StyleBoxResBg 四个内联 StyleBoxFlat
+; 已上移至 res://theme/main_theme.tres 的命名变体 SectAvatar / SectLv / SectTopBg / SectResBg，
+; 本场景改为 theme_type_variation 引用（像素值逐位一致，本文件不再持有任何色值字面量）。
 
 [ext_resource type="Script" path="res://ui/top_bar.gd" id="1_tb"]
 [ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingshi.png" id="2_ls"]
@@ -6,53 +10,6 @@
 [ext_resource type="Texture2D" path="res://art/ui/buttons/res_lingzhi.png" id="4_cy"]
 [ext_resource type="Texture2D" path="res://art/ui/buttons/res_shengwang.png" id="5_sw"]
 [ext_resource type="Texture2D" path="res://art/ui/buttons/res_xianyu.png" id="6_xy"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxAvatar"]
-bg_color = Color(0.14, 0.2, 0.26, 1)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
-border_color = Color(0.88, 0.82, 0.65, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxLv"]
-bg_color = Color(0.1, 0.15, 0.22, 0.95)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-border_color = Color(0.78, 0.66, 0.38, 0.85)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxTopBg"]
-bg_color = Color(0.07, 0.1, 0.14, 0.94)
-corner_radius_top_left = 0
-corner_radius_top_right = 0
-corner_radius_bottom_right = 0
-corner_radius_bottom_left = 0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxResBg"]
-bg_color = Color(0.15, 0.21, 0.28, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-border_color = Color(0.58, 0.5, 0.32, 0.5)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-content_margin_left = 8.0
-content_margin_top = 6.0
-content_margin_right = 8.0
-content_margin_bottom = 6.0
 
 [node name="TopBar" type="Control"]
 layout_mode = 1
@@ -69,7 +26,7 @@ offset_top = 0.0
 offset_right = 480.0
 offset_bottom = 44.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxTopBg")
+theme_type_variation = &"SectTopBg"
 
 [node name="AvatarFrame" type="Panel" parent="InfoBar"]
 layout_mode = 0
@@ -78,7 +35,7 @@ offset_top = 3.0
 offset_right = 42.0
 offset_bottom = 41.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxAvatar")
+theme_type_variation = &"SectAvatar"
 
 [node name="AvatarLabel" type="Label" parent="InfoBar"]
 layout_mode = 0
@@ -109,7 +66,7 @@ offset_top = 9.0
 offset_right = 250.0
 offset_bottom = 31.0
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxLv")
+theme_type_variation = &"SectLv"
 
 [node name="LvLabel" type="Label" parent="InfoBar"]
 layout_mode = 0
@@ -157,7 +114,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxResBg")
+theme_type_variation = &"SectResBg"
 
 [node name="Icon_灵石" type="TextureRect" parent="ResBar/Res_灵石"]
 layout_mode = 0
@@ -208,7 +165,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxResBg")
+theme_type_variation = &"SectResBg"
 
 [node name="Icon_灵气" type="TextureRect" parent="ResBar/Res_灵气"]
 layout_mode = 0
@@ -259,7 +216,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxResBg")
+theme_type_variation = &"SectResBg"
 
 [node name="Icon_灵植" type="TextureRect" parent="ResBar/Res_灵植"]
 layout_mode = 0
@@ -310,7 +267,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxResBg")
+theme_type_variation = &"SectResBg"
 
 [node name="Icon_声望" type="TextureRect" parent="ResBar/Res_声望"]
 layout_mode = 0
@@ -361,7 +318,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxResBg")
+theme_type_variation = &"SectResBg"
 
 [node name="Icon_仙玉" type="TextureRect" parent="ResBar/Res_仙玉"]
 layout_mode = 0

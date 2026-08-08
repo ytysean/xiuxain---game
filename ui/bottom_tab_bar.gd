@@ -22,11 +22,29 @@ const TAB_ICON_LABEL: Dictionary = {
 var _selected: String = ""
 
 func _ready() -> void:
+	_apply_theme()
 	for id in TABS:
 		var btn: Control = get_node_or_null("Tab_" + id)
 		if btn != null:
 			btn.pressed.connect(_on_tab_pressed.bind(id))
 	select(TABS[0])
+
+# M2/M3 颜色单源化：底栏底色/顶分割线/下划线原本硬编码在 bottom_tab_bar.tscn，
+# 现统一从 UITheme 常量取值（像素值与原字面量逐位一致）。
+func _apply_theme() -> void:
+	var bg: ColorRect = get_node_or_null("BG")
+	if bg != null:
+		bg.color = Color(UITheme.COLOR_PANEL_BG, 0.92)
+	var divider: ColorRect = get_node_or_null("TopDivider")
+	if divider != null:
+		divider.color = UITheme.COLOR_BORDER_GOLD
+	for id in TABS:
+		var p: Dictionary = _get_parts(id)
+		if p.is_empty():
+			continue
+		var ul: ColorRect = p["underline"]
+		if ul != null:
+			ul.color = UITheme.COLOR_TEXT_TITLE1
 
 func _get_parts(id: String) -> Dictionary:
 	var btn: Control = get_node_or_null("Tab_" + id)
