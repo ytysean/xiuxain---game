@@ -73,6 +73,7 @@ const MORE_ENTRIES: Array = [
 	{"id": "丹方", "icon": "entry_pill_formula_36"},
 	{"id": "装备图纸", "icon": "entry_equipment_blueprint_36"},
 	{"id": "活动中心", "icon": "entry_activity_36"},
+	{"id": "宗门气运", "icon": "entry_gongxunbei_36"},
 ]
 
 # ───────── 幻形·洞天换肤：皮肤 id → 宗门首页背景图路径 ─────────

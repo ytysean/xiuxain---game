@@ -59,14 +59,16 @@ const RESOURCES: Array = [
 	{"name": "灵气", "field": "灵气", "prod_key": "lingtian"},
 	{"name": "灵植", "field": "灵草", "prod_key": "lingtian"},
 	{"name": "声望", "field": "声望", "prod_key": "gongxun"},
+	{"name": "香火", "field": "香火值", "prod_key": ""},
 ]
 const RES_ICON_STEM: Dictionary = {
 	"灵石": "res_lingshi",
 	"灵气": "res_lingqi",
 	"灵植": "res_lingzhi",
 	"声望": "res_shengwang",
+	"香火": "res_xianghuo",
 }
-const RES_CX: Array = [296.0, 344.0, 392.0, 440.0]  # 666/774/882/990 /2.25
+const RES_CX: Array = [280.0, 320.0, 360.0, 400.0, 440.0]  # 5个资源，间距40px
 const RES_CY: float = 20.0  # 调整资源图标Y坐标
 const RES_DIA: float = 20.0  # 稍微缩小图标，避免遮挡
 const RES_NAME_OFFSET: float = 14.0  # 文字中心在 cy+14

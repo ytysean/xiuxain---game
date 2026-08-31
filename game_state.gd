@@ -2267,6 +2267,10 @@ var 业力 := 0
 var 愿力 := 0
 const 正道功德门槛: int = 100   # P3：择 玄门正道 所需最小功德（[PLACEHOLDER] 待真机校准）
 const 邪道业力门槛: int = 100   # P3：择 九幽邪道 所需最小业力（[PLACEHOLDER] 待真机校准）
+const 正道每步功德: int = 25   # P3：正道链每步累计功德（4 步满链恰达门槛100，[PLACEHOLDER] 待校准）
+const 邪道每步业力: int = 25   # P3：邪道链每步累计业力（4 步满链恰达门槛100，[PLACEHOLDER] 待校准）
+# 连锁进度： chain_id -> {"done": int (已完成步数), "完成": bool}；驱动 正道/邪道链 累积 功德/业力
+var 连锁进度: Dictionary = {}
 # === S1 赛季战令（功：/ 宗门：/ 对外包装「宗门季度法旨」）：UI 已落地，数据层补全；不升 SAVE_VERSION，旧档缺键→默认零回归===
 #     战令_经验 对外称「功绩值」，与弟子晋升「功勋」严格区分（白皮书世界观统一铁律）：
 #     TODO S2 重构：本区块战令业务逻辑迁移：BattlePassManager 单例（game_state 纯数据只读铁律）：
@@ -8277,6 +8281,67 @@ func 愿力升华修为(数量: int) -> Dictionary:
 	添加纪事("庶务", "愿力升华", "耗愿力%d，换悟道点+%d、灵气+%d" % [数量, 得悟, 得气], 1)
 	return {"成功": true, "消耗愿力": 数量, "悟道点": 得悟, "灵气": 得气, "消息": "愿力升华：悟道点+%d、灵气+%d" % [得悟, 得气]}
 
+# 连锁奇遇推进：完成链下一未做步，发放奖励；按 route 累计 功德/业力。
+# 设计取舍：连锁链 在完成前即可推进（用于累积 功德/业力 解锁 正邪路线），
+#           故不强制要求 正邪路线 已匹配；route 字段仅决定本链累计哪种业/功德。
+func 推进连锁(chain_id: String) -> Dictionary:
+	var chain = null
+	for c in ChainLibrary.连锁链库:
+		if c["id"] == chain_id:
+			chain = c
+			break
+	if chain == null:
+		return {"成功": false, "原因": "连锁链不存在：%s" % chain_id}
+	var prog: Dictionary = 连锁进度.get(chain_id, {"done": 0, "完成": false})
+	if prog.get("完成", false):
+		return {"成功": false, "原因": "连锁链已完成：%s" % chain_id}
+	var steps: Array = chain["steps"]
+	var idx: int = int(prog.get("done", 0))
+	if idx >= steps.size():
+		return {"成功": false, "原因": "连锁链已完成（步序越界）"}
+	var step: Dictionary = steps[idx]
+	var 奖励: Dictionary = step.get("奖励", {})
+	# 发放奖励（声望可为负）
+	灵石 += int(奖励.get("灵石", 0))
+	贡献点 += int(奖励.get("贡献点", 0))
+	声望 += int(奖励.get("声望", 0))
+	灵草 += int(奖励.get("灵草", 0))
+	矿石 += int(奖励.get("矿石", 0))
+	# 正/邪行累计：玄门正道→功德，九幽邪道→业力（其余路线链不累计）
+	var 路线标签: String = chain.get("route", "")
+	var 累计量: int = 0
+	if 路线标签 == "玄门正道":
+		累计量 = 正道每步功德
+		记录功德(累计量)
+	elif 路线标签 == "九幽邪道":
+		累计量 = 邪道每步业力
+		记录业力(累计量)
+	# 纪事（含 履历 文案）
+	var 履历: String = step.get("履历", "")
+	var 内容: String = "%s：%s" % [step["name"], step.get("文案", "")]
+	if not 履历.is_empty():
+		内容 += "（%s）" % 履历
+	添加纪事("奇遇", chain["name"], 内容, 1)
+	# 进度推进
+	prog["done"] = idx + 1
+	var 完成链: bool = prog["done"] >= steps.size()
+	if 完成链:
+		prog["完成"] = true
+		添加纪事("大典盛事", chain["name"], chain["终章文案"], 1)
+	连锁进度[chain_id] = prog
+	return {
+		"成功": true,
+		"链": chain_id,
+		"步": step["name"],
+		"步序": prog["done"],
+		"完成链": 完成链,
+		"灵石": int(奖励.get("灵石", 0)),
+		"声望": int(奖励.get("声望", 0)),
+		"累计类型": 路线标签,
+		"累计量": 累计量,
+		"消息": ("完成连锁步「%s」" % step["name"]) + ("；整链功成" if 完成链 else "")
+	}
+
 # === P2-9：灵气消耗汇出（原 20+ 产点仅 1 耗点：2210，严重通胀；现玩家可主动将灵气温养为悟道点/灵石，形成消耗闸口）===
 func 灵气凝修(花费: int = 50) -> Dictionary:
 	花费 = int(花费)
@@ -11376,6 +11441,7 @@ func save_game():
 		"宝箱库存": 宝箱库存,   # 宝箱系统（不升SAVE_VERSION，旧档缺键→默认{}，零回归：
 		"辈分字派": 辈分字派, "门规严格度": 门规严格度, "正邪路线": 正邪路线, "宗门大阵": 宗门大阵,
 		"功德": 功德, "业力": 业力, "愿力": 愿力,
+		"连锁进度": 连锁进度,   # P3：连锁链进度（旧档缺键→默认空 dict 回归）
 		"设置": 设置项, "道友列表": _道友列表, "道友消息": _道友消息,   # 设置/本地道友（不升SAVE_VERSION，旧档缺键→默认零回归）
 		# S1 ：：日供（不升 SAVE_VERSION，旧档缺键→默认零回归）
 		"日供最后领取日": 日供_最后领取日, "连续理事天数": 连续理事天数,
@@ -11561,6 +11627,7 @@ func load_game(账号id: String = "") -> void:
 	功德 = data.get("功德") if "功德" in data else 0
 	业力 = data.get("业力") if "业力" in data else 0
 	愿力 = data.get("愿力") if "愿力" in data else 0
+	连锁进度 = data.get("连锁进度") if "连锁进度" in data else {}   # 旧档缺键→默认空 Dict，零回归
 	宗门大阵 = data.get("宗门大阵") if "宗门大阵" in data else {}   # 旧档缺键→默认空 Dict，零回归（不升SAVE_VERSION）
 	设置项= data.get("设置：") if "设置：" in data else {}
 	# 战斗模式同步：从设置项中读取战斗模式（完整结算→full，加速结算→quick）

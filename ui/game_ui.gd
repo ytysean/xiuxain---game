@@ -45,6 +45,7 @@ const PageHerbGardenScene: PackedScene = preload("res://ui/page_herb_garden.tscn
 const PagePillFormulaScene: PackedScene = preload("res://ui/page_pill_formula.tscn")
 const PageEquipmentBlueprintScene: PackedScene = preload("res://ui/page_equipment_blueprint.tscn")
 const PageActivityScene: PackedScene = preload("res://ui/page_activity.tscn")
+const PageSectQiScene: PackedScene = preload("res://ui/page_sect_qi.gd")
 
 # 与 BottomTabBar.TABS 保持一致（§7.1）；首位 宗门 为已建成展示型首页（SectHomePage）。
 const PAGE_IDS: Array = ["宗门", "弟子", "殿阁", "历练", "纪事"]
@@ -78,6 +79,7 @@ const ENTRY_SUB_PAGES: Dictionary = {
 	"丹方": PagePillFormulaScene,
 	"装备图纸": PageEquipmentBlueprintScene,
 	"活动中心": PageActivityScene,
+	"宗门气运": PageSectQiScene,
 }
 
 var _top_bar: Control
