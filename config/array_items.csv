@@ -1,4 +1,4 @@
-﻿item_id,item_name,item_grade,item_type,use_type,unlock_array_id,dismantle_reward_id,icon_path,描述
+item_id,item_name,item_grade,item_type,use_type,unlock_array_id,dismantle_reward_id,icon_path,描述
 item_015,阵纹碎片,凡品,array_material,upgrade,,item_015,res://icon/array/item_015.png,通用阵法升级材料，由秘境掉落/阵图拆解/奇遇产出，不新增冗余资源类型
 item_016,五行聚灵阵图,凡品,array_book,unlock_array,arr_p_001,item_015,res://icon/array/book/arr_p_001.png,研习五行聚灵阵的阵图，使用后可解锁该单人法阵
 item_017,金锋御敌阵图,凡品,array_book,unlock_array,arr_p_002,item_015,res://icon/array/book/arr_p_002.png,研习金锋御敌阵的阵图，使用后可解锁该单人法阵

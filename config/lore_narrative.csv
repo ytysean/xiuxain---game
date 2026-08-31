@@ -1,0 +1,57 @@
+id,text
+breed_egg_got,御兽峰按月引育，收得兽卵一枚（%s），已入温养池
+friendly_caravan_event,遇到友好商队，交流贸易经验，散修联盟声望+10
+pack_growth_blessing_desc,成长助力，含灵石×5000、悟道点×100
+pack_supreme_desc,至尊尊享，含灵石×20000、仙玉×1000
+activity_debate_desc,与弟子论道切磋，提升心境和修炼进度
+activity_co_comprehend_desc,共同参悟功法，提升道心和修炼进度
+activity_instruct_desc,指点弟子修行，提升修炼进度，降低心魔
+activity_wall_thought_desc,罚弟子面壁思过，大幅降低心魔但损失心境
+chronicle_seven_day_blessing,宗主连续七日亲临理事，宗门秩序井然、灵气充盈，祖师降下小周天赐福：
+chronicle_monthly_tao,本月宗主躬亲庶务，全月无怠，宗门声望小幅提升。
+chronicle_daily_tribute,宗主亲临宗门理事，受领当日堂口供奉。
+mail_sect_contest,三载一度的宗门大比将于下月朔日开启，诸弟子可于演武堂报名参与，胜者可得丰厚赏赐与历练机缘
+mail_daoist_invite,贫道云游至此，闻贵派道韵清远，特来邀宗主于后山石亭一叙，共论天地长生之道
+mail_forge_return,承蒙惠顾，您委托淬炼之法宝已完工，余下灵草料已封存发还，请至库房查收
+mail_daily_supply,宗门每日补给已自动入账，含绑定仙玉若干，可用于坊市采买与外观兑换
+quest_newbie_done,【新手目标「%s」达成，获灵石+%d 灵气+%d】
+quest_random_done,【随机事件「%s」，门派获灵石+%d 灵气+%d】
+chronicle_tianpin_breakthrough,天品灵根弟子【%s】突破至%s，道行精进，全宗灵机涌动。
+deduce_cultivation_great,【%s】修为精进至%s·大圆满，可尝试突破
+deduce_year_end_eval,【宗门】岁末考评 %s，论功行赏，灵石+%d（余 %d 并入七载大典）：
+seven_year_ceremony_done,%d七载宗门大考礼成（本年评定 %s），论功行赏、重宝颁赐，宗门至此再进一步
+seven_year_grand_ceremony,%d七载，太玄宗七载大典礼成，普天同庆，万修来朝，宗门威仪更盛
+sect_promote_seven_year,太玄宗于%d 年七载大典正式晋：Lv.%d 宗门，辖地扩张，弟子云集
+sect_promote_notice,【宗门】七载大典！太玄宗晋升至 Lv.%d！灵脉修炼速度 +%d%%
+sect_ceremony_reward,【宗门】七载大典论功行赏，灵石+%d（历年岁末之积
+sect_ceremony_bestow,【宗门】七载大典赐掌门上品法宝
+sect_exam_done,【宗门】七载宗门大考礼成，万象更新
+heritage_codex_complete,【图录%s 已集齐，宗门产出运势小成（产出+%d%%）。
+milestone_reached,宗门达成%s】，获得%s，宗门道统更进一步
+hall_lingtian_harvest,【灵田】灵草大丰收，灵石产出翻倍！
+hall_dantang_refine,【丹堂】丹火纯青，额外丹元折算灵石
+hall_dantang_gift,丹堂额外炼制一枚【%s】，赐予弟子【%s】
+hall_dantang_extra,【丹堂】额外炼出一枚%s】，赐予弟子%s
+hall_qidian_craft,【器殿】巧匠精进，额外器魂折算灵石
+hall_qidian_forge,器殿额外锻造一件【%s】，赐予弟子【%s】
+hall_qidian_extra,【器殿】额外锻造一件%s】，赐予弟子%s
+hall_gift_overlap,【%s】已执同阶法宝，赠宝拆解折算阵纹碎片×%d。
+hall_qidian_overlap,【器殿】赠宝与同阶法宝重叠，拆解折算阵纹碎片%d
+hall_cangjing_insight,【藏经阁】悟道机缘，【%s】修为精进至【%s】
+hall_tanwei_clue,【探微阁】探得秘境线索，宗门得益。（额外灵石
+hall_zhishi_join,【执事殿】有散修慕名来投，拜入宗门
+hall_xichi_uplift,【洗髓池】天道垂青，【%s】命格品质提升
+hall_xichi_cleanse,洗髓池机缘，【%s】洗去【%s】心障，转化【%s】。
+hall_xichi_purify,【洗髓池】天道垂青，【%s】洗去心障，心性转善
+hall_achievement_good,【政绩%s】主事治业有成，全宗产出微增
+hall_achievement_great,【政绩%s】主事任期政绩卓著，宗门上下称颂（声望+%d）
+recruit_tianpin_found,接引大典检出天品灵根弟子率%s】，全宗士气大振
+sect_grade_promote,太玄宗历经沉淀，宗门品级晋升至 Lv.%d，灵脉愈发醇厚，全宗上下欢欣
+sect_grade_promote_notice,【宗门】太玄宗晋升：Lv.%d！灵脉修炼速度 +%d%%
+beast_eggs_hatched,御兽堂有 %d 枚灵兽蛋孵化完成，可前往绑定%d
+beast_no_bindable,无符合条件的空闲弟子可绑定（低资质仅能携：灵阶灵兽）
+beast_contract_released,%s】已解除%s灵兽契约，灵兽返回御兽堂
+disciple_uneven_talent,身怀异禀灵根，惜根骨所限，终未完全雕琢，令人叹惋：
+disciple_demise_elder,%s%s，寿元耗尽，于%d年端坐而化。执%s多年，兢兢业业，为宗门立下汗马功劳，众弟子皆感念其恩。享%d岁%s
+disciple_demise_core,核心弟子%s（%s），于第%d年坐化。在职期间恪尽职守，宗门记其功绩。享%d岁%s
+disciple_demise_plain,%s，于%d年寿元耗尽，坐化于山门。一生勤恳，虽无大功，亦守宗门本分。享%d岁%s

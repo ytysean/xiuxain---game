@@ -1,4 +1,4 @@
-﻿阀门,系数,开关,说明
+阀门,系数,开关,说明
 global_income_rate,1.0,1,全局产出纠偏系数（ECON-01 §4.8 预留阀门；红线±15%，越界由 economy_balance.gd 拒绝）
 global_cost_rate,1.0,1,全局消耗纠偏系数 / 运维成本模块阀门（红线±15%，运维成本 D 类接线点）
 trade_profit_rate,1.0,1,坊市行情模块系数（D2 已实装，接 period_settlement 唯一 平衡()）

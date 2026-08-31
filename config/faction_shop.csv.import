@@ -6,10 +6,10 @@ uid="uid://ctpt28wmd2slf"
 
 [deps]
 
-files=["res://config/faction_shop.faction.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.limit.translation", "res://config/faction_shop.limit.translation", "res://config/faction_shop.unlock.translation"]
+files=["res://config/faction_shop.faction.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.unlock.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.description.translation"]
 
 source_file="res://config/faction_shop.csv"
-dest_files=["res://config/faction_shop.faction.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.limit.translation", "res://config/faction_shop.limit.translation", "res://config/faction_shop.unlock.translation"]
+dest_files=["res://config/faction_shop.faction.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.item.translation", "res://config/faction_shop.unlock.translation", "res://config/faction_shop.price.translation", "res://config/faction_shop.description.translation"]
 
 [params]
 

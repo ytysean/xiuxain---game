@@ -1,4 +1,4 @@
-﻿array_id,array_name,array_type,rank,core_effect,eff_dim,eff_val_base,trigger,level_growth_coef,max_level,unlock_realm,unlock_sect_rank,match_element,people_required,cost_base,cost_growth,icon_path,description
+array_id,array_name,array_type,rank,core_effect,eff_dim,eff_val_base,trigger,level_growth_coef,max_level,unlock_realm,unlock_sect_rank,match_element,people_required,cost_base,cost_growth,icon_path,description
 arr_s_001,护山大阵,sect,treasure,抵御外敌降低宗门被入侵概率,入侵,-0.20,passive,0.01,10,,7,none,0,50,1.4,res://icon/array/arr_s_001.png,护山大阵宗门防御核心大幅降低被外敌入侵概率
 arr_s_002,聚灵大阵,sect,treasure,汇聚灵气提升全宗弟子修炼速度,修炼,0.08,passive,0.005,10,,6,none,0,40,1.4,res://icon/array/arr_s_002.png,聚灵大阵凝练天地灵气全宗修炼速度提升
 arr_s_003,镇煞安宗阵,sect,spirit,镇压心魔安定宗门气运,心魔,-0.30,passive,0.006,10,,5,none,0,30,1.35,res://icon/array/arr_s_003.png,镇煞安宗阵镇压心魔侵扰安定弟子道心
