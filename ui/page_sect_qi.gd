@@ -107,8 +107,8 @@ func _建气运总览卡() -> PanelContainer:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C01_PANEL_A
 	sb.border_color = UITheme.C01_LINE_GOLD
-	sb.set_corner_radius_all(UITheme.RADIUS)
-	sb.set_border_width_all(UITheme.BORDER)
+	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
+	sb.set_border_width_all(UITheme.BORDER_W)
 	sb.set_content_margin_all(UITheme.MARGIN)
 	panel.add_theme_stylebox_override("panel", sb)
 	var vbox := VBoxContainer.new()
@@ -142,8 +142,8 @@ func _建资源卡(res: Dictionary) -> PanelContainer:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C01_PANEL_A
 	sb.border_color = res["color"]
-	sb.set_corner_radius_all(UITheme.RADIUS)
-	sb.set_border_width_all(UITheme.BORDER)
+	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
+	sb.set_border_width_all(UITheme.BORDER_W)
 	sb.set_content_margin_all(UITheme.MARGIN)
 	panel.add_theme_stylebox_override("panel", sb)
 	var hbox := HBoxContainer.new()
@@ -154,7 +154,7 @@ func _建资源卡(res: Dictionary) -> PanelContainer:
 	icon.texture = UITheme.load_hd_icon(res["icon"])
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(UITheme.ICON_LG, UITheme.ICON_LG)
+	icon.custom_minimum_size = Vector2(UITheme.SIZE_MD, UITheme.SIZE_MD)
 	hbox.add_child(icon)
 	# 内容
 	var vbox := VBoxContainer.new()
@@ -169,7 +169,7 @@ func _建资源卡(res: Dictionary) -> PanelContainer:
 	var name_label := Label.new()
 	name_label.text = res["name"]
 	name_label.add_theme_color_override("font_color", res["color"])
-	name_label.add_theme_font_size_override("font_size", UITheme.FONT_SUBTITLE)
+	name_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	title_row.add_child(name_label)
 	var val_label := Label.new()
 	val_label.name = "ValueLabel"
@@ -181,7 +181,7 @@ func _建资源卡(res: Dictionary) -> PanelContainer:
 	var desc_label := Label.new()
 	desc_label.text = res["desc"]
 	desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-	desc_label.add_theme_font_size_override("font_size", UITheme.FONT_SMALL)
+	desc_label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc_label)
 	return panel
@@ -192,8 +192,8 @@ func _建说明卡() -> PanelContainer:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C01_PANEL_LIGHT
 	sb.border_color = UITheme.C01_LINE_GOLD
-	sb.set_corner_radius_all(UITheme.RADIUS)
-	sb.set_border_width_all(UITheme.BORDER)
+	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
+	sb.set_border_width_all(UITheme.BORDER_W)
 	sb.set_content_margin_all(UITheme.MARGIN)
 	panel.add_theme_stylebox_override("panel", sb)
 	var vbox := VBoxContainer.new()
@@ -215,7 +215,7 @@ func _建说明卡() -> PanelContainer:
 		var lbl := Label.new()
 		lbl.text = line
 		lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-		lbl.add_theme_font_size_override("font_size", UITheme.FONT_SMALL)
+		lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
 		vbox.add_child(lbl)
 	return panel
 

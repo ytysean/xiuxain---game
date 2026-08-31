@@ -221,7 +221,7 @@ func _make_activity_card(activity: Dictionary) -> Control:
 	card.name = "ActivityCard_%s" % str(activity.get("活动ID", ""))
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = UITheme.C01_PANEL_BG
+	card_style.bg_color = UITheme.C01_PANEL_A
 	card_style.set_corner_radius_all(int(round(8.0 * UITheme.UI_SCALE)))
 	card_style.set_border_width_all(1)
 	card_style.border_color = UITheme.C01_GOLD_LINE
@@ -409,7 +409,7 @@ func _show_activity_detail(activity: Dictionary) -> void:
 	btn_style.set_border_width_all(1)
 	btn_style.set_content_margin_all(UITheme.GRID)
 	participate_btn.add_theme_stylebox_override("normal", btn_style)
-	participate_btn.add_theme_color_override("font_color", UITheme.C01_TEXT_DARK)
+	participate_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
 	participate_btn.add_theme_font_size_override("font_size", 16)
 	var activity_id = str(activity.get("活动ID", ""))
 	participate_btn.pressed.connect(func(): _on_participate_activity(activity_id))
