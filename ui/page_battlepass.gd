@@ -1,6 +1,6 @@
 extends Control
 
-# 赛季战令（宗门令）页（GameUI 二级页，FAB 入口）：免费/付费双轨、经验进度、领取奖励。
+# 宗门季度法旨（功勋·战令）页（GameUI 二级页，FAB 入口）：免费/付费双轨、功绩值进度、领取赏赐。
 # 读数经 is_instance_valid(Game) + .get() 守卫；操作仅调 Game 公有 API，不改数据层。
 # 注意：本文件禁用 `var X := Game.某方法()` 写法（pre_f5 类型推断扫描会判 METHOD_CALL FAIL），
 #       一律用显式类型标注（如 `var r: Dictionary = Game.某方法()`）。
@@ -8,15 +8,13 @@ extends Control
 signal 返回主页
 signal 战令领取完成
 
-const FONT_TITLE: int = 22
-const FONT_BODY: int = 15
-const FONT_AUX: int = 13
 
 var _built: bool = false
 var _scroll_vbox: VBoxContainer
 var _余额标签: Label
 var _反馈标签: Label
 var _等级标签: Label
+var _副标题标签: Label
 var _进度条: ProgressBar
 
 func _ready() -> void:
@@ -33,6 +31,9 @@ func _build() -> void:
 	_built = true
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+	# 二级页工业化背景（决策 4 升级：顶部氛围场景图 + 下方不透明纯色内容区）
+	var content: Control = UITheme.make_scene_background(self)
+
 	var vbox := VBoxContainer.new()
 	vbox.name = "Root"
 	vbox.add_theme_constant_override("margin_left", UITheme.MARGIN)
@@ -41,26 +42,32 @@ func _build() -> void:
 	vbox.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	vbox.add_theme_constant_override("separation", UITheme.GRID * 2)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(vbox)
+	content.add_child(vbox)
 
 	# 头部：返回 + 标题 + 余额
 	var bar := HBoxContainer.new()
 	bar.name = "HeaderBar"
 	bar.add_theme_constant_override("separation", UITheme.GRID)
 	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back := SecondaryButton.new()
-	back.name = "BackBtn"
-	back.text = "← 宗门"
-	back.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	back.pressed.connect(_on_back_pressed)
+	var back: Button = UITheme.make_back_button(_on_back_pressed)
 	bar.add_child(back)
-	var title := Label.new()
-	title.text = "赛季战令"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_title_font_sized(title, FONT_TITLE)
-	title.add_theme_color_override("font_color", UITheme.color_text_title2())
-	bar.add_child(title)
 	vbox.add_child(bar)
+
+	# 主标题 + 副标题（功勋 → 对外包装「宗门季度法旨」）
+	var 主标题 := Label.new()
+	主标题.name = "Title"
+	主标题.text = "功勋  ⓘ"
+	主标题.mouse_filter = Control.MOUSE_FILTER_STOP
+	主标题.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			UIHint.show_hint(主标题, "功勋", "宗门功勋通过完成任务、参与宗门活动获得。\n功勋可用于兑换珍贵道具与特殊奖励。"))
+	UITheme.apply_page_title(主标题)
+	vbox.add_child(主标题)
+	_副标题标签 = Label.new()
+	_副标题标签.name = "SubTitle"
+	_副标题标签.text = "宗门季度法旨"
+	UITheme.apply_aux_text(_副标题标签)
+	vbox.add_child(_副标题标签)
 
 	_余额标签 = Label.new()
 	_余额标签.name = "Balance"
@@ -73,8 +80,7 @@ func _build() -> void:
 	lvl_row.add_theme_constant_override("separation", UITheme.GRID)
 	_等级标签 = Label.new()
 	_等级标签.name = "Level"
-	UITheme.apply_title_font_sized(_等级标签, FONT_BODY)
-	_等级标签.add_theme_color_override("font_color", UITheme.color_text_title1())
+	UITheme.apply_body_text(_等级标签)
 	lvl_row.add_child(_等级标签)
 	_进度条 = ProgressBar.new()
 	_进度条.name = "ExpBar"
@@ -131,16 +137,14 @@ func _populate() -> void:
 
 	var 免头 := Label.new()
 	免头.text = "免费轨道"
-	UITheme.apply_aux_font(免头)
-	免头.add_theme_color_override("font_color", UITheme.color_text_title2())
+	UITheme.apply_section_title(免头)
 	_scroll_vbox.add_child(免头)
 	for lv in range(1, 最大 + 1):
 		_scroll_vbox.add_child(_建奖励行("免费", lv, 已购付费, lv in 已领免费))
 
 	var 付头 := Label.new()
 	付头.text = "付费轨道（%s）" % ("已解锁" if 已购付费 else "未解锁")
-	UITheme.apply_aux_font(付头)
-	付头.add_theme_color_override("font_color", UITheme.color_text_title2())
+	UITheme.apply_section_title(付头)
 	_scroll_vbox.add_child(付头)
 	for lv in range(1, 最大 + 1):
 		_scroll_vbox.add_child(_建奖励行("付费", lv, 已购付费, lv in 已领付费))
@@ -208,7 +212,9 @@ func _刷新等级与余额() -> void:
 	if _余额标签 != null:
 		_余额标签.text = "仙玉：%d" % int(Game.仙玉_非绑定)
 	if _等级标签 != null:
-		_等级标签.text = "赛季 %d · Lv.%d / %d" % [int(信息.get("赛季", 1)), int(信息.get("等级", 0)), int(信息.get("最大等级", 0))]
+		_等级标签.text = "第%d期法旨 · 功绩 Lv.%d / %d" % [int(信息.get("赛季", 1)), int(信息.get("等级", 0)), int(信息.get("最大等级", 0))]
+	if _副标题标签 != null:
+		_副标题标签.text = "宗门季度法旨 · 第%d期" % int(信息.get("赛季", 1))
 	if _进度条 != null:
 		var 本级所需: int = int(信息.get("本级所需", 0))
 		_进度条.max_value = maxi(1, 本级所需)
