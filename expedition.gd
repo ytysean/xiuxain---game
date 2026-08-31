@@ -501,9 +501,16 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 			var _d = _获取弟子(did)
 			if _d != null and _d.状态 != "陨落":
 				_幸存.append(did)
-		if not _幸存.is_empty() and Game != null and Game.has_method("赐予保命护身"):
+		# P3 保命环节：杀敌所得以「实物保命道具」入背包，非直接计数
+		if not _幸存.is_empty() and Game != null and Game.has_method("构造保命道具"):
 			var _中 = _幸存.pick_random()
-			Game.赐予保命护身(int(_中), 1, "杀敌")
+			var _徒 = _获取弟子(int(_中))
+			if _徒 != null:
+				var 战利品 = Game.构造保命道具("血战护符", "宝阶", "fabao",
+					"斩敌所得护身法宝，致命劫数下替弟子挡劫", "血战余生所得的护身之宝，再逢死劫时自发护主。")
+				_徒.获得物品(战利品)
+				if Game.has_method("添加纪事"):
+					Game.添加纪事("保命", "杀敌", "%s 历练斩敌立功，获战利【血战护符】（法宝·保命），纳入背包" % _徒.姓名, 1)
 	# 发放奖励到宗门
 	_发放奖励(掉落)
 	return {
@@ -536,7 +543,7 @@ func _标记失踪(弟子ID: int, 关卡: Dictionary) -> void:
 		return
 	if _傀儡替死(d):
 		return
-	if _假死丹替死(d):
+	if _保命道具替死(d):
 		return
 	if d.保命护身 > 0:
 		d.保命护身 -= 1
@@ -592,16 +599,20 @@ func _傀儡替死(d: Object) -> bool:
 		return true
 	return false
 
-# P3 保命环节：假死丹替死（背包中有假死丹则服之假死避劫，移除1枚）
-func _假死丹替死(d: Object) -> bool:
+# P3 保命环节：保命道具替死（背包中有保命道具——假死丹或任意 保命 标记法宝——则消耗其一避劫）
+func _保命道具替死(d: Object) -> bool:
 	if d == null or d.背包 == null:
 		return false
 	for i in range(d.背包.size()):
 		var it = d.背包[i]
-		if it != null and "假死丹" in str(it.名称):
+		if it == null or not (it is Item):
+			continue
+		var 名 = str(it.名称)
+		var 是保命道具: bool = (it.保命 == true) or ("假死丹" in 名)
+		if 是保命道具:
 			d.背包.remove_at(i)
 			if Game != null and Game.has_method("添加纪事"):
-				Game.添加纪事("历练", "假死丹", "%s 服下假死丹，敛息装死瞒过杀劫，平安归来" % d.姓名, 1)
+				Game.添加纪事("历练", "保命道具", "%s 的%s自行护主，替其挡下致命一劫，化险为夷" % [d.姓名, 名], 1)
 			return true
 	return false
 

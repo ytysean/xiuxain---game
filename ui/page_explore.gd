@@ -261,7 +261,7 @@ func _刷新调查列表() -> void:
 			_detail_content.add_child(lbl)
 
 	var tip := Label.new()
-	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。任务具因果联动：寻回后派生【追查真凶】、再派生【肃清秘境】；调查无果则升级【悬赏通缉】。弟子生死可于『弟子』页命牌殿或详情页「命牌」查看。"
+	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。任务具因果联动：寻回后派生【追查真凶】、再派生【肃清秘境】；调查无果则升级【悬赏通缉】。弟子生死可于『弟子』页卡片的命魂灯，或详情页「命牌」查看。"
 	tip.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(tip)

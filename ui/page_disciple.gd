@@ -66,8 +66,6 @@ const _EQUIP_SLOT_COUNT: int = 9
 var _built: bool = false
 var _list_root: Control
 var _detail_root: Control
-var _tab_bar: TabBar
-var _soul_hall_root: Control
 var _power_value: Label
 var _list_vbox: VBoxContainer
 var _decision_body: Control
@@ -125,32 +123,8 @@ func _build() -> void:
 	_list_root.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	_list_root.add_theme_constant_override("separation", UITheme.GRID * 2)
 	_list_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_list_root.offset_top = 44
+	_list_root.offset_top = 0
 	content.add_child(_list_root)
-	# 命牌殿 tab 栏（与名册切换）
-	_tab_bar = TabBar.new()
-	_tab_bar.name = "SoulTab"
-	_tab_bar.add_tab("名册")
-	_tab_bar.add_tab("命牌殿")
-	_tab_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_tab_bar.custom_minimum_size = Vector2(0, 40)
-	_tab_bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_tab_bar.offset_left = UITheme.MARGIN
-	_tab_bar.offset_right = -UITheme.MARGIN
-	_tab_bar.tab_changed.connect(_on_soul_tab_changed)
-	content.add_child(_tab_bar)
-	# 命牌殿总览根（独立视图，俯瞰全宗命灯）
-	_soul_hall_root = VBoxContainer.new()
-	_soul_hall_root.name = "SoulHallRoot"
-	_soul_hall_root.visible = false
-	_soul_hall_root.add_theme_constant_override("margin_left", UITheme.MARGIN)
-	_soul_hall_root.add_theme_constant_override("margin_right", UITheme.MARGIN)
-	_soul_hall_root.add_theme_constant_override("margin_top", UITheme.GRID)
-	_soul_hall_root.add_theme_constant_override("margin_bottom", UITheme.GRID)
-	_soul_hall_root.add_theme_constant_override("separation", UITheme.GRID * 2)
-	_soul_hall_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_soul_hall_root.offset_top = 44
-	content.add_child(_soul_hall_root)
 	_build_list_header()
 	_build_list_scroll()
 	_build_decision_area()
@@ -417,8 +391,6 @@ func refresh() -> void:
 		_build()
 	_populate_list()
 	_populate_decision()
-	if _soul_hall_root != null and _soul_hall_root.visible:
-		_刷新命牌殿()
 
 func _populate_list() -> void:
 	if _list_vbox == null:
@@ -510,6 +482,7 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	var 心魔值 = _safe_get(d, "心魔值", 0)
 	var 命格 = str(_safe_get(d, "命格", "无"))
 	var 灵根 = str(_safe_get(d, "灵根", "无"))
+	var 状态 = str(_safe_get(d, "状态", "在宗"))
 	var 性格 = str(_safe_get(d, "性格", "—"))
 	var 品质色 = UIThemeConfig.get_aptitude_color(资质)
 
@@ -594,6 +567,9 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	var row1 := HBoxContainer.new()
 	row1.add_theme_constant_override("separation", int(round(8 * UITheme.UI_SCALE)))
 	信息vb.add_child(row1)
+
+	# 命魂灯：一眼可见弟子生死（亮=在宗/失踪生还，灭=陨落）
+	row1.add_child(_make_soul_lamp(状态))
 
 	var 名字lbl := Label.new()
 	名字lbl.text = str(_safe_get(d, "姓名", "—"))
@@ -800,80 +776,35 @@ func _on_back_pressed() -> void:
 	_detail_root.visible = false
 	_list_root.visible = true
 
-func _on_soul_tab_changed(idx: int) -> void:
-	if _soul_hall_root == null or _tab_bar == null:
-		return
-	if idx == 0:
-		_soul_hall_root.visible = false
-		_list_root.visible = true
-	else:
-		_list_root.visible = false
-		_detail_root.visible = false
-		_equip_detail_root.visible = false
-		_soul_hall_root.visible = true
-		_刷新命牌殿()
-
-func _刷新命牌殿() -> void:
-	if _soul_hall_root == null:
-		return
-	for c in _soul_hall_root.get_children():
-		_soul_hall_root.remove_child(c)
-		c.queue_free()
-	if Game == null or not is_instance_valid(Game):
-		return
-	var 弟子们 = Game.get("弟子列表") if Game.has("弟子列表") else []
-	if 弟子们.is_empty():
-		var 空 := Label.new()
-		空.text = "宗门暂无弟子。"
-		空.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UITheme.apply_body_font(空)
-		_soul_hall_root.add_child(空)
-		return
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.add_theme_constant_override("h_separation", UITheme.GRID)
-	grid.add_theme_constant_override("v_separation", UITheme.GRID)
-	scroll.add_child(grid)
-	_soul_hall_root.add_child(scroll)
-	for dd in 弟子们:
-		grid.add_child(_make_soul_card(dd))
-
-func _make_soul_card(d: Object) -> Control:
-	var panel := PanelContainer.new()
-	UITheme.apply_panel_style(panel)
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	panel.add_child(vbox)
-	var 状态v = str(_safe_get(d, "状态", "在宗"))
-	var 命牌色 = UITheme.COLOR_STATUS_SUCCESS
-	var 命牌态 = "明亮·在宗（生还）"
+# ───────── 命魂灯（P3 重构：命牌殿入口移除，状态集成至弟子列表/详情页）─────────
+# 命牌状态：在宗=命灯长明(绿) / 失踪=命灯仍亮(金·生还) / 陨落=命灯熄灭(暗)
+func _命牌状态(状态v: String) -> Dictionary:
+	var 色 = UITheme.COLOR_STATUS_SUCCESS
+	var 态 = "明亮·在宗（生还）"
 	if 状态v == "失踪":
 		# 失踪：人还活着，只是下落不明 —— 命牌依旧明亮（金灯长明），绝不渲染成将死
-		命牌色 = UITheme.COLOR_TEXT_GOLD
-		命牌态 = "明亮·失踪（生还·下落不明）"
+		色 = UITheme.COLOR_TEXT_GOLD
+		态 = "明亮·失踪（生还·下落不明）"
 	elif 状态v == "陨落":
 		# 陨落：命牌熄灭（灯灭），与「失踪仍亮」严格区分
-		命牌色 = Color(0.12, 0.12, 0.14)
-		命牌态 = "熄灭·陨落（命牌灭）"
-	var 灯 := ColorRect.new()
-	灯.custom_minimum_size = Vector2(0, 8)
-	灯.color = 命牌色
-	vbox.add_child(灯)
-	var 名 := Label.new()
-	名.text = str(_safe_get(d, "姓名", "弟子"))
-	UITheme.apply_body_font(名)
-	vbox.add_child(名)
-	var 境 := Label.new()
-	境.text = "%s · %s" % [str(_safe_get(d, "境界", "")), 命牌态]
-	UITheme.apply_aux_font(境)
-	vbox.add_child(境)
-	var 护 := Label.new()
-	护.text = "保命护身 %d 枚" % int(_safe_get(d, "保命护身", 0))
-	UITheme.apply_aux_font(护)
-	vbox.add_child(护)
-	return panel
+		色 = Color(0.12, 0.12, 0.14)
+		态 = "熄灭·陨落（命牌灭）"
+	return {"色": 色, "态": 态}
+
+# 命魂灯：以圆形灯表现命牌生死——亮(在宗/失踪)或灭(陨落)
+func _make_soul_lamp(状态v: String, 直径: int = 16) -> Control:
+	var 数据 = _命牌状态(状态v)
+	var lamp := PanelContainer.new()
+	lamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var 尺寸 = int(round(直径 * UITheme.UI_SCALE))
+	lamp.custom_minimum_size = Vector2(尺寸, 尺寸)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = 数据.色
+	sb.set_corner_radius_all(尺寸 / 2)
+	sb.set_content_margin_all(0)
+	lamp.add_theme_stylebox_override("panel", sb)
+	lamp.tooltip_text = "命魂灯：" + 数据.态
+	return lamp
 
 func _populate_decision() -> void:
 	if _decision_body == null:
@@ -1242,25 +1173,19 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	]
 	_add_section("任职", 任职, "gold" if 有抉择 else "")
 
-	# ── 命牌（2026-08-31 P3）：不在宗内亦可凭命牌知其生还 ──
+	# ── 命牌（2026-08-31 P3 重构：命牌殿入口移除，状态集成至此；命魂灯可见生死）──
 	var 状态v = str(_safe_get(d, "状态", "在宗"))
+	var 命牌数据 = _命牌状态(状态v)
 	var 行踪展示 = 状态v
-	var 命牌态 = "明亮（在宗·生还）"
-	var 命牌色 = UITheme.COLOR_STATUS_SUCCESS
 	if 状态v == "失踪":
-		# 失踪：人还活着，命牌依旧明亮（金灯长明），仅下落不明
-		命牌态 = "明亮（失踪·生还·下落不明）"
-		命牌色 = UITheme.COLOR_TEXT_GOLD
+		行踪展示 = "失踪（生还）"
 	elif 状态v == "陨落":
-		# 陨落：命牌熄灭（灯灭），与「失踪仍亮」严格区分
-		命牌态 = "熄灭（已陨落·命牌灭）"
-		命牌色 = Color(0.12, 0.12, 0.14)
+		行踪展示 = "陨落（命牌灭）"
 	elif ExpeditionSystem != null and ExpeditionSystem._弟子是否在历练中(int(_safe_get(d, "弟子ID", -1))):
 		行踪展示 = "历练中"
-		命牌态 = "微亮（外出·生还）"
 	var 命牌: Array = [
 		["行踪", 行踪展示],
-		["命牌", 命牌态, false, 命牌色],
+		["命牌", 命牌数据.态, false, 命牌数据.色],
 	]
 	var 护身 = int(_safe_get(d, "保命护身", 0))
 	命牌.append(["保命护身", "%d 枚" % 护身])
@@ -1275,7 +1200,9 @@ func _populate_detail(d: Object, 索引: int) -> void:
 			call_deferred("_populate_detail", d, 索引)
 	)
 	护身box.add_child(护身btn)
-	_add_section("命牌", 命牌, "", [护身box])
+	# 命魂灯：与列表卡片一致的生死灯语（亮=在宗/失踪生还，灭=陨落）
+	var 命魂灯 = _make_soul_lamp(状态v, 22)
+	_add_section("命牌", 命牌, "", [命魂灯, 护身box])
 
 	var 属性 = _safe_get(d, "属性", {})
 	var 四维: Array = [

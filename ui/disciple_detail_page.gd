@@ -30,6 +30,7 @@ var _breakthrough_bar: ColorRect = null
 var _breakthrough_pct: Label = null
 var _status_label: Label = null
 var _status_timer: Label = null
+var _status_icon: ColorRect = null   # 命魂灯：以颜色表示弟子生死（P3 重构：命牌殿入口移除，状态集成至此）
 # 灵兽页
 var _beast_name: Label = null
 var _beast_info: Label = null
@@ -633,10 +634,10 @@ func _build() -> void:
 	var status_hb := HBoxContainer.new()
 	status_hb.add_theme_constant_override("separation", 12)
 	status_panel.add_child(status_hb)
-	var status_icon := ColorRect.new()
-	status_icon.color = Color(0.35, 0.68, 0.90, 0.3)
-	status_icon.custom_minimum_size = Vector2(48, 48)
-	status_hb.add_child(status_icon)
+	_status_icon = ColorRect.new()
+	_status_icon.color = Color(0.35, 0.68, 0.90, 0.3)
+	_status_icon.custom_minimum_size = Vector2(48, 48)
+	status_hb.add_child(_status_icon)
 	var status_info := VBoxContainer.new()
 	status_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_hb.add_child(status_info)
@@ -2232,14 +2233,29 @@ func set_disciple(d: Disciple) -> void:
 			_breakthrough_bar.offset_right = int(400 * prog)
 		if _breakthrough_pct != null:
 			_breakthrough_pct.text = str(int(d.修炼进度 * 100)) + "%  →  " + str(d.境界) + "·" + _层数中文(min(int(d.层数) + 1, 10))
-		# 当前状态
-		if _status_label != null:
-			if d.突破冷却剩余 > 0:
-				_status_label.text = "突破气机未复"
-			elif d.稳固期剩余 > 0:
-				_status_label.text = "境界稳固中"
+		# 当前状态（命魂灯：在宗亮/失踪亮/陨落灭；P3 重构：命牌殿入口移除，状态集成至此）
+		if _status_label != null and _status_icon != null:
+			var 状态v = str(d.状态) if "状态" in d else "在宗"
+			var 命牌色 = Color(0.35, 0.68, 0.90, 0.3)
+			var 生死态 = ""
+			if 状态v == "失踪":
+				命牌色 = Color(0.93, 0.78, 0.30)
+				生死态 = "失踪（生还·下落不明）"
+			elif 状态v == "陨落":
+				命牌色 = Color(0.12, 0.12, 0.14)
+				生死态 = "已陨落（命牌灭）"
 			else:
-				_status_label.text = "闭关修炼中"
+				命牌色 = Color(0.49, 0.83, 0.60)
+				生死态 = "在宗（生还）"
+			_status_icon.color = 命牌色
+			if 状态v == "陨落" or 状态v == "失踪":
+				_status_label.text = 生死态
+			elif d.突破冷却剩余 > 0:
+				_status_label.text = 生死态 + " · 突破气机未复"
+			elif d.稳固期剩余 > 0:
+				_status_label.text = 生死态 + " · 境界稳固中"
+			else:
+				_status_label.text = 生死态 + " · 闭关修炼中"
 	# 命格（先查 DestinyDataLoader 拿中文名称，回落 destiny_id 避免显示原始 key）
 	var destiny_id = str(d.destiny_id)
 	var lbl = _destiny_label.find_child("DescLabel", true, false)
