@@ -1,20 +1,19 @@
-# 工作概览：让 AI 能“看见” Godot 界面
+# 创建宗门页视觉修复概述
 
-## 做了什么
-- 解决了沙箱无法运行 Godot、无法实时看编辑器渲染的瓶颈。
-- 上线 `tools/preview_tscn.py`：用 Python/PIL 解析 `.tscn` 场景文件，按节点的绝对定位 offset、颜色矩形、面板、图标、文字近似渲染成 480×854 PNG。
-- 跑通 `ui/home_page.tscn` 预览，关键节点坐标与《宗门首页线框规范》一致。
+## 完成内容
+针对实机截图反馈的 5 项问题，修复 `ui/sect_creation_page.gd`：
 
-## 关键结论
-- 当前 `ui/home_page.tscn` 文件本身的坐标和布局是**正确的**；之前截图显示「挤在左上角 / 底部 Tab 不见」是因为 Godot 缓存了旧版 `layout_mode=1` 锚点模式。
-- 用户端需要**完整重启 Godot**（不是只保存或重开场景），再打开 `ui/home_page.tscn`，即可看到正确首页。
+1. **文字发虚** — 为 `SourceHanSansCN-Bold/Regular` 启用 MSDF（`multichannel_signed_distance_field=true`），并清除 Godot 字体缓存，F5 重导入后生效。
+2. **放大弹窗错位/偏小/字太大** — 移除 `CanvasLayer`（其变换脱离父节点 `UI_SCALE` 缩放），改为挂到页面根节点随 2.25 倍缩放；面板从 340×560 放大到 440×740（1080p 下约 990×1665 居中）；标题字号从 H2 降到 BODY。
+3. **五官/发型九宫格图标过小** — `_取缩略图` 现在先 `Image.get_used_rect()` 裁掉 hair_t/features_t 的大片透明边，再生成 `ImageTexture`，让内容填满 120×106 格子。
+4. **底部「创立宗门」位置不匹配** — 滚动区底上提、错误提示移到滚动区下方、按钮高度从 36px 提到 48px，与面板底留 16px 安全边距。
+5. **服饰切换衣领残留** — Python 图层叠加验证确认代码刷新链路正常；衣领为各 robe 资源共用白色内衬领，属于资产层面问题，若需彻底替换需美术调整。
 
-## 后续工作流
-1. 我改 `.tscn` 后，先跑 `preview_tscn.py` 自查坐标/溢出/重叠。
-2. 把预览图/结论发给你，你在 Godot 里做最终真机验收（只需看审美和细节）。
-3. 后续其他界面也按此流程批量生成 `.tscn` + 预览器验收，大幅减少来回截图。
+## 验证
+- `pre_f5_check.py`：**29/29 PASS，EXIT=0，0 WARN**。
 
-## 文件
-- `tools/preview_tscn.py` —— 离线场景预览器
-- `art/_preview/home_page_preview.png` —— 当前首页近似渲染图
-- `ui/home_page.tscn` —— 完整首页布局场景（待 Godot 重启验收）
+## 待实机确认
+- MSDF 重导入后文字是否清晰。
+- 放大弹窗是否全屏居中。
+- 九宫格缩略图是否填满。
+- 底部按钮位置是否正确。
