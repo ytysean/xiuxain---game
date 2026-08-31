@@ -1485,10 +1485,16 @@ func _on_unequip_pressed() -> void:
 func _on_auto_equip_pressed() -> void:
 	if _current_disciple == null:
 		return
-	# 如果装备数量为0，生成测试装备并直接穿戴
-	if _current_disciple.装备.size() == 0:
-		_generate_test_equipment()
-		_selected_equip_slot = "本命法宝"
+	# 一键最优：遍历背包按战力加成贪心填各槽（受 品阶≤境界 限制），不再用 debug 生成器
+	var 穿戴前: int = int(_current_disciple.装备.size())
+	_current_disciple.一键最优穿戴()
+	var 穿戴后: int = int(_current_disciple.装备.size())
+	if 穿戴后 > 穿戴前:
+		ToastManager.show_tip("已按背包最优穿戴（%d→%d件）" % [穿戴前, 穿戴后])
+	elif _current_disciple.背包.size() == 0:
+		ToastManager.show_tip("背包为空，无可穿戴物品")
+	else:
+		ToastManager.show_tip("背包无更优装备可穿")
 	_refresh_equip_slots()
 	_refresh_equip_detail()
 	_refresh_power_summary()
@@ -1515,34 +1521,6 @@ func _on_refine_pressed() -> void:
 		_current_disciple.计算战力() if _current_disciple.has_method("计算战力") else null
 	else:
 		ToastManager.show_tip("祭炼失败：%s（需灵石%d）" % [str(result["原因"]), int(result.get("消耗", 0))])
-
-
-func _generate_test_equipment() -> void:
-	var grades = ["凡阶", "灵阶", "宝阶", "王阶", "圣阶"]
-	var test_items = [
-		{"槽": "toukui", "名": "紫金道冠", "gi": 2},
-		{"槽": "peishi", "名": "凝神玉佩", "gi": 1},
-		{"槽": "wuqi", "名": "青锋飞剑", "gi": 3},
-		{"槽": "huzhi", "名": "符文灵腕", "gi": 1},
-		{"槽": "yipao", "名": "仙鹤法袍", "gi": 2},
-		{"槽": "yaodai", "名": "太极束灵带", "gi": 1},
-		{"槽": "changku", "名": "云纹灵裤", "gi": 0},
-		{"槽": "xuezi", "名": "踏云靴", "gi": 2},
-		{"槽": "本命法宝", "名": "混元灵珠", "gi": 4},
-	]
-	for td in test_items:
-		var it = Item.new()
-		it.名称 = td["名"]
-		it.品阶 = grades[td["gi"]]
-		it.类别 = "法器"
-		it.穿戴位 = td["槽"]
-		it.战力加成 = randi_range(100, 999)
-		# 使用穿戴函数，会自动更新战力
-		_current_disciple.穿戴(td["槽"], it)
-	# 穿戴完成后刷新UI
-	_refresh_equip_slots()
-	_refresh_equip_detail()
-	_refresh_power_summary()
 
 
 func _on_unequip_all_pressed() -> void:

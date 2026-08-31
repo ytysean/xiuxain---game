@@ -507,6 +507,8 @@ func 穿戴(槽: String, it: Item):
 	装备[槽] = it
 	# 穿戴装备后自动更新战力
 	战力 = 计算战力()
+	if is_instance_valid(Game):
+		Game.弟子变动.emit()
 
 func 卸载(槽: String):
 	if 装备.has(槽):
@@ -516,6 +518,8 @@ func 卸载(槽: String):
 			背包.append(旧)
 		# 卸载装备后自动更新战力
 		战力 = 计算战力()
+		if is_instance_valid(Game):
+			Game.弟子变动.emit()
 
 # 获得物品：入背包并尝试自动穿戴（更优则替换）；受 品阶≤境界 佩戴限制
 func 获得物品(it: Item):

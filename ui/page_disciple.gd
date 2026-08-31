@@ -1,5 +1,10 @@
 extends Control
 
+# 修真设定（2026-09-01）：命魂灯只表示生死二态——亮(生还)/灭(陨落)。
+# 失踪/闭关/历练中/秘境 等活动信息不再由命魂灯表达，统一移至弟子卡片状态栏文字标签。
+const _SOUL_LAMP_ALIVE = preload("res://assets/ui/icons/soul_lamp_alive.svg")
+const _SOUL_LAMP_DEAD = preload("res://assets/ui/icons/soul_lamp_dead.svg")
+
 # 弟子页（§3 · 高频核心）：只读展示 弟子列表 + 接引决策区 + 弟子详情二级页（页内子视图）。
 # 零 GameState 写入；所有交互控件仅 emit 占位信号。读数统一经 is_instance_valid(Game) + .get() 守卫。
 # 备注：命格 字段已于 2026-07-19 重构为 destiny_id，故本页用 destiny_id + DestinyDataLoader 解析名称，
@@ -104,6 +109,9 @@ const _灵根品阶列表: Array = ["凡品", "良品", "上品", "极品", "天
 
 func _ready() -> void:
 	_build()
+	# 监听弟子变动（含穿戴/卸载 emit）→ 自动回刷列表卡片与总战力
+	if is_instance_valid(Game) and Game.has_signal("弟子变动"):
+		Game.弟子变动.connect(refresh)
 	refresh()
 
 func _build() -> void:
@@ -643,6 +651,23 @@ func _add_disciple_row(d: Object, 索引: int) -> void:
 	row3.add_theme_constant_override("separation", int(round(6 * UITheme.UI_SCALE)))
 	信息vb.add_child(row3)
 
+	# 状态栏（P3.1 修真重构：命魂灯只表示生死，失踪/闭关/历练/秘境 等活动信息统一在此呈现）。
+	# 优先级：历练中(autoload 实时) > 失踪/闭关/秘境(数据层) > 在宗(默认隐藏)
+	# 显示策略：仅当弟子不在「在宗」时显示，默认留白降低视觉噪声。
+	var 显示状态: String = _取显示状态(d)
+	if 显示状态 != "在宗":
+		var 状态色: Color
+		match 显示状态:
+			"历练中": 状态色 = Color(0.45, 0.78, 0.92)  # 青蓝（外出/行动的修真界色）
+			"闭关":   状态色 = Color(0.70, 0.55, 0.95)  # 紫（修真「入定」之色）
+			"秘境":   状态色 = Color(0.95, 0.55, 0.30)  # 橙（险地之色）
+			"失踪":   状态色 = Color(0.95, 0.85, 0.40)  # 金（修真「下落不明」警示色，与命灯色严格区分）
+			"陨落":   状态色 = Color(0.55, 0.55, 0.60)  # 冷灰（命灯灭的呼应）
+			_:        状态色 = Color(0.55, 0.70, 0.85)  # 默认（修真通用情报色）
+		var 状态pill = _make_pill(显示状态, 状态色, 3)
+		状态pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row3.add_child(状态pill)
+
 	# 状态标签：突破状态
 	var 突破状态 = str(_safe_get(d, "突破状态", ""))
 	if 突破状态 != "" and 突破状态 != "无":
@@ -776,35 +801,50 @@ func _on_back_pressed() -> void:
 	_detail_root.visible = false
 	_list_root.visible = true
 
-# ───────── 命魂灯（P3 重构：命牌殿入口移除，状态集成至弟子列表/详情页）─────────
-# 命牌状态：在宗=命灯长明(绿) / 失踪=命灯仍亮(金·生还) / 陨落=命灯熄灭(暗)
+# ───────── 命魂灯（修真设定：仅表示生死二态 ─────────
+# 修真界规约：人活着 = 命灯长明；人死了 = 命灯熄灭。失踪/闭关/历练/秘境等活动信息
+# 一律走弟子卡片「状态栏」文字标签，绝不让命魂灯参与活动状态机（绿/金/灰三态是错的）。
 func _命牌状态(状态v: String) -> Dictionary:
-	var 色 = UITheme.COLOR_STATUS_SUCCESS
-	var 态 = "明亮·在宗（生还）"
-	if 状态v == "失踪":
-		# 失踪：人还活着，只是下落不明 —— 命牌依旧明亮（金灯长明），绝不渲染成将死
-		色 = UITheme.COLOR_TEXT_GOLD
-		态 = "明亮·失踪（生还·下落不明）"
-	elif 状态v == "陨落":
-		# 陨落：命牌熄灭（灯灭），与「失踪仍亮」严格区分
-		色 = Color(0.12, 0.12, 0.14)
-		态 = "熄灭·陨落（命牌灭）"
+	var 色: Color
+	var 态: String
+	if 状态v == "陨落":
+		色 = Color(0.42, 0.43, 0.45)  # 命灯灭（暗灰，下沉）
+		态 = "熄灭·陨落（命灯灭）"
+	else:
+		# 长明（生还）：失踪/闭关/历练中/秘境/在宗，命灯皆长明，颜色统一修真灵气绿
+		色 = Color(0.36, 0.80, 0.54)  # #5ECB8A 命灯绿
+		var 人类活动: String = 状态v if 状态v != "" and 状态v != "在宗" else ""
+		态 = "长明·生还" + ("（" + 人类活动 + "）" if 人类活动 != "" else "")
 	return {"色": 色, "态": 态}
 
-# 命魂灯：以圆形灯表现命牌生死——亮(在宗/失踪)或灭(陨落)
+# 修真设定：命魂灯只表示生死二态——亮（生还）/灭（陨落）。
+# 用 SVG 图标替换旧 Panel 椭圆以体现修真意象（灯座+芯焰+烟气），与项目其他 SVG 图标风格统一。
 func _make_soul_lamp(状态v: String, 直径: int = 16) -> Control:
-	var 数据 = _命牌状态(状态v)
-	var lamp := PanelContainer.new()
-	lamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var 已陨落: bool = (状态v == "陨落")
+	var tex := TextureRect.new()
+	tex.texture = _SOUL_LAMP_DEAD if 已陨落 else _SOUL_LAMP_ALIVE
+	tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var 尺寸 = int(round(直径 * UITheme.UI_SCALE))
-	lamp.custom_minimum_size = Vector2(尺寸, 尺寸)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = 数据.色
-	sb.set_corner_radius_all(尺寸 / 2)
-	sb.set_content_margin_all(0)
-	lamp.add_theme_stylebox_override("panel", sb)
-	lamp.tooltip_text = "命魂灯：" + 数据.态
-	return lamp
+	tex.custom_minimum_size = Vector2(尺寸, 尺寸)
+	tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var 数据 = _命牌状态(状态v)
+	tex.tooltip_text = "命魂灯：" + 数据.态
+	tex.name = "命魂灯"
+	return tex
+
+# 把数据字典里的 状态 字段 + ExpeditionSystem 历练中标志，统一为可读的活动状态文字。
+# 优先级：陨落 > 历练中 > 失踪/闭关/秘境/原值 > 在宗。修真界「命灯活人在干什么」的唯一出口。
+func _取显示状态(d: Dictionary) -> String:
+	var 状态v: String = str(_safe_get(d, "状态", "在宗"))
+	if 状态v == "":
+		状态v = "在宗"
+	var 弟子id: int = int(_safe_get(d, "弟子ID", -1))
+	if 弟子id >= 0 and ExpeditionSystem != null and ExpeditionSystem.has_method("_弟子是否在历练中"):
+		if bool(ExpeditionSystem._弟子是否在历练中(弟子id)):
+			return "历练中"
+	return 状态v
 
 func _populate_decision() -> void:
 	if _decision_body == null:
