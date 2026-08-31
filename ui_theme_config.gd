@@ -31,6 +31,18 @@ extends Node
 	"huashen":  Color.from_string("#B04CD9", Color.WHITE), # 化神
 }
 
+# ───────── 资质（6 档：凡俗/平庸/优良/天才/妖孽/旷世）─────────
+# 键 = 资质 key（与 disciple.gd.资质显示 / page_disciple._资质显示 同键）。
+# 权威色值来自 design/ui/disciple_card_v2_spec.md §4（取代旧 page_disciple._品质颜色 本地散落色）。
+@onready var APTITUDE_COLOR: Dictionary = {
+	"fan_su":   Color.from_string("#555555", Color.WHITE),   # 凡俗
+	"pingyong": Color.from_string("#6FA86F", Color.WHITE),   # 平庸
+	"youliang": Color.from_string("#5BA0E5", Color.WHITE),   # 优良
+	"tiancai":  Color.from_string("#B888D8", Color.WHITE),   # 天才
+	"yaonie":   Color.from_string("#E59545", Color.WHITE),   # 妖孽
+	"kuangshi": Color.from_string("#E04F4F", Color.WHITE),   # 旷世
+}
+
 # ───────── 状态色（success / warn / danger / disabled / 等）─────────
 @onready var STATE_COLOR: Dictionary = {
 	"success":  Color.from_string("#7ED39A", Color.WHITE), # 成功 / 增益
@@ -39,6 +51,18 @@ extends Node
 	"disabled": Color.from_string("#55554F", Color.WHITE), # 禁用灰
 	"gold":     Color.from_string("#E6C778", Color.WHITE), # 标题金（强调）
 	"hint":     Color.from_string("#8A7E68", Color.WHITE), # 弱提示（aux）
+}
+
+# ───────── 身份层级 5 档（外门/内门弟子/核心弟子/亲传弟子/长老）─────────
+# 颜色取自既有 STATE_COLOR / REALM_COLOR 调色板（主理人裁定，单一数据源）：
+#   外门=灰(disabled) / 内门弟子=青绿(zhuji) / 核心弟子=蓝(jindan) /
+#   亲传弟子=紫(huashen) / 长老=金(gold)。
+@onready var IDENTITY_COLOR: Dictionary = {
+	"外门":       Color.from_string("#55554F", Color.WHITE),  # 灰（= STATE_COLOR.disabled）
+	"内门弟子":   Color.from_string("#4CAF7A", Color.WHITE),  # 青绿（= REALM_COLOR.zhuji）
+	"核心弟子":   Color.from_string("#5B8BD9", Color.WHITE),  # 蓝（= REALM_COLOR.jindan）
+	"亲传弟子":   Color.from_string("#B04CD9", Color.WHITE),  # 紫（= REALM_COLOR.huashen）
+	"长老":       Color.from_string("#E6C778", Color.WHITE),  # 金（= STATE_COLOR.gold）
 }
 
 # ───────── 工具函数 ─────────
@@ -76,3 +100,17 @@ func get_realm_color(realm: String) -> Color:
 
 func get_state_color(state: String) -> Color:
 	return STATE_COLOR.get(state, Color.WHITE)
+
+# 资质色（6 档）：未知 key 回落凡俗灰 #555555，不崩。
+func get_aptitude_color(aptitude: String) -> Color:
+	var c = APTITUDE_COLOR.get(aptitude, null)
+	if c == null:
+		return Color.from_string("#555555", Color.WHITE)
+	return c
+
+# 身份层级色（5 档）：未知 key 回落外门灰 #55554F，不崩。
+func get_identity_color(identity: String) -> Color:
+	var c = IDENTITY_COLOR.get(identity, null)
+	if c == null:
+		return Color.from_string("#55554F", Color.WHITE)
+	return c
