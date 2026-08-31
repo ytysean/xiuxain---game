@@ -21,17 +21,37 @@ UITheme="*res://ui_theme.gd"
 UIThemeConfig="*res://ui_theme_config.gd"
 UITween="*res://ui_tween.gd"
 ToastManager="*res://components/ToastManager.gd"
+UIHint="*res://ui/ui_hint.gd"
+AlchemySystem="*res://alchemy.gd"
+ForgeSystem="*res://forge.gd"
+LingTianSystem="*res://lingtian.gd"
+KuangMaiSystem="*res://kuangmai.gd"
+GongFaSystem="*res://gongfa.gd"
+RecruitSystem="*res://recruit.gd"
+XiChiSystem="*res://xichi.gd"
+ZhiFaSystem="*res://zhifa.gd"
+GongXunSystem="*res://gongxun.gd"
+ZhenFaSystem="*res://zhenfa.gd"
+ExpeditionSystem="*res://expedition.gd"
+SectManager="*res://sect_manager.gd"
 
 [display]
 
-window/size/viewport_width=480
-window/size/viewport_height=854
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=720
+window/size/window_height_override=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 window/handheld/orientation="portrait"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/taixuan_ui_editor/plugin.cfg")
+"#é¢è§çªå£è¦åï¼å¼åæç¼©å°720æ¹ä¾¿2Kå±æ¥çï¼å®æºæåæ¶æ¹å0ï¼æå æ­¤ä¸¤è¡ï¼çªå£å³ç­äºviewport"=1080
 
 [gui]
 
 theme/custom="res://theme/main_theme.tres"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+2d/snap_2d_transforms_to_pixel=true
+2d/snap_2d_vertices_to_pixel=true
