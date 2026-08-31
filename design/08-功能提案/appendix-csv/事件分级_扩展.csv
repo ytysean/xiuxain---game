@@ -1,4 +1,4 @@
-﻿event_id,event_name,event_type,rarity,trigger_scene,unlock_sect_level,unlock_realm,event_content,opt1_desc,opt1_reward,opt1_punish,opt2_desc,opt2_reward,opt2_punish,opt3_desc,opt3_reward,opt3_punish,trigger_weight,cooldown_hour,is_counted_in_balance,base_value,level_factor,min_value,max_value,display_level,weight_decay,trigger_type,触发周期
+event_id,event_name,event_type,rarity,trigger_scene,unlock_sect_level,unlock_realm,event_content,opt1_desc,opt1_reward,opt1_punish,opt2_desc,opt2_reward,opt2_punish,opt3_desc,opt3_reward,opt3_punish,trigger_weight,cooldown_hour,is_counted_in_balance,base_value,level_factor,min_value,max_value,display_level,weight_decay,trigger_type,触发周期
 RC001,晨钟问道,宗门氛围,普通,宗门内,1,练气,晨钟响彻山门，弟子云集听道。,率众听道,弟子好感+2,无,各自静修,无,无,,,,8,2160,false,,,,,,,monthly,日常
 RC002,灵田夜露,宗门氛围,普通,宗门内,1,练气,夜露凝于灵田，泛起微光，似有灵机。,收露研习,弟子好感+2,无,由它去,无,无,,,,8,2160,false,,,,,,,monthly,日常
 RC003,丹房异香,宗门氛围,普通,宗门内,1,练气,丹房飘出阵阵异香，引弟子驻足。,探看丹况,弟子好感+2,无,不打扰,无,无,,,,8,2160,false,,,,,,,monthly,日常

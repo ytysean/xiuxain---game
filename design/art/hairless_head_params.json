@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "canvas": {
+    "width": 832,
+    "height": 1156
+  },
+  "female": {
+    "cx": 416,
+    "face": {
+      "cy": 280,
+      "rx": 120,
+      "ry": 150
+    },
+    "scalp_exclude": {
+      "cy": 185,
+      "rx": 90,
+      "ry": 70
+    },
+    "neck": {
+      "top_y": 420,
+      "bottom_y": 470,
+      "rx_ratio": 0.55
+    },
+    "shoulder": {
+      "transition_y": 440,
+      "bottom_y": 520,
+      "max_rx_ratio": 0.38
+    },
+    "band": {
+      "top_cut_y": 160,
+      "top_feather": 18,
+      "bot_feather": 30
+    }
+  },
+  "male": {
+    "cx": 416,
+    "face": {
+      "cy": 250,
+      "rx": 125,
+      "ry": 140
+    },
+    "scalp_exclude": {
+      "cy": 170,
+      "rx": 85,
+      "ry": 65
+    },
+    "neck": {
+      "top_y": 370,
+      "bottom_y": 420,
+      "rx_ratio": 0.55
+    },
+    "shoulder": {
+      "transition_y": 390,
+      "bottom_y": 480,
+      "max_rx_ratio": 0.38
+    },
+    "band": {
+      "top_cut_y": 145,
+      "top_feather": 18,
+      "bot_feather": 30
+    }
+  }
+}

@@ -94,7 +94,7 @@ var selected: Texture2D = UITheme.load_tab_icon("宗门", true)
 | 功勋阁 | `bld_gx.png` | 功勋阁勋章令旗 |
 | 阵堂 | `bld_zt.png` | 阵堂八卦阵盘 |
 | 藏书阁 | `bld_cs.png` | 多层楼阁与成捆竹简 |
-| 商驿 | `bld_sy.png` | 商驿货箱铜钱 |
+| 坊市 | `bld_sy.png` | 坊市货箱铜钱 |
 
 ---
 
