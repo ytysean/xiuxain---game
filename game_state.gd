@@ -3046,14 +3046,18 @@ func 宗主头像列表(性别: String = "") -> Array:
 
 	var out: Array = []
 	for d in 宗主头像目录:
-		if 性别 == "" or d.get("gender") if "gender" in d else "" == 性别:
+		var g: String = d.get("gender", "")
+		if 性别 == "" or g == 性别:
 			out.append(d)
 	return out
 # 取某性别首个解锁的初始头像（创建页默认选中 / 旧档兼容：
 func 默认解锁头像(性别: String) -> Dictionary:
 
 	for d in 宗主头像目录:
-		if d.get("gender") if "gender" in d else "" == 性别 and d.get("category") if "category" in d else "" == "initial" and d.get("unlocked") if "unlocked" in d else false:
+		var g: String = d.get("gender", "")
+		var cat: String = d.get("category", "")
+		var unlocked: bool = d.get("unlocked", false)
+		if g == 性别 and cat == "initial" and unlocked:
 			return d
 	return {}
 # 招收一名弟子（内部/自动用）
@@ -4564,8 +4568,8 @@ func 发放保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
 		return {"成功": false, "原因": "弟子不存在"}
 	if 目标.状态 == "陨落":
 		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
-	var 费灵石 = 5000 * 数量   # [PLACEHOLDER] 真机校准
-	var 费贡献 = 500 * 数量
+	var 费灵石 = 5000 * 数量   # 宗门祭炼一枚护身符耗灵石（稀缺资源，非贱价）
+	var 费贡献 = 500 * 数量     # 宗门行政发放登记成本（远低于弟子自费兑换价，体现恩典与自费之差）
 	if 灵石 < 费灵石:
 		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 费灵石}
 	if 贡献点 < 费贡献:
@@ -4604,7 +4608,7 @@ func 宗门兑换保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
 		return {"成功": false, "原因": "弟子不存在"}
 	if 目标.状态 == "陨落":
 		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
-	var 费贡献 = 1000 * 数量   # [PLACEHOLDER] 兑换价，真机校准
+	var 费贡献 = 5000 * 数量   # 稀缺战略物资校准价：≈100次阶位试炼/交125件宝阶法宝之积蓄，普通弟子难及，唯核心弟子经年积累可兑（保命=一条命，量级远高于晋阶）
 	if 贡献点 < 费贡献:
 		return {"成功": false, "原因": "贡献点不足（需%d贡献点）" % 费贡献}
 	贡献点 -= 费贡献
@@ -4858,7 +4862,7 @@ func 取可用替死傀儡() -> Dictionary:
 	for 傀儡 in 傀儡列表:
 		if 傀儡.get("替死", false):
 			return 傀儡
-	return null
+	return {"成功": false, "原因": "无可用替死傀儡"}
 
 # P3 保命环节：消耗一具替死傀儡（从宗门替死傀儡池移除）
 func 消耗替死傀儡(傀儡: Dictionary) -> void:
