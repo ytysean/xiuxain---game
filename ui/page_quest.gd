@@ -182,7 +182,12 @@ func _populate() -> void:
 		"周常":
 			var wk: Variant = Game.get("当前周常")
 			if wk is Dictionary and not wk.is_empty():
-				_add_task_card({"q": wk, "claimed": bool(Game.get("周常已领")), "weekly": true})
+				var _wk_state: String = ""
+				if Game.has_method("取周常任务"):
+					var _wd: Variant = Game.取周常任务()
+					if _wd is Dictionary:
+						_wk_state = str(_wd.get("state", ""))
+				_add_task_card({"q": wk, "claimed": bool(Game.get("周常已领")), "weekly": true, "state": _wk_state})
 			else:
 				_add_empty("本周宗务清闲")
 			return
@@ -199,8 +204,15 @@ func _collect_tasks() -> Array:
 	var out: Array = []
 	var d: Array = _as_array(Game.get("当前日常"))
 	var dl: Array = _as_array(Game.get("日常已领"))
+	# S1-2：复用后端权威三态（取日常任务列表 已按 当前/目标 算出 state）
+	var dlist: Array = []
+	if Game.has_method("取日常任务列表"):
+		dlist = Game.取日常任务列表()
 	for i in d.size():
-		out.append({"q": d[i], "claimed": (dl[i] if i < dl.size() else false), "weekly": false, "idx": i})
+		var _st: String = ""
+		if i < dlist.size():
+			_st = str(dlist[i].get("state", ""))
+		out.append({"q": d[i], "claimed": (dl[i] if i < dl.size() else false), "weekly": false, "idx": i, "state": _st})
 	return out
 
 # ───────── 宗门里程碑（拍板结论1/3）：只读时间轴，不复用任务卡 ─────────
@@ -799,11 +811,18 @@ func _make_card_button(task: Dictionary) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(int(round(56.0 * UITheme.UI_SCALE)), int(round(26.0 * UITheme.UI_SCALE)))
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var 状态: String = str(task.get("state", ""))
 	if bool(task["claimed"]):
 		b.text = "已收取"
 		b.disabled = true
 		_apply_dark_capsule(b)
+	elif 状态 == "in_progress":
+		# S1-2：未达成不可领取——对齐主线三态，进行中禁用（后端 领取日常/领取周常 亦守卫）
+		b.text = "进行中"
+		b.disabled = true
+		_apply_dark_capsule(b)
 	else:
+		# claimable 或兜底：可领取（亮金）
 		b.text = "收取"
 		_style_gold_button(b)
 		UITheme.apply_button_label(b, true)
@@ -1222,7 +1241,3 @@ func _as_array(v: Variant) -> Array:
 	if v is Array:
 		return v
 	return []
-
-
-
-
