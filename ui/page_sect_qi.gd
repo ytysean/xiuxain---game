@@ -20,21 +20,21 @@ const QI_RESOURCES: Array = [
 	{
 		"name": "愿力",
 		"field": "愿力",
-		"icon": "res_xianghuo",  # 暂用香火图标，后续可替换
+		"icon": "res_yuanli",
 		"desc": "香火凝炼而成的愿力，是宗门修士突破境界、施展大神通的关键资源。",
 		"color": Color(0.65, 0.85, 0.95)  # 淡蓝
 	},
 	{
 		"name": "功德",
 		"field": "功德",
-		"icon": "res_shengwang",  # 暂用声望图标，后续可替换
+		"icon": "res_gongde",
 		"desc": "行善积德、济世救人所积累的功德。功德深厚者，天道庇佑，突破成功率提升。",
 		"color": Color(0.75, 0.95, 0.65)  # 淡绿
 	},
 	{
 		"name": "业力",
 		"field": "业力",
-		"icon": "res_shengwang",  # 暂用声望图标，后续可替换
+		"icon": "res_yeli",
 		"desc": "杀生害命、作恶多端所积累的业力。业力深重者，天道谴罚，心魔滋生。",
 		"color": Color(0.95, 0.55, 0.55)  # 淡红
 	},
