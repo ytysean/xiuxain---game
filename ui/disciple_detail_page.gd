@@ -2568,30 +2568,30 @@ func _on_learn_gongfa_pressed() -> void:
 func _on_take_danyao_pressed() -> void:
 	if _current_disciple == null:
 		return
-	# 检查宗门丹药库
+	# 手动喂食弟子（覆盖式）——复用真实丹药效果；自主嗑药见 game_state._弟子自动服用丹药
+	if _current_disciple == null or Game == null:
+		return
+	if not Game.has_method("弟子服用丹药"):
+		if UIHint != null and UIHint.has_method("show_hint"):
+			UIHint.show_hint(null, "指点", "丹药系统未就绪")
+		return
+	# 取丹药库第一个丹药名
 	var 仓库 = Game.仓库 if Game != null else []
-	if 仓库 == null or 仓库.size() == 0:
-		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "宗门丹药库为空，去丹堂炼丹吧")
-		return
-	# 查找第一个丹药
-	var 丹药索引 = -1
-	for i in range(仓库.size()):
-		var item = 仓库[i]
-		if item != null and str(item.get("类别", "")) == "丹药":
-			丹药索引 = i
+	var 丹药名 = ""
+	for it in 仓库:
+		if it != null and str(it.get("类别", "")) == "丹药":
+			丹药名 = str(it.get("名称", ""))
 			break
-	if 丹药索引 < 0:
+	if 丹药名 == "":
 		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "丹库空空，尚无丹药")
+			UIHint.show_hint(null, "指点", "宗门丹药库暂无丹药，去丹堂炼丹或坊市采购")
 		return
-	# 服用丹药
-	var 丹药 = 仓库[丹药索引]
-	var 丹药名 = str(丹药.get("名称", "丹药"))
-	# 简化：直接移除丹药并提示效果
-	仓库.remove_at(丹药索引)
+	var 结果 = Game.弟子服用丹药(int(_current_disciple.弟子ID), 丹药名)
 	if UIHint != null and UIHint.has_method("show_hint"):
-		UIHint.show_hint(null, "服用丹药", "%s服用了%s，效果已生效！" % [str(_current_disciple.姓名), 丹药名])
+		if 结果.get("成功", false):
+			UIHint.show_hint(null, "服用丹药", "%s服用了%s，效果已生效！" % [str(_current_disciple.姓名), 丹药名])
+		else:
+			UIHint.show_hint(null, "指点", str(结果.get("原因", "服用失败")))
 	set_disciple(_current_disciple)
 
 func _on_hudong_pressed(互动类型: String) -> void:
