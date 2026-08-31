@@ -15,6 +15,9 @@ const _HERO_RATIO: float = 0.55
 const _资质显示: Dictionary = {"fan_su": "凡俗", "pingyong": "平庸", "youliang": "优良", "tiancai": "天才", "yaonie": "妖孽", "kuangshi": "旷世"}
 # 命格查表（destiny_id → 中文名称）
 const DestinyLoader := preload("res://DestinyDataLoader.gd")
+# 命魂灯图标（修真设定：只表示生死二态）
+const _SOUL_LAMP_ALIVE = preload("res://assets/ui/icons/soul_lamp_alive.png")
+const _SOUL_LAMP_DEAD = preload("res://assets/ui/icons/soul_lamp_dead.png")
 
 var _built: bool = false
 var _hero_area: Control = null
@@ -30,7 +33,7 @@ var _breakthrough_bar: ColorRect = null
 var _breakthrough_pct: Label = null
 var _status_label: Label = null
 var _status_timer: Label = null
-var _status_icon: ColorRect = null   # 命魂灯：以颜色表示弟子生死（P3 重构：命牌殿入口移除，状态集成至此）
+var _status_icon: TextureRect = null   # 命魂灯：图标表示弟子生死（P3 重构：命牌殿入口移除，状态集成至此）
 # 灵兽页
 var _beast_name: Label = null
 var _beast_info: Label = null
@@ -477,7 +480,7 @@ func _build() -> void:
 	chongzhu_desc.add_theme_font_size_override("font_size", 18)
 	chongzhu_vb.add_child(chongzhu_desc)
 	var chongzhu_btn := Button.new()
-	chongzhu_btn.text = "前往洗池重铸（消耗200灵石）"
+	chongzhu_btn.text = "前往洗池重铸（消耗200仙玉）"
 	chongzhu_btn.custom_minimum_size = Vector2(0, 44)
 	chongzhu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_secondary_button_style(chongzhu_btn)
@@ -634,8 +637,10 @@ func _build() -> void:
 	var status_hb := HBoxContainer.new()
 	status_hb.add_theme_constant_override("separation", 12)
 	status_panel.add_child(status_hb)
-	_status_icon = ColorRect.new()
-	_status_icon.color = Color(0.35, 0.68, 0.90, 0.3)
+	_status_icon = TextureRect.new()
+	_status_icon.texture = _SOUL_LAMP_ALIVE
+	_status_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_status_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_status_icon.custom_minimum_size = Vector2(48, 48)
 	status_hb.add_child(_status_icon)
 	var status_info := VBoxContainer.new()
@@ -2211,29 +2216,30 @@ func set_disciple(d: Disciple) -> void:
 			_breakthrough_bar.offset_right = int(400 * prog)
 		if _breakthrough_pct != null:
 			_breakthrough_pct.text = str(int(d.修炼进度 * 100)) + "%  →  " + str(d.境界) + "·" + _层数中文(min(int(d.层数) + 1, 10))
-		# 当前状态（命魂灯：在宗亮/失踪亮/陨落灭；P3 重构：命牌殿入口移除，状态集成至此）
+		# 当前状态（命魂灯：只表示生死二态；状态栏文字显示具体活动：历练/闭关/秘境/失踪/在宗）
 		if _status_label != null and _status_icon != null:
-			var 状态v = str(d.状态) if "状态" in d else "在宗"
-			var 命牌色 = Color(0.35, 0.68, 0.90, 0.3)
-			var 生死态 = ""
-			if 状态v == "失踪":
-				命牌色 = Color(0.93, 0.78, 0.30)
-				生死态 = "失踪（生还·下落不明）"
-			elif 状态v == "陨落":
-				命牌色 = Color(0.12, 0.12, 0.14)
-				生死态 = "已陨落（命牌灭）"
+			var 状态v: String = _取显示状态(d)
+			var 已陨落: bool = (状态v == "陨落")
+			_status_icon.texture = _SOUL_LAMP_DEAD if 已陨落 else _SOUL_LAMP_ALIVE
+			if 已陨落:
+				_status_label.text = "已陨落（命牌灭）"
 			else:
-				命牌色 = Color(0.49, 0.83, 0.60)
-				生死态 = "在宗（生还）"
-			_status_icon.color = 命牌色
-			if 状态v == "陨落" or 状态v == "失踪":
-				_status_label.text = 生死态
-			elif d.突破冷却剩余 > 0:
-				_status_label.text = 生死态 + " · 突破气机未复"
-			elif d.稳固期剩余 > 0:
-				_status_label.text = 生死态 + " · 境界稳固中"
-			else:
-				_status_label.text = 生死态 + " · 闭关修炼中"
+				match 状态v:
+					"历练中":
+						_status_label.text = "历练中"
+					"失踪":
+						_status_label.text = "失踪（生还·下落不明）"
+					"闭关":
+						_status_label.text = "闭关修炼中"
+					"秘境":
+						_status_label.text = "秘境探索中"
+					_:
+						if d.突破冷却剩余 > 0:
+							_status_label.text = "在宗（生还）· 突破气机未复"
+						elif d.稳固期剩余 > 0:
+							_status_label.text = "在宗（生还）· 境界稳固中"
+						else:
+							_status_label.text = "在宗（生还）"
 	# 命格（先查 DestinyDataLoader 拿中文名称，回落 destiny_id 避免显示原始 key）
 	var destiny_id = str(d.destiny_id)
 	var lbl = _destiny_label.find_child("DescLabel", true, false)
@@ -2337,6 +2343,18 @@ func set_disciple(d: Disciple) -> void:
 	_refresh_equip_slots()
 	_refresh_equip_detail()
 
+
+# 把弟子对象里的 状态 字段 + ExpeditionSystem 历练中标志，统一为可读的活动状态文字。
+# 优先级：陨落 > 历练中 > 失踪/闭关/秘境/原值 > 在宗。
+func _取显示状态(d: Object) -> String:
+	var 状态v: String = str(_safe_get(d, "状态", "在宗"))
+	if 状态v == "":
+		状态v = "在宗"
+	var 弟子id: int = int(_safe_get(d, "弟子ID", -1))
+	if 弟子id >= 0 and ExpeditionSystem != null and ExpeditionSystem.has_method("_弟子是否在历练中"):
+		if bool(ExpeditionSystem._弟子是否在历练中(弟子id)):
+			return "历练中"
+	return 状态v
 
 func _safe_get(d: Variant, key: String, default):
 	if d == null:
@@ -2592,11 +2610,13 @@ func _on_hudong_pressed(互动类型: String) -> void:
 func _on_chongzhu_mingge_pressed() -> void:
 	if _current_disciple == null:
 		return
-	if Game == null or Game.灵石 < 200:
-		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "灵石匮乏（需200）")
+	if Game == null:
 		return
-	Game.灵石 -= 200
+	var 重塑价: int = int(Game.命格重塑仙玉价格)
+	if not Game.消耗仙玉(重塑价):
+		if UIHint != null and UIHint.has_method("show_hint"):
+			UIHint.show_hint(null, "指点", "仙玉匮乏（需%d）" % 重塑价)
+		return
 	# 获取洗池等级
 	var 洗池等级 = 1
 	if Game.司职列表 != null and Game.司职列表.has("xichi"):

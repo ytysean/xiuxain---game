@@ -2,8 +2,8 @@ extends Control
 
 # 修真设定（2026-09-01）：命魂灯只表示生死二态——亮(生还)/灭(陨落)。
 # 失踪/闭关/历练中/秘境 等活动信息不再由命魂灯表达，统一移至弟子卡片状态栏文字标签。
-const _SOUL_LAMP_ALIVE = preload("res://assets/ui/icons/soul_lamp_alive.svg")
-const _SOUL_LAMP_DEAD = preload("res://assets/ui/icons/soul_lamp_dead.svg")
+const _SOUL_LAMP_ALIVE = preload("res://assets/ui/icons/soul_lamp_alive.png")
+const _SOUL_LAMP_DEAD = preload("res://assets/ui/icons/soul_lamp_dead.png")
 
 # 弟子页（§3 · 高频核心）：只读展示 弟子列表 + 接引决策区 + 弟子详情二级页（页内子视图）。
 # 零 GameState 写入；所有交互控件仅 emit 占位信号。读数统一经 is_instance_valid(Game) + .get() 守卫。
