@@ -7744,6 +7744,8 @@ func 推演一月(月: int):
 	if ExpeditionSystem != null:
 		var 结算列表 = ExpeditionSystem.检查并结算历练()
 		for 结果 in 结算列表:
+			if str(结果.get("类型", "")) == "investigate":
+				continue   # 调查任务结算已在 ExpeditionSystem 内记纪事，不计入日常历练埋点
 			if 结果.get("成功", false):
 				# S1-2 自动产出型埋点：历练由系统自动结算，玩家只做「派遣」配置
 				var 关卡类型: String = str(结果.get("类型", ""))

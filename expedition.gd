@@ -276,6 +276,25 @@ var 已完成秘境: Array = []  # 本周已完成的秘境关卡ID
 var 稀有保底计数: Dictionary = {}  # 掉落池ID → 连续未出稀有次数
 var 历练实例计数器: int = 0
 
+# ============ 调查任务系统（2026-08-31 P3 扩展：弟子失踪→宗门下发调查任务→高阶弟子接取）============
+# 设计：历练失败时按难度概率标记低阶弟子「失踪」；宗门自动下发调查任务，接取者修为阶必须高于失踪者；
+#       调查结算成功后再按难度掷骰判生还/陨落（高风险关卡常客死，贴近真实修真）。
+const _境界序表: Array = ["练气", "筑基", "金丹", "元婴", "化神", "仙阶", "道阶"]   # 与 disciple.gd 境界序对齐（仅取相对序）
+var 调查任务列表: Dictionary = {}   # 调查任务ID -> {任务ID, 失踪弟子ID, 失踪弟子名, 失踪弟子境界, 失踪关卡名, 要求修为阶, 难度, 发布日, 奖励灵石, 奖励贡献点}
+var 调查进行中: Dictionary = {}     # 调查实例ID -> {实例ID, 任务ID, 失踪弟子ID, 接取弟子ID列表, 开始游戏日, 预计结束游戏日, 任务}
+var 调查实例计数器: int = 0
+
+func _修为阶(obj) -> int:
+	# 修为阶 = 境界序*10 + 层数，越大越高阶（用于「接取者须高于失踪者」判定）
+	if obj == null:
+		return 0
+	var 境: String = obj.境界 if (obj is Object) else str(obj.get("境界", "练气"))
+	var 层: int = int(obj.层数) if (obj is Object) else int(obj.get("层数", 1))
+	var i = _境界序表.find(境)
+	if i < 0:
+		i = 0
+	return i * 10 + 层
+
 # ============ 关卡查询 ============
 func 获取关卡(关卡ID: String) -> Dictionary:
 	return 关卡库.get(关卡ID, {})
@@ -328,6 +347,9 @@ func 开始历练(关卡ID: String, 弟子ID列表: Array) -> Dictionary:
 	for did in 弟子ID列表:
 		if _弟子是否在历练中(did):
 			return {"成功": false, "原因": "有弟子正在历练中"}
+		var _d = _获取弟子(did)
+		if _d != null and (_d.状态 == "失踪" or _d.状态 == "陨落"):
+			return {"成功": false, "原因": "%s 已失踪/陨落，无法派遣" % _d.姓名}
 	# 日常/秘境次数检查（付费额外次数可突破今日/本周限制）
 	if (关卡["类型"] == "daily" and 已完成日常.has(关卡ID)) or (关卡["类型"] == "secret" and 已完成秘境.has(关卡ID)):
 		if Game != null and Game.历练额外次数 > 0:
@@ -376,6 +398,14 @@ func 检查并结算历练() -> Array:
 	for 实例ID in 到期实例:
 		var 结果 = _结算单个历练(实例ID)
 		结算结果列表.append(结果)
+	# 调查任务到期结算（P3 扩展）
+	var 调查到期: Array = []
+	for iid in 调查进行中.keys():
+		if 当前游戏日 >= int(调查进行中[iid].get("预计结束游戏日", 0)):
+			调查到期.append(iid)
+	for iid in 调查到期:
+		var 调查结果 = _结算调查(iid)
+		结算结果列表.append({"类型": "investigate", "调查成功": 调查结果.get("成功", false), "文本": 调查结果.get("文本", "")})
 	return 结算结果列表
 
 func _结算单个历练(实例ID: String) -> Dictionary:
@@ -414,6 +444,12 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 	成功率 = clamp(成功率, 0.05, 0.95)
 	# 判定成功/失败
 	var 成功 = randf() < 成功率
+	# 失败→按难度概率标记低阶弟子「失踪」，并下发调查任务（P3 逻辑链）
+	if not 成功:
+		var 失踪概率 = clamp(float(关卡["难度"]) * 0.12, 0.0, 0.55)
+		for did in 弟子ID列表:
+			if randf() < 失踪概率:
+				_标记失踪(did, 关卡)
 	# 评级
 	var 评级 = "C"
 	if 成功:
@@ -456,6 +492,137 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 		"事件": 事件,
 		"弟子ID列表": 弟子ID列表,
 	}
+
+# ============ 调查任务逻辑（P3 扩展）============
+func _标记失踪(弟子ID: int, 关卡: Dictionary) -> void:
+	var d = _获取弟子(弟子ID)
+	if d == null:
+		return
+	if d.状态 == "陨落" or d.状态 == "失踪":
+		return
+	d.状态 = "失踪"
+	var 阶 = _修为阶(d)
+	调查实例计数器 += 1
+	var tid = "inv_" + str(调查实例计数器)
+	调查任务列表[tid] = {
+		"任务ID": tid,
+		"失踪弟子ID": 弟子ID,
+		"失踪弟子名": d.姓名,
+		"失踪弟子境界": d.境界,
+		"失踪关卡名": 关卡.get("名称", ""),
+		"要求修为阶": 阶,
+		"难度": int(关卡.get("难度", 1)),
+		"发布日": (int(Game.get("累计游戏日")) if Game != null else 0),
+		"奖励灵石": 200 * int(关卡.get("难度", 1)),
+		"奖励贡献点": 20 * int(关卡.get("难度", 1)),
+	}
+	if Game != null and Game.has_method("添加纪事"):
+		Game.添加纪事("历练", "弟子失踪", "%s 于【%s】历练失败，不知所踪，宗门已下发调查任务" % [d.姓名, 关卡.get("名称", "")], 2)
+
+func 开始调查(任务ID: String, 接取弟子ID列表: Array) -> Dictionary:
+	if not 调查任务列表.has(任务ID):
+		return {"成功": false, "原因": "调查任务不存在"}
+	if 接取弟子ID列表.is_empty() or 接取弟子ID列表.size() > 3:
+		return {"成功": false, "原因": "需派遣1-3名高阶弟子"}
+	var 任务 = 调查任务列表[任务ID]
+	var 要求 = int(任务.get("要求修为阶", 0))
+	for did in 接取弟子ID列表:
+		var d = _获取弟子(did)
+		if d == null:
+			return {"成功": false, "原因": "弟子不存在"}
+		if d.状态 == "失踪" or d.状态 == "陨落":
+			return {"成功": false, "原因": "%s 已失踪/陨落，无法接取" % d.姓名}
+		if _修为阶(d) <= 要求:
+			return {"成功": false, "原因": "%s 修为不足，须高于失踪弟子" % d.姓名}
+		if _弟子是否在历练中(did):
+			return {"成功": false, "原因": "%s 正在历练中" % d.姓名}
+	调查实例计数器 += 1
+	var iid = "invrun_" + str(调查实例计数器)
+	var 当前游戏日 = int(Game.get("累计游戏日")) if Game != null else 0
+	var 时长 = int(任务.get("难度", 1)) * 2 + 2
+	调查进行中[iid] = {
+		"实例ID": iid, "任务ID": 任务ID, "失踪弟子ID": int(任务.get("失踪弟子ID", -1)),
+		"接取弟子ID列表": 接取弟子ID列表.duplicate(), "开始游戏日": 当前游戏日,
+		"预计结束游戏日": 当前游戏日 + 时长, "任务": 任务,
+	}
+	调查任务列表.erase(任务ID)
+	if Game != null and Game.has_method("添加纪事"):
+		Game.添加纪事("历练", "派出调查", "宗门遣高阶弟子前往调查 %s 失踪一事" % 任务.get("失踪弟子名", ""), 1)
+	return {"成功": true, "实例ID": iid}
+
+func _结算调查(实例ID: String) -> Dictionary:
+	var 实例 = 调查进行中.get(实例ID, {})
+	if 实例.is_empty():
+		return {}
+	var 任务 = 实例.get("任务", {})
+	var 难度 = int(任务.get("难度", 1)) if not 任务.is_empty() else 2
+	var 失踪弟子ID = int(实例.get("失踪弟子ID", -1))
+	var 接取列表 = 实例.get("接取弟子ID列表", [])
+	var 总战力 = 0
+	for did in 接取列表:
+		var d = _获取弟子(did)
+		if d != null:
+			总战力 += int(d.战力)
+	var 找回率 = clamp(float(总战力) / float(max(难度 * 1500, 1)), 0.2, 0.9)
+	var 调查成功 = randf() < 找回率
+	调查进行中.erase(实例ID)
+	var 失踪者 = _获取弟子(失踪弟子ID)
+	var 结果文本: String = ""
+	if 调查成功:
+		# 寻回后按难度判生还/陨落（高风险关卡常客死）
+		var 生还率 = clamp(1.0 - 难度 * 0.12, 0.3, 0.95)
+		var 生还 = randf() < 生还率
+		if 生还:
+			if 失踪者 != null:
+				失踪者.状态 = "在宗"
+			if Game != null:
+				Game.灵石 += int(任务.get("奖励灵石", 200))
+				if Game.has("贡献点"):
+					Game.贡献点 += int(任务.get("奖励贡献点", 20))
+				Game.添加纪事("历练", "寻回弟子", "高阶弟子寻得%s，安然归来，宗门已发赏赐" % (失踪者.姓名 if 失踪者 != null else "失踪弟子"), 1)
+			结果文本 = "寻得%s，安然归来" % (失踪者.姓名 if 失踪者 != null else "失踪弟子")
+		else:
+			if 失踪者 != null:
+				失踪者.状态 = "陨落"
+			if Game != null:
+				Game.添加纪事("历练", "弟子陨落", "寻得%s骸骨，确认陨落，命牌碎裂" % (失踪者.姓名 if 失踪者 != null else "失踪弟子"), 2)
+			结果文本 = "寻得%s骸骨，确认陨落" % (失踪者.姓名 if 失踪者 != null else "失踪弟子")
+		var tid = 实例.get("任务ID", "")
+		if 调查任务列表.has(tid):
+			调查任务列表.erase(tid)
+	else:
+		# 调查无果：失踪者仍在失踪，任务重新挂出供再派
+		var tid = 实例.get("任务ID", "")
+		调查任务列表[tid] = 任务
+		if Game != null:
+			Game.添加纪事("历练", "调查无果", "寻找%s的调查无果，仍不知所踪" % (失踪者.姓名 if 失踪者 != null else "失踪弟子"), 1)
+		结果文本 = "调查无果，%s仍不知所踪" % (失踪者.姓名 if 失踪者 != null else "失踪弟子")
+	return {"成功": 调查成功, "文本": 结果文本, "生还": (调查成功 and 失踪者 != null and 失踪者.状态 == "在宗")}
+
+func 获取调查任务列表() -> Dictionary:
+	return 调查任务列表.duplicate()
+
+func 获取调查进行中() -> Dictionary:
+	return 调查进行中.duplicate()
+
+func 获取可接取弟子(任务ID: String) -> Array:
+	var 任务 = 调查任务列表.get(任务ID, {})
+	if 任务.is_empty():
+		return []
+	var 要求 = int(任务.get("要求修为阶", 0))
+	var 结果: Array = []
+	if Game == null:
+		return 结果
+	for d in Game.get("弟子列表", []):
+		if d == null:
+			continue
+		if d.状态 == "失踪" or d.状态 == "陨落":
+			continue
+		if _弟子是否在历练中(int(d.弟子ID)):
+			continue
+		if _修为阶(d) > 要求:
+			结果.append({"id": int(d.弟子ID), "姓名": d.姓名, "境界": d.境界, "层数": d.层数})
+	return 结果
 
 # ============ 掉落计算 ============
 func _计算掉落(池ID: String, 评级: String, 成功: bool) -> Dictionary:
@@ -627,6 +794,9 @@ func to_dict() -> Dictionary:
 		"已完成秘境": 已完成秘境.duplicate(),
 		"稀有保底计数": 稀有保底计数.duplicate(),
 		"历练实例计数器": 历练实例计数器,
+		"调查任务列表": 调查任务列表.duplicate(),
+		"调查进行中": 调查进行中.duplicate(),
+		"调查实例计数器": 调查实例计数器,
 	}
 
 func from_dict(d: Dictionary) -> void:
@@ -635,3 +805,6 @@ func from_dict(d: Dictionary) -> void:
 	已完成秘境 = d.get("已完成秘境", [])
 	稀有保底计数 = d.get("稀有保底计数", {})
 	历练实例计数器 = int(d.get("历练实例计数器", 0))
+	调查任务列表 = d.get("调查任务列表", {})
+	调查进行中 = d.get("调查进行中", {})
+	调查实例计数器 = int(d.get("调查实例计数器", 0))

@@ -1138,6 +1138,26 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	]
 	_add_section("任职", 任职, "gold" if 有抉择 else "")
 
+	# ── 命牌（2026-08-31 P3）：不在宗内亦可凭命牌知其生还 ──
+	var 状态v = str(_safe_get(d, "状态", "在宗"))
+	var 行踪展示 = 状态v
+	var 命牌态 = "明亮（安好·生还）"
+	var 命牌色 = UITheme.COLOR_STATUS_SUCCESS
+	if 状态v == "失踪":
+		命牌态 = "黯淡闪烁（生死未知）"
+		命牌色 = UITheme.COLOR_TEXT_GOLD
+	elif 状态v == "陨落":
+		命牌态 = "碎裂（已陨落）"
+		命牌色 = UITheme.COLOR_TEXT_RED
+	elif ExpeditionSystem != null and ExpeditionSystem._弟子是否在历练中(int(_safe_get(d, "弟子ID", -1))):
+		行踪展示 = "历练中"
+		命牌态 = "微亮（外出·生还）"
+	var 命牌: Array = [
+		["行踪", 行踪展示],
+		["命牌", 命牌态, false, 命牌色],
+	]
+	_add_section("命牌", 命牌)
+
 	var 属性 = _safe_get(d, "属性", {})
 	var 四维: Array = [
 		["攻", _attr(属性, "攻")],

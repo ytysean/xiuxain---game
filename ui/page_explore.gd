@@ -75,6 +75,7 @@ func _build_tabs(parent: Control) -> void:
 		{"key": "realm", "name": "境界关卡"},
 		{"key": "secret", "name": "秘境探索"},
 		{"key": "challenge", "name": "秘境挑战"},
+		{"key": "investigate", "name": "调查任务"},
 	]
 	for t in tabs:
 		var btn := Button.new()
@@ -161,6 +162,10 @@ func _refresh_stage_list() -> void:
 		_刷新秘境挑战列表()
 		return
 
+	if _current_tab == "investigate":
+		_刷新调查列表()
+		return
+
 	var stages: Array = []
 	match _current_tab:
 		"daily": stages = ExpeditionSystem.获取日常关卡()
@@ -211,6 +216,102 @@ func _select_stage(stage_id: String) -> void:
 	_selected_stage = stage_id
 	_selected_disciples.clear()
 	_refresh_detail()
+
+func _刷新调查列表() -> void:
+	if _stage_list_vbox == null or _detail_content == null:
+		return
+	for child in _stage_list_vbox.get_children():
+		child.queue_free()
+	for child in _detail_content.get_children():
+		child.queue_free()
+
+	var 任务 = (ExpeditionSystem.获取调查任务列表() if ExpeditionSystem != null else {})
+	# 左：任务列表
+	if 任务.is_empty():
+		var empty := Label.new()
+		empty.text = "宗门安宁，暂无弟子失踪。"
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		UITheme.apply_body_font(empty)
+		_stage_list_vbox.add_child(empty)
+	else:
+		for tid in 任务.keys():
+			_stage_list_vbox.add_child(_make_investigate_card(tid, 任务[tid]))
+
+	# 右：进行中 + 说明
+	var 进行中 = (ExpeditionSystem.获取调查进行中() if ExpeditionSystem != null else {})
+	var title := Label.new()
+	title.text = "调查进行中（%d）" % 进行中.size()
+	title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(title)
+	if 进行中.is_empty():
+		var none := Label.new()
+		none.text = "暂无进行中的调查。"
+		UITheme.apply_aux_font(none)
+		_detail_content.add_child(none)
+	else:
+		for iid in 进行中.keys():
+			var inst = 进行中[iid]
+			var 失踪名 = str(inst.get("任务", {}).get("失踪弟子名", "失踪弟子"))
+			var lbl := Label.new()
+			lbl.text = "· %s 的调查：%d 名高阶弟子前往（预计第 %d 日回禀）" % [失踪名, inst.get("接取弟子ID列表", []).size(), int(inst.get("预计结束游戏日", 0))]
+			UITheme.apply_aux_font(lbl)
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_detail_content.add_child(lbl)
+
+	var tip := Label.new()
+	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。弟子生死可于详情页「命牌」查看。"
+	tip.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(tip)
+
+func _make_investigate_card(tid: String, t: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	UITheme.apply_panel_style(panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", UITheme.GRID)
+	panel.add_child(vbox)
+
+	var name_lbl := Label.new()
+	name_lbl.text = "调查·%s 失踪" % t.get("失踪弟子名", "")
+	UITheme.apply_body_font(name_lbl)
+	vbox.add_child(name_lbl)
+
+	var info := Label.new()
+	info.text = "失踪于【%s】｜要求境界：%s（须更高阶）｜难度 %d" % [t.get("失踪关卡名", ""), t.get("失踪弟子境界", ""), int(t.get("难度", 1))]
+	UITheme.apply_aux_font(info)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(info)
+
+	var 可接取 = (ExpeditionSystem.获取可接取弟子(tid) if ExpeditionSystem != null else [])
+	if 可接取.is_empty():
+		var no := Label.new()
+		no.text = "（暂无修为足够的高阶弟子可派）"
+		UITheme.apply_aux_font(no)
+		vbox.add_child(no)
+		return panel
+
+	var opt := OptionButton.new()
+	opt.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	opt.add_item("选择高阶弟子…", -1)
+	for e in 可接取:
+		opt.add_item("%s（%s·%d层）" % [e["姓名"], e["境界"], int(e["层数"])], e["id"])
+	vbox.add_child(opt)
+
+	var btn := Button.new()
+	btn.text = "派出调查"
+	btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	btn.pressed.connect(func():
+		var did = opt.get_selected_id()
+		if did < 0:
+			return
+		if ExpeditionSystem != null:
+			ExpeditionSystem.开始调查(tid, [did])
+		_刷新调查列表()
+	)
+	vbox.add_child(btn)
+	return panel
 
 func _refresh_detail() -> void:
 	if _detail_content == null:
