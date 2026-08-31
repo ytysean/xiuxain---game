@@ -228,13 +228,26 @@ func _读取资源值(field: String) -> int:
 	return int(raw)
 
 func _计算气运值() -> int:
-	var 香火: int = _读取资源值("香火值")
-	var 愿力: int = _读取资源值("愿力")
-	var 功德: int = _读取资源值("功德")
-	var 业力: int = _读取资源值("业力")
-	return int(香火 * 0.3 + 愿力 * 0.3 + 功德 * 0.2 - 业力 * 0.2)
+	if not is_instance_valid(Game):
+		return 50
+	if Game.has_method("获取气运值"):
+		return Game.获取气运值()
+	# 回退计算（与core保持一致：产出速率+存量模型，归一化到0-100）
+	var 香火速率: float = float(_读取资源值("香火月产预估")) * 2.0
+	var 愿力存量: float = float(_读取资源值("愿力")) * 0.1
+	var 功德存量: float = float(_读取资源值("功德")) * 0.5
+	var 业力存量: float = float(_读取资源值("业力")) * 0.5
+	var 基础气运: float = 香火速率 + 愿力存量 + 功德存量 - 业力存量
+	var 归一化: float = (基础气运 + 500.0) / 1500.0 * 100.0
+	归一化 = clamp(归一化, 0.0, 100.0)
+	return int(归一化)
 
 func _气运描述(气运值: int) -> String:
+	if not is_instance_valid(Game):
+		return "气运平稳"
+	if Game.has_method("获取气运等级"):
+		return Game.获取气运等级()
+	# 回退计算
 	if 气运值 >= 80:
 		return "气运昌隆"
 	elif 气运值 >= 60:
