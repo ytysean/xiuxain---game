@@ -59,6 +59,9 @@ var _detail_root: Control
 var _detail_vbox: VBoxContainer
 var _overview_司职数: Label
 var _overview_总等级: Label
+var _overview_月产出: Label
+var _overview_宗门乘区: Label
+var _overview_负责人产出: Label
 var _list_vbox: VBoxContainer
 var _passive_label: Label
 var _scroll_vbox: VBoxContainer
@@ -480,10 +483,14 @@ func _export_coordinates() -> void:
 func _build_overview(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "Overview"
-	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 7)
+	panel.custom_minimum_size = Vector2(0, UITheme.GRID * 11)
+	var 主vb := VBoxContainer.new()
+	主vb.add_theme_constant_override("separation", UITheme.GRID)
+	panel.add_child(主vb)
+
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
-	panel.add_child(hb)
+	主vb.add_child(hb)
 
 	var 图标 = UITheme.load_icon_sized("殿阁", UITheme.SIZE_SM)
 	if 图标 != null:
@@ -533,6 +540,47 @@ func _build_overview(parent: Control) -> void:
 		殿阁产出_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 		殿阁产出_btn.pressed.connect(_on_付费_殿阁)
 		hb.add_child(殿阁产出_btn)
+
+	# 阶段3：宗门等级→产出联动 + 负责人全局buff 可视化（三联显）
+	var 经营vb := VBoxContainer.new()
+	经营vb.add_theme_constant_override("separation", int(UITheme.GRID / 2))
+	主vb.add_child(经营vb)
+
+	var 月产 := HBoxContainer.new()
+	月产.add_theme_constant_override("separation", UITheme.GRID)
+	经营vb.add_child(月产)
+	var 月产_cap := Label.new()
+	月产_cap.text = "预计月产出"
+	UITheme.apply_aux_font(月产_cap)
+	月产.add_child(月产_cap)
+	_overview_月产出 = Label.new()
+	_overview_月产出.text = "—"
+	UITheme.apply_value_font(_overview_月产出, false)
+	月产.add_child(_overview_月产出)
+
+	var 宗门 := HBoxContainer.new()
+	宗门.add_theme_constant_override("separation", UITheme.GRID)
+	经营vb.add_child(宗门)
+	var 宗门_cap := Label.new()
+	宗门_cap.text = "宗门等级·产出乘区"
+	UITheme.apply_aux_font(宗门_cap)
+	宗门.add_child(宗门_cap)
+	_overview_宗门乘区 = Label.new()
+	_overview_宗门乘区.text = "—"
+	UITheme.apply_value_font(_overview_宗门乘区, false)
+	宗门.add_child(_overview_宗门乘区)
+
+	var 负责 := HBoxContainer.new()
+	负责.add_theme_constant_override("separation", UITheme.GRID)
+	经营vb.add_child(负责)
+	var 负责_cap := Label.new()
+	负责_cap.text = "主事加成·产出"
+	UITheme.apply_aux_font(负责_cap)
+	负责.add_child(负责_cap)
+	_overview_负责人产出 = Label.new()
+	_overview_负责人产出.text = "—"
+	UITheme.apply_value_font(_overview_负责人产出, false)
+	负责.add_child(_overview_负责人产出)
 
 	parent.add_child(panel)
 
@@ -607,6 +655,24 @@ func _populate() -> void:
 		_overview_司职数.text = str(司职数)
 	if _overview_总等级 != null:
 		_overview_总等级.text = str(总等级)
+
+	# 阶段3：经营联动可视化（宗门等级→产出 + 负责人全局buff）
+	if is_instance_valid(Game):
+		var 月产额: int = 0
+		if Game.has_method("预估月产出"):
+			月产额 = int(Game.预估月产出())
+		if _overview_月产出 != null:
+			_overview_月产出.text = "%d 灵石" % 月产额
+		var 门派: int = int(Game.get("门派等级", 1))
+		var 乘区: float = 1.0 + 0.02 * max(0, 门派 - 1)
+		if _overview_宗门乘区 != null:
+			_overview_宗门乘区.text = "Lv.%d · x%.1f%%" % [门派, 乘区 * 100.0]
+		var buff产出: float = 0.0
+		if Game.has_method("汇总负责人全局buff"):
+			var _b: Dictionary = Game.汇总负责人全局buff()
+			buff产出 = float(_b.get("产出", 0.0))
+		if _overview_负责人产出 != null:
+			_overview_负责人产出.text = "+%.0f%%" % (buff产出 * 100.0)
 
 	var 减免 = 0.0
 	if is_instance_valid(Game):
@@ -2554,7 +2620,3 @@ func _on_付费_殿阁() -> void:
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
 	refresh()
-
-
-
-
