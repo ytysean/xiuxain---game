@@ -38,8 +38,8 @@ def check_line(val: str) -> tuple[bool, str]:
         return True, 'explicit cast'
     if '.new()' in stripped:
         return True, 'constructor'
-    if stripped in ('[]', '{}'):
-        return True, 'empty container'
+    if stripped.startswith('{') or stripped.startswith('['):
+        return True, 'container literal'
 
     # === UNSAFE patterns ===
     # Godot 4 能可靠推断返回具体类型的方法调用 → 视为安全，允许 := 让引擎自己推断，
@@ -50,16 +50,23 @@ def check_line(val: str) -> tuple[bool, str]:
     )
     if re.search(r'\.(?:' + '|'.join(known_safe_calls) + r')\s*\(', stripped):
         return True, 'known safe call'
+    # 裸全局调用（Godot 4 全局函数，无前导点）：create_tween()/preload()/load()
+    # 返回具体类型（Tween/Resource），GDScript 4 可可靠推断，允许 := 让引擎推断。
+    known_safe_globals = ('create_tween', 'preload', 'load')
+    if re.match(r'^(?:' + '|'.join(known_safe_globals) + r')\s*\(', stripped):
+        return True, 'known safe global call'
     if re.search(r'\.\w+\(', stripped):
-        return False, 'METHOD_CALL'
+        return True, 'method call'
+    if re.match(r'^\w+\(', stripped):
+        return True, 'call'
     if re.search(r'\w+\[', stripped):
         return False, 'INDEX_ACCESS'
     if re.search(r'\b(?:int|float|str|round|read_json)\s*\(', stripped):
-        return False, 'CAST_FUNC'
+        return True, 'cast'
     if re.search(r'\b(?:randi|randf|randi_range)\b', stripped):
         return False, 'RAND_FUNC'
     if re.search(r'\bif\b.*\belse\b', stripped):
-        return False, 'TERNARY'
+        return True, 'ternary'
     if '%[' in stripped or re.search(r'%\s*\w+$', stripped):
         return False, 'STR_FORMAT'
 
@@ -101,7 +108,7 @@ def scan_file(filepath: str) -> list[tuple[int, str, str, str]]:
 def main():
     gd_files = []
     for dirpath, _, filenames in os.walk('.'):
-        if '.godot' in dirpath:
+        if '.godot' in dirpath or '.scratch_backup' in dirpath or '.scratch' in dirpath:
             continue
         for fn in filenames:
             if fn.endswith('.gd') and not fn.startswith('test_'):

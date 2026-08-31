@@ -51,15 +51,15 @@ _WHITELIST_CORE = {
     # 节点树
     "Node", "CanvasItem", "Control", "Node2D", "Node3D", "CanvasLayer", "CanvasModulate",
     # 控件
-    "Button", "Label", "Panel", "PanelContainer", "VBoxContainer", "HBoxContainer",
+    "Button", "BaseButton", "Label", "Panel", "PanelContainer", "VBoxContainer", "HBoxContainer",
     "GridContainer", "ScrollContainer", "TextureRect", "TextureButton", "MarginContainer",
     "CenterContainer", "AspectRatioContainer", "BoxContainer", "Container", "Window",
     "Popup", "PopupPanel", "PopupMenu", "AcceptDialog", "ConfirmationDialog", "LineEdit",
     "TextEdit", "RichTextLabel", "OptionButton", "ItemList", "Tree", "TabContainer", "TabBar",
-    "ColorRect", "GraphNode", "GraphEdit", "MenuButton", "CheckButton", "ColorPicker",
-    "ColorPickerButton", "FileDialog", "HSplitContainer", "VSplitContainer", "SplitContainer",
+    "ColorRect", "GraphNode", "GraphEdit", "MenuButton", "CheckButton", "CheckBox", "ColorPicker",
+    "ColorPickerButton", "FileDialog", "HSplitContainer", "VSplitContainer", "VSeparator", "SplitContainer",
     "SpinBox", "Slider", "HSlider", "VSlider", "TextureProgressBar", "ProgressBar",
-    "VideoStreamPlayer", "SubViewport", "SubViewportContainer", "ViewPanner", "LinkButton",
+    "VideoStreamPlayer", "Viewport", "SubViewport", "SubViewportContainer", "ViewPanner", "LinkButton",
     # 2D / 3D 视觉
     "Sprite2D", "Sprite3D", "AnimatedSprite2D", "AnimatedSprite3D", "Polygon2D",
     "MeshInstance2D", "MeshInstance3D", "MultiMeshInstance2D", "MultiMeshInstance3D",
@@ -82,7 +82,7 @@ _WHITELIST_CORE = {
     "PhysicsMaterial", "World2D", "World3D", "Environment", "CameraAttributes",
     "CameraAttributesPractical", "CameraAttributesPhysical",
     # 资源 / 数据
-    "Texture2D", "Texture3D", "Texture", "Image", "ImageTexture", "AtlasTexture",
+    "Texture2D", "Texture3D", "AnimatedTexture", "Texture", "Image", "ImageTexture", "AtlasTexture",
     "CompressedTexture2D", "PortableCompressedTexture2D", "CurveTexture", "GradientTexture1D",
     "GradientTexture2D", "NoiseTexture2D", "TextureProgressBar", "Font", "FontFile",
     "FontVariation", "StyleBox", "StyleBoxFlat", "StyleBoxTexture", "StyleBoxEmpty",
@@ -146,7 +146,7 @@ def collect_custom_types(root):
     """从 class_name X 收集项目自定义类型。"""
     types = set()
     for dirpath, _, filenames in os.walk(root):
-        if ".godot" in dirpath:
+        if ".godot" in dirpath or ".scratch_backup" in dirpath or ".scratch" in dirpath:
             continue
         for fn in filenames:
             if fn.endswith(".gd") and not fn.startswith("test_"):
@@ -348,7 +348,7 @@ def main():
     custom = collect_custom_types(root)
     gd_files = []
     for dirpath, _, filenames in os.walk(root):
-        if ".godot" in dirpath:
+        if ".godot" in dirpath or ".scratch_backup" in dirpath or ".scratch" in dirpath:
             continue
         for fn in filenames:
             if fn.endswith(".gd") and not fn.startswith("test_"):

@@ -148,6 +148,37 @@ def check_deprecated_fields():
     return False, "检出 %d 处废弃字段属性访问" % len(hits), detail
 
 
+def check_bom_redline():
+    """内联扫描：禁止 .gd 文件带 UTF-8 BOM（Godot 4.x 会直接 PARSE ERROR）。
+    背景：2026-08-31 事故 —— game_state.gd 与 ui/page_building.gd 均曾带 BOM，
+    导致 gdtoolkit 解析失败、F5 必崩。立此闸防再引入。
+    返回 (ok: bool, summary: str, detail: str)。"""
+    hits = []
+    scanned = 0
+    for root, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for fn in files:
+            if not fn.endswith(".gd"):
+                continue
+            fp = os.path.join(root, fn)
+            rel = os.path.relpath(fp, ROOT)
+            scanned += 1
+            try:
+                with open(fp, "rb") as f:
+                    head = f.read(3)
+            except Exception:
+                continue
+            if head == b"\xef\xbb\xbf":
+                hits.append(rel)
+    if not hits:
+        return True, "未检出 BOM（扫描 %d 个 .gd）" % scanned, ""
+    detail = "\n".join(
+        "  %s  首3字节=EF BB BF（UTF-8 BOM），Godot 4.x 将 PARSE ERROR" % rel
+        for rel in hits
+    )
+    return False, "检出 %d 个 .gd 带 UTF-8 BOM（共扫描 %d 个）" % (len(hits), scanned), detail
+
+
 def check_fullwidth_strings():
     """内联扫描：拦『裸代码区的全角/非法字符』与『跨行未闭合字符串』。
     这类问题只有 Godot 真机才报——gdscript_type_check 只查 :=、indent_scan 只查缩进，
@@ -1004,6 +1035,18 @@ def main():
         for line in cc_full.splitlines():
             if line.strip():
                 print("    " + line)
+
+    # 第二十六道：UTF-8 BOM 红线扫描（2026-08-31 S0-2 新增）
+    #   Godot 4.x 对 BOM 零容忍：.gd 首 3 字节为 EF BB BF 时直接 PARSE ERROR。
+    #   历史事故：game_state.gd、ui/page_building.gd 均曾带 BOM 致 F5 必崩，故立闸防再引入。
+    bom_ok, bom_sum, bom_detail = check_bom_redline()
+    total = total + 1
+    results.append(("UTF-8 BOM 红线扫描", bom_ok, bom_sum, bom_detail))
+    mark = PASS_MARK if bom_ok else FAIL_MARK
+    pad = LINE_W - len("UTF-8 BOM 红线扫描")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "UTF-8 BOM 红线扫描", " " * pad, mark, bom_sum))
 
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)

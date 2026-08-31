@@ -1,7 +1,7 @@
-﻿锚点,数值,说明
+锚点,数值,说明
 殿阁保底津贴,5,game_state.gd:243 const 殿阁保底津贴
 经营基数和,27,Σbase（硬编码 game_state.gd:1764 经营基数 Dictionary）
-升级消耗基数,200,_升级消耗_灵石 基数 game_state.gd:2133 ceil(200.0*pow(1.5,...))
+升级消耗基数,120,_升级消耗_灵石 基数 game_state.gd:10215 ceil(120.0*pow(1.3,...)) S2-1 调平
 升级消耗指数,1.5,同上 pow 指数
 差事赏赐系数上限,3.0,game_state.gd:493 clamp(...,1.0,3.0) 上限
 随机事件赏赐系数,1.8,config/节奏校准.csv:7
