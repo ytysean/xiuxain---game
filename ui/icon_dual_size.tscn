@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/icon_dual_size.gd" id="1_0ab1x"]
+
+[node name="IconDualSize" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 36.0
+offset_bottom = 36.0
+mouse_filter = 2
+script = ExtResource("1_0ab1x")
+
+[node name="icon_normal" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+expand_mode = 0
+stretch_mode = 2
+mouse_filter = 2
+
+[node name="icon_hd" type="TextureRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+offset_bottom = 0.0
+expand_mode = 0
+stretch_mode = 2
+mouse_filter = 2

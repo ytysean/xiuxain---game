@@ -14,12 +14,12 @@ signal cancelled
 func _ready() -> void:
 	super._ready()
 	_content_label.text = ""
-	_cancel_button.text = "取消"
-	_confirm_button.text = "确认"
+	_cancel_button.text = "作罢"
+	_confirm_button.text = "应允"
 	_cancel_button.pressed.connect(_on_cancel_pressed)
 	_confirm_button.pressed.connect(_on_confirm_pressed)
 
-func show_dialog(title: String, content: String, confirm_text: String = "确认", cancel_text: String = "取消") -> void:
+func show_dialog(title: String, content: String, confirm_text: String = "应允", cancel_text: String = "作罢") -> void:
 	set_title(title)
 	_content_label.text = content
 	_confirm_button.text = confirm_text

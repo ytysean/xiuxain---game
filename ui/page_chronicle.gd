@@ -8,13 +8,19 @@ extends Control
 signal 纪事分类切换(分类: String)
 signal 纪事条目详情(索引: int)
 
+const RedDotBadge := preload("res://ui/red_dot_badge.gd")
+
 const 分类列表: Array = ["大事件", "岁纪", "庶务", "异闻"]
 
 var _built: bool = false
 var _list_vbox: VBoxContainer
+var _list_container: Control
+var _detail_root: Control
+var _detail_vbox: VBoxContainer
 var _chips: Dictionary = {}
 var _current_category: String = "大事件"
 var _entry_list: Array = []
+var _纪事红点: RedDotBadge = null
 
 func _ready() -> void:
 	_build()
@@ -26,6 +32,9 @@ func _build() -> void:
 	_built = true
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+	# 二级页工业化背景（决策 4 升级：顶部氛围场景图 + 下方不透明纯色内容区）
+	var content: Control = UITheme.make_scene_background(self)
+
 	var vbox := VBoxContainer.new()
 	vbox.name = "VBox"
 	vbox.add_theme_constant_override("margin_left", UITheme.MARGIN)
@@ -34,7 +43,8 @@ func _build() -> void:
 	vbox.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	vbox.add_theme_constant_override("separation", UITheme.GRID * 2)
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(vbox)
+	content.add_child(vbox)
+	_list_container = vbox
 
 	_build_header(vbox)
 
@@ -49,6 +59,8 @@ func _build() -> void:
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_list_vbox)
+
+	_build_detail(content)
 
 func _build_header(parent: Control) -> void:
 	var panel := PanelContainer.new()
@@ -72,10 +84,22 @@ func _build_header(parent: Control) -> void:
 		top.add_child(tr)
 
 	var title := Label.new()
-	title.text = "纪事"
+	title.text = "宗门纪事"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.mouse_filter = Control.MOUSE_FILTER_STOP
+	title.gui_input.connect(func(e):
+		if e is InputEventMouseButton and e.pressed:
+			UIHint.show_hint(title, "宗门纪事", "记录宗门发展中的重大事件。\n按类型筛选查看弟子突破、宗门建设、奇遇事件等历史。"))
 	UITheme.apply_title_font(title)
 	top.add_child(title)
+
+	# 纪事未读红点
+	var 纪事红点: RedDotBadge = RedDotBadge.new()
+	纪事红点.name = "ChronicleRedDot"
+	纪事红点.设置类型("dot")
+	title.add_child(纪事红点)
+	纪事红点.visible = false
+	_纪事红点 = 纪事红点
 
 	var chip_row := HBoxContainer.new()
 	chip_row.name = "Chips"
@@ -94,10 +118,18 @@ func _build_header(parent: Control) -> void:
 
 	parent.add_child(panel)
 
+func _enter_tree() -> void:
+	# 页面显示时标记纪事为已读
+	if is_instance_valid(Game) and Game.has_method("标记纪事已读"):
+		Game.标记纪事已读()
+
 func refresh() -> void:
 	if not _built:
 		_build()
 	_populate()
+	# 更新纪事未读红点
+	if _纪事红点 != null and is_instance_valid(Game) and Game.has_method("有未读纪事"):
+		_纪事红点.visible = bool(Game.有未读纪事())
 
 # §4.1 分类映射（UI 侧规则，零 Game 写）。兜底未命中→庶务。
 func _classify(entry: Dictionary) -> String:
@@ -134,7 +166,7 @@ func _populate() -> void:
 			_entry_list.append(e)
 	if _entry_list.is_empty():
 		var empty := Label.new()
-		empty.text = "暂无此类纪事"
+		empty.text = "尚无此类纪事"
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_aux_font(empty)
 		_list_vbox.add_child(empty)
@@ -196,6 +228,7 @@ func _on_entry_gui_input(event: InputEvent, idx: int) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 			纪事条目详情.emit(idx)
+			_show_entry_detail(idx)
 
 func _pass_through(node: Node) -> void:
 	for child in node.get_children():
@@ -205,3 +238,124 @@ func _pass_through(node: Node) -> void:
 		if child is Control:
 			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_pass_through(child)
+
+# ───────── 条目详情覆盖层（页内子视图，仅读；仿弟子详情页）─────────
+func _build_detail(parent: Control) -> void:
+	_detail_root = Control.new()
+	_detail_root.name = "DetailRoot"
+	_detail_root.visible = false
+	_detail_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# 不透明纯色底，覆盖列表（与 make_scene_background 内容底一致）。
+	var bg := ColorRect.new()
+	bg.color = UITheme.SECONDARY_CONTENT_BG
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_root.add_child(bg)
+
+	var vbox := VBoxContainer.new()
+	vbox.name = "DetailVBox"
+	vbox.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	vbox.add_theme_constant_override("margin_right", UITheme.MARGIN)
+	vbox.add_theme_constant_override("margin_top", UITheme.GRID)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.GRID)
+	vbox.add_theme_constant_override("separation", UITheme.GRID * 2)
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_detail_root.add_child(vbox)
+	_detail_vbox = vbox
+
+	var bar := HBoxContainer.new()
+	bar.name = "BackBar"
+	bar.add_theme_constant_override("separation", UITheme.GRID)
+	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	var back_btn: Button = UITheme.make_back_button(_on_detail_back)
+	bar.add_child(back_btn)
+	vbox.add_child(bar)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "DetailScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+	var inner := VBoxContainer.new()
+	inner.name = "Inner"
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_theme_constant_override("separation", UITheme.GRID * 2)
+	scroll.add_child(inner)
+	# _populate_entry_detail 在 inner 上 mutate（每次切详情清空+填充），所以 _detail_vbox 终态 = inner
+	_detail_vbox = inner
+
+	parent.add_child(_detail_root)
+
+func _show_entry_detail(idx: int) -> void:
+	if idx < 0 or idx >= _entry_list.size():
+		return
+	_populate_entry_detail(_entry_list[idx])
+	_list_container.visible = false
+	_detail_root.visible = true
+
+func _on_detail_back() -> void:
+	_detail_root.visible = false
+	_list_container.visible = true
+
+func _populate_entry_detail(e: Dictionary) -> void:
+	for child in _detail_vbox.get_children():
+		_detail_vbox.remove_child(child)
+		child.queue_free()
+
+	var 名称 = str(e.get("名称", "—"))
+	var t := Label.new()
+	t.text = 名称
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_page_title(t)
+	_detail_vbox.add_child(t)
+
+	var 稀有度 = str(e.get("稀有度", "—"))
+	var rows: Array = [
+		["日期", "第%s日" % str(e.get("日", "—"))],
+		["稀有度", 稀有度 if 稀有度 != "" else "—"],
+		["分类", str(e.get("category", "—"))],
+		["来源", str(e.get("来源", "—"))],
+	]
+	for r in rows:
+		_add_kv_row(_detail_vbox, r[0], r[1])
+
+	var 文案 = str(e.get("文案", ""))
+	if 文案 != "":
+		var cap := Label.new()
+		cap.text = "纪事正文"
+		UITheme.apply_section_title(cap)
+		_detail_vbox.add_child(cap)
+		var body := Label.new()
+		body.text = 文案
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_body_font(body)
+		_detail_vbox.add_child(body)
+
+	# 其余非核心字段（如 影响/关联）兜底展示，避免信息丢失。
+	var 已展示: Dictionary = {"名称": true, "日": true, "稀有度": true, "category": true, "来源": true, "文案": true}
+	for key in e.keys():
+		if 已展示.has(key):
+			continue
+		var v = e.get(key, "")
+		if v == null or str(v) == "":
+			continue
+		_add_kv_row(_detail_vbox, str(key), str(v))
+
+func _add_kv_row(parent: Control, caption: String, value: String) -> void:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", UITheme.GRID)
+	var c := Label.new()
+	c.text = caption
+	c.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	c.custom_minimum_size = Vector2(96, 0)
+	UITheme.apply_aux_font(c)
+	hb.add_child(c)
+	var v := Label.new()
+	v.text = value
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_font(v)
+	hb.add_child(v)
+	parent.add_child(hb)
+

@@ -40,7 +40,7 @@ text = "灵石 999
 [node name="体力" type="Label" parent="顶部状态栏" unique_id=1080727272]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "体力 50
+text = "气力 50
 "
 
 [node name="声望" type="Label" parent="顶部状态栏" unique_id=775169741]

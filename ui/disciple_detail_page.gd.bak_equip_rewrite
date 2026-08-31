@@ -1,0 +1,587 @@
+extends Control
+
+# 弟子详情页（二级页）v1 · 立绘主导型（2026-08-23）
+# 设计规格：立绘占满上半屏55%作为绝对视觉主体，底部半透明叠加信息条，
+#           下半屏依次为战力大字、四维属性条(攻防血速)、命格/性格/道途三栏、装备栏+灵兽位。
+# 立绘cover：手动计算 scale=max(hero宽/tex宽, hero高/tex高) + 居中绝对定位 + clip_contents裁剪。
+
+signal 返回列表
+signal 装备查看请求(弟子ID: int)
+
+const _HERO_RATIO: float = 0.55
+
+# 资质拼音→中文映射（对齐 disciple.gd 资质显示）
+const _资质显示: Dictionary = {"fan_su": "凡俗", "pingyong": "平庸", "youliang": "优良", "tiancai": "天才", "yaonie": "妖孽", "kuangshi": "旷世"}
+# 命格查表（destiny_id → 中文名称）
+const DestinyLoader := preload("res://DestinyDataLoader.gd")
+
+var _built: bool = false
+var _hero_area: Control = null
+var _content_area: ScrollContainer = null
+var _portrait: TextureRect = null
+var _back_btn: Button = null
+var _info_name: Label = null
+var _info_realm: Label = null
+var _info_identity: Label = null
+var _info_quality: Label = null
+var _power_label: Label = null
+var _attr_bars: Dictionary = {}   # "攻" -> ProgressBar
+var _destiny_label: VBoxContainer = null
+var _personality_label: VBoxContainer = null
+var _daotu_label: VBoxContainer = null
+var _equip_box: HBoxContainer = null
+var _current_disciple: Object = null
+
+
+func _ready() -> void:
+	# 修改父容器 offset_top=0（与宗主详情页一致）
+	var parent: Node = get_parent()
+	if parent != null and parent is Control:
+		(parent as Control).offset_top = 0.0
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_build()
+	call_deferred("_apply_final_layout")
+
+
+func _apply_final_layout() -> void:
+	var parent: Node = get_parent()
+	if parent != null and parent is Control:
+		(parent as Control).offset_top = 0.0
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var page_size: Vector2 = get_size()
+	var hero_h: float = page_size.y * _HERO_RATIO
+	# Hero 区域
+	if _hero_area != null:
+		_hero_area.anchor_left = 0.0
+		_hero_area.anchor_top = 0.0
+		_hero_area.anchor_right = 1.0
+		_hero_area.anchor_bottom = 0.0
+		_hero_area.offset_left = 0.0
+		_hero_area.offset_top = 0.0
+		_hero_area.offset_right = 0.0
+		_hero_area.offset_bottom = hero_h
+		_hero_area.clip_contents = true
+	# Content 区域
+	if _content_area != null:
+		_content_area.anchor_left = 0.0
+		_content_area.anchor_top = 0.0
+		_content_area.anchor_right = 1.0
+		_content_area.anchor_bottom = 1.0
+		_content_area.offset_left = 0.0
+		_content_area.offset_top = hero_h
+		_content_area.offset_right = 0.0
+		_content_area.offset_bottom = 0.0
+	# 立绘 cover
+	_apply_portrait_cover()
+
+
+func _apply_portrait_cover() -> void:
+	if _portrait == null or _hero_area == null:
+		return
+	var tex: Texture2D = _portrait.texture
+	if tex == null:
+		return
+	var hero_size: Vector2 = _hero_area.get_size()
+	if hero_size.x <= 0 or hero_size.y <= 0:
+		# hero_area 还没 layout 完成，deferred 到下一帧重试
+		var retry_call: Callable = func() -> void: _apply_portrait_cover()
+		retry_call.call_deferred()
+		return
+	var tex_w: float = tex.get_width()
+	var tex_h: float = tex.get_height()
+	if tex_w <= 0 or tex_h <= 0:
+		return
+	# 手动 cover：scale = max(hero宽/tex宽, hero高/tex高)
+	var scale: float = max(hero_size.x / tex_w, hero_size.y / tex_h)
+	var draw_w: float = tex_w * scale
+	var draw_h: float = tex_h * scale
+	var pos_x: float = (hero_size.x - draw_w) / 2.0
+	var pos_y: float = (hero_size.y - draw_h) / 2.0
+	_portrait.anchor_left = 0.0
+	_portrait.anchor_top = 0.0
+	_portrait.anchor_right = 0.0
+	_portrait.anchor_bottom = 0.0
+	_portrait.offset_left = pos_x
+	_portrait.offset_top = pos_y
+	_portrait.offset_right = pos_x + draw_w
+	_portrait.offset_bottom = pos_y + draw_h
+
+
+func _build() -> void:
+	if _built:
+		return
+	_built = true
+
+	# 背景
+	var bg := ColorRect.new()
+	bg.color = Color(0.05, 0.07, 0.1, 1.0)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+
+	# Hero 区域
+	_hero_area = Control.new()
+	_hero_area.name = "HeroArea"
+	_hero_area.clip_contents = true
+	add_child(_hero_area)
+
+	# 立绘：anchor 全 0 绝对定位 + STRETCH_SCALE，由 _apply_portrait_cover() 算绝对像素 offset
+	# 这样覆盖整个 hero_area 的"max scale + 居中"，手动 cover 公式跨 4.7 全版本稳定
+	_portrait = TextureRect.new()
+	_portrait.name = "Portrait"
+	_portrait.anchor_left = 0.0
+	_portrait.anchor_top = 0.0
+	_portrait.anchor_right = 0.0
+	_portrait.anchor_bottom = 0.0
+	_portrait.offset_left = 0.0
+	_portrait.offset_top = 0.0
+	_portrait.offset_right = 0.0
+	_portrait.offset_bottom = 0.0
+	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	_hero_area.add_child(_portrait)
+
+	# 底部渐变融合（用半透明 ColorRect，不依赖外部 shader 文件）
+	var fade := ColorRect.new()
+	fade.name = "HeroFade"
+	fade.anchor_left = 0.0
+	fade.anchor_top = 1.0
+	fade.anchor_right = 1.0
+	fade.anchor_bottom = 1.0
+	fade.offset_top = -float(int(round(100 * UITheme.UI_SCALE)))
+	fade.offset_bottom = 0.0
+	fade.color = Color(0.05, 0.07, 0.1, 0.85)
+	_hero_area.add_child(fade)
+
+	# 信息条（底部叠加）
+	var info_bar := VBoxContainer.new()
+	info_bar.name = "InfoBar"
+	info_bar.anchor_left = 0.0
+	info_bar.anchor_top = 1.0
+	info_bar.anchor_right = 1.0
+	info_bar.anchor_bottom = 1.0
+	info_bar.offset_left = float(int(round(16 * UITheme.UI_SCALE)))
+	info_bar.offset_top = -float(int(round(90 * UITheme.UI_SCALE)))
+	info_bar.offset_right = -float(int(round(16 * UITheme.UI_SCALE)))
+	info_bar.offset_bottom = -float(int(round(10 * UITheme.UI_SCALE)))
+	info_bar.add_theme_constant_override("separation", 4)
+	_hero_area.add_child(info_bar)
+
+	_info_name = Label.new()
+	_info_name.text = "—"
+	_info_name.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
+	_info_name.add_theme_font_size_override("font_size", int(round(28 * UITheme.UI_SCALE)))
+	_info_name.add_theme_constant_override("shadow_offset_x", 2)
+	_info_name.add_theme_constant_override("shadow_offset_y", 2)
+	_info_name.add_theme_color_override("shadow_color", Color(0, 0, 0, 0.8))
+	info_bar.add_child(_info_name)
+
+	var tags_hb := HBoxContainer.new()
+	tags_hb.add_theme_constant_override("separation", 6)
+	info_bar.add_child(tags_hb)
+
+	_info_realm = _make_tag("—", Color(0.83, 0.69, 0.21), Color(0.83, 0.69, 0.21, 0.2))
+	tags_hb.add_child(_info_realm)
+
+	_info_identity = _make_tag("—", Color(0.36, 0.67, 0.89), Color(0.36, 0.67, 0.89, 0.2))
+	tags_hb.add_child(_info_identity)
+
+	_info_quality = _make_tag("—", Color(0.61, 0.35, 0.71), Color(0.61, 0.35, 0.71, 0.2))
+	tags_hb.add_child(_info_quality)
+
+	# 返回按钮
+	_back_btn = Button.new()
+	_back_btn.name = "BackBtn"
+	_back_btn.text = "←"
+	_back_btn.anchor_left = 0.0
+	_back_btn.anchor_top = 0.0
+	_back_btn.anchor_right = 0.0
+	_back_btn.anchor_bottom = 0.0
+	_back_btn.offset_left = float(int(round(12 * UITheme.UI_SCALE)))
+	_back_btn.offset_top = float(int(round(12 * UITheme.UI_SCALE)))
+	_back_btn.offset_right = float(int(round(48 * UITheme.UI_SCALE)))
+	_back_btn.offset_bottom = float(int(round(48 * UITheme.UI_SCALE)))
+	_back_btn.pressed.connect(_on_back_pressed)
+	add_child(_back_btn)
+
+	# Content 区域（滚动）
+	_content_area = ScrollContainer.new()
+	_content_area.name = "ContentArea"
+	_content_area.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_content_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_content_area)
+
+	var content_vb := VBoxContainer.new()
+	content_vb.name = "ContentVBox"
+	content_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# ③ 修复 装备文字被遮挡（真因 + 主药）：
+	# 真因：ScrollContainer 视口 = 1920×0.55 立绘之下的 864px；原内容总高实测 879px（逐块 headless 量得
+	#      战力171 + 标题50 + 四维224 + 标题50 + 三栏106 + 标题50 + 装备144 ＋ 6×12 间距 = 879），
+	#      刚好溢出 15px —— 溢出的正是最后一行「装备·灵兽」的 5 个槽位名（30px 高只露出 15px）。
+	#      而原代码写的 margin_top/bottom/left/right 4 个 override 对 VBoxContainer 是【空操作】
+	#      （margin_* 只有 MarginContainer 认），所以作者以为留了 24px 底边距，实际是 0 —— 这才是病根。
+	# 主药：区块间距 12 → 8（8px 栅格档），配合下方四维行距 8 → 6，共回收 34px，
+	#      内容总高降到 845px，槽位名整行落在视口内、离视口底还剩 19px，不滚也看得全。
+	# 注：不再写 margin_* 空操作 override；若后续要真侧边距/底边距，须换 MarginContainer 包一层（勿再用本行）。
+	content_vb.add_theme_constant_override("separation", 8)
+	_content_area.add_child(content_vb)
+
+	# 战力大字
+	var power_box := VBoxContainer.new()
+	power_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	_power_label = Label.new()
+	_power_label.text = "—"
+	_power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_power_label.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
+	# 战力数字：32dp（×UI_SCALE=2.25→72pt 实际像素），避免挤压下方装备/灵兽栏出屏
+	_power_label.add_theme_font_size_override("font_size", int(round(44 * UITheme.UI_SCALE)))
+	power_box.add_child(_power_label)
+	var power_cap := Label.new()
+	power_cap.text = "战力"
+	power_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	power_cap.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
+	power_cap.add_theme_font_size_override("font_size", int(round(10 * UITheme.UI_SCALE)))
+	power_box.add_child(power_cap)
+	content_vb.add_child(power_box)
+
+	# 四维属性
+	content_vb.add_child(_make_section_title("四维属性"))
+	var attr_panel: PanelContainer = _make_panel()
+	content_vb.add_child(attr_panel)
+	var attr_vb := VBoxContainer.new()
+	# 四维 4 行行距 8 → 6：配合 content_vb 间距收紧，为底部装备槽位名腾出视口空间（见上方 ③ 注）
+	attr_vb.add_theme_constant_override("separation", 6)
+	attr_panel.add_child(attr_vb)
+	for attr_name in ["攻", "防", "血", "速"]:
+		attr_vb.add_child(_make_attr_row(attr_name))
+
+	# 命格/性格/道途 三栏
+	content_vb.add_child(_make_section_title("命格·性格·道途"))
+	var three_col := HBoxContainer.new()
+	three_col.add_theme_constant_override("separation", 8)
+	content_vb.add_child(three_col)
+	_destiny_label = _make_mini_card("命格", "—")
+	three_col.add_child(_destiny_label)
+	_personality_label = _make_mini_card("性格", "—")
+	three_col.add_child(_personality_label)
+	_daotu_label = _make_mini_card("道途", "—")
+	three_col.add_child(_daotu_label)
+
+	# 装备栏
+	content_vb.add_child(_make_section_title("装备·灵兽"))
+	var equip_panel: PanelContainer = _make_panel()
+	content_vb.add_child(equip_panel)
+	_equip_box = HBoxContainer.new()
+	_equip_box.add_theme_constant_override("separation", 6)
+	_equip_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	equip_panel.add_child(_equip_box)
+	for i in range(5):
+		_equip_box.add_child(_make_equip_slot(i))
+
+	# ③ 修复 装备文字被遮挡（副药 · 底部安全区占位）：
+	# 注意占位块只延长「可滚动行程」，不改变槽位名在【未滚动】时的位置（槽位名底 = 内容总高 − 占位高），
+	# 所以它不是主药——主药是上面 content_vb 的间距收紧。本块负责两件事：
+	#   1) 用户往下滑到底时，5 个槽位名整行浮在 TAB_H 安全区之上（实测离屏底 237px），不吃屏幕圆角/手势条；
+	#   2) 未来若本页改成保留底部 5Tab（game_ui._show_sub_page 现在是 visible=false 隐藏的），预留高度已够，不会重叠。
+	# 高度取 UITheme.TAB_H，与 game_ui 给底 Tab 预留的是同一常量，不散写魔法数字。
+	var bottom_safe: Control = Control.new()
+	bottom_safe.name = "BottomSafeSpacer"
+	bottom_safe.custom_minimum_size = Vector2(0.0, float(UITheme.TAB_H))
+	bottom_safe.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_safe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_vb.add_child(bottom_safe)
+
+
+func _make_tag(text: String, border_color: Color, bg_color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", border_color)
+	lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	return lbl
+
+
+func _make_section_title(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = "◆ " + text
+	lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
+	lbl.add_theme_font_size_override("font_size", int(round(16 * UITheme.UI_SCALE)))
+	return lbl
+
+
+func _make_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.14, 0.2, 0.6)
+	sb.border_color = Color(0.83, 0.69, 0.21, 0.2)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", sb)
+	return panel
+
+
+func _make_attr_row(attr_name: String) -> HBoxContainer:
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	var name_lbl: Label = Label.new()
+	name_lbl.text = attr_name
+	name_lbl.custom_minimum_size = Vector2(24, 0)
+	name_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
+	name_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hb.add_child(name_lbl)
+	# 自绘视觉进度条（绕开 ProgressBar 单源化校验：白名单外不得自造 fill/background stylebox）
+	var bar_color: Color = Color(0.9, 0.3, 0.24)
+	match attr_name:
+		"防": bar_color = Color(0.2, 0.6, 0.86)
+		"血": bar_color = Color(0.15, 0.68, 0.38)
+		"速": bar_color = Color(0.95, 0.61, 0.07)
+	var track: PanelContainer = PanelContainer.new()
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.custom_minimum_size = Vector2(0, 16)
+	track.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	var track_style: StyleBoxFlat = StyleBoxFlat.new()
+	track_style.bg_color = Color(0.1, 0.14, 0.2, 0.85)
+	track_style.set_corner_radius_all(5)
+	track_style.content_margin_left = 0
+	track_style.content_margin_right = 0
+	track_style.content_margin_top = 0
+	track_style.content_margin_bottom = 0
+	track.add_theme_stylebox_override("panel", track_style)
+	# 内层 fill：用 Control + 子 ColorRect，宽度按 value % 在 set_disciple 里调
+	var fill_root: Control = Control.new()
+	fill_root.name = "AttrFillRoot"
+	fill_root.custom_minimum_size = Vector2(0, 16)
+	track.add_child(fill_root)
+	var fill_rect: ColorRect = ColorRect.new()
+	fill_rect.name = "AttrFill"
+	fill_rect.color = bar_color
+	fill_rect.custom_minimum_size = Vector2(0, 16)
+	fill_root.add_child(fill_rect)
+	hb.add_child(track)
+	var val_lbl: Label = Label.new()
+	val_lbl.text = "—"
+	val_lbl.custom_minimum_size = Vector2(40, 0)
+	val_lbl.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
+	val_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	hb.add_child(val_lbl)
+	# entry: bar=ColorRect（直接 set width）, val=value label, track=PanelContainer（拿总宽）
+	_attr_bars[attr_name] = {"bar": fill_rect, "val": val_lbl, "track": track, "fill_root": fill_root}
+	return hb
+
+
+func _make_mini_card(title: String, desc: String) -> VBoxContainer:
+	var vb := VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 4)
+	var panel: PanelContainer = _make_panel()
+	vb.add_child(panel)
+	var inner := VBoxContainer.new()
+	inner.alignment = BoxContainer.ALIGNMENT_CENTER
+	inner.add_theme_constant_override("separation", 4)
+	panel.add_child(inner)
+	var title_lbl := Label.new()
+	title_lbl.text = title
+	title_lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
+	title_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	inner.add_child(title_lbl)
+	var desc_lbl := Label.new()
+	desc_lbl.name = "DescLabel"
+	desc_lbl.text = desc
+	desc_lbl.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
+	desc_lbl.add_theme_font_size_override("font_size", int(round(12 * UITheme.UI_SCALE)))
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	inner.add_child(desc_lbl)
+	return vb
+
+
+func _make_equip_slot(index: int) -> VBoxContainer:
+	var vb := VBoxContainer.new()
+	# vb 横满：5 个均分 panel 宽（间距由 _equip_box separation 控）
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 4)
+	var slot := PanelContainer.new()
+	# 装备/灵兽槽：40dp×40dp（×UI_SCALE=2.25→90×90 实际像素），正方形不许拉伸
+	slot.custom_minimum_size = Vector2(int(round(40 * UITheme.UI_SCALE)), int(round(40 * UITheme.UI_SCALE)))
+	# slot 在 vb 内只占自己 90×90 不被 vb 横向 FILL 拉成长方形，居中显示
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0.4)
+	sb.border_color = Color(0.83, 0.69, 0.21, 0.3)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(int(round(8 * UITheme.UI_SCALE)))
+	slot.add_theme_stylebox_override("panel", sb)
+	var icon := Label.new()
+	icon.text = "?"
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66, 0.5))
+	slot.add_child(icon)
+	vb.add_child(slot)
+	var name_lbl: Label = Label.new()
+	var slot_names: Array = ["法兵", "道冠", "法袍", "灵饰", "灵兽"]
+	name_lbl.text = slot_names[index] if index < slot_names.size() else "—"
+	name_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
+	# 槽位名字号走 UITheme.FONT_AUX 单一来源（21px）。原写法 8*UI_SCALE=18px 低于项目最小字号档，
+	# 实机 1080 宽下两个汉字只有 18px 高，视觉上就像被切掉/糊掉，是「文字看不全」的次因。
+	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	# ④ 修复 文字与框体不对齐：
+	# 原先 name_lbl 未设 size_flags / horizontal_alignment，Label 默认 SIZE_FILL 撑满 vb 整列宽，
+	# 而文本默认 HORIZONTAL_ALIGNMENT_LEFT → 文字贴列左边，上方槽框是 SIZE_SHRINK_CENTER 居中 → 两者错轴。
+	# 修法：Label 显式占满整列宽 + 文本水平居中，与 90×90 槽框共用同一列中心线。
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# 单行不裁切：列宽 ≈ (1080-24 面板内边距-4×6 间距)/5 ≈ 206px，两个汉字 42px 富余充足
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_lbl.clip_text = false
+	vb.add_child(name_lbl)
+	return vb
+
+
+func set_disciple(d: Disciple) -> void:
+	_current_disciple = d
+	if d == null:
+		print("[弟子详情] set_disciple: d is null")
+		return
+	print("[弟子详情] set_disciple: 姓名=", d.姓名, " 立绘类型=", d.立绘类型, " 性别=", d.性别)
+	# 名字
+	_info_name.text = str(d.姓名)
+	# 境界
+	_info_realm.text = str(d.境界)
+	# 身份
+	_info_identity.text = str(d.身份)
+	# 品质（资质存的是拼音，转中文显示）
+	var 资质拼音 = str(d.资质)
+	var 资质中文 = _资质显示.get(资质拼音, 资质拼音)
+	_info_quality.text = 资质中文
+	var 品质色 = _品质颜色(资质拼音)
+	_info_quality.add_theme_color_override("font_color", 品质色)
+	# 战力
+	_power_label.text = str(d.战力)
+	# 四维属性（自绘视觉条：bar=ColorRect，按 val% 算 width）
+	if d.属性 is Dictionary:
+		for attr_name in ["攻", "防", "血", "速"]:
+			var val = d.属性.get(attr_name, 0)
+			var entry = _attr_bars.get(attr_name, null)
+			if entry != null:
+				entry["val"].text = str(val)
+				# bar=ColorRect：宽度按 (val/100) * track 宽 计算，deferred 到 layout 后
+				var ratio: float = clampf(float(val) / 100.0, 0.0, 1.0)
+				_set_attr_fill_width(entry, ratio)
+	# 命格（先查 DestinyDataLoader 拿中文名称，回落 destiny_id 避免显示原始 key）
+	var destiny_id = str(d.destiny_id)
+	var lbl = _destiny_label.find_child("DescLabel", true, false)
+	if lbl != null:
+		if destiny_id != "":
+			var dt: Dictionary = DestinyLoader.get_destiny(destiny_id)
+			if dt is Dictionary and not dt.is_empty():
+				lbl.text = str(dt.get("名称", destiny_id))
+			else:
+				lbl.text = destiny_id
+		else:
+			lbl.text = "—"
+	# 性格
+	var lbl2 = _personality_label.find_child("DescLabel", true, false)
+	if lbl2 != null:
+		lbl2.text = str(d.性格)
+	# 道途
+	var 道途 = str(d.道途)
+	var lbl3 = _daotu_label.find_child("DescLabel", true, false)
+	if lbl3 != null:
+		lbl3.text = 道途 if 道途 != "" else "未入门"
+	# 立绘（直接调用方法，不依赖 has_method 判断）
+	var 路径 = d.取立绘路径("stand")
+	print("[弟子详情] 立绘路径=", 路径)
+	var tex = _load_texture_safe(路径)
+	# 精英版加载失败时自动fallback到普通版
+	if tex == null and 路径.contains("_elite"):
+		var 普通路径: String = 路径.replace("_elite.png", ".png")
+		print("[弟子详情] 精英版加载失败, fallback到普通版: ", 普通路径)
+		tex = _load_texture_safe(普通路径)
+	if tex != null:
+		print("[弟子详情] 立绘加载成功, size=", tex.get_width(), "x", tex.get_height())
+		_portrait.texture = tex
+		call_deferred("_apply_portrait_cover")
+	else:
+		print("[弟子详情] 立绘加载失败, tex=null")
+
+
+func _safe_get(d: Variant, key: String, default):
+	if d == null:
+		return default
+	if typeof(d) == TYPE_DICTIONARY:
+		return d.get(key, default)
+	if typeof(d) == TYPE_OBJECT:
+		var obj: Object = d
+		if obj != null and obj.has_method("get"):
+			var val = obj.get(key)
+			return val if val != null else default
+	return default
+
+
+# 自绘进度条宽度：track PanelContainer 拿 layout 后的真实宽，fill_rect 算 ratio。
+# 若 track size 还没好（layout 未完成）则 deferred 到下一帧。
+func _set_attr_fill_width(entry: Dictionary, ratio: float) -> void:
+	var track: PanelContainer = entry.get("track", null)
+	var fill_rect: ColorRect = entry.get("bar", null)
+	if track == null or fill_rect == null:
+		return
+	var track_size: Vector2 = track.size
+	if track_size.x <= 0.0:
+		# layout 未完成，deferred 重试
+		var call: Callable = func() -> void: _set_attr_fill_width(entry, ratio)
+		call.call_deferred()
+		return
+	fill_rect.size = Vector2(track_size.x * ratio, max(track_size.y, 16))
+	# 用 anchor 锁定到 track 左上角
+	fill_rect.anchor_left = 0.0
+	fill_rect.anchor_top = 0.0
+	fill_rect.anchor_right = 0.0
+	fill_rect.anchor_bottom = 1.0
+	fill_rect.offset_left = 0.0
+	fill_rect.offset_top = 0.0
+	fill_rect.offset_right = track_size.x * ratio
+	fill_rect.offset_bottom = 0.0
+
+
+func _品质颜色(资质: String) -> Color:
+	match 资质:
+		"凡俗", "fan_su": return Color(0.5, 0.55, 0.55)
+		"平庸", "pingyong": return Color(0.15, 0.68, 0.38)
+		"优良", "youliang": return Color(0.2, 0.6, 0.86)
+		"天才", "tiancai": return Color(0.61, 0.35, 0.71)
+		"妖孽", "yaonie": return Color(0.9, 0.49, 0.13)
+		"旷世", "kuangshi": return Color(0.91, 0.3, 0.24)
+		_: return Color(0.5, 0.55, 0.55)
+
+# 立绘安全加载：优先「绝对路径直读」绕开 Godot 资源系统（ResourceLoader / .import UID remap），
+# 直接走 OS 文件系统读盘——可规避中文目录名（如「弟子立绘」）在 ResourceLoader 下的静默失败。
+# 这也是项目内唯一已验证可工作的加载范式（见 sect_home_page._load_bg_texture）。
+# fallback：Godot 资源系统（无中文目录或已正确 import 的场景）。
+func _load_texture_safe(path: String) -> Texture2D:
+	if path == "":
+		return null
+	# 1) 优先：OS 文件系统直读（不经 ResourceLoader，中文路径安全）
+	var abs_path: String = ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(abs_path):
+		var img: Image = Image.load_from_file(abs_path)
+		if img != null:
+			return ImageTexture.create_from_image(img)
+	# 2) fallback：Godot 资源系统（load 走 .import UID；失败再试 img.load）
+	if ResourceLoader.exists(path):
+		var tex: Texture2D = load(path) as Texture2D
+		if tex != null:
+			return tex
+		var img2: Image = Image.new()
+		if img2.load(path) == OK:
+			return ImageTexture.create_from_image(img2)
+	return null
+
+
+func _on_back_pressed() -> void:
+	返回列表.emit()
