@@ -303,12 +303,6 @@ func _关卡要求阶(关卡: Dictionary) -> int:
 		i = 0
 	return i * 10 + 1
 
-func _命牌殿找回加成() -> float:
-	# 命牌殿（殿阁建筑）提供的寻回效率加成；未建/无 Game 时为 0
-	if Game != null and Game.has_method("命牌殿等级"):
-		return 0.05 * float(Game.命牌殿等级())
-	return 0.0
-
 # ============ 关卡查询 ============
 func 获取关卡(关卡ID: String) -> Dictionary:
 	return 关卡库.get(关卡ID, {})
@@ -696,7 +690,7 @@ func _结算调查(实例ID: String) -> Dictionary:
 		var d = _获取弟子(did)
 		if d != null:
 			总战力 += int(d.战力)
-	var 找回率 = clamp(float(总战力) / float(max(难度 * 1500, 1)) + _命牌殿找回加成(), 0.2, 0.92)
+	var 找回率 = clamp(float(总战力) / float(max(难度 * 1500, 1)), 0.2, 0.92)
 	var 调查成功 = randf() < 找回率
 	调查进行中.erase(实例ID)
 	var 失踪者 = _获取弟子(失踪弟子ID)
