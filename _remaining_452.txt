@@ -1,0 +1,452 @@
+code|481|pre='d'|suf=''|添加纪事("大事件, "激活清修卡", "激活月卡，有效%d�? % 天数, 2)
+code|489|pre='d'|suf=''|添加纪事("大事件, "激活悟道卡", "激活季卡，有效%d�? % 天数, 2)
+code|555|pre='d'|suf=''|添加纪事("大事件, "VIP升级", "VIP等级提升%d�? % vip_level, 2)
+code|653|pre='设置'|suf=''|var 设置�? Dictionary = {}                # 设置：UI 偏好持久化（音频/画面/通知/推演等）
+code|688|pre='互动日标'|suf=''|var 互动日标�? int = -1  # 记录互动次数对应的游戏日，跨日重置
+code|701|pre='互动日标'|suf=''|互动日标�?= 累计游戏日
+code|706|pre='互动日标'|suf=''|if 互动日标�?!= 累计游戏日
+code|717|pre='互动日标'|suf=''|if 互动日标�?!= 累计游戏日
+code|845|pre=''|suf=''|var �? Dictionary = 司职列表.get(key, {})
+code|846|pre=''|suf='get'|if �?get("负责：, null) != null:
+code|880|pre='小周天赐'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": "", "稀有度": "宗门", "名称": "小周天赐�?, "文案": "宗主连续七日亲临理事，宗门秩序井然、灵气充盈，祖师降下小周天赐福：})
+code|882|pre='宗门声望小幅提升'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": "", "稀有度": "宗门", "名称": "月度道统厚礼", "文案": "本月宗主躬亲庶务，全月无怠，宗门声望小幅提升�?})
+code|884|pre='受领当日堂口供奉'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": "", "稀有度": "庶务", "名称": "受领日供", "文案": "宗主亲临宗门理事，受领当日堂口供奉�?})
+code|1013|pre='迁移旧单'|suf=''|迁移旧单�?)          # 多账：v1：首启把遗留单档迁移为第一个账号，避免本地进度丢失
+code|1038|pre=''|suf='get'|elif 姓名 != "" and �?get("弟子", "") == 姓名:
+code|1039|pre=''|suf=''|结果.append(�?
+code|1048|pre=''|suf='突破'|�?突破()           # 练气→筑基，触发 判定道途+ 入堂
+code|1049|pre=''|suf=''|弟子列表.append(�?
+code|1053|pre='已解锁头'|suf='has'|return 已解锁头�?has(头像id)
+code|1057|pre='_种子化默认解锁头'|suf=''|func _种子化默认解锁头�?) -> void:
+code|1066|pre='已解锁头'|suf='has'|if not 已解锁头�?has(头像id):
+code|1067|pre='已解锁头'|suf='append'|已解锁头�?append(头像id)
+code|1080|pre='已解锁头'|suf='has'|if 头像id == "" or 已解锁头�?has(头像id):
+code|1181|pre='已拥有宗主皮'|suf='has'|if not 已拥有宗主皮�?has(皮肤ID):
+code|1192|pre='已拥有宗主皮'|suf='has'|return 已拥有宗主皮�?has(皮肤ID)
+code|1196|pre='已拥有宗主皮'|suf='has'|if not 已拥有宗主皮�?has(皮肤ID):
+code|1197|pre='已拥有宗主皮'|suf='append'|已拥有宗主皮�?append(皮肤ID)
+code|1204|pre='已拥有弟子皮'|suf=''|var 已拥有弟子皮�? Array = []
+code|1207|pre='已拥有弟子皮'|suf='has'|return 已拥有弟子皮�?has(皮肤ID)
+code|1210|pre='已拥有弟子皮'|suf='has'|if not 已拥有弟子皮�?has(皮肤ID):
+code|1211|pre='已拥有弟子皮'|suf='append'|已拥有弟子皮�?append(皮肤ID)
+code|1227|pre=''|suf=''|var �? Array = 文件.get_csv_line()
+code|1228|pre=''|suf='size'|if �?size() < 2 or 行[0] == "":
+code|1233|pre=''|suf='size'|if i < �?size():
+code|1302|pre=''|suf=''|var �? Dictionary = 宗门集市_配置()
+code|1303|pre=''|suf='get'|var 倍率: float = float(�?get("商品倍率", 2.0)) if 激活else 1.0
+code|1304|pre='基础'|suf=''|var 基础�? int = randi_range(8, 12)
+code|1305|pre='基础'|suf=''|var n: int = mini(int(round(基础�?* 倍率)), 全部.size())
+code|1314|pre=''|suf=''|var �? Array = 坊市上架集duplicate()
+code|1315|pre=''|suf='shuffle'|�?shuffle()
+code|1336|pre=''|suf='get'|默认["商品倍率"] = float(�?get("商品倍率", 默认["商品倍率"]))
+code|1339|pre=''|suf='get'|默认["声望系数"] = float(�?get("声望系数", 默认["声望系数"]))
+code|1346|pre=''|suf=''|var �? Dictionary = 宗门集市_配置()
+code|1347|pre=''|suf=''|var 月内日 int = ((�?% 30) + 30) % 30
+code|1348|pre=''|suf='get'|var 激活日: int = int(�?get("激活日", 15))
+code|1349|pre=''|suf='get'|var 持续: int = int(�?get("持续天数", 3))
+code|1356|pre='_宗门集市_日推进'|suf=''|func _宗门集市_日推进�? int):
+code|1357|pre=''|suf=''|var 前激活 bool = 宗门集市_激活中(累计游戏日- �?
+code|1375|pre=''|suf=''|�?= int(round(价* 浮动))
+code|1376|pre=''|suf=''|�?= int(round(行* _坊市负面卖价下限))
+code|1381|pre=''|suf=''|var �? String = �?get("item_name", "")
+code|1381|pre=''|suf='get'|var �? String = �?get("item_name", "")
+code|1384|pre=''|suf='contains'|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf=''|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf='contains'|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf=''|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf='contains'|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf=''|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf='contains'|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf=''|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1384|pre=''|suf='contains'|if �?contains("：) or ：contains("刀") or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("法宝") or 行contains("：):
+code|1386|pre=''|suf='contains'|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1386|pre=''|suf='contains'|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1386|pre=''|suf=''|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1386|pre=''|suf='contains'|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1386|pre=''|suf=''|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1386|pre=''|suf='contains'|if �?contains("诀") or �?contains("：) or ：contains("�?) or �?contains("：) or ：contains("�?) or �?contains("：):
+code|1392|pre=''|suf=''|var �? Dictionary = {}
+code|1409|pre=''|suf='get'|if 累计游戏日- int(�?get("week_start", 累计游戏日) >= 7:
+code|1410|pre=''|suf=''|�?= {"daily": 0, "weekly": 0, "week_start": 累计游戏日}
+code|1422|pre=''|suf='get'|if 周限 > 0 and int(�?get("weekly", 0)) >= 周限:
+code|1433|pre=''|suf='get'|记["weekly"] = int(�?get("weekly", 0)) + 1
+code|1434|pre=''|suf=''|坊市购买记录[shop_id] = �?
+code|1460|pre=''|suf=''|var �? int = int(round(float(_品阶售价(it)) * 0.6))   # GDD：回收价 = 基准：×60%
+code|1463|pre=''|suf=''|坊市回购列表.append({"名称": �? "品阶": str(it.get("品阶", "凡阶")), "类别": str(it.get("类别", "")), "：: ： "快照": it.to_dict()})
+code|1468|pre=''|suf=''|return {"ok": true, "msg": "出售 %s（回收价×60%：+%d灵石" % [�? 价]}
+code|1479|pre=''|suf=''|var �? int = int(round(float(_品阶售价(it)) * 商队回收系数))   # 商队高价回收（系：> 坊市 0.6：
+code|1484|pre=''|suf=''|return {"ok": true, "msg": "售予商队 %s（高价回收：d%%：+%d灵石" % [�? int(商队回收系数 * 100), 价]}
+code|1491|pre=''|suf=''|var �? int = int(e.get("：, 0))
+code|1494|pre=''|suf=''|灵石 -= �?
+code|1513|pre=''|suf='shuffle'|�?shuffle()
+code|1514|pre=''|suf='size'|var n: int = mini(3, �?size())
+code|1537|pre=''|suf=''|var �? Dictionary = {}
+code|1544|pre=''|suf='get'|var 原价: int = int(�?get("price_lingjing", "0"))
+code|1545|pre=''|suf=''|var 类别: String = _坊市商品类别(�?
+code|1556|pre='_战令最大等'|suf=''|func _战令最大等�?) -> int:
+code|1557|pre='等级'|suf='is_empty'|if BattlePass.等级�?is_empty():
+code|1559|pre='等级'|suf='size'|var 末行: Dictionary = BattlePass.等级表[BattlePass.等级�?size() - 1]
+code|1564|pre='等级'|suf=''|for r in BattlePass.等级�?
+code|1572|pre='_战令最大等'|suf=''|var 最大 int = _战令最大等�?)
+code|1590|pre='_战令最大等'|suf=''|var 最大 int = _战令最大等�?)
+code|1610|pre=''|suf=''|var �? Dictionary = {}
+code|1611|pre='等级'|suf=''|for r in BattlePass.等级�?
+code|1643|pre=''|suf='has'|if �?has("皮肤"):
+code|1678|pre='发送道友消'|suf='名字'|func 发送道友消�?名字: String, 内容: String) -> Dictionary:
+code|1688|pre='与道友论'|suf='名字'|func 与道友论�?名字: String) -> Dictionary:
+code|1737|pre='_整理品阶'|suf=''|const _整理品阶�? Array = ["道阶", "仙阶", "圣阶", "王阶", "宝阶", "灵阶", "凡阶"]
+code|1742|pre='_整理比较'|suf=''|排序.sort_custom(_整理比较�?
+code|1748|pre='_整理比较'|suf='a'|func _整理比较�?a: Variant, b: Variant) -> bool:
+code|1759|pre='_整理品阶'|suf='find'|var ia: int = _整理品阶�?find(阶A)
+code|1760|pre='_整理品阶'|suf='find'|var ib: int = _整理品阶�?find(阶B)
+code|1761|pre='_整理品阶'|suf='size'|if ia < 0: ia = _整理品阶�?size()
+code|1762|pre='_整理品阶'|suf='size'|if ib < 0: ib = _整理品阶�?size()
+code|1799|pre=''|suf=''|灵石 += �?
+code|1806|pre=''|suf=''|var �? Dictionary = {"凡阶": 10, "灵阶": 30, "宝阶": 80, "王阶": 200, "圣阶": 500, "仙阶": 1200, "道阶": 3000}
+code|1811|pre=''|suf=''|�?= str(v)
+code|1812|pre=''|suf='get'|return int(�?get(�? 10))
+code|1812|pre=''|suf=''|return int(�?get(�? 10))
+code|1859|pre='_种子化初始邮'|suf=''|func _种子化初始邮�?) -> void:
+code|1863|pre='宗门长'|suf=''|{"发件人: "宗门长�?, "标题": "宗门大比公告", "内容": "三载一度的宗门大比将于下月朔日开启，诸弟子可于演武堂报名参与，胜者可得丰厚赏赐与历练机缘：, "时间": "08-09 09:24", "附件": {"灵石": 200}, "未读": true, "已领": false},
+code|1871|pre='_种子化玄'|suf=''|func _种子化玄�?) -> void:
+code|1876|pre='境界'|suf=''|{"：: "玄幽魔宗", "战力": 912300, "境界�?: 7, "功勋": 84200, "探索": 61000, "商道": 55000, "名望": 72000, "称号": "魔道巨擘"},
+code|1878|pre='境界'|suf=''|{"：: "万灵古族", "战力": 712000, "境界�?: 6, "功勋": 58000, "探索": 87000, "商道": 33000, "名望": 54000, "称号": "寻幽探秘"},
+code|1881|pre='境界'|suf=''|{"：: "东海商盟", "战力": 376000, "境界�?: 5, "功勋": 30000, "探索": 28000, "商道": 88000, "名望": 29000, "称号": "富甲一方},
+code|1882|pre='境界'|suf=''|{"：: "北冥剑宗", "战力": 631000, "境界�?: 6, "功勋": 52000, "探索": 44000, "商道": 30000, "名望": 47000, "称号": "剑脉祖庭"},
+code|1887|pre='境界'|suf=''|{"：: "九霄雷府", "战力": 764000, "境界�?: 7, "功勋": 51000, "探索": 35000, "商道": 29000, "名望": 53000, "称号": "雷霆法脉"},
+code|1899|pre=''|suf=''|for e in �?
+code|1900|pre=''|suf=''|var �? int = _玄榜指标�?e, 指标)
+code|1900|pre='_玄榜指标'|suf='e'|var �? int = _玄榜指标�?e, 指标)
+code|1901|pre=''|suf=''|带榜append({"：: e.get("�?, ""), "：: ： "称号": e.get("称号", ""), "自己": e.get("自己", false)})
+code|1902|pre='_玄榜_按值降'|suf=''|带榜sort_custom(_玄榜_按值降�?
+code|1904|pre='_裁剪到范'|suf='带榜'|带榜= _裁剪到范�?带榜 5)
+code|1906|pre='_裁剪到范'|suf='带榜'|带榜= _裁剪到范�?带榜 8)
+code|1919|pre=''|suf='append'|�?append({"：: ： "战力": int(d.战力), "境界�?: Quest._境界表find(d.境界), "自己": false})
+code|1919|pre='境界'|suf=''|�?append({"：: ： "战力": int(d.战力), "境界�?: Quest._境界表find(d.境界), "自己": false})
+code|1922|pre=''|suf=''|return �?
+code|1925|pre=''|suf=''|var �? Array = []
+code|1927|pre=''|suf='append'|�?append({"：: v.get("�?, ""), "战力": int(v.get("战力", 0)), "境界：: int(v.get("境界�?, 0)),
+code|1927|pre=''|suf=''|�?append({"：: v.get("�?, ""), "战力": int(v.get("战力", 0)), "境界：: int(v.get("境界�?, 0)),
+code|1927|pre='境界'|suf=''|�?append({"：: v.get("�?, ""), "战力": int(v.get("战力", 0)), "境界：: int(v.get("境界�?, 0)),
+code|1930|pre='_宗门总战'|suf=''|var 自己战力: int = _宗门总战�?)
+code|1931|pre=''|suf='append'|�?append({"：: "%s（你方 % 宗门名 "战力": 自己战力, "境界：: _宗主境界：),
+code|1934|pre=''|suf=''|return �?
+code|1936|pre='_玄榜指标'|suf='e'|func _玄榜指标�?e: Dictionary, 指标: String) -> int:
+code|1952|pre='_玄榜_按值降'|suf='a'|func _玄榜_按值降�?a: Dictionary, b: Dictionary) -> bool:
+code|1953|pre=''|suf=''|return int(a.get("：, 0)) > int(b.get("�?, 0))
+code|1955|pre='_裁剪到范'|suf='带榜'|func _裁剪到范�?带榜 Array, n: int) -> Array:
+code|1970|pre='_宗门总战'|suf=''|func _宗门总战�?) -> int:
+code|1977|pre='_宗主境界'|suf=''|func _宗主境界�?) -> int:
+code|1995|pre=''|suf=''|var �? Array = 取玄榜类型, 指标, 范围)
+code|1998|pre=''|suf='size'|for i in range(�?size()):
+code|2004|pre=''|suf='size'|if rank > 1 and �?size() >= rank:
+code|2016|pre=''|suf=''|var �? int = BattlePass.付费轨价
+code|2019|pre=''|suf=''|仙玉_非绑定-= �?
+code|2029|pre=''|suf=''|var �? int = int(商品.get("price", 0))
+code|2034|pre=''|suf=''|var �? Dictionary = 商品.get("rewards", {})
+code|2059|pre=''|suf='has'|if �?has("皮肤"):
+code|2065|pre=''|suf=''|return {"ok": true, "msg": "购入 %s：%d 仙玉）：%s" % [商品.get("name", ""), �? "：.join(明细)]}
+code|2090|pre=''|suf=''|var �? Array = []
+code|2096|pre=''|suf='shuffle'|�?shuffle()
+code|2097|pre=''|suf='slice'|当前日常 = �?slice(0, min(3, �?size()))
+code|2097|pre=''|suf='size'|当前日常 = �?slice(0, min(3, �?size()))
+code|2111|pre=''|suf=''|灵石 += �?
+code|2123|pre=''|suf='append'|�?append(r)
+code|2128|pre=''|suf='shuffle'|�?shuffle()
+code|2142|pre=''|suf=''|灵气 += �?
+code|2145|pre=''|suf=''|return {"ok": true, "msg": "周常：s」完成：灵石+%d 灵气+%d" % [当前周常.get("quest_name", ""), �? 气]}
+code|2186|pre='_存在达境界弟'|suf='param'|"realm_reach": return 1 if _存在达境界弟�?param) else 0
+code|2195|pre='_存在达境界弟'|suf='境界'|func _存在达境界弟�?境界�? String) -> bool:
+code|2195|pre='境界'|suf=''|func _存在达境界弟�?境界�? String) -> bool:
+code|2196|pre='目标'|suf=''|var 目标�? int = 主线_境界表find(境界�?
+code|2196|pre='境界'|suf=''|var 目标�? int = 主线_境界表find(境界�?
+code|2197|pre='目标'|suf=''|if 目标�?< 0:
+code|2200|pre='目标'|suf=''|if 主线_境界表find(d.境界) >= 目标�?
+code|2226|pre='_加声望'|suf=''|_加声望�?
+code|2227|pre=''|suf=''|if �?> 0:
+code|2228|pre=''|suf=''|灵草 += �?
+code|2244|pre=''|suf=''|if �?> 0: parts.append("声望+%d" % �?
+code|2244|pre=''|suf=''|if �?> 0: parts.append("声望+%d" % �?
+code|2245|pre=''|suf=''|if �?> 0: parts.append("灵草+%d" % �?
+code|2245|pre=''|suf=''|if �?> 0: parts.append("灵草+%d" % �?
+code|2267|pre=''|suf='append'|�?append(r)
+code|2268|pre=''|suf=''|return �?
+code|2353|pre=''|suf=''|灵石 += �?
+code|2354|pre=''|suf=''|灵气 += �?
+code|2381|pre=''|suf=''|if �?<= 0:
+code|2384|pre=''|suf=''|var �? String = �?get("item_name", "")
+code|2384|pre=''|suf='get'|var �? String = �?get("item_name", "")
+code|2409|pre=''|suf=''|�?-= _随机事件权重(r.get("rarity", "普：))
+code|2410|pre=''|suf=''|if �?< 0:
+code|2413|pre='_校准'|suf=''|var 事件系数: float = _校准�?"随机事件赏赐系数", 1.8)
+code|2427|pre=''|suf='get'|return �?get(稀有度, 20)
+code|2434|pre=''|suf=''|if �?>= quest_cooldown[k]:
+code|2522|pre='当前'|suf=''|func _阵法升级消耗aid: String, 当前�? int) -> int:
+code|2526|pre='当前'|suf=''|return max(1, int(ceil(base * pow(growth, 当前�?- 1))))
+code|2530|pre=''|suf=''|var �? int = 0
+code|2532|pre=''|suf=''|�?+= _阵法升级消耗aid, lv)
+code|2533|pre=''|suf=''|return �?
+code|2536|pre='当前'|suf=''|func _阵法拆解返还数aid: String, 当前�? int) -> int:
+code|2550|pre='当前'|suf=''|var 投入: int = _阵法升级总耗aid, 当前�?
+code|2551|pre='当前'|suf=''|if 当前�?< 1 or 投入 <= 0:
+code|2569|pre=''|suf=''|var �? int = n
+code|2574|pre=''|suf=''|�?-= 1
+code|2575|pre=''|suf=''|if �?<= 0:
+code|2586|pre='_校准'|suf='参数'|func _校准�?参数: String, 默认: float) -> float:
+code|2592|pre='_校准'|suf='参数'|func _校准�?参数: String, 默认: int) -> int:
+code|2699|pre='推演一月'|suf=''|推演一月�?
+code|2700|pre=''|suf=''|剩余 -= �?
+code|2706|pre=''|suf=''|战报更新.emit(�?
+code|2707|pre=''|suf=''|return �?
+code|2712|pre='修炼'|suf=''|func 设置气运buff(修炼�? float, 产出�? float, 天数: int):
+code|2712|pre='产出'|suf=''|func 设置气运buff(修炼�? float, 产出�? float, 天数: int):
+code|2713|pre='修炼'|suf=''|气运修炼加成 = max(气运修炼加成, 修炼�?
+code|2714|pre='产出'|suf=''|气运产出加成 = max(气运产出加成, 产出�?
+code|2717|pre='推演一月'|suf=''|func 推演一月�? int):
+code|2721|pre=''|suf=''|招募冷却剩余 = max(0, 招募冷却剩余 - �?
+code|2748|pre=''|suf=''|d.推进修炼(�? 修炼乘区 * 护法乘区)
+code|2760|pre='天品灵根弟子'|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "天品", "名称": "天品突破", "文案": "天品灵根弟子�?s】突破至%s，道行精进，全宗灵机涌动�? % [d.姓名, d.境界]})
+code|2760|pre='全宗灵机涌动'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "天品", "名称": "天品突破", "文案": "天品灵根弟子�?s】突破至%s，道行精进，全宗灵机涌动�? % [d.姓名, d.境界]})
+code|2781|pre='优先'|suf=''|var 优先�?:= PRIO_NORMAL
+code|2784|pre='优先'|suf=''|优先�?= PRIO_TRIVIAL
+code|2786|pre='优先'|suf=''|优先�?= PRIO_HIGH
+code|2790|pre='优先'|suf=''|_加推演条目事件, 类型, 优先�? {"弟子": d.姓名})
+code|2820|pre='灵气月产'|suf=''|var 灵气月产�?= 50 + max(0, 门派等级 - 1) * 20
+code|2821|pre='灵气月产'|suf=''|灵气 += 灵气月产�?
+code|2841|pre='_校准'|suf=''|var 招徒周期: int = _校准�?"招徒周期：, 3)
+code|2843|pre=''|suf=''|var 招徒止月: int = int((累计游戏日+ �? / 30)
+code|2847|pre='_校准'|suf=''|var 招徒概率: float = _校准�?"招徒基础概率", 0.75) + (门派等级 - 1) * _校准�?"招徒等级缩放", 0.02)
+code|2847|pre='_校准'|suf=''|var 招徒概率: float = _校准�?"招徒基础概率", 0.75) + (门派等级 - 1) * _校准�?"招徒等级缩放", 0.02)
+code|2848|pre='_校准'|suf=''|招徒概率 = clamp(招徒概率, 0.0, _校准�?"招徒概率上限", 0.95))
+code|2856|pre='_校准'|suf=''|var 事件周期: int = _校准�?"随机事件周期：, 6)
+code|2858|pre='事件'|suf='in'|for 事件�?in range(招徒起月, 招徒止月):
+code|2859|pre='事件'|suf=''|if 事件�?% 事件周期 != 0:
+code|2861|pre='事件'|suf=''|累计游戏日= 事件累计快照 + 事件�?* 30   # 让冷：纪事落在对应月份，避免同刻冷却互相抵：
+code|2865|pre=''|suf=''|推进孵化(�?
+code|2879|pre=''|suf=''|累计游戏日+= �?
+code|2893|pre='_宗门集市_日推进'|suf=''|_宗门集市_日推进�?     # WAVE-C #7：宗门集市窗口进：退出刷新（仅刷新规则，零经济）
+code|2894|pre=''|suf=''|_推进差事系统(�?        # S0：每日刷日常 / ：日刷周常 / 月度随机概率事件
+code|2905|pre=''|suf=''|var �? Dictionary = 周期评分.结算(门派等级, {
+code|2910|pre='评级'|suf=''|var 评级�? String = 卡["评级"]
+code|2911|pre='评级'|suf=''|var 评级 Dictionary = _发放周期赏赐(评级�?
+code|2915|pre=''|suf=''|最新周期评级卡 = �?
+code|2917|pre='评级'|suf=''|var 岁末评语: String = _七载大典文案(评级�?.get("评语", "")
+code|2919|pre='评级'|suf=''|"文案": "岁末考评裁定 %sbs" % [评级�? 岁末评语], "category": "日常庶务"})
+code|2924|pre='_校准'|suf=''|var 七载周期年 int = _校准�?"七载周期年, 7) * 365
+code|2936|pre=''|suf=''|var �? int = int(灵石赏赐额get(评级, 0))
+code|2937|pre=''|suf=''|if �?<= 0:
+code|2945|pre=''|suf=''|var �? Item = _造低阶物品"fabao", "上品")
+code|2946|pre=''|suf=''|弟子列表[0].背包.append(�?
+code|2950|pre=''|suf=''|var 年度发 int = int(�?* _校准�?"年度赏赐占比", 0.70))
+code|2950|pre='_校准'|suf=''|var 年度发 int = int(�?* _校准�?"年度赏赐占比", 0.70))
+code|2951|pre=''|suf=''|var 入池: int = �?- 年度发
+code|2957|pre=''|suf=''|var �? Item = _造低阶物品"fabao", "上品")
+code|2958|pre=''|suf='品阶'|七载待发掉落.append({"类型": 保类别, "品阶": �?品阶, "名称": �?名称})
+code|2958|pre=''|suf='名称'|七载待发掉落.append({"类型": 保类别, "品阶": �?品阶, "名称": �?名称})
+code|3002|pre=''|suf=''|var �? Dictionary = {
+code|3005|pre='宗门气象一新'|suf=''|"B":   {"标题": "七载考评·兴业", "开：: "产业渐丰，弟子用命，宗门气象一新�?, "收尾": "：d七载，宗门兴业有成，道途愈宽：, "评语": "岁末考评兴业，基业渐丰，气象一新新},
+code|3009|pre=''|suf='d七载'|"SS":   {"标题": "七载大考·威震一方, "开篇: "七载砥砺，威震一方，诸宗来朝，灵脉通玄：, "收尾": "�?d七载，宗门威名远播，基业永固固, "评语": "七载大考威震一方，诸宗来朝，基业永固：},
+code|3012|pre=''|suf='get'|return �?get(评级, 表["C"])
+code|3017|pre='_校准'|suf=''|var 序号: int = int(累计游戏日/ (_校准�?"七载周期年, 7) * 365))
+code|3019|pre=''|suf=''|var �? Dictionary = _七载大典文案(评级)
+code|3022|pre='七载大'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": "", "稀有度": "宗门", "名称": "七载大�?,
+code|3041|pre=''|suf=''|var �? Item = _造低阶物品掉落.get("类型", "fabao"), 掉落.get("品阶", "上品"))
+code|3042|pre=''|suf=''|弟子列表[0].背包.append(�?
+code|3122|pre=''|suf=''|var �? PackedStringArray = �?split(",")
+code|3122|pre=''|suf='split'|var �? PackedStringArray = �?split(",")
+code|3123|pre=''|suf='size'|if �?size() >= 2:
+code|3153|pre=''|suf=''|var �? String = r.get("阀门, "")
+code|3154|pre=''|suf=''|if �?!= "":
+code|3164|pre='_阀门开关'|suf=''|func _阀门开关�? Dictionary, �? String, 默认: int) -> bool:
+code|3164|pre=''|suf=''|func _阀门开关�? Dictionary, �? String, 默认: int) -> bool:
+code|3165|pre=''|suf='get'|var r: Dictionary = �?get(�? {})
+code|3165|pre=''|suf=''|var r: Dictionary = �?get(�? {})
+code|3212|pre=''|suf='get'|var 上限境 int = int(�?get("monthly_limit", "1"))
+code|3221|pre=''|suf='get'|var 属资源殿阁 bool = (�?get("punish_type_1", "") in ["矿石", "灵草", "丹材"]) or (行get("punish_type_2", "") in ["矿石", "灵草", "丹材"])
+code|3226|pre=''|suf='get'|var pt: String = �?get("punish_type_" + slot, "")
+code|3227|pre=''|suf='get'|var pv: float = float(�?get("punish_value_" + slot, "0"))
+code|3234|pre=''|suf=''|�?= max(0.0, 额* (1.0 + 殿阁被动_负面事件减免))
+code|3235|pre=''|suf=''|_本月灵石冲击 += �?
+code|3236|pre=''|suf=''|后果.append("灵石-%d" % int(round(�?))
+code|3251|pre=''|suf='get'|var eid: String = �?get("event_id", "")
+code|3254|pre=''|suf='get'|_加推演条目"【负面：sbs" % [�?get("event_name", eid), "：.join(后果)], ET_SECT, PRIO_NORMAL, {"事件": eid})
+code|3287|pre=''|suf=''|�?= str(目标.get_instance_id())
+code|3288|pre=''|suf=''|if not _弟子负面属性累计has(�?:
+code|3294|pre=''|suf=''|var �? Dictionary = _读经济阀门表()
+code|3295|pre='_阀门开关'|suf=''|_neg_global     = _阀门开关�? "neg_global", 0)
+code|3296|pre='_阀门开关'|suf=''|_neg_res_build  = _阀门开关�? "neg_res_build", 1)
+code|3297|pre='_阀门开关'|suf=''|_neg_disciple   = _阀门开关�? "neg_disciple", 1)
+code|3298|pre='_阀门开关'|suf=''|_neg_reputation = _阀门开关�? "neg_reputation", 0)
+code|3299|pre='_阀门开关'|suf=''|_neg_grade_perm = _阀门开关�? "neg_grade_perm", 0)
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3323|pre=''|suf=''|var 候选池: Array = ["：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?, "：, "�?]
+code|3360|pre=''|suf=''|var �?:= Beast.new()
+code|3361|pre=''|suf=''|灵兽蛋列表append(�?
+code|3378|pre=''|suf='is_empty'|if not �?is_empty():
+code|3406|pre='_校准'|suf=''|if _今日奇遇次数 >= _校准�?"奇遇日上：, 5):
+code|3520|pre=''|suf=''|var �? String = 段strip_edges()
+code|3523|pre=''|suf='contains'|if not �?contains(":"):
+code|3526|pre=''|suf='split'|var 部件: Array = �?split(":", false)
+code|3535|pre=''|suf=''|摘要 += " " + �?
+code|3548|pre=''|suf=''|摘要 += " " + �?
+code|3568|pre=''|suf=''|摘要 += " " + �?
+code|3592|pre='_百分比文本'|suf=''|return "(全宗：s提升%s)" % [_buff文本(bid), _百分比文本�?]
+code|3596|pre=''|suf=''|var �? int = 部件[3].to_int() if 部件.size() > 3 else 0
+code|3597|pre=''|suf=''|return "(%s产出%.1f倍，持续%d个月)" % [资源, �? 时]
+code|3615|pre=''|suf=''|var �? Dictionary = {
+code|3618|pre=''|suf='get'|return �?get(�? �?
+code|3618|pre=''|suf=''|return �?get(�? �?
+code|3618|pre=''|suf=''|return �?get(�? �?
+code|3620|pre='_百分比文本'|suf=''|func _百分比文本�? float) -> String:
+code|3621|pre=''|suf=''|return "%d%%" % int(round(�?* 100))
+code|3659|pre='奇遇'|suf=''|it.奇遇�?= true        # ADR-002 D5：奇遇版标记（增幅曲线待 design 录入，本 Sprint 仅置位）
+code|3701|pre='奇遇'|suf=''|it.奇遇�?= true
+code|3791|pre='首'|suf=''|var 首�? bool = not 已通关秘境.has(stage_id)
+code|3792|pre='首'|suf=''|if 首�?
+code|3847|pre=''|suf=''|"： if 结果["is_win"] else "�?, 结果["赏赐摘要"]])
+code|3888|pre='_检查图录类别集'|suf='类别'|_检查图录类别集�?类别)
+code|3894|pre='_检查图录类别集'|suf='类别'|func _检查图录类别集�?类别: String):
+code|3909|pre='图录'|suf='s'|传承史册.append({"：: 累计游戏日 "弟子": "", "名称": "图录集齐", "文案": "【图录�?s 已集齐，宗门产出运势小成（产出+%d%%）�? % [类别, int(增益值* 100)], "category": "传承"})
+code|3909|pre=''|suf=''|传承史册.append({"：: 累计游戏日 "弟子": "", "名称": "图录集齐", "文案": "【图录�?s 已集齐，宗门产出运势小成（产出+%d%%）�? % [类别, int(增益值* 100)], "category": "传承"})
+code|3914|pre=''|suf=''|func _传承事件(�? String):
+code|3915|pre=''|suf=''|_记录图录(�? "事件")
+code|3954|pre=''|suf=''|产出池加成= clamp(产出池加成+ �? 0.0, 0.30)
+code|3956|pre=''|suf=''|_加声望int(�?)   # 复用现有 声望 变量与乘区；绝不：凝聚力（16 审计 ：零运行时：
+code|4003|pre='目标'|suf=''|var 目标�? int = 主线_境界表find(extra)
+code|4004|pre='目标'|suf=''|if 目标�?>= 0:
+code|4007|pre='目标'|suf=''|if d == null or 主线_境界表find(d.境界) < 目标�?
+code|4018|pre='_宗主境界'|suf=''|达成 = _宗主境界�?) >= p
+code|4092|pre=''|suf=''|if r.get("是否稀有, "�?) != "：:
+code|4113|pre=''|suf=''|�?+= d.属性["：] * 0.001 + d.属性["值] * 0.001
+code|4116|pre=''|suf=''|�?+= 0.1
+code|4117|pre=''|suf=''|return randf() < clamp(�? 0.1, 0.95)
+code|4131|pre=''|suf=''|var �? Dictionary = 司职列表[key]
+code|4160|pre=''|suf='get'|if int(�?get("等级", 1)) >= 2:
+code|4161|pre=''|suf='get'|灵石 += int(�?get("等级", 1)) * 殿阁保底津贴
+code|4172|pre=''|suf=''|"dantang":  _本月丹堂产出 = �?
+code|4173|pre=''|suf=''|"qitang":   _本月器殿产出 = �?
+code|4186|pre=''|suf=''|var �? Dictionary = 司职列表[key]
+code|4204|pre=''|suf='get'|var 保底: int = int(�?get("等级", 1)) * 殿阁保底津贴 if int(额get("等级", 1)) >= 2 else 0
+code|4211|pre=''|suf=''|�?+= 弟子列表.size() * 2
+code|4212|pre=''|suf=''|return �?
+code|4238|pre=''|suf=''|var �? Item = _造低阶物品"dan_yao", "凡阶")
+code|4239|pre=''|suf=''|得主.背包.append(�?
+code|4240|pre='丹堂额外炼制一枚'|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "丹堂赠丹", "文案": "丹堂额外炼制一枚�?s】，赐予弟s】�? % [�?名称, 得主.姓名]})
+code|4240|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "丹堂赠丹", "文案": "丹堂额外炼制一枚�?s】，赐予弟s】�? % [�?名称, 得主.姓名]})
+code|4240|pre=''|suf='名称'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "丹堂赠丹", "文案": "丹堂额外炼制一枚�?s】，赐予弟s】�? % [�?名称, 得主.姓名]})
+code|4249|pre='器殿'|suf='destiny_id'|if 器殿主!= null and 器殿�?destiny_id == "D_JIANGXIN":
+code|4257|pre='配置'|suf=''|var 配置�? Array = _读器殿赠宝行(器殿等级)
+code|4260|pre='配置'|suf=''|for 行in 配置�?
+code|4261|pre=''|suf='get'|if �?get("pool_type", "") == "rare":
+code|4264|pre=''|suf=''|普通行.append(�?
+code|4272|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": 兜底得主.姓名, "弟子ID": 兜底得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿额外锻造一件【s】，赐予弟s】�? % [兜底�?名称, 兜底得主.姓名]})
+code|4272|pre='兜底'|suf='名称'|宗门纪事.append({"：: 累计游戏日 "弟子": 兜底得主.姓名, "弟子ID": 兜底得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿额外锻造一件【s】，赐予弟s】�? % [兜底�?名称, 兜底得主.姓名]})
+code|4284|pre='命中'|suf=''|var 命中�? Dictionary = _加权抽配置行(选池)
+code|4285|pre='命中'|suf='get'|var 数量: int = randi_range(int(命中�?get("count_min", 1)), int(命中�?get("count_max", 1)))
+code|4285|pre='命中'|suf='get'|var 数量: int = randi_range(int(命中�?get("count_min", 1)), int(命中�?get("count_max", 1)))
+code|4288|pre='命中'|suf=''|var 样器: Item = _造器殿赠宝物(命中�?   # 仅用于冗余判定（品类/品阶：
+code|4293|pre=''|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝·拆解", "文案": "�?s】已执同阶法宝，赠宝拆解折算阵纹碎片×%d�? % [得主.姓名, 数量]})
+code|4293|pre='d'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝·拆解", "文案": "�?s】已执同阶法宝，赠宝拆解折算阵纹碎片×%d�? % [得主.姓名, 数量]})
+code|4297|pre='命中'|suf=''|得主.背包.append(_造器殿赠宝物(命中�?)
+code|4298|pre=''|suf='d'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿赐下【s】�?d，予�?s】�? % [命中�?get("item_name", ""), 数量, 得主.姓名]})
+code|4298|pre='予'|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿赐下【s】�?d，予�?s】�? % [命中�?get("item_name", ""), 数量, 得主.姓名]})
+code|4298|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿赐下【s】�?d，予�?s】�? % [命中�?get("item_name", ""), 数量, 得主.姓名]})
+code|4298|pre='命中'|suf='get'|宗门纪事.append({"：: 累计游戏日 "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝", "文案": "器殿赐下【s】�?d，予�?s】�? % [命中�?get("item_name", ""), 数量, 得主.姓名]})
+code|4338|pre='基础'|suf='has'|if 类别 == "dan_yao" and it.基础�?has("dan_yao") and it.基础库["dan_yao"].has(品阶):
+code|4340|pre='基础'|suf='has'|elif 类别 == "fabao" and it.基础�?has("fabao") and it.基础库["fabao"].has(品阶):
+code|4352|pre='_品阶'|suf=''|var _品阶�? Dictionary = {"凡阶": 0, "灵阶": 1, "宝阶": 2, "王阶": 3, "圣阶": 4, "仙阶": 5, "道阶": 6}
+code|4354|pre='_品阶'|suf='get'|var ia: int = _品阶�?get(a, -1)
+code|4355|pre='_品阶'|suf='get'|var ib: int = _品阶�?get(b, -1)
+code|4362|pre='_器殿赠宝'|suf='is_empty'|if not _器殿赠宝�?is_empty():
+code|4381|pre=''|suf=''|�?+= float(r.get("weight", 0))
+code|4384|pre=''|suf=''|var �? float = randf() * 总权
+code|4386|pre=''|suf=''|�?-= float(r.get("weight", 0))
+code|4387|pre=''|suf=''|if �?<= 0:
+code|4404|pre=''|suf=''|func _造器殿赠宝物(�? Dictionary) -> Item:
+code|4405|pre=''|suf='get'|if �?get("ref_type", "gen") == "id":
+code|4406|pre='_按id造'|suf='get'|return _按id造�?get("item_ref", ""))
+code|4407|pre='_造低阶物品'|suf='get'|return _造低阶物品�?get("item_ref", "fabao"), �?get("grade", "凡阶"))
+code|4407|pre=''|suf='get'|return _造低阶物品�?get("item_ref", "fabao"), �?get("grade", "凡阶"))
+code|4449|pre=''|suf=''|�?= 弟子列表   # 极端兜底（不应发生）
+code|4450|pre=''|suf='size'|return 档[randi() % �?size()]
+code|4465|pre=''|suf=''|var �? Array = DestinyDataLoader.品级枚举
+code|4468|pre=''|suf='size'|if idx >= 0 and idx + 1 < �?size():
+code|4476|pre=''|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "命格重塑", "文案": "洗髓池机缘，�?s】命格品质提升（%sbs）�? % [d.姓名, 当前品级, 高档名]})
+code|4476|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "命格重塑", "文案": "洗髓池机缘，�?s】命格品质提升（%sbs）�? % [d.姓名, 当前品级, 高档名]})
+code|4484|pre=''|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "性格洗练", "文案": "洗髓池机缘，�?s】洗去心s」心障，转化s」�? % [d.姓名, d.性格, 新性格]})
+code|4484|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "性格洗练", "文案": "洗髓池机缘，�?s】洗去心s」心障，转化s」�? % [d.姓名, d.性格, 新性格]})
+code|4492|pre=''|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "命格重塑", "文案": "洗髓池机缘，�?s】命格品质提升（%sbs）�? % [d.姓名, 当前品级, 高档名]})
+code|4492|pre=''|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "殿阁被动", "名称": "命格重塑", "文案": "洗髓池机缘，�?s】命格品质提升（%sbs）�? % [d.姓名, 当前品级, 高档名]})
+code|4554|pre='人事'|suf='s主事由'|宗门纪事.append({"：: 累计游戏日 "弟子": 旧负：姓名, "弟子ID": 旧负：弟子ID, "稀有度": "宗门", "名称": "人事变动", "文案": "【人事�?s主事由%s 接替 %s" % [司职列表[d.司职]["名称"], d.姓名, 旧负：姓名]})
+code|4578|pre='人事'|suf='s'|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "宗门", "名称": "人事任命", "文案": "【人事�?s 被任命为%s主事" % [d.姓名, 司职列表[key]["名称"]]})
+code|4584|pre=''|suf=''|var �? String = 司职负责人存档[key]
+code|4585|pre=''|suf=''|var d: Disciple = _按姓名找(�?
+code|4596|pre=''|suf=''|"qitang": "：, "kuangmai": "�?, "zhenfa": "：,
+code|4607|pre=''|suf=''|buff[维] = float(buff.get(�? 0.0)) + (0.02 if int(�?get("等级", 1)) >= 4 else 0.01)
+code|4607|pre=''|suf='get'|buff[维] = float(buff.get(�? 0.0)) + (0.02 if int(�?get("等级", 1)) >= 4 else 0.01)
+code|4610|pre=''|suf=''|buff["：] = float(buff.get("�?, 0.0)) + 0.01
+code|4631|pre=''|suf=''|var �? int = _升级消耗_灵石(等级)
+code|4634|pre=''|suf=''|灵石 -= �?
+code|4665|pre=''|suf=''|var �? Dictionary = 司职列表[key]
+code|4670|pre=''|suf='get'|堂["政绩"] = int(�?get("政绩", 0)) + 月增
+code|4706|pre='阶位'|suf=''|func 阶位名额占用(阶位�? String) -> int:
+code|4709|pre='阶位'|suf=''|if x.阶位 == 阶位�?
+code|4714|pre='阶位'|suf=''|func 阶位名额上限(阶位�? String) -> int:
+code|4716|pre='阶位'|suf=''|match 阶位�?
+code|4796|pre='s'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "宗门", "名称": "罢免阶位", "文案": "【罢免者s 被罢去阶位，现任 阶位·%s�? % [d.姓名, d.阶位]})
+code|4801|pre=''|suf=''|if d.姓名 == �?
+code|4896|pre=''|suf='灵根品阶'|if �?灵根品阶 == "天品":
+code|4897|pre='全宗士气大振'|suf=''|宗门纪事.append({"：: 累计游戏日 "弟子": ：姓名, "弟子ID": ：弟子ID, "稀有度": "天品", "名称": "天品灵根弟子", "文案": "接引大典检出天品灵根弟子率s】，全宗士气大振�? % 存姓名})
+code|4903|pre=''|suf='in'|for �?in 新徒:
+code|4904|pre=''|suf='灵根品阶'|if �?灵根品阶 == "天品":
+code|4951|pre=''|suf=''|if �?> 0:
+code|4952|pre=''|suf=''|缺口 = int(ceil(�?* 500.0))
+code|4985|pre=''|suf=''|var �? int = int((d % 360) / 30)
+code|4986|pre=''|suf=''|var �? int = d % 30
+code|5076|pre=''|suf=''|var �? Beast = Beast.new()
+code|5078|pre=''|suf=''|灵兽蛋列表append(�?
+code|5079|pre=''|suf=''|var 引纪: Dictionary = _引育纪事文案(�?
+code|5115|pre=''|suf='in'|for �?in [d.主宠灵兽, d.副宠灵兽]:
+code|5118|pre=''|suf='等级'|�?等级 = min(�?等级 + 1, 兽等级上限)
+code|5118|pre=''|suf='等级'|�?等级 = min(�?等级 + 1, 兽等级上限)
+code|5119|pre=''|suf='忠诚'|�?忠诚�?= min(兽忠诚�?+ 2, 100)
+code|5119|pre='忠诚'|suf=''|�?忠诚�?= min(兽忠诚�?+ 2, 100)
+code|5119|pre='兽忠诚'|suf=''|�?忠诚�?= min(兽忠诚�?+ 2, 100)
+code|5120|pre=''|suf='in'|for �?in 灵兽库存:
+code|5121|pre=''|suf='孵化中'|if �?孵化中
+code|5123|pre=''|suf='忠诚'|�?忠诚�?= max(�?忠诚�?- 1, 0)
+code|5123|pre='忠诚'|suf=''|�?忠诚�?= max(�?忠诚�?- 1, 0)
+code|5123|pre=''|suf='忠诚'|�?忠诚�?= max(�?忠诚�?- 1, 0)
+code|5123|pre='忠诚'|suf=''|�?忠诚�?= max(�?忠诚�?- 1, 0)
+code|5155|pre=''|suf=''|�?= 弟子.副宠灵兽
+code|5162|pre=''|suf=''|if not 灵兽库存.has(�?:
+code|5163|pre=''|suf=''|灵兽库存.append(�?
+code|5184|pre=''|suf=''|if not 灵兽库存.has(�?:
+code|5190|pre=''|suf=''|if not 灵兽库存.has(�?:
+code|5191|pre=''|suf=''|灵兽库存.append(�?
+code|5215|pre=''|suf=''|var �? int = int(累计游戏日/ 360.0)
+code|5224|pre=''|suf=''|return "核心弟子%sbs），于第%d年坐化。在职期间恪尽职守，宗门记其功绩。享：d岁：s" % [d.姓名, d.境界, �? 寿终, 偏科注]
+code|5226|pre=''|suf=''|return "%s，于：d年寿元耗尽，坐化于山门。一生勤恳，虽无大功，亦守宗门本分。享：d岁：s" % [d.姓名, �? 寿终, 偏科注]
+code|5347|pre='迁移旧单'|suf=''|func 迁移旧单�?) -> void:
+code|5367|pre=''|suf=''|var �? String = old.get("宗门：, "太玄宗)
+code|5370|pre=''|suf=''|"id": id, "名称": �? "创建：: int(Time.get_unix_time_from_system()),
+code|5515|pre='已拥有弟子皮'|suf=''|已拥有弟子皮�?= data.get("已拥有弟子皮：, [])
+code|5531|pre='_种子化默认解锁头'|suf=''|_种子化默认解锁头�?)  # 读档后补种子（初始头像默认解锁），否则弹窗选了写不：
+code|5532|pre='_种子化初始邮'|suf=''|_种子化初始邮�?)      # 读档后补种子（全新档/旧档无邮件→给初始几封；已有邮件则不重复种子：
+code|5533|pre='_种子化玄'|suf=''|_种子化玄�?)          # 读档后补种子（全新档/旧档无虚拟宗门→种子；已有则不重复）
+code|5543|pre=''|suf='in'|for �?in data.get("凡人城镇", []):
+code|5544|pre=''|suf=''|凡人城镇.append(�?
+code|5558|pre=''|suf='in'|for �?in data.get("辈分字派", []):
+code|5559|pre=''|suf=''|辈分字派.append(�?
+code|5563|pre='设置'|suf=''|设置�?= data.get("设置：, {})
+code|5603|pre='首'|suf=''|周期评分.计数 = {"灵石获取": 0, "稀有道具: 0, "突破": 0, "高品质新弟子": 0, "首�?: 0}
+code|5728|pre=''|suf=''|push_warning("存档校验：s 为负(%d)，已兜底修正：0" % [�? v])
+code|5735|pre=''|suf=''|push_warning("存档校验：s=%d 越界[%d,%d]，已夹取修正" % [�? v, lo, hi])
+code|5804|pre='首'|suf=''|周期评分.计数 = {"灵石获取": 0, "稀有道具: 0, "突破": 0, "高品质新弟子": 0, "首�?: 0}
+code|5840|pre='_种子化默认解锁头'|suf=''|_种子化默认解锁头�?)  # 新档：初始头像默认解锁，保证可选即能装：
+code|5841|pre='_种子化初始邮'|suf=''|_种子化初始邮�?)      # 新档：初始邮件种子（4 封资源类，接真后端）
+code|5842|pre='_种子化玄'|suf=''|_种子化玄�?)          # 新档：虚拟对手宗门种子（单机填榜：

@@ -1,0 +1,601 @@
+ D auto_ui_loader.gd
+ D auto_ui_loader.gd.uid
+ M beast.gd
+ M components/ConfirmDialog.gd
+ M config/achievement_config.csv
+ M config/achievement_config.csv.import
+ M config/array_config.csv
+ M config/array_items.csv
+ M config/craft_hall_reward.csv
+ M config/disciple_interact.csv
+ M config/equip_main.csv
+ M config/equip_set.csv
+ M config/faction_base.csv
+ M config/faction_shop.csv
+ M config/faction_shop.csv.import
+ M config/inner_demon.csv
+ M config/item_pill.csv
+ M config/item_talisman.csv
+ M config/map_config.csv
+ M config/monster_main.csv
+ M config/morale_loyalty_config.csv
+ M config/negative_event.csv
+ M config/output_daily.csv
+ M config/path_config.csv
+ M config/personality_config.csv
+ M config/puppet.csv
+ M config/random_entry_pool.csv
+ M config/secret_config.csv
+ M config/skill_cultivation.csv
+ M config/spirit_pet.csv
+ M config/stage_main.csv
+ M config/treasure_innate.csv
+ M config/treasure_normal.csv
+ M config/tribulation_item.csv
+ D config/xuanyu_shop.csv
+ D config/xuanyu_shop.csv.import
+ M config/七载大典文案.csv
+ M config/品级权益映射.csv
+ M config/坊市行情.csv
+ M config/宗门里程碑.csv
+ M config/宗门集市配置.csv
+ D config/收藏图鉴分类.csv
+ D config/收藏图鉴分类.csv.import
+ M config/经济阀门.csv
+ M csv_validator.gd
+ M disciple.gd
+ M icon_manifest.csv
+ M item.gd
+ M lore.gd
+ M overview.md
+ M project.godot
+ M theme/main_theme.tres
+ M tools/config/新功能冲击声明.csv
+ D tools/icon_pipeline/asset_batch_template.csv
+ D tools/icon_pipeline/center_prompts.json
+ D tools/icon_pipeline/compose_all.py
+ D tools/icon_pipeline/finalize_icons.py
+ D tools/icon_pipeline/gen_center_prompts.py
+ D tools/icon_pipeline/icon_cohesion.py
+ D tools/icon_pipeline/icon_frame.py
+ D tools/icon_pipeline/match_centers.py
+ D tools/icon_pipeline/pipeline.py
+ D tools/icon_pipeline/preview_frames/frame_仙品.png
+ D tools/icon_pipeline/preview_frames/frame_凡品.png
+ D tools/icon_pipeline/preview_frames/frame_圣品.png
+ D tools/icon_pipeline/preview_frames/frame_宝品.png
+ D tools/icon_pipeline/preview_frames/frame_灵品.png
+ D tools/icon_pipeline/preview_frames/frame_王品.png
+ D tools/icon_pipeline/preview_frames/frame_道品.png
+ D tools/icon_pipeline/prompt_templates.md
+ D tools/icon_pipeline/tier_config.json
+ D tools/icon_pipeline/tier_system.py
+ D ui/action_button.gd
+ D ui/action_button.gd.uid
+ D ui/action_button.tscn
+ M ui/bottom_tab_bar.gd
+ M ui/bottom_tab_bar.tscn
+ D ui/core_action_grid.gd
+ D ui/core_action_grid.gd.uid
+ D ui/core_action_grid.tscn
+ D ui/home_page.tscn
+ M ui/page_chronicle.gd
+ M ui/sect_creation_page.gd
+ M ui/sect_home_page.gd
+ M ui/sect_home_page.tscn
+ M ui/top_bar.tscn
+ M ui_theme.gd
+ M ui_theme_config.gd
+ M validate_all.py
+ M 宗门首页.tscn
+?? .artifacts/
+?? .cache/
+?? .classify.py
+?? .group_plan.json
+?? .scratch_backup/
+?? .status_clean.txt
+?? SkinManager.gd
+?? SkinManager.gd.uid
+?? _analyze_damage.py
+?? _analyze_more.py
+?? _batch_fix.py
+?? _batch_fix2.py
+?? _batch_fix3.py
+?? _batch_fix4.py
+?? _categorize.py
+?? _categorize2.py
+?? _check_all_files.py
+?? _check_all_functions.py
+?? _check_all_functions2.py
+?? _check_damage.py
+?? _check_duplicate.py
+?? _check_functions.py
+?? _check_lines.py
+?? _check_remaining.py
+?? _check_truncated.py
+?? _design_system/
+?? _detect_mojibake.py
+?? _dump_all.py
+?? _dump_full.py
+?? _dump_full.txt
+?? _dump_remaining.py
+?? _empty_remaining.txt
+?? _find_duplicate.py
+?? _fix_achievement.py
+?? _fix_achievement_realm.py
+?? _fix_array.py
+?? _fix_assign.py
+?? _fix_assign2.py
+?? _fix_balance.py
+?? _fix_beast.py
+?? _fix_blanklines.py
+?? _fix_buff.py
+?? _fix_cancel.py
+?? _fix_chanchu.py
+?? _fix_dict_cast.py
+?? _fix_disciple.py
+?? _fix_dots.py
+?? _fix_dots2.py
+?? _fix_duplicate_return.py
+?? _fix_eget.py
+?? _fix_errors1.py
+?? _fix_errors2.py
+?? _fix_errors3.py
+?? _fix_errors4.py
+?? _fix_errors5.py
+?? _fix_errors6.py
+?? _fix_errors7.py
+?? _fix_fix.py
+?? _fix_indent1.py
+?? _fix_indent2.py
+?? _fix_indent3.py
+?? _fix_indent4.py
+?? _fix_indent5.py
+?? _fix_indent6.py
+?? _fix_indent7.py
+?? _fix_interaction.py
+?? _fix_jiufu.py
+?? _fix_keywords.py
+?? _fix_l10202.py
+?? _fix_l1059.py
+?? _fix_l1171.py
+?? _fix_l1171_v2.py
+?? _fix_l1257.py
+?? _fix_l1363.py
+?? _fix_l1539.py
+?? _fix_l1595.py
+?? _fix_l1829.py
+?? _fix_l1902.py
+?? _fix_l1918.py
+?? _fix_l2390.py
+?? _fix_l2534.py
+?? _fix_l2566.py
+?? _fix_l2728.py
+?? _fix_l2744.py
+?? _fix_l2806.py
+?? _fix_l2884.py
+?? _fix_l2942.py
+?? _fix_l3116.py
+?? _fix_l3304.py
+?? _fix_l3320.py
+?? _fix_l3522.py
+?? _fix_l3840.py
+?? _fix_l3890.py
+?? _fix_l3898.py
+?? _fix_l3908.py
+?? _fix_l4030.py
+?? _fix_l4156.py
+?? _fix_l4458.py
+?? _fix_l4948.py
+?? _fix_l4974.py
+?? _fix_l5028.py
+?? _fix_l5164.py
+?? _fix_l5346.py
+?? _fix_l5360.py
+?? _fix_l5408.py
+?? _fix_l5418.py
+?? _fix_l5440.py
+?? _fix_l5542.py
+?? _fix_l5600.py
+?? _fix_l5804.py
+?? _fix_l5820.py
+?? _fix_l5892.py
+?? _fix_l5990.py
+?? _fix_l6056.py
+?? _fix_l6168.py
+?? _fix_l6216.py
+?? _fix_l6455.py
+?? _fix_l6650.py
+?? _fix_l6676.py
+?? _fix_l7310.py
+?? _fix_l7426.py
+?? _fix_l7744.py
+?? _fix_l7818.py
+?? _fix_l785.py
+?? _fix_l8008.py
+?? _fix_l8108.py
+?? _fix_l8142.py
+?? _fix_l8244.py
+?? _fix_l8272.py
+?? _fix_l8454.py
+?? _fix_l8679.py
+?? _fix_l8836.py
+?? _fix_l9106.py
+?? _fix_l9210.py
+?? _fix_l9382.py
+?? _fix_l9442.py
+?? _fix_l9446.py
+?? _fix_l9492.py
+?? _fix_l9584.py
+?? _fix_l9790.py
+?? _fix_l9984.py
+?? _fix_mainline.py
+?? _fix_mistakes.py
+?? _fix_mistakes2.py
+?? _fix_mistakes3.py
+?? _fix_mistakes4.py
+?? _fix_month.py
+?? _fix_one.py
+?? _fix_pack.py
+?? _fix_power.py
+?? _fix_push.py
+?? _fix_quest.py
+?? _fix_realm.py
+?? _fix_realm_get.py
+?? _fix_realm_indent.py
+?? _fix_remove.py
+?? _fix_rigong.py
+?? _fix_s1.py
+?? _fix_save.py
+?? _fix_setting.py
+?? _fix_tang.py
+?? _fix_three.py
+?? _fix_truncated1.py
+?? _fix_truncated2.py
+?? _fix_valve.py
+?? _fix_xiang.py
+?? _fix_xu.py
+?? _full_check.py
+?? _list_quote_issues.py
+?? _list_remaining.py
+?? _mojibake_report.txt
+?? _pre_f5_clean.txt
+?? _pre_f5_clean2.txt
+?? _pre_f5_clean3.txt
+?? _pre_f5_clean4.txt
+?? _pre_f5_now.txt
+?? _pre_f5_out.txt
+?? _recover_apply.py
+?? _recover_dryrun.txt
+?? _recover_gamestate.py
+?? _remaining_452.txt
+?? _safe_fix1.py
+?? _safe_fix2.py
+?? _safe_fix3.py
+?? _safe_fix4.py
+?? _safe_fix5.py
+?? _safe_fix6.py
+?? _safe_fix7.py
+?? _safe_fix8.py
+?? _temp_disciple_detail_ref.png
+?? _temp_disciple_ref.png
+?? _temp_disciple_ref2.png
+?? _test_dot_fix.py
+?? add_achievement_checks.py
+?? add_activity_entry.py
+?? add_activity_page.py
+?? add_activity_participate.py
+?? add_battlepass_rewards.py
+?? add_breakthrough_stats.py
+?? add_faction_functions.py
+?? add_faction_quest_auto_update.py
+?? add_faction_ui_entry.py
+?? add_forge_experience.py
+?? add_forge_level_ui.py
+?? add_fragment_chest_rewards.py
+?? add_get_method.py
+?? add_gongfa_methods.py
+?? add_home_entries.py
+?? add_milestone_triggers.py
+?? add_more_formulas.py
+?? add_more_formulas_v2.py
+?? add_pill_system.py
+?? add_puppet_library_system.py
+?? add_shop_and_types.py
+?? add_shop_stats_precise.py
+?? add_sort_functions.py
+?? add_stats_increment.py
+?? add_v3_migration.py
+?? add_v3_migration_precise.py
+?? add_zhenfa_durability_ui.py
+?? add_zhenfa_methods.py
+?? alchemy.gd
+?? alchemy.gd.uid
+?? analyze_achievements.py
+?? analyze_quest_rewards.py
+?? analyze_remaining_achievements.py
+?? apply_static_calibration.py
+?? backup_scripts/
+?? balance_quest_rewards.py
+?? battle_util.gd
+?? battle_util.gd.uid
+?? building_hotspot_prototype.html
+?? building_panorama_prototype.html
+?? building_position_adjuster.html
+?? building_scenes_prototype.html
+?? check_get_errors.py
+?? check_normal_png.py
+?? check_png.py
+?? chest_system.gd
+?? chest_system.gd.uid
+?? cleanup_file.py
+?? config/faction_quests.csv
+?? config/lore_narrative.csv
+?? config/master_skin_config.csv
+?? config/skin_config.csv
+?? config/收藏图录分类.csv
+?? convert_all_png.py
+?? convert_elite_png.py
+?? create_ui_style.py
+?? delete_duplicate_gift.py
+?? delete_duplicate_jieyi.py
+?? delete_duplicate_social_stats.py
+?? delete_duplicate_variables.py
+?? disciple_detail_v14.html
+?? disciple_equip_v15.html
+?? draft_2ee17439_folder/
+?? enhance_achievement_milestone.py
+?? enhance_all_systems.py
+?? enhance_beast_mount.py
+?? enhance_building_faction.py
+?? enhance_cangjing_ui.py
+?? enhance_checkin_activity.py
+?? enhance_crafting.py
+?? enhance_explore_social.py
+?? enhance_forge_gongfa.py
+?? enhance_forge_system.py
+?? enhance_game_logic.py
+?? enhance_game_logic_more.py
+?? enhance_gongfa_system.py
+?? enhance_herb_pill.py
+?? enhance_milestone.py
+?? enhance_puppet_equip.py
+?? enhance_puppet_library.py
+?? enhance_puppet_library_v2.py
+?? enhance_shop_gift.py
+?? enhance_skin_treasure.py
+?? enhance_treasure_fashion.py
+?? enhance_vip_card.py
+?? enhance_zhenfa_disciple.py
+?? enhance_zhenfa_system.py
+?? enhance_zhenfa_ui.py
+?? equip_v15_preview.png
+?? equipment_page_wow_style.html
+?? expand_milestones.py
+?? expand_quests.py
+?? expedition.gd
+?? expedition.gd.uid
+?? faction_reputation_ui.html
+?? faction_system.gd
+?? faction_system.gd.uid
+?? fine_tune_weekly_rewards.py
+?? fix_11913.py
+?? fix_9747.py
+?? fix_a_variable.py
+?? fix_achievements_phase1.py
+?? fix_achievements_phase2_code.py
+?? fix_achievements_phase2_config.py
+?? fix_achievements_phase3_code.py
+?? fix_achievements_phase3_config.py
+?? fix_achievements_phase4.py
+?? fix_achievements_phase5.py
+?? fix_alchemy_ui.py
+?? fix_all_compile_errors.py
+?? fix_broken_code.py
+?? fix_context_errors.py
+?? fix_context_final.py
+?? fix_d_variable.py
+?? fix_daily_quest_update.py
+?? fix_data_final.py
+?? fix_disciple.py
+?? fix_disciple_sort_callback.py
+?? fix_duplicate_key.py
+?? fix_duplicate_social_stats.py
+?? fix_duplicate_variable.py
+?? fix_duplicate_variable2.py
+?? fix_e_variable.py
+?? fix_elder_demise_typo.py
+?? fix_errors_652_686.py
+?? fix_faction_quest_update.py
+?? fix_faction_script_load.py
+?? fix_final_errors.py
+?? fix_fragment_chest_font.py
+?? fix_g_variable.py
+?? fix_gamestate_errors.py
+?? fix_get_errors.py
+?? fix_has_property_errors.py
+?? fix_herb_garden_gamestate.py
+?? fix_herb_garden_variable.py
+?? fix_hide_ui_click.py
+?? fix_hide_ui_hotspot.py
+?? fix_hide_ui_sensitive.py
+?? fix_hide_ui_visible.py
+?? fix_indentation.py
+?? fix_indentation2.py
+?? fix_indentation3.py
+?? fix_int_errors.py
+?? fix_m_variable.py
+?? fix_mail_detail_and_save.py
+?? fix_mail_detail_style.py
+?? fix_mail_reddot_complete.py
+?? fix_mail_reddot_signal.py
+?? fix_mail_save.py
+?? fix_mail_system.py
+?? fix_missing_function.py
+?? fix_n_variable.py
+?? fix_obvious_errors.py
+?? fix_obvious_final.py
+?? fix_p_variable.py
+?? fix_page_building_errors.py
+?? fix_page_zongmen_battle.py
+?? fix_q_final.py
+?? fix_realm_check.py
+?? fix_realm_pill_color.py
+?? fix_specific_errors.py
+?? fix_storage_categories.py
+?? fix_syntax_error.py
+?? fix_t_variable.py
+?? fix_test_tools.py
+?? fix_type_mismatch.py
+?? fix_ui_positions.py
+?? fix_ui_theme_calls.py
+?? fix_undeclared_smart.py
+?? fix_undeclared_variables.py
+?? fix_v_errors.py
+?? fix_w_f_variable.py
+?? fix_zongmen_battle.py
+?? fix_zongmen_battle_nullable.py
+?? fix_zongmen_battle_variant.py
+?? forge.gd
+?? forge.gd.uid
+?? fragment_craft_system.gd
+?? fragment_craft_system.gd.uid
+?? game_balance.py
+?? game_balance_v2.py
+?? game_balance_v3.py
+?? generate_faction_configs.py
+?? generate_numerical_balance_doc.py
+?? generated-images/保持原图所有设定不变_仅把人物面部五官改为_圆润脸型_柔和杏_2026-08-16T05-50-14.png
+?? generated-images/保持原图所有设定不变_仅把人物面部五官改为_圆润脸型_柔和杏_2026-08-16T05-51-23.png
+?? generated-images/保持原图所有设定不变_仅把人物面部五官改为_棱角分明瘦长脸__2026-08-16T05-50-13.png
+?? generated-images/保持原图所有设定不变_仅把人物面部五官改为_清瘦脸型_细长凤_2026-08-16T05-50-44.png
+?? generated-images/保持原图所有设定不变_青金修仙长袍_黑发束冠_身材比例_光影_2026-08-16T12-24-04.png
+?? generated-images/保持原图所有设定不变_青金修仙长袍_黑发束冠_身材比例_光影_2026-08-16T12-24-38.png
+?? generated-images/保持原图所有设定不变_青金修仙长裙长袍_长发垂落_身材比例__2026-08-16T12-25-07.png
+?? generated-images/保持原图所有设定不变_青金修仙长裙长袍_长发垂落_身材比例__2026-08-16T12-25-34.png
+?? generated-images/国风修仙游戏角色立绘_一位年轻女修士_眉目如画_温婉清丽_长_2026-08-16T05-48-37.png
+?? generated-images/国风修仙游戏角色立绘_一位青年男修士_剑眉星目_面容清俊_黑_2026-08-16T05-48-37.png
+?? gongfa.gd
+?? gongfa.gd.uid
+?? gongxun.gd
+?? gongxun.gd.uid
+?? implement_new_systems.py
+?? implement_save_compatibility.py
+?? improve_interaction_and_explore.py
+?? improve_shop_item_effects.py
+?? integrate_new_pages.py
+?? kuangmai.gd
+?? kuangmai.gd.uid
+?? lingtian.gd
+?? lingtian.gd.uid
+?? optimize_achievement_milestone.py
+?? optimize_daily_activity.py
+?? optimize_dan_equip.py
+?? optimize_disciple_filter_sort.py
+?? optimize_disciple_sect.py
+?? optimize_disciple_tags.py
+?? optimize_explore_social.py
+?? optimize_gongfa_zhenfa.py
+?? optimize_mount_beast.py
+?? optimize_shop_gift.py
+?? recruit.gd
+?? recruit.gd.uid
+?? red_dot_init.gd
+?? red_dot_init.gd.uid
+?? red_dot_manager.gd
+?? red_dot_manager.gd.uid
+?? reference_panorama.png
+?? remove_duplicate_function.py
+?? remove_old_disciple_code.py
+?? rename_gongfa_func.py
+?? sect_manager.gd
+?? sect_manager.gd.uid
+?? skin_shop.html
+?? static_calibration.py
+?? tools/.gdignore
+?? tools/process_chest_icons.py
+?? ui/avatar_circle_mask.gdshader
+?? ui/avatar_circle_mask.gdshader.uid
+?? ui/disciple_detail_page.gd.bak_equip_rewrite
+?? ui/disciple_detail_page.tscn
+?? ui/icon_dual_size.gd
+?? ui/icon_dual_size.gd.uid
+?? ui/icon_dual_size.tscn
+?? ui/master_detail_page.tscn
+?? ui/master_skin_shop_page.tscn
+?? ui/page_activity.tscn
+?? ui/page_codex.tscn
+?? ui/page_daoyou.tscn
+?? ui/page_equipment_blueprint.tscn
+?? ui/page_faction.gd
+?? ui/page_faction.gd.uid
+?? ui/page_faction.tscn
+?? ui/page_fragment_chest.tscn
+?? ui/page_herb_garden.tscn
+?? ui/page_huanxing.tscn
+?? ui/page_leaderboard.gd
+?? ui/page_leaderboard.gd.uid
+?? ui/page_leaderboard.tscn
+?? ui/page_library.tscn
+?? ui/page_mail.tscn
+?? ui/page_pill_formula.tscn
+?? ui/page_placeholder.gd
+?? ui/page_placeholder.gd.uid
+?? ui/page_placeholder.tscn
+?? ui/page_premium.tscn
+?? ui/page_puppet.tscn
+?? ui/page_rules.gd
+?? ui/page_rules.gd.uid
+?? ui/page_rules.tscn
+?? ui/page_sect_manager.tscn
+?? ui/page_settings.gd
+?? ui/page_settings.gd.uid
+?? ui/page_settings.tscn
+?? ui/page_zongmen_battle.tscn
+?? ui/radar_chart.gd
+?? ui/radar_chart.gd.uid
+?? ui/red_dot_badge.gd
+?? ui/red_dot_badge.gd.uid
+?? ui/sect_creation_page.gd.uid
+?? ui/sect_creation_page.tscn
+?? ui/skin_shop_page.tscn
+?? ui/ui_hint.gd
+?? ui/ui_hint.gd.uid
+?? ui/ui_style.gd
+?? ui/ui_style.gd.uid
+?? update_activity_icon.py
+?? update_icons.py
+?? user_upload.png
+?? whitepaper_text.txt
+?? xichi.gd
+?? xichi.gd.uid
+?? zhenfa.gd
+?? zhenfa.gd.uid
+?? zhifa.gd
+?? zhifa.gd.uid
+?? zongmen_battle.gd
+?? zongmen_battle.gd.uid
+?? zongmen_battle_ui.html
+?? 宗主详情页原型_方向A.html
+?? 宗主详情页原型_方向A_v2.html
+?? 幻形界面设计_overview.md
+?? 库藏界面_redesign_overview.md
+?? 弟子系统优化总结.md
+?? 弟子详情页_v10_自动突破+一屏+纸娃娃优化.html
+?? 弟子详情页_v11_饱满布局+大纸娃娃+灵兽全屏.html
+?? 弟子详情页_v12_纸娃娃间距修复.html
+?? 弟子详情页_v13_纸娃娃人体比例对齐.html
+?? 弟子详情页_v14_SVG人体轮廓纸娃娃.html
+?? 弟子详情页_v4_完整优化版.html
+?? 弟子详情页_v5_去主装备徽章.html
+?? 弟子详情页_v6_Tab分页.html
+?? 弟子详情页_v7_全页大厂工业UI.html
+?? 弟子详情页_v8_纸娃娃+社交履历.html
+?? 弟子详情页_v9_放大纸娃娃+驱逐+子嗣.html
+?? 弟子页原型_v2_卡牌式.html
+?? 弟子页原型_v3_仙侠综合版.html
+?? 弟子页原型_列表+详情.html
+?? 数值平衡准备工作.md
+?? 设定摘要存档_v1.0.md
+?? 静态校准报告.md
+?? 项目全景分析_修正版.md

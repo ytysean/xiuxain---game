@@ -1,0 +1,48 @@
+[MOJIBAKE] game_state.gd  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~40: '# 邮件列表�?Array[Dictionary]，元素键：发件人/标题/内容/时间/附件(Dict 资源�?/未读/已领'
+    L~40: '# 邮件列表�?Array[Dictionary]，元素键：发件人/标题/内容/时间/附件(Dict 资源�?/未读/已领'
+    L~42: 'var 玄榜虚拟宗门: Array = []   # 玄榜（排行榜）：种子化虚拟对手宗门，单机填榜（不�?SAVE_VERSION�?'
+[BOM] icon_manifest.csv  enc=utf-8  strip-bom
+[MOJIBAKE] _detect_mojibake.py  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~8: 'SUSPECT_CHARS = set("\\u00c2\\u00c3\\u00e2")  # Â Ã â'
+    L~8: 'SUSPECT_CHARS = set("\\u00c2\\u00c3\\u00e2")  # Â Ã â'
+    L~8: 'SUSPECT_CHARS = set("\\u00c2\\u00c3\\u00e2")  # Â Ã â'
+[MOJIBAKE] .venv_genai\Lib\site-packages\charset_normalizer\constant.py  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~1563: '        "â",'
+[MOJIBAKE] .venv_genai\Lib\site-packages\idna\uts46data.py  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~8718: '    "â",'
+[MOJIBAKE] .venv_genai\Lib\site-packages\pip\_vendor\idna\uts46data.py  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~213: '        (0xC2, "M", "â"),'
+[MOJIBAKE] .venv_genai\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py  enc=utf-8  NEED-MANUAL (utf-8 with markers, repair failed)
+    L~2179: "        replacement_char = '�'"
+[BOM] config\array_config.csv  enc=utf-8  strip-bom
+[BOM] config\array_items.csv  enc=utf-8  strip-bom
+[BOM] config\craft_hall_reward.csv  enc=utf-8  strip-bom
+[BOM] config\quest_main.csv  enc=utf-8  strip-bom
+[BOM] config\title_config.csv  enc=utf-8  strip-bom
+[BOM] config\七载大典文案.csv  enc=utf-8  strip-bom
+[BOM] config\品级权益映射.csv  enc=utf-8  strip-bom
+[BOM] config\坊市行情.csv  enc=utf-8  strip-bom
+[BOM] config\宗门集市配置.csv  enc=utf-8  strip-bom
+[BOM] config\经济基线.csv  enc=utf-8  strip-bom
+[BOM] config\经济阀门.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\事件分级_扩展.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\品级权益映射.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\坊市行情.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\宗门运维成本.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\弟子特质.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\评级维度.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\负面影响开关.csv  enc=utf-8  strip-bom
+[BOM] design\08-功能提案\appendix-csv\负面影响经济参数.csv  enc=utf-8  strip-bom
+[BOM] tools\config\新功能冲击声明.csv  enc=utf-8  strip-bom
+[BOM] ui\page_battlepass.gd  enc=utf-8  strip-bom
+[BOM] ui\page_chronicle.gd  enc=utf-8  strip-bom
+[BOM] ui\page_codex.gd  enc=utf-8  strip-bom
+[BOM] ui\page_leaderboard.gd  enc=utf-8  strip-bom
+[BOM] ui\page_mail.gd  enc=utf-8  strip-bom
+[BOM] ui\page_rules.gd  enc=utf-8  strip-bom
+[BOM] ui\page_settings.gd  enc=utf-8  strip-bom
+[BOM] ui\page_shop.gd  enc=utf-8  strip-bom
+[BOM] ui\ui_hint.gd  enc=utf-8  strip-bom
+
+--- mode=SCAN  fixed=0 ---
