@@ -261,7 +261,7 @@ func _刷新调查列表() -> void:
 			_detail_content.add_child(lbl)
 
 	var tip := Label.new()
-	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。弟子生死可于详情页「命牌」查看。"
+	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。任务具因果联动：寻回后派生【追查真凶】、再派生【肃清秘境】；调查无果则升级【悬赏通缉】。弟子生死可于『弟子』页命牌殿或详情页「命牌」查看。"
 	tip.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(tip)
@@ -274,12 +274,19 @@ func _make_investigate_card(tid: String, t: Dictionary) -> Control:
 	panel.add_child(vbox)
 
 	var name_lbl := Label.new()
-	name_lbl.text = "调查·%s 失踪" % t.get("失踪弟子名", "")
+	var 链名表 := {"失踪": "失踪调查", "追凶": "追查真凶", "通缉": "悬赏通缉", "肃清": "肃清秘境"}
+	var 链 = str(t.get("链", "失踪"))
+	name_lbl.text = "【%s】%s" % [链名表.get(链, "调查"), t.get("失踪弟子名", "")]
 	UITheme.apply_body_font(name_lbl)
 	vbox.add_child(name_lbl)
 
 	var info := Label.new()
-	info.text = "失踪于【%s】｜要求境界：%s（须更高阶）｜难度 %d" % [t.get("失踪关卡名", ""), t.get("失踪弟子境界", ""), int(t.get("难度", 1))]
+	var 链序 = int(t.get("链序", 1))
+	var 前驱 = str(t.get("前驱任务ID", ""))
+	var 链文本 = "｜链 %d/%d" % [链序, 3]
+	if 前驱 != "":
+		链文本 += "（源自 %s）" % 前驱
+	info.text = "失踪于【%s】｜要求境界：%s（须更高阶）｜难度 %d%s" % [t.get("失踪关卡名", ""), t.get("失踪弟子境界", ""), int(t.get("难度", 1)), 链文本]
 	UITheme.apply_aux_font(info)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(info)
@@ -855,6 +862,3 @@ func _on_付费_历练() -> void:
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
 	refresh()
-
-
-
