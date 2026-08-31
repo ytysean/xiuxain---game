@@ -1,0 +1,19 @@
+quest_id,quest_name,quest_type,unlock_sect_level,difficulty,target_desc,target_num,reward_lingjing,reward_lingqi,reward_shengwang,reward_caoyao,condition_type,condition_param,prev_quest_id,is_key,is_auto_complete,jump_path
+main_001,开宗立派,经营,1,难度Ⅰ,建立你的宗门根基,1,100,50,0,0,sect_established,,,true,true,宗门/主页
+main_002,广纳门徒,养成,1,难度Ⅰ,招募 3 名弟子入门,3,80,40,0,20,disciple_count,,main_001,true,true,弟子/列表
+main_003,初见筑基,养成,1,难度Ⅱ,培养 1 名弟子突破至筑基,1,120,60,30,0,realm_reach,筑基,main_002,true,true,弟子/详情/境界
+main_004,声望初显,经营,1,难度Ⅱ,宗门声望达到 200,200,100,50,20,0,shengwang,,main_003,false,true,宗门/声望
+main_005,宗门晋升,经营,2,难度Ⅲ,门派等级提升至 3 级,3,200,100,50,0,sect_level,,main_004,true,true,宗门/主页
+main_006,阵法初成,探索,2,难度Ⅱ,弟子习得 1 门单人法阵,1,80,40,0,0,array_count,,main_005,false,true,弟子/法阵
+main_007,灵兽来投,探索,3,难度Ⅱ,收服 1 头灵兽,1,100,50,0,30,beast_count,,main_006,false,true,历练/灵兽
+main_008,秘境探幽,探索,3,难度Ⅲ,通关 1 座秘境,1,150,80,40,0,secret_count,,main_007,true,true,历练/秘境
+main_009,繁荣鼎盛,经营,4,难度Ⅲ,宗门繁荣达到 500,500,200,100,60,0,prosperity,,main_008,true,true,宗门/主页
+main_010,金丹问道,养成,4,难度Ⅲ,培养 1 名弟子突破至金丹,1,300,150,80,0,realm_reach,金丹,main_009,true,true,弟子/详情/境界
+main_011,门徒渐众,养成,4,难度Ⅲ,招募 10 名弟子入门,10,250,120,100,50,disciple_count,,main_010,true,true,弟子/列表
+main_012,声威远播,经营,4,难度Ⅳ,宗门声望达到 1000,1000,300,150,50,0,shengwang,,main_011,false,true,宗门/声望
+main_013,宗门晋阶,经营,5,难度Ⅳ,门派等级提升至 6 级,6,400,200,150,0,sect_level,,main_012,true,true,宗门/主页
+main_014,元婴初成,养成,6,难度Ⅳ,培养 1 名弟子突破至元婴,1,500,250,200,0,realm_reach,元婴,main_013,true,true,弟子/详情/境界
+main_015,灵兽成群,探索,6,难度Ⅳ,收服 3 头灵兽,3,300,150,0,60,beast_count,,main_014,false,true,历练/灵兽
+main_016,秘境纵深,探索,6,难度Ⅴ,通关 3 座秘境,3,400,200,120,0,secret_count,,main_015,true,true,历练/秘境
+main_017,法阵大成,探索,7,难度Ⅴ,弟子习得 3 门单人法阵,3,350,180,0,40,array_count,,main_016,false,true,弟子/法阵
+main_018,繁荣至尊,经营,7,难度Ⅴ,宗门繁荣达到 1000,1000,600,300,250,0,prosperity,,main_017,true,true,宗门/主页

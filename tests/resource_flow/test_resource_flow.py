@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-# 资源产耗闭环断言（经济S0）：校验四类悬空资源均有产出、closed 状态资源确有消耗代码。
-# 设计意图：灵气已在 S0 接入瓶颈消耗（closed）；灵草/矿石/贡献点仍悬空，文档化 suspended_s1 待 S1。
-# 若后续有人误删灵气消耗代码，closed 状态的消耗标记在 game_state.gd/disciple.gd 中消失 → 断言 FAIL 阻断提交。
+# 资源产耗闭环断言（经济S0）：校验四类资源均有产出与消耗代码，closed 状态资源确有消耗标记。
+# 设计意图：灵气在 S0 接入瓶颈消耗（closed）；灵草/矿石/贡献点经 S2 资源审计确认真实产耗（炼丹/锻造/灵兽进化/试炼），
+# 由 suspended_s1 升级为 closed（旧 suspended_s1 标记是 dev 摆设，与真实代码矛盾，已刷新）。
+# 若后续有人误删任一消耗代码，对应 closed 状态的消耗标记在 game_state.gd 中消失 → 断言 FAIL 阻断提交。
 import os, sys, csv
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -63,7 +64,7 @@ def main():
         for e in errors:
             print("  - " + e)
         sys.exit(1)
-    print("ALL ASSERTIONS PASSED · 资源4类 · 灵气闭环(closed) · 灵草/矿石/贡献点悬空待S1(suspended)")
+    print("ALL ASSERTIONS PASSED · 资源4类 · 灵草/矿石/灵气/贡献点均闭环(closed)")
     sys.exit(0)
 
 
