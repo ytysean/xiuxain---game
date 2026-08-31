@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>山门图标 · 5 种变体预览</title>
+<style>
+  :root {
+    --bg: #0B1418;
+    --panel: #0E1D24;
+    --border: #2C4A56;
+    --gold: #C8A86A;
+    --text: #EDEAD8;
+    --muted: #9FB0B8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Source Han Sans CN", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 22px; margin: 0 0 6px; color: var(--gold); }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    max-width: 1200px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .card h2 { font-size: 15px; margin: 0; color: var(--gold); }
+  .img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #071015;
+    border: 1px solid var(--border);
+  }
+  .img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .badge {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(11,20,24,0.9);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .badge img { width: 36px; height: 36px; image-rendering: auto; display: block; }
+  .badge span { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .desc { color: var(--muted); font-size: 12px; line-height: 1.5; min-height: 3.2em; }
+  .footer { margin-top: 24px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>山门图标 · 5 种变体预览</h1>
+  <div class="subtitle">
+    风格锚定 01 背景图：青黛冷调 + 暗金檐口 + 国风厚涂。下图为 1024×1024 原始大图高质量缩放，<br>
+    右下角叠加实际落位尺寸 36×36，可判断缩图后的辨识度。
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>01 · 正视牌坊</h2>
+      <div class="img-wrap">
+        <img src="01_front_arch.png" alt="正视牌坊">
+        <div class="badge"><img src="01_front_arch_36.png" alt="36x36"><span>实际 36×36</span></div>
+      </div>
+      <div class="desc">对称石坊，门洞与屋顶层次清晰。缩图后剪影最稳，最容易辨认。</div>
+    </div>
+
+    <div class="card">
+      <h2>02 · 多层楼阁</h2>
+      <div class="img-wrap">
+        <img src="02_pavilion.png" alt="多层楼阁">
+        <div class="badge"><img src="02_pavilion_36.png" alt="36x36"><span>实际 36×36</span></div>
+      </div>
+      <div class="desc">飞檐层叠，暗金檐口明显。大图气势好，但缩到 36×36 细节偏密。</div>
+    </div>
+
+    <div class="card">
+      <h2>03 · 登山台阶</h2>
+      <div class="img-wrap">
+        <img src="03_stairway.png" alt="登山台阶">
+        <div class="badge"><img src="03_stairway_36.png" alt="36x36"><span>实际 36×36</span></div>
+      </div>
+      <div class="desc">山体 + 松树 + 门楼组合，元素多。小图略显拥挤，更像场景而不是入口。</div>
+    </div>
+
+    <div class="card">
+      <h2>04 · 石碑匾额</h2>
+      <div class="img-wrap">
+        <img src="04_plaque.png" alt="石碑匾额">
+        <div class="badge"><img src="04_plaque_36.png" alt="36x36"><span>实际 36×36</span></div>
+      </div>
+      <div class="desc">匾额悬挂，缩后文字失效。整体更像书卷/文书类图标，山门识别度弱。</div>
+    </div>
+
+    <div class="card">
+      <h2>05 · 云端山门</h2>
+      <div class="img-wrap">
+        <img src="05_clouds.png" alt="云端山门">
+        <div class="badge"><img src="05_clouds_36.png" alt="36x36"><span>实际 36×36</span></div>
+      </div>
+      <div class="desc">云海门楼，仙气感最强，风格最接近 01 背景。缩图后门楼主体仍突出。</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    原始大图与 36×36 已落盘：E:/Xiuxian/taixuanzongmenlu/.workbuddy/tmp/shanmen_variants/ 。<br>
+    你定方向后我直接替换进 Ardot 01 屏山门入口，并继续生成邮件/成就/设置等其他入口图标。
+  </div>
+</body>
+</html>
