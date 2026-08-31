@@ -848,13 +848,15 @@ func _make_soul_card(d: Object) -> Control:
 	panel.add_child(vbox)
 	var 状态v = str(_safe_get(d, "状态", "在宗"))
 	var 命牌色 = UITheme.COLOR_STATUS_SUCCESS
-	var 命牌态 = "明亮·生还"
+	var 命牌态 = "明亮·在宗（生还）"
 	if 状态v == "失踪":
+		# 失踪：人还活着，只是下落不明 —— 命牌依旧明亮（金灯长明），绝不渲染成将死
 		命牌色 = UITheme.COLOR_TEXT_GOLD
-		命牌态 = "黯淡·未知"
+		命牌态 = "明亮·失踪（生还·下落不明）"
 	elif 状态v == "陨落":
-		命牌色 = UITheme.COLOR_TEXT_RED
-		命牌态 = "碎裂·陨落"
+		# 陨落：命牌熄灭（灯灭），与「失踪仍亮」严格区分
+		命牌色 = Color(0.12, 0.12, 0.14)
+		命牌态 = "熄灭·陨落（命牌灭）"
 	var 灯 := ColorRect.new()
 	灯.custom_minimum_size = Vector2(0, 8)
 	灯.color = 命牌色
@@ -1243,14 +1245,16 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	# ── 命牌（2026-08-31 P3）：不在宗内亦可凭命牌知其生还 ──
 	var 状态v = str(_safe_get(d, "状态", "在宗"))
 	var 行踪展示 = 状态v
-	var 命牌态 = "明亮（安好·生还）"
+	var 命牌态 = "明亮（在宗·生还）"
 	var 命牌色 = UITheme.COLOR_STATUS_SUCCESS
 	if 状态v == "失踪":
-		命牌态 = "黯淡闪烁（生死未知）"
+		# 失踪：人还活着，命牌依旧明亮（金灯长明），仅下落不明
+		命牌态 = "明亮（失踪·生还·下落不明）"
 		命牌色 = UITheme.COLOR_TEXT_GOLD
 	elif 状态v == "陨落":
-		命牌态 = "碎裂（已陨落）"
-		命牌色 = UITheme.COLOR_TEXT_RED
+		# 陨落：命牌熄灭（灯灭），与「失踪仍亮」严格区分
+		命牌态 = "熄灭（已陨落·命牌灭）"
+		命牌色 = Color(0.12, 0.12, 0.14)
 	elif ExpeditionSystem != null and ExpeditionSystem._弟子是否在历练中(int(_safe_get(d, "弟子ID", -1))):
 		行踪展示 = "历练中"
 		命牌态 = "微亮（外出·生还）"
@@ -1263,11 +1267,11 @@ func _populate_detail(d: Object, 索引: int) -> void:
 	var 护身box := HBoxContainer.new()
 	护身box.add_theme_constant_override("separation", UITheme.GRID)
 	var 护身btn := Button.new()
-	护身btn.text = "赐予保命护身"
+	护身btn.text = "宗门兑换保命护身"
 	护身btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	护身btn.pressed.connect(func():
-		if Game != null and Game.has_method("发放保命道具"):
-			Game.发放保命道具(int(_safe_get(d, "弟子ID", -1)), 1)
+		if Game != null and Game.has_method("宗门兑换保命道具"):
+			Game.宗门兑换保命道具(int(_safe_get(d, "弟子ID", -1)), 1)
 			call_deferred("_populate_detail", d, 索引)
 	)
 	护身box.add_child(护身btn)

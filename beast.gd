@@ -321,7 +321,7 @@ func to_dict() -> Dictionary:
 		"beast_type": beast_type,
 		"等级": 等级, "等级上限": 等级上限, "忠诚度": 忠诚度,
 		"contract_limit": contract_limit,
-		"is_main_pet": is_main_pet, "is_deputy_pet": is_deputy_pet,
+		"is_main_pet": is_main_pet, "is_deputy_pet": is_deputy_pet, "护主": 护主,
 	}
 
 func from_dict(d: Dictionary):
@@ -344,3 +344,4 @@ func from_dict(d: Dictionary):
 	contract_limit = d.get("contract_limit", 2)
 	is_main_pet = d.get("is_main_pet", false)
 	is_deputy_pet = d.get("is_deputy_pet", false)
+	护主 = d.get("护主", false)

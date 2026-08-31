@@ -494,6 +494,16 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 	进行中历练.erase(实例ID)
 	# 应用事件效果
 	_应用事件效果(事件, 弟子ID列表)
+	# 杀敌拾遗：历练得手（尤其秘境激战），有几率从敌身搜出保命之物（P3 保命来源：杀敌）
+	if 成功 and randf() < (0.10 + float(关卡["难度"]) * 0.03):
+		var _幸存 := []
+		for did in 弟子ID列表:
+			var _d = _获取弟子(did)
+			if _d != null and _d.状态 != "陨落":
+				_幸存.append(did)
+		if not _幸存.is_empty() and Game != null and Game.has_method("赐予保命护身"):
+			var _中 = _幸存.pick_random()
+			Game.赐予保命护身(int(_中), 1, "杀敌")
 	# 发放奖励到宗门
 	_发放奖励(掉落)
 	return {
@@ -520,7 +530,14 @@ func _标记失踪(弟子ID: int, 关卡: Dictionary) -> void:
 		return
 	if d.状态 == "陨落" or d.状态 == "失踪":
 		return
-	# 保命护身：致命伤害时消耗1枚替死，弟子不失踪、不陨落（P3 保命环节）
+	# 保命环节（P3）：致命伤害时按优先级替死，弟子不失踪、不陨落
+	# 优先级：灵兽护主 → 傀儡替死 → 假死丹 → 保命护身道具
+	if _灵兽护主替死(d):
+		return
+	if _傀儡替死(d):
+		return
+	if _假死丹替死(d):
+		return
 	if d.保命护身 > 0:
 		d.保命护身 -= 1
 		if Game != null and Game.has_method("添加纪事"):
@@ -545,6 +562,48 @@ func _标记失踪(弟子ID: int, 关卡: Dictionary) -> void:
 	}
 	if Game != null and Game.has_method("添加纪事"):
 		Game.添加纪事("历练", "弟子失踪", "%s 于【%s】历练失败，不知所踪，宗门已下发调查任务" % [d.姓名, 关卡.get("名称", "")], 2)
+
+# P3 保命环节：灵兽护主替死（绑定灵兽中有护主技能则代弟子挡劫，消耗该兽）
+func _灵兽护主替死(d: Object) -> bool:
+	if d == null:
+		return false
+	for 兽 in [d.主宠灵兽, d.副宠灵兽]:
+		if 兽 != null and 兽.护主:
+			var 兽名 = 兽.种类名
+			if 兽 == d.主宠灵兽:
+				d.主宠灵兽 = null
+			else:
+				d.副宠灵兽 = null
+			if Game != null and Game.has_method("添加纪事"):
+				Game.添加纪事("历练", "灵兽护主", "%s 的灵兽%s舍身护主，替其挡下致命一劫" % [d.姓名, 兽名], 1)
+			return true
+	return false
+
+# P3 保命环节：傀儡替死（宗门替死傀儡池中有替死傀儡则耗一具代弟子挡劫）
+func _傀儡替死(d: Object) -> bool:
+	if Game == null or not Game.has_method("取可用替死傀儡"):
+		return false
+	var 傀儡 = Game.取可用替死傀儡()
+	if 傀儡 != null:
+		var 名 = str(傀儡.get("名称", ""))
+		Game.消耗替死傀儡(傀儡)
+		if Game.has_method("添加纪事"):
+			Game.添加纪事("历练", "傀儡替死", "宗门替死傀儡%s替%s挡下致命一劫，自身崩碎" % [名, d.姓名], 1)
+		return true
+	return false
+
+# P3 保命环节：假死丹替死（背包中有假死丹则服之假死避劫，移除1枚）
+func _假死丹替死(d: Object) -> bool:
+	if d == null or d.背包 == null:
+		return false
+	for i in range(d.背包.size()):
+		var it = d.背包[i]
+		if it != null and "假死丹" in str(it.名称):
+			d.背包.remove_at(i)
+			if Game != null and Game.has_method("添加纪事"):
+				Game.添加纪事("历练", "假死丹", "%s 服下假死丹，敛息装死瞒过杀劫，平安归来" % d.姓名, 1)
+			return true
+	return false
 
 func _派生后继任务(前驱: Dictionary, 分支: String) -> String:
 	# 基于前驱调查任务派生后继任务（因果链 A→B→C）：前驱.失踪弟子 同一人，难度/要求/赏格递进
@@ -698,7 +757,7 @@ func 获取可接取弟子(任务ID: String) -> Array:
 	var 结果: Array = []
 	if Game == null:
 		return 结果
-	for d in Game.get("弟子列表", []):
+	for d in Game.弟子列表:
 		if d == null:
 			continue
 		if d.状态 == "失踪" or d.状态 == "陨落":
