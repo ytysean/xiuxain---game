@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>太玄宗门录 - 殿阁全景图入口原型</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a2e;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: "Microsoft YaHei", sans-serif;
+  overflow: hidden;
+}
+.phone-frame {
+  width: 1080px;
+  height: 1920px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 50px rgba(0,0,0,0.8);
+  transform-origin: top center;
+}
+/* 全景背景图 */
+.panorama-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('https://aka.doubaocdn.com/s/vnn3UoeVHW') center/cover no-repeat;
+  z-index: 1;
+}
+/* 顶部资源栏 */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(180deg, rgba(13,27,42,0.95) 0%, rgba(13,27,42,0.5) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  z-index: 100;
+}
+.top-bar .title {
+  color: #c9a45c;
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.top-bar .resources {
+  display: flex;
+  gap: 30px;
+}
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e8d5b7;
+  font-size: 24px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.resource-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c9a45c, #8b7355);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #1a1a2e;
+  font-weight: bold;
+}
+/* 殿阁热区容器 */
+.hotspot-container {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  bottom: 120px;
+  z-index: 50;
+}
+/* 殿阁热区卡片 */
+.building-hotspot {
+  position: absolute;
+  width: 200px;
+  height: 130px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(201,164,92,0.5);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.3);
+}
+.building-hotspot:hover {
+  transform: scale(1.15);
+  border-color: #c9a45c;
+  box-shadow: 0 8px 30px rgba(201,164,92,0.6);
+  z-index: 200;
+}
+.building-hotspot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.9;
+}
+.building-hotspot:hover img {
+  opacity: 1;
+}
+.building-hotspot .label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.9));
+  padding: 8px 8px 6px;
+  text-align: center;
+}
+.building-hotspot .name {
+  color: #e8d5b7;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.building-hotspot .level {
+  color: #c9a45c;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+}
+/* 殿阁位置布局（基于全景图） */
+/* 顶部：接引殿（山门） */
+.h-yuying { top: 30px; left: 50%; transform: translateX(-50%); }
+.h-yuying:hover { transform: translateX(-50%) scale(1.15); }
+/* 左上：藏经阁（高楼） */
+.h-cangjing { top: 180px; left: 40px; }
+/* 右上：丹堂 */
+.h-dantang { top: 180px; right: 40px; }
+/* 左中：器堂 */
+.h-qitang { top: 380px; left: 30px; }
+/* 右中：灵田 */
+.h-lingtian { top: 380px; right: 30px; }
+/* 左下：矿脉 */
+.h-kuangmai { top: 560px; left: 40px; }
+/* 右下：执法堂 */
+.h-zhifa { top: 560px; right: 40px; }
+/* 中下左：功勋堂 */
+.h-gongxun { top: 740px; left: 80px; }
+/* 中下右：探微堂 */
+.h-tanwei { top: 740px; right: 80px; }
+/* 底部左：御兽堂 */
+.h-yushou { top: 920px; left: 40px; }
+/* 底部右：阵法堂 */
+.h-zhenfa { top: 920px; right: 40px; }
+/* 最底部中央：洗池 */
+.h-xichi { top: 1100px; left: 50%; transform: translateX(-50%); width: 240px; height: 150px; }
+.h-xichi:hover { transform: translateX(-50%) scale(1.15); }
+/* 底部导航栏 */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(0deg, rgba(13,27,42,0.98) 0%, rgba(13,27,42,0.7) 100%);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 2px solid rgba(201,164,92,0.3);
+  z-index: 100;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #6b7b8d;
+  font-size: 20px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.nav-item.active { color: #c9a45c; }
+.nav-item:hover { color: #e8d5b7; }
+.nav-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(201,164,92,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.nav-item.active .nav-icon {
+  background: rgba(201,164,92,0.25);
+  box-shadow: 0 0 15px rgba(201,164,92,0.3);
+}
+/* 点击提示 */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.95);
+  color: #e8d5b7;
+  padding: 20px 40px;
+  border-radius: 12px;
+  font-size: 28px;
+  border: 2px solid #c9a45c;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+/* 缩放控制 */
+.zoom-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2000;
+}
+.zoom-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(201,164,92,0.9);
+  color: #1a1a2e;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+.zoom-btn:hover { background: #c9a45c; }
+/* 提示文字 */
+.hint {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  color: #c9a45c;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 18px;
+  z-index: 80;
+  border: 1px solid rgba(201,164,92,0.3);
+}
+</style>
+</head>
+<body>
+<div class="phone-frame" id="phoneFrame">
+  <!-- 全景背景图 -->
+  <div class="panorama-bg"></div>
+
+  <!-- 顶部资源栏 -->
+  <div class="top-bar">
+    <div class="title">太玄宗</div>
+    <div class="resources">
+      <div class="resource-item"><div class="resource-icon">香</div>12,580</div>
+      <div class="resource-item"><div class="resource-icon">玉</div>3,200</div>
+      <div class="resource-item"><div class="resource-icon">声</div>8,650</div>
+    </div>
+  </div>
+
+  <!-- 提示文字 -->
+  <div class="hint">点击殿阁场景进入</div>
+
+  <!-- 殿阁热区容器 -->
+  <div class="hotspot-container">
+    <!-- 接引殿 -->
+    <div class="building-hotspot h-yuying" onclick="showToast('接引殿 · Lv.5')">
+      <img src="https://aka.doubaocdn.com/s/otYd80rWhs" alt="接引殿">
+      <div class="label">
+        <div class="name">接引殿</div>
+        <div class="level">Lv.5</div>
+      </div>
+    </div>
+    
+    <!-- 藏经阁 -->
+    <div class="building-hotspot h-cangjing" onclick="showToast('藏经阁 · Lv.7')">
+      <img src="https://aka.doubaocdn.com/s/6pAMBbwAKT" alt="藏经阁">
+      <div class="label">
+        <div class="name">藏经阁</div>
+        <div class="level">Lv.7</div>
+      </div>
+    </div>
+    
+    <!-- 丹堂 -->
+    <div class="building-hotspot h-dantang" onclick="showToast('丹堂 · Lv.6')">
+      <img src="https://aka.doubaocdn.com/s/Vqj2PS9Cs7" alt="丹堂">
+      <div class="label">
+        <div class="name">丹堂</div>
+        <div class="level">Lv.6</div>
+      </div>
+    </div>
+    
+    <!-- 器堂 -->
+    <div class="building-hotspot h-qitang" onclick="showToast('器堂 · Lv.4')">
+      <img src="https://aka.doubaocdn.com/s/LmD5yXuELn" alt="器堂">
+      <div class="label">
+        <div class="name">器堂</div>
+        <div class="level">Lv.4</div>
+      </div>
+    </div>
+    
+    <!-- 灵田 -->
+    <div class="building-hotspot h-lingtian" onclick="showToast('灵田 · Lv.8')">
+      <img src="https://aka.doubaocdn.com/s/0X2cKY9jnb" alt="灵田">
+      <div class="label">
+        <div class="name">灵田</div>
+        <div class="level">Lv.8</div>
+      </div>
+    </div>
+    
+    <!-- 矿脉 -->
+    <div class="building-hotspot h-kuangmai" onclick="showToast('矿脉 · Lv.5')">
+      <img src="https://aka.doubaocdn.com/s/0winht0zR8" alt="矿脉">
+      <div class="label">
+        <div class="name">矿脉</div>
+        <div class="level">Lv.5</div>
+      </div>
+    </div>
+    
+    <!-- 执法堂 -->
+    <div class="building-hotspot h-zhifa" onclick="showToast('执法堂 · Lv.3')">
+      <img src="https://aka.doubaocdn.com/s/qAbEa5bBvs" alt="执法堂">
+      <div class="label">
+        <div class="name">执法堂</div>
+        <div class="level">Lv.3</div>
+      </div>
+    </div>
+    
+    <!-- 功勋堂 -->
+    <div class="building-hotspot h-gongxun" onclick="showToast('功勋堂 · Lv.6')">
+      <img src="https://aka.doubaocdn.com/s/H3uYcKxanp" alt="功勋堂">
+      <div class="label">
+        <div class="name">功勋堂</div>
+        <div class="level">Lv.6</div>
+      </div>
+    </div>
+    
+    <!-- 探微堂 -->
+    <div class="building-hotspot h-tanwei" onclick="showToast('探微堂 · Lv.2')">
+      <img src="https://aka.doubaocdn.com/s/X3VyIEIXsV" alt="探微堂">
+      <div class="label">
+        <div class="name">探微堂</div>
+        <div class="level">Lv.2</div>
+      </div>
+    </div>
+    
+    <!-- 御兽堂 -->
+    <div class="building-hotspot h-yushou" onclick="showToast('御兽堂 · Lv.5')">
+      <img src="https://aka.doubaocdn.com/s/TkOCSHWr4Q" alt="御兽堂">
+      <div class="label">
+        <div class="name">御兽堂</div>
+        <div class="level">Lv.5</div>
+      </div>
+    </div>
+    
+    <!-- 阵法堂 -->
+    <div class="building-hotspot h-zhenfa" onclick="showToast('阵法堂 · Lv.4')">
+      <img src="https://aka.doubaocdn.com/s/bCzFHFjU9q" alt="阵法堂">
+      <div class="label">
+        <div class="name">阵法堂</div>
+        <div class="level">Lv.4</div>
+      </div>
+    </div>
+    
+    <!-- 洗池 -->
+    <div class="building-hotspot h-xichi" onclick="showToast('洗池·灵泉 · Lv.7')">
+      <img src="https://aka.doubaocdn.com/s/PTBEugccLl" alt="洗池">
+      <div class="label">
+        <div class="name">洗池·灵泉</div>
+        <div class="level">Lv.7</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航栏 -->
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon">山</div>宗门</div>
+    <div class="nav-item"><div class="nav-icon">人</div>弟子</div>
+    <div class="nav-item active"><div class="nav-icon">殿</div>殿阁</div>
+    <div class="nav-item"><div class="nav-icon">历</div>历练</div>
+    <div class="nav-item"><div class="nav-icon">纪</div>纪事</div>
+  </div>
+</div>
+
+<!-- 点击提示 -->
+<div class="toast" id="toast"></div>
+
+<!-- 缩放控制 -->
+<div class="zoom-controls">
+  <button class="zoom-btn" onclick="zoomIn()">+</button>
+  <button class="zoom-btn" onclick="zoomOut()">-</button>
+  <button class="zoom-btn" onclick="zoomReset()">⟲</button>
+</div>
+
+<script>
+let currentScale = 1;
+const phoneFrame = document.getElementById('phoneFrame');
+const toast = document.getElementById('toast');
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+function zoomIn() {
+  currentScale = Math.min(currentScale + 0.1, 2);
+  applyZoom();
+}
+
+function zoomOut() {
+  currentScale = Math.max(currentScale - 0.1, 0.3);
+  applyZoom();
+}
+
+function zoomReset() {
+  currentScale = 1;
+  applyZoom();
+}
+
+function applyZoom() {
+  phoneFrame.style.transform = `scale(${currentScale})`;
+  phoneFrame.style.transformOrigin = 'top center';
+}
+
+// 自适应屏幕宽度
+function autoFit() {
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+  const scaleX = screenWidth / 1080;
+  const scaleY = screenHeight / 1920;
+  currentScale = Math.min(scaleX, scaleY, 1);
+  applyZoom();
+}
+
+window.addEventListener('resize', autoFit);
+autoFit();
+</script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宗主详情页 · 方向A（立绘主导型）</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  .phone-frame {
+    width: 420px;
+    height: 747px;
+    background: #0d1b1a;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border: 3px solid #2a2a3e;
+  }
+  .phone-frame::before {
+    content: "1080×1920 竖屏 · 方向A 原型";
+    position: absolute;
+    top: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #888;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* 顶部导航 */
+  .top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #d4c5a0;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .page-title {
+    color: #e8d9b0;
+    font-size: 17px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .edit-btn {
+    padding: 5px 14px;
+    background: linear-gradient(135deg, #8b7355, #6b5344);
+    border: 1px solid #c8a86a;
+    border-radius: 14px;
+    color: #f0e6d0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* Hero 立绘区 */
+  .hero-area {
+    position: relative;
+    width: 100%;
+    height: 58%;
+    background: linear-gradient(180deg, #1a2e2c 0%, #2a403d 40%, #1e3330 100%);
+    overflow: hidden;
+  }
+  .hero-bg-cloud {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(180,210,200,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 60%, rgba(160,190,180,0.1) 0%, transparent 40%),
+      radial-gradient(ellipse at 50% 80%, rgba(140,170,160,0.08) 0%, transparent 30%);
+  }
+  .hero-portrait {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 92%;
+    width: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .portrait-placeholder {
+    width: 220px;
+    height: 380px;
+    background: linear-gradient(180deg,
+      rgba(200,220,215,0.3) 0%,
+      rgba(180,200,195,0.2) 50%,
+      rgba(160,180,175,0.1) 100%);
+    border-radius: 110px 110px 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(220,230,225,0.5);
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+    border: 1px solid rgba(200,210,190,0.2);
+  }
+
+  /* 立绘底部信息条 */
+  .hero-info-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 16px 12px;
+    background: linear-gradient(to top, rgba(10,20,19,0.85) 0%, rgba(10,20,19,0.5) 70%, transparent 100%);
+    z-index: 5;
+  }
+  .info-name {
+    color: #f0e6d0;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .info-sub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #b8c8c0;
+    font-size: 12px;
+  }
+  .info-tag {
+    padding: 2px 8px;
+    background: rgba(200,168,106,0.2);
+    border: 1px solid rgba(200,168,106,0.4);
+    border-radius: 8px;
+    color: #e8d090;
+    font-size: 11px;
+  }
+
+  /* 内容区 */
+  .content-area {
+    height: 42%;
+    overflow-y: auto;
+    background: #0d1b1a;
+    padding: 10px 12px 16px;
+  }
+  .content-area::-webkit-scrollbar { width: 3px; }
+  .content-area::-webkit-scrollbar-thumb { background: rgba(200,168,106,0.3); border-radius: 2px; }
+
+  /* 模块通用 */
+  .module {
+    background: linear-gradient(135deg, rgba(30,50,48,0.6), rgba(20,35,33,0.6));
+    border: 1px solid rgba(200,168,106,0.25);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .module-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #d4c5a0;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .module-title::before {
+    content: "◆";
+    color: #c8a86a;
+    font-size: 10px;
+  }
+
+  /* 宗主特权 */
+  .privilege-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .privilege-item {
+    text-align: center;
+    padding: 6px 4px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(200,168,106,0.15);
+  }
+  .privilege-value {
+    color: #e8d090;
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+  .privilege-label {
+    color: #8a9a92;
+    font-size: 10px;
+  }
+
+  /* 权责宫格 */
+  .authority-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .authority-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 4px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid rgba(200,168,106,0.12);
+  }
+  .authority-item:hover {
+    background: rgba(200,168,106,0.1);
+    border-color: rgba(200,168,106,0.3);
+  }
+  .authority-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(200,168,106,0.2), rgba(150,120,80,0.15));
+    border: 1px solid rgba(200,168,106,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .authority-label {
+    color: #b8c8c0;
+    font-size: 11px;
+  }
+
+  /* 纪事列表 */
+  .chronicle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .chronicle-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 6px;
+    border-left: 2px solid rgba(200,168,106,0.4);
+  }
+  .chronicle-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #c8a86a;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .chronicle-text {
+    flex: 1;
+    color: #a0b0a8;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .chronicle-date {
+    color: #6a7a72;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .chronicle-more {
+    text-align: center;
+    color: #8a9a92;
+    font-size: 11px;
+    padding: 6px;
+    cursor: pointer;
+    border-top: 1px solid rgba(200,168,106,0.1);
+    margin-top: 4px;
+  }
+
+  /* 标注 */
+  .annotation {
+    position: absolute;
+    background: rgba(200,168,106,0.9);
+    color: #1a1a2e;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .ann-1 { top: 52px; right: 8px; }
+  .ann-2 { top: 280px; left: 8px; }
+  .ann-3 { bottom: 200px; right: 8px; }
+  .ann-4 { bottom: 120px; left: 8px; }
+  .ann-5 { bottom: 40px; right: 8px; }
+
+  .side-note {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 240px;
+    background: rgba(30,40,50,0.95);
+    border: 1px solid rgba(200,168,106,0.3);
+    border-radius: 12px;
+    padding: 16px;
+    color: #c0c8c0;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .side-note h3 {
+    color: #e8d090;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(200,168,106,0.2);
+    padding-bottom: 6px;
+  }
+  .side-note ul { padding-left: 16px; }
+  .side-note li { margin-bottom: 4px; }
+  .side-note .highlight { color: #e8d090; font-weight: bold; }
+
+  @media (max-width: 900px) {
+    .side-note { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="side-note">
+  <h3>📐 方向A 布局说明</h3>
+  <ul>
+    <li><span class="highlight">立绘占 58%</span> 屏高，绝对视觉主体</li>
+    <li>信息条<span class="highlight">半透明叠加</span>在立绘底部</li>
+    <li>新增<span class="highlight">宗主特权</span>区（替换原宗门数据）</li>
+    <li>权责改为<span class="highlight">图标+文字宫格</span>（6个）</li>
+    <li>纪事<span class="highlight">折叠2条</span>，点更多跳转</li>
+    <li>UI<span class="highlight">轻量化</span>，半透明卡片+细描边</li>
+  </ul>
+  <div style="margin-top:12px; padding-top:8px; border-top:1px solid rgba(200,168,106,0.2);">
+    <div style="color:#8a9a92; font-size:11px;">💡 立绘位置为占位，实际接入你的宗主立绘</div>
+  </div>
+</div>
+
+<div class="phone-frame">
+  <!-- 顶部导航 -->
+  <div class="top-bar">
+    <div class="back-btn">←</div>
+    <div class="page-title">宗主玉牒</div>
+    <div class="edit-btn">编辑</div>
+  </div>
+
+  <!-- Hero 立绘区 -->
+  <div class="hero-area">
+    <div class="hero-bg-cloud"></div>
+    <div class="hero-portrait">
+      <div class="portrait-placeholder">
+        【宗主全身立绘】<br>
+        透明底融入背景<br>
+        占屏高 58%
+      </div>
+    </div>
+    <div class="hero-info-bar">
+      <div class="info-name">太一道君 · 太一宗主</div>
+      <div class="info-sub">
+        <span class="info-tag">筑基</span>
+        <span>（宗门当前最高境界）</span>
+        <span style="margin-left:auto;">执掌 0 日</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content-area">
+
+    <!-- 宗主特权 -->
+    <div class="module">
+      <div class="module-title">宗主特权</div>
+      <div class="privilege-grid">
+        <div class="privilege-item">
+          <div class="privilege-value">+2%</div>
+          <div class="privilege-label">宗门产出</div>
+        </div>
+        <div class="privilege-item">
+          <div class="privilege-value">+5%</div>
+          <div class="privilege-label">招募成功率</div>
+        </div>
+        <div class="privilege-item">
+          <div class="privilege-value">-1%</div>
+          <div class="privilege-label">坊市交易税</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 宗主权责 -->
+    <div class="module">
+      <div class="module-title">宗主权责</div>
+      <div class="authority-grid">
+        <div class="authority-item" onclick="alert('跳转：宗门规制页')">
+          <div class="authority-icon">📜</div>
+          <div class="authority-label">宗门规制</div>
+        </div>
+        <div class="authority-item" onclick="alert('跳转：弟子页-职司任免')">
+          <div class="authority-icon">👥</div>
+          <div class="authority-label">职司任免</div>
+        </div>
+        <div class="authority-item" onclick="alert('跳转：功勋碑页')">
+          <div class="authority-icon">⚔️</div>
+          <div class="authority-label">功勋赏罚</div>
+        </div>
+        <div class="authority-item" onclick="alert('闭关设置：即将开放')">
+          <div class="authority-icon">🧘</div>
+          <div class="authority-label">闭关设置</div>
+        </div>
+        <div class="authority-item" onclick="alert('跳转：库藏页')">
+          <div class="authority-icon">📦</div>
+          <div class="authority-label">物资调配</div>
+        </div>
+        <div class="authority-item" onclick="alert('跳转：殿阁页-阵堂')">
+          <div class="authority-icon">⚙️</div>
+          <div class="authority-label">阵堂布置</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近纪事 -->
+    <div class="module">
+      <div class="module-title">最近纪事</div>
+      <div class="chronicle-list">
+        <div class="chronicle-item">
+          <div class="chronicle-dot"></div>
+          <div class="chronicle-text">宗门达成【开宗立派】里程碑，获得声望+30，宗门道统更进一步</div>
+          <div class="chronicle-date">第0日</div>
+        </div>
+        <div class="chronicle-item">
+          <div class="chronicle-dot"></div>
+          <div class="chronicle-text">首名弟子【苏清禾】突破至练气三层，宗门实力微增</div>
+          <div class="chronicle-date">第0日</div>
+        </div>
+      </div>
+      <div class="chronicle-more" onclick="alert('跳转：纪事页')">查看更多纪事 →</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 简单交互提示
+  document.querySelectorAll('.authority-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const label = this.querySelector('.authority-label').textContent;
+      console.log('点击了：' + label);
+    });
+  });
+</script>
+
+</body>
+</html>

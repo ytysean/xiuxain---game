@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+<title>仙衣阁 - 立绘皮肤商店</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: #0F1C1A;
+  color: #F7EED6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.scale-wrapper {
+  width: 1080px;
+  margin: 0 auto;
+  transform-origin: top center;
+  position: relative;
+}
+.top-bar {
+  height: 140px;
+  background: linear-gradient(180deg, #1A2E2B 0%, #142421 100%);
+  border-bottom: 2px solid #C9A45C;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  position: relative;
+}
+.back-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(201,164,92,0.15);
+  border: 2px solid #C9A45C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #C9A45C;
+  cursor: pointer;
+}
+.title {
+  flex: 1;
+  text-align: center;
+  font-size: 52px;
+  font-weight: bold;
+  color: #E8D5A3;
+  text-shadow: 0 0 20px rgba(201,164,92,0.5);
+  letter-spacing: 8px;
+}
+.xianyu-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(201,164,92,0.1);
+  border: 2px solid #C9A45C;
+  border-radius: 40px;
+  padding: 12px 28px;
+}
+.xianyu-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #5BA89E, #3D7A72);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.xianyu-num {
+  font-size: 32px;
+  font-weight: bold;
+  color: #5BA89E;
+}
+.category-tabs {
+  display: flex;
+  gap: 16px;
+  padding: 24px 40px;
+  background: #142421;
+  overflow-x: auto;
+}
+.tab {
+  padding: 16px 36px;
+  border-radius: 30px;
+  font-size: 26px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+}
+.tab.active {
+  background: linear-gradient(135deg, #C9A45C, #A8863E);
+  color: #0F1C1A;
+  font-weight: bold;
+  border-color: #E8D5A3;
+}
+.tab:not(.active) {
+  background: rgba(201,164,92,0.1);
+  color: #8A9A96;
+  border-color: rgba(201,164,92,0.3);
+}
+.skin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  padding: 32px 40px;
+}
+.skin-card {
+  background: linear-gradient(180deg, #1A2E2B 0%, #142421 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid rgba(201,164,92,0.3);
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+.skin-card:hover {
+  transform: translateY(-4px);
+  border-color: #C9A45C;
+  box-shadow: 0 8px 30px rgba(201,164,92,0.3);
+}
+.skin-preview {
+  width: 100%;
+  height: 520px;
+  position: relative;
+  overflow: hidden;
+}
+.skin-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rarity-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 2;
+}
+.rarity-ling { background: linear-gradient(135deg, #5BA89E, #3D7A72); color: #F7EED6; }
+.rarity-bao { background: linear-gradient(135deg, #C9A45C, #A8863E); color: #0F1C1A; }
+.rarity-xian { background: linear-gradient(135deg, #9B6BC9, #7A4BA8); color: #F7EED6; box-shadow: 0 0 15px rgba(155,107,201,0.6); }
+.rarity-shen { background: linear-gradient(135deg, #E8A838, #C97A1E); color: #0F1C1A; box-shadow: 0 0 20px rgba(232,168,56,0.8); animation: glow 2s ease-in-out infinite; }
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(232,168,56,0.8); }
+  50% { box-shadow: 0 0 35px rgba(232,168,56,1); }
+}
+.limited-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 20px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #D4453A, #A82E26);
+  color: #F7EED6;
+  z-index: 2;
+}
+.skin-info {
+  padding: 20px 24px;
+}
+.skin-name {
+  font-size: 30px;
+  font-weight: bold;
+  color: #E8D5A3;
+  margin-bottom: 8px;
+}
+.skin-desc {
+  font-size: 20px;
+  color: #8A9A96;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+.skin-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.skin-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.price-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #5BA89E, #3D7A72);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.price-num {
+  font-size: 28px;
+  font-weight: bold;
+  color: #5BA89E;
+}
+.buy-btn {
+  padding: 12px 32px;
+  border-radius: 24px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s;
+}
+.buy-btn.normal {
+  background: linear-gradient(135deg, #C9A45C, #A8863E);
+  color: #0F1C1A;
+}
+.buy-btn.lottery {
+  background: linear-gradient(135deg, #9B6BC9, #7A4BA8);
+  color: #F7EED6;
+}
+.buy-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(201,164,92,0.4);
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal {
+  width: 900px;
+  max-height: 90vh;
+  background: linear-gradient(180deg, #1A2E2B 0%, #142421 100%);
+  border-radius: 24px;
+  border: 3px solid #C9A45C;
+  overflow: hidden;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(201,164,92,0.2);
+  border: 2px solid #C9A45C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #C9A45C;
+  cursor: pointer;
+  z-index: 10;
+}
+.modal-image {
+  width: 100%;
+  height: 600px;
+  position: relative;
+}
+.modal-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.modal-content {
+  padding: 32px 40px;
+}
+.modal-title {
+  font-size: 42px;
+  font-weight: bold;
+  color: #E8D5A3;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.modal-desc {
+  font-size: 24px;
+  color: #A8B4B0;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.modal-effects {
+  background: rgba(201,164,92,0.08);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.effect-title {
+  font-size: 26px;
+  font-weight: bold;
+  color: #C9A45C;
+  margin-bottom: 16px;
+}
+.effect-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.effect-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+  color: #D4C4A0;
+}
+.effect-check {
+  color: #5BA89E;
+  font-size: 24px;
+}
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid rgba(201,164,92,0.2);
+}
+.modal-price {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.modal-price .price-icon {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+}
+.modal-price .price-num {
+  font-size: 40px;
+}
+.modal-buy-btn {
+  padding: 18px 56px;
+  border-radius: 32px;
+  font-size: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(135deg, #C9A45C, #A8863E);
+  color: #0F1C1A;
+  transition: all 0.3s;
+}
+.modal-buy-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 25px rgba(201,164,92,0.5);
+}
+.bottom-decoration {
+  height: 120px;
+  background: linear-gradient(0deg, #0F1C1A 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #5A6A66;
+}
+</style>
+</head>
+<body>
+<div class="scale-wrapper" id="scaleWrapper">
+  <div class="top-bar">
+    <div class="back-btn">‹</div>
+    <div class="title">仙 衣 阁</div>
+    <div class="xianyu-display">
+      <div class="xianyu-icon">玉</div>
+      <div class="xianyu-num">12,580</div>
+    </div>
+  </div>
+
+  <div class="category-tabs">
+    <div class="tab active">全部</div>
+    <div class="tab">冰雪系列</div>
+    <div class="tab">暗夜系列</div>
+    <div class="tab">黄金系列</div>
+    <div class="tab">仙侠系列</div>
+    <div class="tab">战神系列</div>
+  </div>
+
+  <div class="skin-grid">
+    <!-- 冰雪主题 - 灵品 -->
+    <div class="skin-card" onclick="openModal('ice')">
+      <div class="skin-preview">
+        <div class="rarity-badge rarity-ling">灵品</div>
+        <img src="https://aka.doubaocdn.com/s/uoqWp0NeyW" alt="冰雪主题">
+      </div>
+      <div class="skin-info">
+        <div class="skin-name">冰凰涅槃</div>
+        <div class="skin-desc">冰雪主题 · 冰凤凰神兽虚影 · 漫天冰晶特效</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-icon">玉</div>
+            <div class="price-num">888</div>
+          </div>
+          <button class="buy-btn normal">购买</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 暗夜主题 - 宝品 限定 -->
+    <div class="skin-card" onclick="openModal('dark')">
+      <div class="skin-preview">
+        <div class="rarity-badge rarity-bao">宝品</div>
+        <div class="limited-badge">限定</div>
+        <img src="https://aka.doubaocdn.com/s/47XmMJM9n8" alt="暗夜主题">
+      </div>
+      <div class="skin-info">
+        <div class="skin-name">暗夜魔龙</div>
+        <div class="skin-desc">暗夜主题 · 暗夜魔龙神兽虚影 · 暗影紫火特效</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-icon">玉</div>
+            <div class="price-num">1,688</div>
+          </div>
+          <button class="buy-btn normal">购买</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 黄金主题 - 仙品 赛季 -->
+    <div class="skin-card" onclick="openModal('gold')">
+      <div class="skin-preview">
+        <div class="rarity-badge rarity-xian">仙品</div>
+        <div class="limited-badge">赛季</div>
+        <img src="https://aka.doubaocdn.com/s/Lgf44yE4iC" alt="黄金主题">
+      </div>
+      <div class="skin-info">
+        <div class="skin-name">五爪金龙</div>
+        <div class="skin-desc">黄金主题 · 五爪金龙神兽虚影 · 金色龙气特效 · 双形态切换</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-icon">玉</div>
+            <div class="price-num">3,288</div>
+          </div>
+          <button class="buy-btn normal">购买</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 仙侠主题 - 宝品 -->
+    <div class="skin-card" onclick="openModal('xianxia')">
+      <div class="skin-preview">
+        <div class="rarity-badge rarity-bao">宝品</div>
+        <img src="https://aka.doubaocdn.com/s/sj32Q1buyi" alt="仙侠主题">
+      </div>
+      <div class="skin-info">
+        <div class="skin-name">青莲剑仙</div>
+        <div class="skin-desc">仙侠主题 · 仙鹤神兽虚影 · 仙气莲花特效 · 飘逸出尘</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-icon">玉</div>
+            <div class="price-num">1,688</div>
+          </div>
+          <button class="buy-btn normal">购买</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 战神主题 - 神品 典藏 -->
+    <div class="skin-card" onclick="openModal('warrior')">
+      <div class="skin-preview">
+        <div class="rarity-badge rarity-shen">神品</div>
+        <div class="limited-badge">典藏</div>
+        <img src="https://aka.doubaocdn.com/s/0y7GzX6FM9" alt="战神主题">
+      </div>
+      <div class="skin-info">
+        <div class="skin-name">战神降世</div>
+        <div class="skin-desc">战神主题 · 战神虚影 · 战火血气特效 · 动态立绘 · 专属互动</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-icon">玉</div>
+            <div class="price-num">仙缘夺宝</div>
+          </div>
+          <button class="buy-btn lottery">前往抽取</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 更多皮肤占位 -->
+    <div class="skin-card">
+      <div class="skin-preview" style="background: linear-gradient(135deg, #1A2E2B, #142421); display:flex; align-items:center; justify-content:center;">
+        <div style="font-size: 80px; color: rgba(201,164,92,0.3);">+</div>
+      </div>
+      <div class="skin-info">
+        <div class="skin-name" style="color: #5A6A66;">更多皮肤敬请期待</div>
+        <div class="skin-desc">节日限定 / 联名限定 / 境界专属</div>
+        <div class="skin-footer">
+          <div class="skin-price">
+            <div class="price-num" style="color: #5A6A66;">--</div>
+          </div>
+          <button class="buy-btn normal" style="opacity:0.5;">敬请期待</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-decoration">
+    仙衣阁 · 立绘皮肤商店 · 让每位弟子都独一无二
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-close" onclick="closeModal()">×</div>
+    <div class="modal-image">
+      <img id="modalImg" src="" alt="">
+    </div>
+    <div class="modal-content">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <div class="modal-effects">
+        <div class="effect-title">特效与加成</div>
+        <div class="effect-list" id="modalEffects"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-price">
+          <div class="price-icon">玉</div>
+          <div class="price-num" id="modalPrice"></div>
+        </div>
+        <button class="modal-buy-btn" id="modalBuyBtn"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const skinData = {
+  ice: {
+    img: 'https://aka.doubaocdn.com/s/uoqWp0NeyW',
+    title: '冰凰涅槃 <span style="font-size:24px;background:linear-gradient(135deg,#5BA89E,#3D7A72);padding:6px 16px;border-radius:12px;color:#F7EED6;">灵品</span>',
+    desc: '冰雪主题皮肤。冰蓝色银边长袍，冰晶帝冠，银白色长发飞扬。漫天冰雪和冰晶特效，背后巨大冰凤凰神兽虚影展翅，多件冰晶法宝发光悬浮，动态冰雪云雾和冰法阵背景。冷峻霸气，如冰雪之神降世。',
+    effects: ['冰凤凰神兽虚影', '漫天冰雪冰晶特效', '动态冰雪云雾背景', '冰法阵背景特效', '+2%修为速度 +1%灵石产出', '专属称号「冰凰使者」'],
+    price: '888',
+    btn: '立即购买'
+  },
+  dark: {
+    img: 'https://aka.doubaocdn.com/s/47XmMJM9n8',
+    title: '暗夜魔龙 <span style="font-size:24px;background:linear-gradient(135deg,#C9A45C,#A8863E);padding:6px 16px;border-radius:12px;color:#0F1C1A;">宝品</span> <span style="font-size:20px;background:linear-gradient(135deg,#D4453A,#A82E26);padding:4px 12px;border-radius:8px;color:#F7EED6;">限定</span>',
+    desc: '暗夜主题限定皮肤。深紫色金边暗夜长袍，暗夜帝冠，深紫色长发飞扬。暗影和紫火特效，背后巨大暗夜魔龙神兽虚影展翅，多件暗影法宝发光悬浮，动态暗影云雾和暗法阵背景。邪魅霸气，如暗夜之主降临。节日限定，错过不再。',
+    effects: ['暗夜魔龙神兽虚影', '暗影紫火特效', '多件暗影法宝发光悬浮', '动态暗影云雾背景', '暗法阵背景特效', '+3%修为速度 +2%灵石产出', '专属称号「暗夜魔龙」', '专属出场动画'],
+    price: '1,688',
+    btn: '立即购买'
+  },
+  gold: {
+    img: 'https://aka.doubaocdn.com/s/Lgf44yE4iC',
+    title: '五爪金龙 <span style="font-size:24px;background:linear-gradient(135deg,#9B6BC9,#7A4BA8);padding:6px 16px;border-radius:12px;color:#F7EED6;">仙品</span> <span style="font-size:20px;background:linear-gradient(135deg,#D4453A,#A82E26);padding:4px 12px;border-radius:8px;color:#F7EED6;">赛季</span>',
+    desc: '黄金主题赛季限定皮肤。黄金色龙纹帝袍，黄金帝冠，金色长发飞扬。金色龙气和金光特效，背后巨大五爪金龙神兽虚影盘旋，多件黄金法宝发光悬浮，动态金色云雾和金龙法阵背景。双形态切换（常态/战斗态），专属BGM，全屏出场动画。睥睨天下，如真龙天子降世。赛季限定，绝版收藏。',
+    effects: ['双形态切换（常态/战斗态）', '专属BGM背景音乐', '全屏出场动画', '五爪金龙神兽虚影', '多件黄金法宝发光悬浮', '金龙法阵背景特效', '+5%修为速度 +3%灵石产出', '专属称号「五爪金龙」', '羁绊弟子同框特效'],
+    price: '3,288',
+    btn: '立即购买'
+  },
+  xianxia: {
+    img: 'https://aka.doubaocdn.com/s/sj32Q1buyi',
+    title: '青莲剑仙 <span style="font-size:24px;background:linear-gradient(135deg,#C9A45C,#A8863E);padding:6px 16px;border-radius:12px;color:#0F1C1A;">宝品</span>',
+    desc: '仙侠主题皮肤。青绿色飘逸仙侠长袍，莲花道冠，青绿色长发飞扬。仙气和莲花特效，背后巨大仙鹤神兽虚影展翅，多件玉质法宝发光悬浮，动态仙云云雾和莲花法阵背景。飘逸出尘，如剑仙下凡。',
+    effects: ['仙鹤神兽虚影', '仙气莲花特效', '多件玉质法宝发光悬浮', '动态仙云云雾背景', '莲花法阵背景特效', '+3%修为速度 +2%灵石产出', '专属称号「青莲剑仙」', '专属出场动画'],
+    price: '1,688',
+    btn: '立即购买'
+  },
+  warrior: {
+    img: 'https://aka.doubaocdn.com/s/0y7GzX6FM9',
+    title: '战神降世 <span style="font-size:24px;background:linear-gradient(135deg,#E8A838,#C97A1E);padding:6px 16px;border-radius:12px;color:#0F1C1A;">神品</span> <span style="font-size:20px;background:linear-gradient(135deg,#D4453A,#A82E26);padding:4px 12px;border-radius:8px;color:#F7EED6;">典藏</span>',
+    desc: '战神主题典藏皮肤。赤红色黑金战甲，战神头盔，赤红色长发飞扬。战火和血气特效，背后巨大战神虚影，多件神兵发光悬浮，动态战云云雾和战神法阵背景。动态立绘（呼吸/眨眼/发丝飘动），点击触发专属互动特效，境界突破时全屏特效，获得时全服公告。狂放霸气，如战神降世。仙缘夺宝典藏，可遇不可求。',
+    effects: ['动态立绘（呼吸/眨眼/发丝飘动）', '点击触发专属互动特效', '境界突破时全屏特效', '获得时全服公告', '战神虚影', '多件神兵发光悬浮', '战神法阵背景特效', '+8%修为速度 +5%灵石产出 +全属性1%', '专属称号「战神降世」', '专属事件触发', 'loading界面特殊展示'],
+    price: '仙缘夺宝',
+    btn: '前往抽取'
+  }
+};
+
+function openModal(type) {
+  const data = skinData[type];
+  document.getElementById('modalImg').src = data.img;
+  document.getElementById('modalTitle').innerHTML = data.title;
+  document.getElementById('modalDesc').textContent = data.desc;
+  document.getElementById('modalPrice').textContent = data.price;
+  document.getElementById('modalBuyBtn').textContent = data.btn;
+  const effectsHtml = data.effects.map(e => `<div class="effect-item"><span class="effect-check">✓</span>${e}</div>`).join('');
+  document.getElementById('modalEffects').innerHTML = effectsHtml;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal(event) {
+  if (!event || event.target.id === 'modalOverlay') {
+    document.getElementById('modalOverlay').classList.remove('active');
+  }
+}
+
+function applyScale() {
+  const wrapper = document.getElementById('scaleWrapper');
+  const windowWidth = window.innerWidth;
+  const scale = windowWidth / 1080;
+  wrapper.style.transform = `scale(${scale})`;
+  document.body.style.height = `${1920 * scale}px`;
+}
+window.addEventListener('load', applyScale);
+window.addEventListener('resize', applyScale);
+</script>
+</body>
+</html>

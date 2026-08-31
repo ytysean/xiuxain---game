@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+<title>弟子装备页 - 魔兽世界风格</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  font-family: "Microsoft YaHei", sans-serif;
+  background: #0a0e14;
+  color: #e8e0d0;
+  overflow-x: auto;
+  overflow-y: auto;
+  user-select: none;
+  -webkit-text-size-adjust: 100%;
+}
+.scale-wrapper {
+  width: 1080px;
+  height: 1920px;
+  margin: 0 auto;
+  transform-origin: top left;
+  position: relative;
+}
+.page {
+  width: 1080px;
+  height: 1920px;
+  position: relative;
+  background: linear-gradient(180deg, #1a1f2e 0%, #0d1117 50%, #1a1f2e 100%);
+  overflow: hidden;
+}
+
+/* 顶部返回栏 */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  z-index: 100;
+  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+}
+.back-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(131, 111, 33, 0.3);
+  border: 2px solid rgba(131, 111, 33, 0.6);
+  color: #e8d48a;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.page-title {
+  flex: 1;
+  text-align: center;
+  font-size: 32px;
+  color: #e8d48a;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  margin-right: 60px;
+}
+
+/* 纸娃娃区域 */
+.paper-doll-area {
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  height: 900px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 背景渐变融合，减少分割感 */
+  background: radial-gradient(ellipse at center, rgba(131, 111, 33, 0.15) 0%, rgba(26, 31, 46, 0) 70%);
+}
+
+/* 角色立绘容器 */
+.character-container {
+  position: relative;
+  width: 500px;
+  height: 800px;
+}
+/* 立绘背景光晕 - 让人物融入背景 */
+.character-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 700px;
+  background: radial-gradient(ellipse at center, rgba(131, 111, 33, 0.2) 0%, rgba(100, 80, 30, 0.1) 40%, transparent 70%);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* 法阵装饰 - 底部 */
+.character-container::after {
+  content: '';
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 100px;
+  background: radial-gradient(ellipse at center, rgba(100, 200, 150, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+}
+.character-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  /* 底部渐变融合，让立绘底部融入背景 */
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  filter: drop-shadow(0 0 40px rgba(131, 111, 33, 0.4));
+}
+
+/* 装备槽位 - 按身体部位分布 */
+.equip-slot {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(131, 111, 33, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.equip-slot:hover {
+  border-color: rgba(232, 212, 138, 0.9);
+  box-shadow: 0 0 20px rgba(131, 111, 33, 0.5);
+  transform: scale(1.05);
+}
+.equip-slot.equipped {
+  border-color: rgba(100, 200, 100, 0.7);
+  background: rgba(20, 60, 20, 0.5);
+}
+.equip-slot .slot-icon {
+  font-size: 36px;
+  color: rgba(232, 212, 138, 0.6);
+}
+.equip-slot.equipped .slot-icon {
+  color: rgba(150, 255, 150, 0.9);
+}
+.equip-slot .slot-name {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: rgba(232, 212, 138, 0.7);
+  white-space: nowrap;
+}
+
+/* 槽位位置 - 左侧（与右侧同一水平线对齐） */
+.slot-toukui { top: 20px; left: -120px; }      /* 道冠 - 头（第1行） */
+.slot-huzhi { top: 220px; left: -120px; }     /* 灵腕 - 左手腕（第2行） */
+.slot-yaodai { top: 420px; left: -120px; }    /* 束灵带 - 腰（第3行） */
+.slot-xuezi { top: 620px; left: -120px; }     /* 云靴 - 左脚（第4行） */
+
+/* 槽位位置 - 右侧（与左侧同一水平线对齐） */
+.slot-wuqi { top: 20px; right: -120px; }       /* 法兵 - 右手武器（第1行） */
+.slot-yipao { top: 220px; right: -120px; }     /* 法袍 - 胸（第2行） */
+.slot-changku { top: 420px; right: -120px; }   /* 灵裤 - 右腿（第3行） */
+.slot-peishi { top: 620px; right: -120px; }     /* 灵饰 - 饰品（第4行） */
+
+/* 槽位位置 - 底部中央 */
+.slot-fabao { bottom: -40px; left: 50%; transform: translateX(-50%); }  /* 本命法宝 */
+.slot-fabao:hover { transform: translateX(-50%) scale(1.05); }
+
+/* 装备详情区域 */
+.equip-detail-area {
+  position: absolute;
+  top: 1000px;
+  left: 30px;
+  right: 30px;
+  bottom: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 选中装备详情面板 */
+.detail-panel {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(26, 31, 46, 0.9) 0%, rgba(13, 17, 23, 0.95) 100%);
+  border: 2px solid rgba(131, 111, 33, 0.4);
+  border-radius: 16px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.detail-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(131, 111, 33, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+.detail-info {
+  flex: 1;
+}
+.detail-name {
+  font-size: 28px;
+  color: #e8d48a;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.detail-tags {
+  display: flex;
+  gap: 10px;
+}
+.detail-tag {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+}
+.tag-quality { background: rgba(100, 60, 150, 0.4); color: #c89aff; border: 1px solid rgba(150, 100, 200, 0.5); }
+.tag-type { background: rgba(131, 111, 33, 0.3); color: #e8d48a; border: 1px solid rgba(131, 111, 33, 0.5); }
+.tag-slot { background: rgba(60, 100, 150, 0.3); color: #8ab4e8; border: 1px solid rgba(100, 150, 200, 0.5); }
+
+.detail-power {
+  font-size: 24px;
+  color: #ff9944;
+  font-weight: bold;
+}
+.detail-power span { font-size: 16px; color: rgba(255, 153, 68, 0.7); }
+
+.detail-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(131, 111, 33, 0.4), transparent);
+  margin: 4px 0;
+}
+
+.detail-desc {
+  font-size: 18px;
+  color: rgba(232, 224, 208, 0.8);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.detail-affixes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.affix-title {
+  font-size: 18px;
+  color: #e8d48a;
+  margin-bottom: 4px;
+}
+.affix-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  font-size: 16px;
+}
+.affix-name { color: rgba(232, 224, 208, 0.9); }
+.affix-value { color: #66dd88; font-weight: bold; }
+.affix-prefix { color: #88bbff; }
+.affix-suffix { color: #ffaa66; }
+
+.detail-legendary {
+  padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(255, 150, 50, 0.2), rgba(255, 100, 50, 0.1));
+  border: 1px solid rgba(255, 150, 50, 0.5);
+  border-radius: 8px;
+}
+.legendary-name {
+  font-size: 20px;
+  color: #ffaa44;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.legendary-desc {
+  font-size: 16px;
+  color: rgba(255, 200, 150, 0.9);
+  line-height: 1.5;
+}
+
+/* 操作按钮区 */
+.action-bar {
+  display: flex;
+  gap: 16px;
+  height: 70px;
+}
+.action-btn {
+  flex: 1;
+  border-radius: 12px;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  border: 2px solid;
+}
+.action-btn:hover { transform: translateY(-2px); }
+.btn-equip {
+  background: linear-gradient(135deg, rgba(50, 150, 80, 0.6), rgba(30, 100, 50, 0.8));
+  border-color: rgba(100, 200, 120, 0.6);
+  color: #aaffbb;
+}
+.btn-unequip {
+  background: linear-gradient(135deg, rgba(150, 80, 50, 0.6), rgba(100, 50, 30, 0.8));
+  border-color: rgba(200, 120, 80, 0.6);
+  color: #ffbb99;
+}
+.btn-auto {
+  background: linear-gradient(135deg, rgba(131, 111, 33, 0.6), rgba(100, 80, 20, 0.8));
+  border-color: rgba(232, 212, 138, 0.6);
+  color: #e8d48a;
+}
+
+/* 底部导航 */
+.bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 40px;
+}
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 10px 20px;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+.nav-tab.active {
+  background: rgba(131, 111, 33, 0.3);
+}
+.nav-tab-icon { font-size: 28px; }
+.nav-tab-text { font-size: 16px; color: rgba(232, 224, 208, 0.7); }
+.nav-tab.active .nav-tab-text { color: #e8d48a; }
+
+/* 空状态提示 */
+.empty-hint {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: rgba(232, 224, 208, 0.4);
+}
+.empty-hint-icon { font-size: 64px; opacity: 0.3; }
+.empty-hint-text { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="scale-wrapper" id="scaleWrapper">
+<div class="page">
+  <!-- 顶部返回栏 -->
+  <div class="top-bar">
+    <div class="back-btn">←</div>
+    <div class="page-title">弟子装备</div>
+  </div>
+
+  <!-- 纸娃娃区域 -->
+  <div class="paper-doll-area">
+    <div class="character-container">
+      <img class="character-portrait" src="https://aka.doubaocdn.com/s/9RseiOJWn7" alt="弟子立绘">
+      
+      <!-- 左侧槽位 -->
+      <div class="equip-slot slot-toukui equipped" onclick="selectSlot('道冠')">
+        <span class="slot-icon">👑</span>
+        <span class="slot-name">道冠</span>
+      </div>
+      <div class="equip-slot slot-huzhi" onclick="selectSlot('灵腕')">
+        <span class="slot-icon">💪</span>
+        <span class="slot-name">灵腕</span>
+      </div>
+      <div class="equip-slot slot-yaodai equipped" onclick="selectSlot('束灵带')">
+        <span class="slot-icon">🎗️</span>
+        <span class="slot-name">束灵带</span>
+      </div>
+      <div class="equip-slot slot-xuezi" onclick="selectSlot('云靴')">
+        <span class="slot-icon">👢</span>
+        <span class="slot-name">云靴</span>
+      </div>
+      
+      <!-- 右侧槽位 -->
+      <div class="equip-slot slot-wuqi equipped" onclick="selectSlot('法兵')">
+        <span class="slot-icon">⚔️</span>
+        <span class="slot-name">法兵</span>
+      </div>
+      <div class="equip-slot slot-yipao equipped" onclick="selectSlot('法袍')">
+        <span class="slot-icon">👘</span>
+        <span class="slot-name">法袍</span>
+      </div>
+      <div class="equip-slot slot-changku" onclick="selectSlot('灵裤')">
+        <span class="slot-icon">👖</span>
+        <span class="slot-name">灵裤</span>
+      </div>
+      <div class="equip-slot slot-peishi equipped" onclick="selectSlot('灵饰')">
+        <span class="slot-icon">💍</span>
+        <span class="slot-name">灵饰</span>
+      </div>
+      
+      <!-- 底部中央槽位 - 本命法宝 -->
+      <div class="equip-slot slot-fabao" onclick="selectSlot('本命法宝')">
+        <span class="slot-icon">🔮</span>
+        <span class="slot-name">本命法宝</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 装备详情区域 -->
+  <div class="equip-detail-area">
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-header">
+        <div class="detail-icon">⚔️</div>
+        <div class="detail-info">
+          <div class="detail-name">凝金法剑</div>
+          <div class="detail-tags">
+            <span class="detail-tag tag-quality">宝阶</span>
+            <span class="detail-tag tag-type">法器</span>
+            <span class="detail-tag tag-slot">法兵</span>
+          </div>
+        </div>
+        <div class="detail-power">+250 <span>战力</span></div>
+      </div>
+      
+      <div class="detail-divider"></div>
+      
+      <div class="detail-desc">法气流转，已具气象。</div>
+      
+      <div class="detail-affixes">
+        <div class="affix-title">词缀</div>
+        <div class="affix-item">
+          <span class="affix-name affix-prefix">【前缀】近战攻击强化</span>
+          <span class="affix-value">+15%</span>
+        </div>
+        <div class="affix-item">
+          <span class="affix-name affix-suffix">【后缀】战斗吸血</span>
+          <span class="affix-value">+8%</span>
+        </div>
+      </div>
+      
+      <div class="detail-legendary">
+        <div class="legendary-name">★ 道心稳固</div>
+        <div class="legendary-desc">永久免疫低阶心魔干扰，修炼零卡顿</div>
+      </div>
+    </div>
+    
+    <div class="action-bar">
+      <div class="action-btn btn-unequip">卸下</div>
+      <div class="action-btn btn-auto">一键最优</div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <div class="nav-tab">
+      <span class="nav-tab-icon">📊</span>
+      <span class="nav-tab-text">属性</span>
+    </div>
+    <div class="nav-tab active">
+      <span class="nav-tab-icon">⚔️</span>
+      <span class="nav-tab-text">装备</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-tab-icon">🐉</span>
+      <span class="nav-tab-text">灵兽</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-tab-icon">📜</span>
+      <span class="nav-tab-text">履历</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// 手机端自适应缩放
+function applyScale() {
+  const wrapper = document.getElementById('scaleWrapper');
+  if (!wrapper) return;
+  const screenWidth = window.innerWidth;
+  const designWidth = 1080;
+  const scale = screenWidth / designWidth;
+  wrapper.style.transform = `scale(${scale})`;
+  // 设置body高度为缩放后的实际高度，允许纵向滚动
+  document.body.style.height = (1920 * scale) + 'px';
+  document.body.style.minWidth = screenWidth + 'px';
+}
+window.addEventListener('load', applyScale);
+window.addEventListener('resize', applyScale);
+
+function selectSlot(slotName) {
+  // 高亮选中槽位
+  document.querySelectorAll('.equip-slot').forEach(s => s.style.outline = 'none');
+  event.currentTarget.style.outline = '3px solid #e8d48a';
+  
+  // 更新详情面板（演示用）
+  const panel = document.getElementById('detailPanel');
+  const slotData = {
+    '法兵': { icon: '⚔️', name: '凝金法剑', quality: '宝阶', type: '法器', power: 250, desc: '法气流转，已具气象。' },
+    '道冠': { icon: '👑', name: '聚灵冠', quality: '灵阶', type: '法器', power: 80, desc: '灵纹初成，堪堪可用。' },
+    '法袍': { icon: '👘', name: '聚灵道袍', quality: '宝阶', type: '法器', power: 250, desc: '法气流转，已具气象。' },
+    '灵腕': { icon: '💪', name: '—', quality: '—', type: '—', power: 0, desc: '未穿戴' },
+    '束灵带': { icon: '🎗️', name: '聚灵带', quality: '灵阶', type: '法器', power: 80, desc: '灵纹初成，堪堪可用。' },
+    '灵裤': { icon: '👖', name: '—', quality: '—', type: '—', power: 0, desc: '未穿戴' },
+    '云靴': { icon: '👢', name: '—', quality: '—', type: '—', power: 0, desc: '未穿戴' },
+    '灵饰': { icon: '💍', name: '聚灵佩', quality: '宝阶', type: '法器', power: 250, desc: '法气流转，已具气象。' },
+    '本命法宝': { icon: '🔮', name: '—', quality: '—', type: '—', power: 0, desc: '未穿戴本命法宝' }
+  };
+  
+  const data = slotData[slotName];
+  if (data) {
+    panel.querySelector('.detail-icon').textContent = data.icon;
+    panel.querySelector('.detail-name').textContent = data.name;
+    panel.querySelector('.tag-quality').textContent = data.quality;
+    panel.querySelector('.tag-type').textContent = data.type;
+    panel.querySelector('.detail-power').innerHTML = (data.power > 0 ? '+' + data.power : '—') + ' <span>战力</span>';
+    panel.querySelector('.detail-desc').textContent = data.desc;
+  }
+}
+</script>
+</body>
+</html>

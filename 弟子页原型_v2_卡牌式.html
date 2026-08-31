@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弟子页原型v2 - 太玄宗门录</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a2e; font-family:"Microsoft YaHei",sans-serif; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; padding:20px; gap:30px; flex-wrap:wrap; }
+
+.phone { width:360px; height:780px; background:#0d1117; border-radius:24px; overflow:hidden; position:relative; box-shadow:0 0 40px rgba(0,0,0,0.5); flex-shrink:0; }
+.phone-label { position:absolute; top:-28px; left:50%; transform:translateX(-50%); color:#d4af37; font-size:14px; white-space:nowrap; z-index:100; }
+
+/* ===== 顶部资源栏 ===== */
+.top-bar { height:56px; background:linear-gradient(180deg,#1a2332 0%,#0d1117 100%); border-bottom:1px solid rgba(212,175,55,0.3); display:flex; align-items:center; padding:0 6px; gap:4px; position:relative; z-index:10; }
+.top-avatar { width:36px; height:36px; border-radius:50%; border:2px solid #d4af37; background:linear-gradient(135deg,#2a3a4a,#1a2a3a); display:flex; align-items:center; justify-content:center; color:#d4af37; font-size:16px; flex-shrink:0; }
+.top-sect { flex:1; min-width:0; }
+.top-sect-name { color:#e8dcc8; font-size:12px; font-weight:bold; }
+.top-sect-lv { color:#8a9ba8; font-size:8px; }
+.top-cal { background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.4); border-radius:6px; padding:2px 6px; text-align:center; flex-shrink:0; }
+.top-cal-line1 { color:#d4af37; font-size:9px; font-weight:bold; }
+.top-cal-line2 { color:#8a9ba8; font-size:6px; }
+.top-res { display:flex; gap:1px; flex-shrink:0; }
+.top-res-item { width:28px; text-align:center; }
+.top-res-icon { width:16px; height:16px; margin:0 auto; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; }
+.top-res-val { color:#e8dcc8; font-size:8px; margin-top:1px; }
+.res-lingshi { background:linear-gradient(135deg,#4a90d9,#2a5a9a); }
+.res-lingqi { background:linear-gradient(135deg,#9b59b6,#6c3483); }
+.res-lingzhi { background:linear-gradient(135deg,#27ae60,#1e8449); }
+.res-shengwang { background:linear-gradient(135deg,#d4af37,#b8860b); }
+
+/* ===== 底部导航栏 ===== */
+.bottom-bar { height:52px; background:linear-gradient(0deg,#1a2332 0%,#0d1117 100%); border-top:1px solid rgba(212,175,55,0.3); display:flex; align-items:center; position:absolute; bottom:0; left:0; right:0; z-index:10; }
+.tab-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; cursor:pointer; position:relative; }
+.tab-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:0.5; }
+.tab-label { color:#8a9ba8; font-size:8px; }
+.tab-item.active .tab-icon { opacity:1; border:2px solid #d4af37; background:rgba(212,175,55,0.15); }
+.tab-item.active .tab-label { color:#d4af37; }
+.tab-item.active::after { content:''; position:absolute; bottom:1px; left:50%; transform:translateX(-50%); width:14px; height:2px; background:#d4af37; border-radius:1px; }
+
+/* ============================================================ */
+/* ===== 弟子列表页 ===== */
+/* ============================================================ */
+.list-content { position:absolute; top:56px; bottom:52px; left:0; right:0; overflow-y:auto; background:linear-gradient(180deg,#0f1620 0%,#0a0e14 100%); }
+.list-header { padding:10px 12px 6px; display:flex; align-items:center; justify-content:space-between; }
+.list-title { color:#d4af37; font-size:15px; font-weight:bold; display:flex; align-items:center; gap:5px; }
+.list-title::before { content:'◆'; color:#d4af37; font-size:10px; }
+.list-stats { display:flex; gap:10px; align-items:center; }
+.list-stat { text-align:center; }
+.list-stat-val { color:#d4af37; font-size:13px; font-weight:bold; }
+.list-stat-label { color:#8a9ba8; font-size:7px; }
+
+/* 排序Tab */
+.sort-tabs { display:flex; gap:0; padding:0 12px; margin-bottom:8px; }
+.sort-tab { flex:1; text-align:center; padding:6px 0; font-size:10px; color:#8a9ba8; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); cursor:pointer; transition:all 0.2s; }
+.sort-tab:first-child { border-radius:6px 0 0 6px; }
+.sort-tab:last-child { border-radius:0 6px 6px 0; }
+.sort-tab.active { background:rgba(212,175,55,0.2); border-color:#d4af37; color:#d4af37; font-weight:bold; }
+
+/* 4列弟子卡片网格 */
+.disciple-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; padding:0 10px 10px; }
+.d-card { border-radius:8px; overflow:hidden; cursor:pointer; transition:transform 0.2s; position:relative; border:2px solid; }
+.d-card:hover { transform:scale(1.03); }
+/* 品质配色 */
+.d-card.q-fansu { border-color:#7f8c8d; background:linear-gradient(160deg,#2c3e50 0%,#1a252f 100%); }
+.d-card.q-pingyong { border-color:#27ae60; background:linear-gradient(160deg,#1e3a2f 0%,#0f1f18 100%); }
+.d-card.q-youliang { border-color:#3498db; background:linear-gradient(160deg,#1a2e4a 0%,#0d1829 100%); }
+.d-card.q-tiancai { border-color:#9b59b6; background:linear-gradient(160deg,#2d1f3d 0%,#1a0f26 100%); box-shadow:0 0 6px rgba(155,89,182,0.3); }
+.d-card.q-yaonie { border-color:#e67e22; background:linear-gradient(160deg,#3d2a1a 0%,#261810 100%); box-shadow:0 0 6px rgba(230,126,34,0.3); }
+.d-card.q-kuangshi { border-color:#e74c3c; background:linear-gradient(160deg,#3d1a1a 0%,#260f0f 100%); box-shadow:0 0 8px rgba(231,76,60,0.4); }
+
+/* 灵根左侧色条 */
+.d-card-linggen { position:absolute; left:0; top:0; bottom:0; width:3px; }
+.linggen-jin { background:linear-gradient(180deg,#f1c40f,#b7950b); }
+.linggen-mu { background:linear-gradient(180deg,#27ae60,#1e8449); }
+.linggen-shui { background:linear-gradient(180deg,#3498db,#2471a3); }
+.linggen-huo { background:linear-gradient(180deg,#e74c3c,#c0392b); }
+.linggen-tu { background:linear-gradient(180deg,#a0522d,#6b3410); }
+.linggen-lei { background:linear-gradient(180deg,#9b59b6,#6c3483); }
+
+/* 卡片头像区 */
+.d-card-avatar { width:100%; aspect-ratio:1; background:linear-gradient(135deg,#2a3a4a,#1a2a3a); display:flex; align-items:center; justify-content:center; font-size:32px; position:relative; overflow:hidden; }
+.d-card-avatar img { width:100%; height:100%; object-fit:cover; }
+
+/* 境界标签 */
+.d-card-realm { position:absolute; top:3px; left:6px; background:rgba(0,0,0,0.6); color:#d4af37; font-size:7px; padding:1px 4px; border-radius:3px; font-weight:bold; border:1px solid rgba(212,175,55,0.4); }
+
+/* 品质星 */
+.d-card-stars { position:absolute; top:3px; right:4px; color:#f1c40f; font-size:7px; text-shadow:0 0 3px rgba(0,0,0,0.8); }
+
+/* 红点提示 */
+.d-card-dot { position:absolute; top:2px; right:2px; width:6px; height:6px; background:#e74c3c; border-radius:50%; border:1px solid #fff; }
+
+/* 卡片底部信息 */
+.d-card-info { padding:4px 4px 5px; text-align:center; }
+.d-card-name { color:#e8dcc8; font-size:10px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.d-card-power { color:#d4af37; font-size:9px; margin-top:1px; }
+.d-card-power::before { content:'⚔ '; font-size:7px; }
+
+/* 筛选浮动栏 */
+.filter-bar { position:sticky; bottom:0; background:rgba(13,17,23,0.95); backdrop-filter:blur(10px); border-top:1px solid rgba(212,175,55,0.2); padding:6px 10px; display:flex; gap:4px; overflow-x:auto; }
+.filter-chip { flex-shrink:0; padding:4px 10px; border-radius:12px; font-size:9px; color:#8a9ba8; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); cursor:pointer; white-space:nowrap; }
+.filter-chip.active { background:rgba(212,175,55,0.2); border-color:#d4af37; color:#d4af37; }
+
+/* ============================================================ */
+/* ===== 弟子详情页 ===== */
+/* ============================================================ */
+.detail-page { position:absolute; top:0; left:0; right:0; bottom:0; background:linear-gradient(180deg,#0f1620 0%,#0a0e14 50%,#0d1117 100%); overflow-y:auto; }
+
+/* 详情页顶部 */
+.detail-top { height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; border-bottom:1px solid rgba(212,175,55,0.2); }
+.detail-back { width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,0.4); border:1px solid rgba(212,175,55,0.4); color:#d4af37; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; }
+.detail-top-title { color:#d4af37; font-size:13px; font-weight:bold; }
+.detail-top-func { display:flex; gap:6px; }
+.detail-func-btn { width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#8a9ba8; display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; }
+
+/* 详情页核心区：卡牌+左右装备 */
+.detail-core { display:flex; align-items:center; justify-content:center; padding:12px 8px; gap:4px; position:relative; }
+
+/* 左右切换箭头 */
+.detail-arrow { width:22px; height:40px; background:rgba(0,0,0,0.4); border:1px solid rgba(212,175,55,0.3); color:#d4af37; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; border-radius:4px; flex-shrink:0; z-index:5; }
+
+/* 左侧装备槽 */
+.detail-equip-left { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+/* 右侧装备槽 */
+.detail-equip-right { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+
+.equip-slot { width:38px; height:44px; border-radius:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(212,175,55,0.3); display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; cursor:pointer; }
+.equip-slot.equipped { border-color:rgba(212,175,55,0.6); background:linear-gradient(135deg,rgba(212,175,55,0.15),rgba(0,0,0,0.5)); }
+.equip-slot-icon { font-size:14px; }
+.equip-slot-name { font-size:6px; color:#8a9ba8; margin-top:1px; }
+.equip-slot-star { position:absolute; top:1px; right:2px; color:#f1c40f; font-size:6px; }
+.equip-slot.empty .equip-slot-icon { opacity:0.3; }
+.beast-slot { width:38px; height:44px; border-radius:5px; background:rgba(155,89,182,0.15); border:1px solid rgba(155,89,182,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; }
+
+/* 中央弟子卡牌 */
+.detail-card { width:180px; height:240px; border-radius:12px; position:relative; overflow:hidden; flex-shrink:0;
+  background:linear-gradient(160deg,#3d2a5a 0%,#1a0f2e 50%,#0d0818 100%);
+  border:2px solid #9b59b6;
+  box-shadow:0 0 20px rgba(155,89,182,0.4), inset 0 0 30px rgba(155,89,182,0.1);
+}
+/* 卡牌光效 */
+.detail-card::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.1) 25%, transparent 50%); animation:rotate 8s linear infinite; }
+@keyframes rotate { to { transform:rotate(360deg); } }
+.detail-card-inner { position:relative; z-index:1; width:100%; height:100%; display:flex; flex-direction:column; }
+
+/* 卡牌顶部：境界+品质 */
+.detail-card-top { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; }
+.detail-card-realm { background:rgba(0,0,0,0.6); color:#d4af37; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:bold; border:1px solid rgba(212,175,55,0.5); }
+.detail-card-quality { color:#f1c40f; font-size:10px; text-shadow:0 0 4px rgba(0,0,0,0.8); }
+
+/* 卡牌立绘区 */
+.detail-card-portrait { flex:1; display:flex; align-items:center; justify-content:center; position:relative; }
+.detail-card-portrait img { width:85%; height:85%; object-fit:contain; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5)); }
+.detail-card-linggen { position:absolute; left:6px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:3px; }
+.linggen-dot { width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; color:#fff; font-weight:bold; border:1px solid rgba(255,255,255,0.3); }
+
+/* 卡牌底部：名字+战力 */
+.detail-card-bottom { padding:8px 10px 10px; background:linear-gradient(transparent, rgba(0,0,0,0.7)); text-align:center; }
+.detail-card-name { color:#e8dcc8; font-size:16px; font-weight:bold; text-shadow:0 2px 6px rgba(0,0,0,0.8); }
+.detail-card-power { color:#d4af37; font-size:14px; font-weight:bold; margin-top:2px; }
+.detail-card-power::before { content:'⚔ '; font-size:11px; }
+
+/* 属性区 */
+.detail-attr-section { padding:10px 12px; }
+.detail-attr-title { color:#d4af37; font-size:12px; font-weight:bold; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+.detail-attr-title::before { content:'◆'; font-size:9px; }
+.detail-attr-row { display:flex; gap:10px; }
+.detail-attr-nums { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.attr-item { background:rgba(255,255,255,0.04); border-radius:5px; padding:5px 8px; display:flex; justify-content:space-between; align-items:center; }
+.attr-name { color:#8a9ba8; font-size:10px; }
+.attr-val { color:#e8dcc8; font-size:11px; font-weight:bold; }
+.attr-val.high { color:#27ae60; }
+
+/* 雷达图 */
+.radar-container { width:110px; height:110px; flex-shrink:0; position:relative; }
+.radar-container svg { width:100%; height:100%; }
+
+/* 底部操作按钮 */
+.detail-actions { display:flex; gap:8px; padding:10px 12px; }
+.action-btn { flex:1; padding:8px 0; border-radius:6px; font-size:11px; font-weight:bold; text-align:center; cursor:pointer; border:1px solid; }
+.action-btn.primary { background:linear-gradient(135deg,#d4af37,#b8860b); border-color:#d4af37; color:#1a1a2e; }
+.action-btn.secondary { background:rgba(255,255,255,0.05); border-color:rgba(212,175,55,0.4); color:#d4af37; }
+.action-btn.danger { background:rgba(231,76,60,0.15); border-color:rgba(231,76,60,0.5); color:#e74c3c; }
+
+/* 底部Tab */
+.detail-tabs { display:flex; border-top:1px solid rgba(212,175,55,0.2); background:rgba(0,0,0,0.3); }
+.detail-tab { flex:1; text-align:center; padding:8px 0; font-size:9px; color:#8a9ba8; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+.detail-tab.active { color:#d4af37; border-bottom-color:#d4af37; background:rgba(212,175,55,0.08); }
+.detail-tab-icon { font-size:14px; display:block; margin-bottom:1px; }
+
+/* 滚动条 */
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(212,175,55,0.3); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<!-- ===== 弟子列表页 ===== -->
+<div class="phone">
+<div class="phone-label">弟子列表页（4列网格·卡牌式）</div>
+
+<!-- 顶部资源栏 -->
+<div class="top-bar">
+<div class="top-avatar">宗</div>
+<div class="top-sect">
+<div class="top-sect-name">太玄宗</div>
+<div class="top-sect-lv">Lv.1</div>
+</div>
+<div class="top-cal">
+<div class="top-cal-line1">太玄1年·1月</div>
+<div class="top-cal-line2">午时</div>
+</div>
+<div class="top-res">
+<div class="top-res-item"><div class="top-res-icon res-lingshi">石</div><div class="top-res-val">1000</div></div>
+<div class="top-res-item"><div class="top-res-icon res-lingqi">气</div><div class="top-res-val">360</div></div>
+<div class="top-res-item"><div class="top-res-icon res-lingzhi">植</div><div class="top-res-val">0</div></div>
+<div class="top-res-item"><div class="top-res-icon res-shengwang">望</div><div class="top-res-val">33</div></div>
+</div>
+</div>
+
+<div class="list-content">
+<!-- 标题栏 -->
+<div class="list-header">
+<div class="list-title">弟子录</div>
+<div class="list-stats">
+<div class="list-stat"><div class="list-stat-val">900</div><div class="list-stat-label">总战力</div></div>
+<div class="list-stat"><div class="list-stat-val">6/30</div><div class="list-stat-label">弟子</div></div>
+</div>
+</div>
+
+<!-- 排序Tab -->
+<div class="sort-tabs">
+<div class="sort-tab active">战力</div>
+<div class="sort-tab">境界</div>
+<div class="sort-tab">身份</div>
+<div class="sort-tab">获得</div>
+</div>
+
+<!-- 4列弟子卡片网格 -->
+<div class="disciple-grid">
+
+<!-- 天才 紫 -->
+<div class="d-card q-tiancai">
+<div class="d-card-linggen linggen-shui"></div>
+<div class="d-card-avatar">🧝‍♀️</div>
+<div class="d-card-realm">筑基·3层</div>
+<div class="d-card-stars">★★★</div>
+<div class="d-card-dot"></div>
+<div class="d-card-info">
+<div class="d-card-name">慕容霜</div>
+<div class="d-card-power">400</div>
+</div>
+</div>
+
+<!-- 优良 蓝 -->
+<div class="d-card q-youliang">
+<div class="d-card-linggen linggen-huo"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·5层</div>
+<div class="d-card-stars">★★</div>
+<div class="d-card-info">
+<div class="d-card-name">玄青</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+<!-- 平庸 绿 -->
+<div class="d-card q-pingyong">
+<div class="d-card-linggen linggen-mu"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·3层</div>
+<div class="d-card-stars">★</div>
+<div class="d-card-info">
+<div class="d-card-name">青渊</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+<!-- 妖孽 橙 -->
+<div class="d-card q-yaonie">
+<div class="d-card-linggen linggen-lei"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·8层</div>
+<div class="d-card-stars">★★★</div>
+<div class="d-card-dot"></div>
+<div class="d-card-info">
+<div class="d-card-name">南宫玄</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+<!-- 凡俗 灰 -->
+<div class="d-card q-fansu">
+<div class="d-card-linggen linggen-tu"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·1层</div>
+<div class="d-card-stars"></div>
+<div class="d-card-info">
+<div class="d-card-name">墨尘</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+<!-- 天才 紫 核心 -->
+<div class="d-card q-tiancai">
+<div class="d-card-linggen linggen-jin"></div>
+<div class="d-card-avatar">🧝</div>
+<div class="d-card-realm">筑基·1层</div>
+<div class="d-card-stars">★★★</div>
+<div class="d-card-info">
+<div class="d-card-name">墨霜</div>
+<div class="d-card-power">400</div>
+</div>
+</div>
+
+<!-- 优良 蓝 -->
+<div class="d-card q-youliang">
+<div class="d-card-linggen linggen-shui"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·6层</div>
+<div class="d-card-stars">★★</div>
+<div class="d-card-info">
+<div class="d-card-name">白泽</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+<!-- 平庸 绿 -->
+<div class="d-card q-pingyong">
+<div class="d-card-linggen linggen-mu"></div>
+<div class="d-card-avatar">🧑</div>
+<div class="d-card-realm">练气·2层</div>
+<div class="d-card-stars">★</div>
+<div class="d-card-info">
+<div class="d-card-name">林远</div>
+<div class="d-card-power">100</div>
+</div>
+</div>
+
+</div>
+
+<!-- 筛选浮动栏 -->
+<div class="filter-bar">
+<div class="filter-chip active">全部</div>
+<div class="filter-chip">金</div>
+<div class="filter-chip">木</div>
+<div class="filter-chip">水</div>
+<div class="filter-chip">火</div>
+<div class="filter-chip">土</div>
+<div class="filter-chip">雷</div>
+<div class="filter-chip">外门</div>
+<div class="filter-chip">内门</div>
+<div class="filter-chip">核心</div>
+</div>
+
+</div>
+
+<!-- 底部导航 -->
+<div class="bottom-bar">
+<div class="tab-item"><div class="tab-icon">山</div><div class="tab-label">宗门</div></div>
+<div class="tab-item active"><div class="tab-icon">人</div><div class="tab-label">弟子</div></div>
+<div class="tab-item"><div class="tab-icon">殿</div><div class="tab-label">殿阁</div></div>
+<div class="tab-item"><div class="tab-icon">历</div><div class="tab-label">历练</div></div>
+<div class="tab-item"><div class="tab-icon">纪</div><div class="tab-label">纪事</div></div>
+</div>
+</div>
+
+<!-- ===== 弟子详情页 ===== -->
+<div class="phone">
+<div class="phone-label">弟子详情页（卡牌式·装备分列）</div>
+
+<div class="detail-page">
+<!-- 顶部 -->
+<div class="detail-top">
+<div class="detail-back">←</div>
+<div class="detail-top-title">弟子详情</div>
+<div class="detail-top-func">
+<div class="detail-func-btn">📖</div>
+<div class="detail-func-btn">🔗</div>
+</div>
+</div>
+
+<!-- 核心区：左装备+卡牌+右装备 -->
+<div class="detail-core">
+<div class="detail-arrow">‹</div>
+
+<!-- 左侧装备 -->
+<div class="detail-equip-left">
+<div class="equip-slot equipped"><div class="equip-slot-icon">🗡</div><div class="equip-slot-name">法兵</div><div class="equip-slot-star">★★</div></div>
+<div class="equip-slot equipped"><div class="equip-slot-icon">👑</div><div class="equip-slot-name">道冠</div><div class="equip-slot-star">★</div></div>
+<div class="equip-slot equipped"><div class="equip-slot-icon">👘</div><div class="equip-slot-name">法袍</div><div class="equip-slot-star">★★</div></div>
+</div>
+
+<!-- 中央卡牌 -->
+<div class="detail-card">
+<div class="detail-card-inner">
+<div class="detail-card-top">
+<div class="detail-card-realm">筑基·三层</div>
+<div class="detail-card-quality">★★★ 天才</div>
+</div>
+<div class="detail-card-portrait">
+<div class="detail-card-linggen">
+<div class="linggen-dot linggen-shui">水</div>
+</div>
+🧝‍♀️
+</div>
+<div class="detail-card-bottom">
+<div class="detail-card-name">慕容霜</div>
+<div class="detail-card-power">400</div>
+</div>
+</div>
+</div>
+
+<!-- 右侧装备 -->
+<div class="detail-equip-right">
+<div class="equip-slot equipped"><div class="equip-slot-icon">💍</div><div class="equip-slot-name">灵腕</div><div class="equip-slot-star">★</div></div>
+<div class="equip-slot empty"><div class="equip-slot-icon">?</div><div class="equip-slot-name">灵饰</div></div>
+<div class="equip-slot equipped"><div class="equip-slot-icon">👟</div><div class="equip-slot-name">云靴</div></div>
+<div class="beast-slot"><div class="equip-slot-icon">🐉</div><div class="equip-slot-name">灵兽</div></div>
+</div>
+
+<div class="detail-arrow">›</div>
+</div>
+
+<!-- 属性区 -->
+<div class="detail-attr-section">
+<div class="detail-attr-title">四维属性</div>
+<div class="detail-attr-row">
+<div class="detail-attr-nums">
+<div class="attr-item"><span class="attr-name">攻</span><span class="attr-val high">260</span></div>
+<div class="attr-item"><span class="attr-name">防</span><span class="attr-val">160</span></div>
+<div class="attr-item"><span class="attr-name">血</span><span class="attr-val high">800</span></div>
+<div class="attr-item"><span class="attr-name">速</span><span class="attr-val high">140</span></div>
+</div>
+<!-- 雷达图 -->
+<div class="radar-container">
+<svg viewBox="0 0 100 100">
+<polygon points="50,10 85,32 85,68 50,90 15,68 15,32" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+<polygon points="50,25 75,40 72,65 50,80 25,62 28,38" fill="rgba(212,175,55,0.2)" stroke="#d4af37" stroke-width="1"/>
+<text x="50" y="8" fill="#8a9ba8" font-size="5" text-anchor="middle">攻</text>
+<text x="92" y="35" fill="#8a9ba8" font-size="5" text-anchor="middle">防</text>
+<text x="92" y="70" fill="#8a9ba8" font-size="5" text-anchor="middle">血</text>
+<text x="50" y="97" fill="#8a9ba8" font-size="5" text-anchor="middle">速</text>
+<text x="8" y="70" fill="#8a9ba8" font-size="5" text-anchor="middle">悟</text>
+<text x="8" y="35" fill="#8a9ba8" font-size="5" text-anchor="middle">缘</text>
+</svg>
+</div>
+</div>
+</div>
+
+<!-- 操作按钮 -->
+<div class="detail-actions">
+<div class="action-btn danger">驱逐</div>
+<div class="action-btn primary">突破</div>
+<div class="action-btn secondary">培养</div>
+</div>
+
+<!-- 底部Tab -->
+<div class="detail-tabs">
+<div class="detail-tab active"><span class="detail-tab-icon">📊</span>属性</div>
+<div class="detail-tab"><span class="detail-tab-icon">📜</span>功法</div>
+<div class="detail-tab"><span class="detail-tab-icon">🐾</span>灵兽</div>
+<div class="detail-tab"><span class="detail-tab-icon">📋</span>履历</div>
+<div class="detail-tab"><span class="detail-tab-icon">🔮</span>命格</div>
+</div>
+
+</div>
+</div>
+
+</body>
+</html>
