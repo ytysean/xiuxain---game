@@ -12,6 +12,43 @@ OUT = os.path.join(CONFIG_DIR, "validate_report.txt")
 # 旧：攻击/控制/辅助防御/通用（skill_cultivation.csv）；新增：普攻/主动/被动天赋（skill.csv 实际值，A4 处置）
 SKILL_TYPES = ["攻击", "控制", "辅助防御", "通用", "普攻", "主动", "被动天赋"]
 
+# ---------------- 单一数据源桥接（S1-5，2026-08-31）----------------
+# 背景：本文件是 csv_validator.gd 的 Python 镜像，两份 schema 各自硬编码必然漂移
+#       （实测：改 csv_validator.gd 对 pre_f5 [2/11] 完全无效，真正在跑的是本文件）。
+# 对策：下表三个高漂移风险的枚举改为「从 csv_validator.gd 的 const 提取」，使 .gd 成为单一数据源。
+#       提取失败时回退到下方 FALLBACK 值，保证门禁不会因解析异常而失效。
+import io as _io
+
+
+def _gd_const_list(const_name: str, fallback: list) -> list:
+    """从 csv_validator.gd 提取 `const NAME := ["a", "b", ...]` 的字符串数组。失败返回 fallback。"""
+    path = os.path.join(SCRIPT_DIR, "csv_validator.gd")
+    try:
+        src = _io.open(path, encoding="utf-8-sig").read()
+        m = re.search(r"const\s+%s\s*:=\s*\[(.*?)\]" % const_name, src, re.S)
+        if not m:
+            return fallback
+        vals = re.findall(r'"([^"]*)"', m.group(1))
+        return vals if vals else fallback
+    except Exception:
+        return fallback
+
+
+_FB_COND = ["sect_level", "disciple_count", "disciple_realm_count", "disciple_all_realm", "disciple_linggen",
+            "master_realm", "beast_count", "building_level", "building_any_level", "building_total_level",
+            "reputation", "prosperity", "placeholder"]
+_FB_QTYPE = ["经营", "养成", "探索", "互动", "炼器", "功法", "成就", "灵兽", "社交", "阵法"]
+_FB_PGRADE = ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
+
+# 成就条件类型：源 = game_state.gd `_复检成就()` match 分支键（经 csv_validator.gd 转手）
+ACHIEVEMENT_CONDITION_TYPES = _gd_const_list("ACHIEVEMENT_CONDITION_TYPES", _FB_COND)
+# 日常差事类型：源 = config/quest_daily.csv 实际取值（经 csv_validator.gd 转手）
+QUEST_DAILY_TYPES = _gd_const_list("QUEST_DAILY_TYPES", _FB_QTYPE)
+# 周常差事类型 = 日常类型 ∪ 周常专属三档
+QUEST_WEEKLY_TYPES = _gd_const_list("QUEST_WEEKLY_TYPES", _FB_QTYPE + ["深度养成", "高阶玩法", "宗门经营"])
+# 傀儡品阶：傀儡走「X阶」口径（ui/page_puppet.gd:38 品阶描述键），与其余表的「X品」不同源
+VALID_PUPPET_GRADES = _gd_const_list("VALID_PUPPET_GRADES", _FB_PGRADE)
+
 # ---------------- 镜像 TABLE_RULES ----------------
 TABLE_RULES = {
     "spirit_pet": {"required_fields": ["pet_id","pet_name","grade","sub_grade","pet_type","unlock_realm","passive_value","max_level","feed_cost_per_day","base_lifespan_year"],
@@ -23,7 +60,7 @@ TABLE_RULES = {
             "feed_cost_per_day":{"type":"int","min":0},"base_lifespan_year":{"type":"int","min":1}}},
     "puppet": {"required_fields":["puppet_id","puppet_name","grade","sub_grade","puppet_type","effect_value","max_durability","daily_maintain_cost","craft_time_sec","base_success_rate","sell_price_ling"],
         "primary_key":"puppet_id",
-        "field_rules":{"grade":{"type":"enum","values":["凡品","灵品","宝品","王品","圣品","仙品","道品"]},
+        "field_rules":{"grade":{"type":"enum","values":VALID_PUPPET_GRADES},
             "sub_grade":{"type":"enum","values":["下品","中品","上品","极品"]},
             "puppet_type":{"type":"enum","values":["劳作","炼丹","炼器","战斗"]},
             "effect_value":{"type":"percent","max":50.0},"max_durability":{"type":"int","min":1},
@@ -133,14 +170,14 @@ TABLE_RULES = {
         "primary_key":"stage+resource","field_rules":{"daily_consumption":{"type":"int","min":0}}},
     "quest_daily": {"required_fields":["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","active_point","daily_limit","is_auto_complete"],
         "primary_key":"quest_id",
-        "field_rules":{"quest_type":{"type":"enum","values":["经营","养成","探索","互动"]},
+        "field_rules":{"quest_type":{"type":"enum","values":QUEST_DAILY_TYPES},
             "difficulty":{"type":"enum","values":["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"]},
             "unlock_sect_level":{"type":"int","min":1,"max":10},"target_num":{"type":"int","min":1},
             "reward_lingjing":{"type":"int","min":0},"reward_lingqi":{"type":"int","min":0},
             "active_point":{"type":"int","min":0},"daily_limit":{"type":"int","min":0},"is_auto_complete":{"type":"bool"}}},
     "quest_weekly": {"required_fields":["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","reward_chest_id","weekly_active_point","weekly_limit","is_auto_complete"],
         "primary_key":"quest_id",
-        "field_rules":{"quest_type":{"type":"enum","values":["深度养成","高阶玩法","宗门经营"]},
+        "field_rules":{"quest_type":{"type":"enum","values":QUEST_WEEKLY_TYPES},
             "difficulty":{"type":"enum","values":["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"]},
             "unlock_sect_level":{"type":"int","min":1,"max":10},"target_num":{"type":"int","min":1},
             "reward_lingjing":{"type":"int","min":0},"reward_lingqi":{"type":"int","min":0},
@@ -236,12 +273,17 @@ TABLE_RULES = {
         "primary_key":"item_id",
         "field_rules":{"item_class":{"type":"enum","values":["主线信物","差事碎片"]},
             "fragment_total":{"type":"int","min":0},"is_counted_in_balance":{"type":"bool"}}},
-    "achievement_config": {"required_fields":["achievement_id","ach_name","category","grade","condition_desc","condition_param","reward_type","reward_id","reward_num","point_num","unlock_tip"],
+    "achievement_config": {"required_fields":["achievement_id","ach_name","category","grade","condition_desc","condition_type","condition_param","condition_extra","reward_type","reward_id","reward_num","reward_lingshi","reward_lingqi","reward_shengwang","point_num","unlock_tip","备注"],
         "primary_key":"achievement_id",
         "field_rules":{"category":{"type":"enum","values":["成长","经营","战斗","探索","社交"]},
             "grade":{"type":"enum","values":["普通","稀有","传说"]},"point_num":{"type":"enum","values":[10,30,100]},
+            "condition_type":{"type":"enum","values":ACHIEVEMENT_CONDITION_TYPES},
+            "condition_param":{"type":"int","min":0},
+            "condition_extra":{"type":"string"},
             "reward_type":{"type":"enum","values":["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"]},
-            "reward_num":{"type":"float","min":0},"condition_param":{"type":"int","min":0},"reward_id":{"type":"string"}}},
+            "reward_num":{"type":"float","min":0},
+            "reward_lingshi":{"type":"int","min":0},"reward_lingqi":{"type":"int","min":0},"reward_shengwang":{"type":"int","min":0},
+            "reward_id":{"type":"string"},"备注":{"type":"string"}}},
     "stage_main": {"required_fields":["stage_id","chapter","stage_name","node_type","unlock_condition","recommend_power","monster_ids","stamina_cost","daily_limit","first_reward_type","first_reward_id","first_reward_num","repeat_drop_pool","difficulty_factor","fail_reduce_enable","designer_note"],
         "primary_key":"stage_id",
         "field_rules":{"chapter":{"type":"int","min":1,"max":3},
@@ -364,18 +406,39 @@ def validate_field(val, rule):
 PROF_ALLOWED = {"道修","体修","法修","御兽师","符箓师","毒师","傀儡师","通用"}
 # 旧道途名，Sprint-03 前须从 .gd/.csv 清零（剑修后置为后续新增道途，不复用旧槽位）
 PROF_ORPHAN_TOKEN = "剑修"
+# 显式豁免（2026-08-31 核准）：「剑修」作为世界观专有名词出现，非旧道途枚举值，报了是误报。
+#   以 (文件名, 行内特征子串) 匹配而非行号，避免编辑后行号漂移导致豁免失效。
+PROF_WHITELIST = [
+    ("expedition.gd", "上古剑修陨落之地"),   # 秘境世界观文案（地名）
+    ("expedition.gd", "剑修传承"),            # 物品名
+]
+
+
+def _prof_exempt(fname: str, line: str) -> bool:
+    """旧道途名扫描的误报豁免：注释行 / @LEGACY-MIGRATION / 世界观专有名词白名单。"""
+    stripped = line.strip()
+    if stripped.startswith("#"):            # 注释行：非代码，不参与重命名
+        return True
+    if "@LEGACY-MIGRATION" in line:         # 旧档迁移兜底（老大 2026-07-19 拍板保留）
+        return True
+    for wf, wkey in PROF_WHITELIST:
+        if fname == wf and wkey in line:
+            return True
+    return False
+
 
 def validate_profession_renamed():
     """扫描根目录 *.gd 与 config/*.csv，旧道途名「剑修」必须清零。
-    出现「剑修」即报孤儿字段（道途枚举已迁移为「道修」）。"""
+    出现「剑修」即报孤儿字段（道途枚举已迁移为「道修」），注释行与白名单文案除外。"""
     bad = []
     gd_files = sorted(glob.glob(os.path.join(SCRIPT_DIR, "*.gd")))
     for p in gd_files:
+        fname = os.path.basename(p)
         try:
             with open(p, encoding="utf-8") as f:
                 for i, line in enumerate(f, 1):
-                    if PROF_ORPHAN_TOKEN in line and "@LEGACY-MIGRATION" not in line:
-                        bad.append((os.path.basename(p), "profession-rename", i,
+                    if PROF_ORPHAN_TOKEN in line and not _prof_exempt(fname, line):
+                        bad.append((fname, "profession-rename", i,
                                     "残留旧道途名「剑修」(应为「道修」): %r" % line.strip()[:60]))
         except Exception:
             pass
