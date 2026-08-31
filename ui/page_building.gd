@@ -663,7 +663,9 @@ func _populate() -> void:
 			月产额 = int(Game.预估月产出())
 		if _overview_月产出 != null:
 			_overview_月产出.text = "%d 灵石" % 月产额
-		var 门派: int = int(Game.get("门派等级", 1))
+		# 修复：Game 是 autoload Node，Object.get() 只接 1 参；门派等级 在 game_state.gd 已声明
+		#（var 门派等级 := 1）且本块已在 is_instance_valid(Game) 守卫内，直接属性访问即得默认值 1。
+		var 门派: int = int(Game.门派等级)
 		var 乘区: float = 1.0 + 0.02 * max(0, 门派 - 1)
 		if _overview_宗门乘区 != null:
 			_overview_宗门乘区.text = "Lv.%d · x%.1f%%" % [门派, 乘区 * 100.0]
