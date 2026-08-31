@@ -18,6 +18,32 @@ extends Node
 
 # ---------- 全局常量 ----------
 const VALID_GRADES := ["凡品", "灵品", "宝品", "王品", "圣品", "仙品", "道品"]
+# 傀儡品阶单列：傀儡走「X阶」口径（见 ui/page_puppet.gd:38 品阶描述键 凡阶/灵阶/宝阶/王阶/圣阶），
+# 与其余表（丹药/灵兽/装备）的「X品」口径不同源，不可混用 VALID_GRADES。
+# 依据：代码为唯一真相源，schema 服从代码，故此处按傀儡 UI 实际消费口径定义。
+const VALID_PUPPET_GRADES := ["凡阶", "灵阶", "宝阶", "王阶", "圣阶", "仙阶", "道阶"]
+# 成就达成条件类型全集：从 game_state.gd `_复检成就()` 的 match 分支键提取（2026-08-31 核准，47 种）。
+# 变更成就后端分支时必须同步此处，否则新增条件会被 schema 误判为非法。
+# 另有 "placeholder" 为有意的 S2 内容占位标记（CSV 备注列标 [PL]S2待回填），单独放行。
+const ACHIEVEMENT_CONDITION_TYPES := [
+	"sect_level", "disciple_count", "disciple_realm_count", "disciple_all_realm", "disciple_linggen",
+	"master_realm", "beast_count", "building_level", "building_any_level", "building_total_level", "reputation",
+	"prosperity", "zhenfa_count", "zhenfa_level", "daily_checkin_streak", "daily_checkin_total",
+	"achievement_count", "game_days", "total_pill_refined", "total_equipment_forged", "total_lingjing_income",
+	"total_disciple_recruited", "total_breakthrough_count", "total_market_trades", "gongfa_collected",
+	"forge_level", "total_lingtian_output", "total_kuangchang_output", "total_linggen_upgrade",
+	"total_xinjing_upgrade", "total_shouyuan_extend", "total_daoshang_repair", "disciple_max_xinjing",
+	"disciple_tixiu_count", "disciple_faxiu_count", "disciple_daoxiu_count", "disciple_three_cultivation",
+	"disciple_max_realm", "disciple_dajingjie_count", "total_puppet_made", "total_salary_paid",
+	"library_book_count", "medicine_garden_plots", "unlocked_pill_formula_count",
+	"unlocked_equipment_blueprint_count", "all_factions_worship", "pill_and_equipment_all",
+	"placeholder",
+]
+# 日常/周常差事类型：取 config/quest_daily.csv 实际取值（2026-08-31 核准）
+const QUEST_DAILY_TYPES := ["经营", "养成", "探索", "互动", "炼器", "功法", "成就", "灵兽", "社交", "阵法"]
+# 周常类型 = 日常类型 ∪ 周常专属三档（深度养成/高阶玩法/宗门经营）
+const QUEST_WEEKLY_TYPES := ["经营", "养成", "探索", "互动", "炼器", "功法", "成就", "灵兽", "社交", "阵法",
+	"深度养成", "高阶玩法", "宗门经营"]
 const MIN_SUCCESS_RATE := 5.0
 const MAX_SUCCESS_RATE := 95.0
 const VALID_SUB_GRADES := ["下品", "中品", "上品", "极品"]
@@ -63,7 +89,7 @@ const TABLE_RULES := {
         ],
         "primary_key": "puppet_id",
         "field_rules": {
-            "grade": {"type": "enum", "values": VALID_GRADES},
+            "grade": {"type": "enum", "values": VALID_PUPPET_GRADES, "tip": "傀儡品阶非法（傀儡走 X阶 口径，非 X品）"},
             "sub_grade": {"type": "enum", "values": ["下品", "中品", "上品", "极品"], "tip": "细分品级非法"},
             "puppet_type": {"type": "enum", "values": ["劳作", "炼丹", "炼器", "战斗"], "tip": "傀儡类型非法"},
             "effect_value": {"type": "percent", "max": 50.0, "tip": "产业增益超出50%全局上限"},
@@ -304,7 +330,7 @@ const TABLE_RULES := {
         "required_fields": ["quest_id","quest_name","quest_type","unlock_sect_level","difficulty","target_desc","target_num","reward_lingjing","reward_lingqi","reward_pool_id","active_point","daily_limit","is_auto_complete"],
         "primary_key": "quest_id",
         "field_rules": {
-            "quest_type": {"type": "enum", "values": ["经营","养成","探索","互动"], "tip": "日常差事类型非法"},
+            "quest_type": {"type": "enum", "values": QUEST_DAILY_TYPES, "tip": "日常差事类型非法"},
             "difficulty": {"type": "enum", "values": ["难度Ⅰ","难度Ⅱ","难度Ⅲ","难度Ⅳ"], "tip": "难度档位非法（应对四阶段成长节奏）"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
             "target_num": {"type": "int", "min": 1, "tip": "目标数量必须大于0"},
@@ -541,19 +567,25 @@ const TABLE_RULES := {
     # 本批次为 [PL] 框架：reward_id 仅做格式（string）校验，跨表存在性校验
     # （ID 必须存在全局道具/称号/外观/功能库）留待赏赐 ID 回填时启用（见 GDD §17.8 缺口清单）。
     "achievement_config": {
-        "required_fields": ["achievement_id","ach_name","category","grade","condition_desc","condition_param","reward_type","reward_id","reward_num","point_num","unlock_tip"],
+        "required_fields": ["achievement_id","ach_name","category","grade","condition_desc","condition_type","condition_param","condition_extra","reward_type","reward_id","reward_num","reward_lingshi","reward_lingqi","reward_shengwang","point_num","unlock_tip","备注"],
         "primary_key": "achievement_id",
         "field_rules": {
             "category": {"type": "enum", "values": ["成长","经营","战斗","探索","社交"], "tip": "成就分类非法"},
             "grade": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "成就等级非法"},
             "point_num": {"type": "enum", "values": [10,30,100], "tip": "成就点数必须为10/30/100"},
-            "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "赏赐类型非法"},
+            "condition_type": {"type": "enum", "values": ACHIEVEMENT_CONDITION_TYPES, "tip": "成就达成条件类型非法（须为 game_state._复检成就 的 match 分支键，或 S2 占位 placeholder）"},
+            "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数（阈值/数量/境界序）不能为负"},
+            "condition_extra": {"type": "string", "tip": "复合条件匹配键：境界名(练气/筑基/...)/殿阁key(lingtian等)/灵根品阶(上品)；简单条件留空"},
+            "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "赏赐类型非法（S1 仅灵石/灵气/声望三类标准资源经 reward_lingshi/lingqi/shengwang 实发，其余悬空容错跳过）"},
             # reward_num 原拟 int；实测 ach_grow_021 为 1.5（永久增益 fang_yu 倍率）。
             # 依据本仓库「CSV 为唯一真相源」原则（见文件头 B2/B3 裁决）改为 float，min 0。
             # 整数数量（如灵石 50000）与小数倍率（如 1.5）均合法。
             "reward_num": {"type": "float", "min": 0, "tip": "赏赐数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
-            "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数不能为负"},
-            "reward_id": {"type": "string", "tip": "意图指向全局道具/称号/外观/功能ID；本批次[PL]不做跨表存在性校验，缺口见GDD §17.8"}
+            "reward_lingshi": {"type": "int", "min": 0, "tip": "标准资源·灵石赏赐不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "标准资源·灵气赏赐不能为负"},
+            "reward_shengwang": {"type": "int", "min": 0, "tip": "标准资源·声望赏赐不能为负"},
+            "reward_id": {"type": "string", "tip": "意图指向全局道具/称号/外观/功能ID；本批次[PL]不做跨表存在性校验，缺口见GDD §17.8"},
+            "备注": {"type": "string", "tip": "S2回填备注；悬空奖励行标记 [PL]S2待回填"}
         }
     },
     "array_config": {

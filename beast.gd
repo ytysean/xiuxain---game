@@ -261,6 +261,29 @@ func 取消出战():
 func 设契约上限(上限: int):
 	contract_limit = clamp(上限, 1, 3)  # 硬限1-3
 
+# ── 立绘路径（按种类名+品阶拼接，缺图自动fallback到类型通用立绘）──
+const 立绘路径前缀: String = "res://art/characters/beasts/"
+# 品阶→文件名后缀映射
+const 品阶文件后缀: Dictionary = {"凡阶": "fan", "灵阶": "ling", "宝阶": "bao", "王阶": "wang", "圣阶": "sheng", "仙阶": "xian", "道阶": "dao"}
+
+func 取立绘路径() -> String:
+	if 孵化中:
+		return 立绘路径前缀 + "egg_" + 品阶文件后缀.get(品阶, "fan") + ".png"
+	# 优先级1：种类专属立绘（如 赤焰狐_bao.png）
+	var p1: String = 立绘路径前缀 + 种类名 + "_" + 品阶文件后缀.get(品阶, "fan") + ".png"
+	if ResourceLoader.exists(p1):
+		return p1
+	# 优先级2：类型通用立绘（如 attack_bao.png）
+	var p2: String = 立绘路径前缀 + beast_type + "_" + 品阶文件后缀.get(品阶, "fan") + ".png"
+	if ResourceLoader.exists(p2):
+		return p2
+	# 优先级3：类型通用无品阶（如 attack.png）
+	var p3: String = 立绘路径前缀 + beast_type + ".png"
+	return p3
+
+func 取头像路径() -> String:
+	return 取立绘路径()  # 头像由UI层裁剪立绘顶部
+
 func 简介(本体战力 := 0) -> String:
 	if 孵化中:
 		return "%s的蛋[%s·%s]（御兽堂孵化中，剩余 %d 日）" % [种类名, 类型中文.get(beast_type, ""), 品阶显示[品阶], 剩余天数]
