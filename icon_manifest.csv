@@ -1,4 +1,4 @@
-﻿item_id,item_name,category,folder,grade,tier,badge_grade,archetype,icon_path,file_exists
+item_id,item_name,category,folder,grade,tier,badge_grade,archetype,icon_path,file_exists
 mat_001,凡品灵草,材料,material,凡品,low,凡品,herb,res://icon/material/mat_001.png,Y
 mat_002,百年灵草,材料,material,灵品,low,灵品,herb,res://icon/material/mat_002.png,Y
 mat_003,三百年灵草,材料,material,宝品,mid,宝品,herb,res://icon/material/mat_003.png,Y
