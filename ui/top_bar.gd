@@ -36,10 +36,10 @@ const LEVEL_Y: float = 40.0
 const LEVEL_SIZE: int = 11
 const FALLBACK_宗门名: String = "太玄宗"
 
-# 中历匾额：配合新框体位置调整
+# 中历匾额：配合新框体位置调整，缩小宽度避免与资源栏重叠
 const CAL_X: float = 149.777778
 const CAL_Y: float = 9.0
-const CAL_W: float = 128.0
+const CAL_W: float = 105.0
 const CAL_H: float = 52.0
 const CAL_R: float = 9.777778
 const CAL_BORDER: float = 0.888889
@@ -58,24 +58,22 @@ const RESOURCES: Array = [
 	{"name": "灵石", "field": "灵石", "prod_key": ""},
 	{"name": "灵气", "field": "灵气", "prod_key": "lingtian"},
 	{"name": "灵植", "field": "灵草", "prod_key": "lingtian"},
-	{"name": "声望", "field": "声望", "prod_key": "gongxun"},
 	{"name": "香火", "field": "香火值", "prod_key": ""},
 ]
 const RES_ICON_STEM: Dictionary = {
 	"灵石": "res_lingshi",
 	"灵气": "res_lingqi",
 	"灵植": "res_lingzhi",
-	"声望": "res_shengwang",
 	"香火": "res_xianghuo",
 }
-const RES_CX: Array = [280.0, 320.0, 360.0, 400.0, 440.0]  # 5个资源，间距40px
-const RES_CY: float = 20.0  # 调整资源图标Y坐标
-const RES_DIA: float = 20.0  # 稍微缩小图标，避免遮挡
+const RES_CX: Array = [278.0, 320.0, 362.0, 404.0]  # 4个资源，间距42px，左移避免与时间框重叠，右移确保第4个图标完整显示
+const RES_CY: float = 18.0  # 资源图标Y坐标（调整为与面板居中）
+const RES_DIA: float = 22.0  # 图标直径
 const RES_NAME_OFFSET: float = 14.0  # 文字中心在 cy+14
-const RES_VAL_OFFSET: float = 26.0  # 数值中心在 cy+26
-const RES_SLOT_W: float = 48.0   # 108 /2.25
+const RES_VAL_OFFSET: float = 28.0  # 数值中心在 cy+28
+const RES_SLOT_W: float = 50.0   # 资源槽宽度
 const RES_SLOT_H: float = 70.0
-const RES_FONT: int = 9          # 20 /2.25 ≈ 8.9
+const RES_FONT: int = 10          # 数值字体大小
 
 var _res_values: Dictionary = {}   # name -> 数值 Label
 var _res_buttons: Dictionary = {}    # name -> 点击热区 Button
@@ -291,14 +289,15 @@ func _build_resources() -> void:
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(icon)
 
-		# 数值（居下）：Label 宽度改为 RES_DIA（= 图标直径），强制水平居中对齐图标 cx，
-		# 避免整卡宽 48 让四位数 "1,000" 与单 "0" 视觉错位
-		var label_w: float = RES_DIA
-		var label_x: float = (RES_SLOT_W - RES_DIA) * 0.5
-		var val_lbl: Label = _mk_label_in(entry, "Val_" + nm, "0",
-			label_x, RES_VAL_CENTER_Y - 5.0, label_w, 10.0,
+		# 数值（居下）：Label 宽度改为 RES_DIA+12（确保4位数显示，避免过宽导致重叠），
+		# 基于 cx 水平居中对齐图标，避免整卡宽导致的视觉错位
+		var label_w: float = RES_DIA + 12.0
+		var label_x: float = cx - label_w * 0.5  # 基于cx居中，与图标对齐
+		var val_lbl: Label = _mk_label("Val_" + nm,
+			label_x, RES_VAL_CENTER_Y - 6.0, label_w, 12.0,
 			RES_FONT, UITheme.C01_TEXT_TERTIARY, true,
 			HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
+		val_lbl.text = "0"
 		val_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		val_lbl.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 		val_lbl.clip_text = false
@@ -541,14 +540,14 @@ func _show_resource_detail(res_name: String) -> void:
 	if btn != null and is_instance_valid(btn):
 		var btn_pos: Vector2 = btn.global_position
 		px = btn_pos.x + btn.size.x * 0.5 - pw * 0.5
-		py = btn_pos.y + btn.size.y + 4.0 * UITheme.UI_SCALE
+		py = btn_pos.y + btn.size.y + 32.0 * UITheme.UI_SCALE  # 从4改为32，避开右上角隐藏UI图标
 	else:
 		var viewport: Vector2 = get_viewport_rect().size
 		px = (viewport.x - pw) * 0.5
 		py = viewport.y * 0.4
 	var viewport: Vector2 = get_viewport_rect().size
 	px = clampf(px, 8.0 * UITheme.UI_SCALE, viewport.x - pw - 8.0 * UITheme.UI_SCALE)
-	py = clampf(py, PANEL_H * UITheme.UI_SCALE + 4.0 * UITheme.UI_SCALE, viewport.y - ph - 8.0 * UITheme.UI_SCALE)
+	py = clampf(py, PANEL_H * UITheme.UI_SCALE + 32.0 * UITheme.UI_SCALE, viewport.y - ph - 8.0 * UITheme.UI_SCALE)  # 最小值从4改为32，与y偏移一致
 	panel.position = Vector2(px, py)
 	panel.size = Vector2(pw, ph)
 	panel.add_theme_stylebox_override("panel",

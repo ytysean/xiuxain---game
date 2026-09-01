@@ -208,4 +208,3 @@ func _on_confirm() -> void:
 
 func _on_cancel() -> void:
 	关闭()
-

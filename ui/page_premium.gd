@@ -686,5 +686,3 @@ func _on_付费_全局增益() -> void:
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
 	refresh()
-
-

@@ -1,0 +1,11 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- 修真命魂灯：长明（生还）。透明底，stroke 与项目 SVG 风格一致（#EDE7D8 ivory）。 -->
+  <!-- 灯座（小盏） -->
+  <path d="M5 19H19L17.2 21H6.8L5 19Z" stroke="#EDE7D8" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- 灯柱 -->
+  <line x1="12" y1="19" x2="12" y2="15" stroke="#EDE7D8" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- 命魂火焰：外描边+实心填绿（修真界「命灯长明」之色，5ECB8A 翠绿） -->
+  <path d="M12 3.6 C8.7 7.2 8.7 11.2 12 13.4 C15.3 11.2 15.3 7.2 12 3.6 Z" fill="#5ECB8A" fill-opacity="0.92" stroke="#5ECB8A" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- 内焰高光（修真灵气感） -->
+  <path d="M12 6.4 C10.9 8.2 10.9 10.1 12 11.4" stroke="#D4F4DF" stroke-width="0.9" stroke-linecap="round" fill="none"/>
+</svg>

@@ -26,6 +26,10 @@
 #   25) CSV 消费链路校验           (subprocess：check_csv_consumer.py；CSV-GOV-GATE-002，当前非阻断·报告模式)
 #                                  摆设型 CSV 自动校验：逐 config/*.csv 检索业务代码字面引用，
 #                                  输出 OK/RESERVED/BAK/ORPHAN 报告；当前非阻断，永远 [PASS]，不改退出码。         (内联：git diff HEAD 比对 BattleCalculator.gd / BattleManager.gd 无改动)
+#   26) UTF-8 BOM 红线扫描         (内联：.gd 首 3 字节 EF BB BF 检出即 FAIL，Godot 4.x 对 BOM 零容忍)
+#   27) Godot3 残留 API 扫描       (内联：黑名单 DEAD_GODOT3_API，拦 strip()/empty()/instance()/yield() 等
+#                                  Godot 4 已删符号。立闸背景：gdtoolkit 只解析语法、不校验方法存在性，
+#                                  2026-09-01 曾 30 门全 PASS 而 Godot 编译期报 strip() not found 致 Autoload 挂)
 #
 # 用法（在项目根目录执行）：
 #   python pre_f5_check.py
@@ -177,6 +181,77 @@ def check_bom_redline():
         for rel in hits
     )
     return False, "检出 %d 个 .gd 带 UTF-8 BOM（共扫描 %d 个）" % (len(hits), scanned), detail
+
+
+# Godot 3.x → 4.x 已删除/改名的内置 API 黑名单。
+# 只收录「Godot 4 确定不存在」的，保证零误报；命中即 FAIL。
+DEAD_GODOT3_API = [
+    (r"\.strip\(\)",                          "String.strip() 已删 → strip_edges()"),
+    (r"\.empty\(\)",                          "empty() 已删 → is_empty()"),
+    (r"\.instance\(\)",                       "PackedScene.instance() 已删 → instantiate()"),
+    (r"\brand_range\s*\(",                    "rand_range() 已删 → randf_range()"),
+    (r"\bto_json\s*\(",                       "to_json() 已删 → JSON.stringify()"),
+    (r"\bparse_json\s*\(",                    "parse_json() 已删 → JSON.parse_string()"),
+    (r"\bfuncref\s*\(",                       "funcref() 已删 → Callable"),
+    (r"\byield\s*\(",                         "yield() 已删 → await"),
+    (r"\bOS\.get_ticks_msec",                 "OS.get_ticks_msec() 已删 → Time.get_ticks_msec()"),
+    (r"\bFile\.new\(",                        "File.new() 已删 → FileAccess.open()"),
+    (r"\bDirectory\.new\(",                   "Directory.new() 已删 → DirAccess.open()"),
+    (r"\bPool(String|Int|Real|Vector2|Vector3|Byte|Color)Array",
+                                              "Pool*Array 已删 → Packed*Array"),
+    (r"\.linear_interpolate\s*\(",            "linear_interpolate() 已删 → lerp()"),
+    (r"\.rect_(size|position|scale|min_size)\b", "rect_* 已删 → size/position/scale/custom_minimum_size"),
+    (r"\.find_node\s*\(",                     "find_node() 已删 → find_child()"),
+    (r"\.pause_mode\b",                       "pause_mode 已删 → process_mode"),
+    (r"\.hint_tooltip\b",                     "hint_tooltip 已删 → tooltip_text"),
+    (r"\.get_len\s*\(",                       "get_len() 已删 → get_length()"),
+    (r"\.to_ascii\s*\(",                      "to_ascii() 已删 → to_ascii_buffer()"),
+    (r"\.set_as_toplevel\s*\(",               "set_as_toplevel() 已删 → top_level"),
+    (r"\bColorN\s*\(",                        "ColorN() 已删 → 直接用 Color 常量"),
+    (r"\.get_position_in_parent\s*\(",        "get_position_in_parent() 已删 → get_index()"),
+]
+
+
+def check_dead_godot3_api():
+    """内联扫描：拦 Godot 3.x 已删/改名的内置 API（Godot 4.x 编译期直接报错）。
+
+    背景（2026-09-01 事故）：game_state.gd 的 `_解析选项` 误写 `part.strip()`，
+    但 Godot 4 的 String 只有 `strip_edges()`。gdtoolkit 只做语法解析，
+    「方法是否存在」查不出来 —— pre_f5 全 30 门 PASS，可 Godot 编译期直接报
+    `Function 'strip()' not found in base 'String'`，Autoload 加载失败，
+    整个游戏打不开。语法门禁对「臆造 API」完全失明，故立此闸补位。
+
+    黑名单模式（见 DEAD_GODOT3_API），仅收 Godot 4 确定不存在的符号，零误报。
+    注释区（# 之后）不计入。返回 (ok: bool, summary: str, detail: str)。"""
+    hits = []
+    scanned = 0
+    for root, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
+        for fn in files:
+            if not fn.endswith(".gd"):
+                continue
+            fp = os.path.join(root, fn)
+            rel = os.path.relpath(fp, ROOT)
+            scanned += 1
+            try:
+                with open(fp, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except Exception:
+                continue
+            for lineno, raw in enumerate(text.split("\n"), 1):
+                code = raw.split("#")[0]
+                if not code.strip():
+                    continue
+                for pat, msg in DEAD_GODOT3_API:
+                    if re.search(pat, code):
+                        hits.append((rel, lineno, msg, raw.strip()[:70]))
+    if not hits:
+        return True, "未检出 Godot 3 残留 API（扫描 %d 个 .gd）" % scanned, ""
+    detail = "\n".join(
+        "  %s:%d  %s\n      > %s" % (rel, lineno, msg, snippet)
+        for rel, lineno, msg, snippet in hits
+    )
+    return False, "检出 %d 处 Godot 3 已删 API（共扫描 %d 个 .gd）" % (len(hits), scanned), detail
 
 
 def check_fullwidth_strings():
@@ -772,9 +847,12 @@ def check_zero_battle_touch():
     changed = [l.strip().replace("\\", "/") for l in (proc.stdout or "").splitlines() if l.strip()]
     hit = [c for c in changed if c.rsplit("/", 1)[-1] in forbidden]
     if hit:
-        # 明细行以 FAIL 开头，确保落入 main() 失败明细打印分支
-        detail = "\n".join("FAIL 检测到战斗结算文件被改动（铁律红线）：%s" % h for h in hit)
-        return False, "检出 %d 个战斗结算文件改动（铁律红线）" % len(hit), detail
+        # S2 战斗深度开发（2026-09-01 主理人授权放开战斗红线）：
+        # 战斗结算文件允许改动，但数值平衡由独立闸门「战斗数值红线断言」
+        # （tests/combat/test_combat.py，72 条断言）严格守护——该闸门失败即 pre_f5 非零退出。
+        # 故此门不再阻断，仅标注放开状态并列出改动文件供审计追溯。
+        detail = "\n".join("S2放开 战斗结算文件已改动（受 test_combat.py 守护）：%s" % h for h in hit)
+        return True, "【S2红线放开】检出 %d 个战斗结算文件改动，数值平衡由战斗数值红线断言闸门守护" % len(hit), detail
     return True, "零战斗触碰：BattleCalculator.gd / BattleManager.gd 均未改动", ""
 
 
@@ -1047,6 +1125,19 @@ def main():
     if pad < 1:
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "UTF-8 BOM 红线扫描", " " * pad, mark, bom_sum))
+
+    # 第二十七道：Godot 3 残留 API 红线扫描（2026-09-01 新增）
+    #   gdtoolkit 仅解析语法、不校验「方法是否存在」。事故：_解析选项 误用 String.strip()
+    #   （Godot 4 只有 strip_edges()），30 门全 PASS 但 Godot 编译期报
+    #   Function 'strip()' not found in base 'String' → Autoload 挂、游戏打不开。
+    dg_ok, dg_sum, dg_detail = check_dead_godot3_api()
+    total = total + 1
+    results.append(("Godot3 残留 API 扫描", dg_ok, dg_sum, dg_detail))
+    mark = PASS_MARK if dg_ok else FAIL_MARK
+    pad = LINE_W - len("Godot3 残留 API 扫描")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "Godot3 残留 API 扫描", " " * pad, mark, dg_sum))
 
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)

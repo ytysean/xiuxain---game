@@ -1,4 +1,9 @@
 extends Node
+const BattleManager = preload("res://BattleManager.gd")
+const StageDataLoader = preload("res://StageDataLoader.gd")
+const BattleCalculator = preload("res://BattleCalculator.gd")
+const Item = preload("res://item.gd")
+const Beast = preload("res://beast.gd")
 
 ## 历练派遣系统（Autoload单例）
 ## 关卡定义、派遣逻辑、结算评级、三池掉落+保底、随机事件
@@ -100,6 +105,40 @@ const 关卡库: Dictionary = {
 		"描述": "妖族聚居之地，危机四伏，但妖兽材料与内丹极为珍贵。",
 		"掉落池": "pool_secret_yaoyu", "事件池": "event_combat"
 	},
+	# ── 终局秘境（毕业物来源：超道阶神兽 / 神器 / 无上功法）──
+	"secret_wanshou": {
+		"名称": "秘境·万兽渊", "类型": "secret", "推荐战力": 30000, "难度": 6,
+		"解锁境界": "合体", "预计时长": 30,
+		"描述": "上古神兽归墟之地，渊底沉眠超道阶源初神兽。非大乘以上不可窥其秘，渊中凶兽皆承神兽血脉。",
+		"掉落池": "pool_secret_wanshou", "事件池": "event_secret"
+	},
+	"secret_endgame": {
+		"名称": "终局秘境·天道废墟", "类型": "secret", "推荐战力": 50000, "难度": 7,
+		"解锁境界": "大乘", "预计时长": 45,
+		"描述": "道陨之后残存的法则废墟，传说藏有诸天神器与上古无上功法，踏入者皆承天道之威。",
+		"掉落池": "pool_secret_endgame", "事件池": "event_secret"
+	},
+}
+
+# S1-1 真实怪物映射：关卡ID → monster_main.csv 的 monster_id 列表（经 StageDataLoader 组装）。
+# 与 副本/秘境 同源数据，零臆造；难度靠「怪物种数 / 是否为 BOSS」体现，与原 难度 字段解耦。
+# 数据缺口：secret_yaoyu(元婴) 在怪物表中无对应怪物（怪物表仅到金丹），暂用金丹 BOSS+精英作最硬可用档，待补元婴怪物。
+const 关卡怪物映射: Dictionary = {
+	"daily_lingcai": ["M103"],
+	"daily_xunluo": ["M102"],
+	"daily_shangmao": ["M104", "M101"],
+	"daily_yaoshou": ["M2PH", "M2PH"],
+	"daily_kuangshi": ["M2PH"],
+	"realm_zhuji_1": ["M2PH"],
+	"realm_zhuji_2": ["M2PH", "M2PH"],
+	"realm_zhuji_3": ["M2BOSS"],
+	"realm_zhuji_4": ["M2BOSS"],
+	"realm_zhuji_5": ["M2BOSS", "M2PH"],
+	"realm_jindan_1": ["M3PH"],
+	"realm_jindan_2": ["M3BOSS"],
+	"secret_gumu": ["M2BOSS"],
+	"secret_jianzhong": ["M3BOSS"],
+	"secret_yaoyu": ["M3BOSS", "M3PH"],
 }
 
 # ============ 掉落池定义 ============
@@ -234,6 +273,42 @@ const 掉落池: Dictionary = {
 			{"物品": "稀有灵兽蛋", "概率": 0.02, "最小": 1, "最大": 1},
 		],
 		"稀有保底": 3
+	},
+	# ── 终局秘境掉落池（毕业物来源）──
+	"pool_secret_wanshou": {
+		"必掉": [{"物品": "灵石", "最小": 1000, "最大": 2000}, {"物品": "贡献点", "最小": 100, "最大": 200}, {"物品": "声望", "最小": 50, "最大": 100}],
+		"普通": [
+			{"物品": "妖兽内丹", "概率": 0.5, "最小": 2, "最大": 5},
+			{"物品": "妖兽皮", "概率": 0.6, "最小": 5, "最大": 12},
+		],
+		"稀有": [
+			{"物品": "妖王内丹", "概率": 0.08, "最小": 1, "最大": 1},
+			{"物品": "beast_hun", "概率": 0.06, "最小": 1, "最大": 1},
+			{"物品": "奇物_道阶", "概率": 0.05, "最小": 1, "最大": 1},
+		],
+		"稀有保底": 5
+	},
+	"pool_secret_endgame": {
+		"必掉": [{"物品": "灵石", "最小": 2000, "最大": 4000}, {"物品": "贡献点", "最小": 200, "最大": 400}, {"物品": "声望", "最小": 100, "最大": 200}],
+		"普通": [
+			{"物品": "天道道纹石", "概率": 0.4, "最小": 1, "最大": 3},
+			{"物品": "道韵灵根", "概率": 0.5, "最小": 1, "最大": 3},
+		],
+		"稀有": [
+			{"物品": "shenqi_donghuang", "概率": 0.04, "最小": 1, "最大": 1},
+			{"物品": "shenqi_xuanyuan", "概率": 0.04, "最小": 1, "最大": 1},
+			{"物品": "shenqi_shishen", "概率": 0.03, "最小": 1, "最大": 1},
+			{"物品": "shenqi_kunlun", "概率": 0.03, "最小": 1, "最大": 1},
+			{"物品": "shenqi_taiji", "概率": 0.03, "最小": 1, "最大": 1},
+			{"物品": "shenqi_shanhe", "概率": 0.03, "最小": 1, "最大": 1},
+			{"物品": "shenqi_zhuxian_array", "概率": 0.03, "最小": 1, "最大": 1},
+			{"物品": "gongfa_hongmeng", "概率": 0.05, "最小": 1, "最大": 1},
+			{"物品": "gongfa_taishang", "概率": 0.05, "最小": 1, "最大": 1},
+			{"物品": "gongfa_hundun_wuji", "概率": 0.05, "最小": 1, "最大": 1},
+			{"物品": "奇物_道阶", "概率": 0.06, "最小": 1, "最大": 1},
+			{"物品": "beast_hun", "概率": 0.04, "最小": 1, "最大": 1},
+		],
+		"稀有保底": 4
 	},
 }
 
@@ -391,6 +466,153 @@ func 获取进行中历练() -> Dictionary:
 	return 进行中历练.duplicate()
 
 # ============ 结算逻辑 ============
+
+# ============ S1-1：真实战斗接入（替代掷骰绕过真实战斗）============
+# 历练结算改用 BattleManager.发起1v1 真实引擎定胜负，不再 randf() 掷骰。
+# 红线：仅调用 BattleManager（不改 BattleCalculator/BattleManager 内部）；
+#       敌方 技能=[] → 走 _结算_1v1_原版（72 断言基线逐字节一致）。
+
+# S1-1 真实战斗接入：敌方 = 关卡「怪物」字段指向的真实怪物（monster_main.csv 经 StageDataLoader，
+# 含 怪物境界倍率 对称缩放），与 副本/秘境 完全同口径、零臆造。
+# 多怪物时聚合为单个敌方快照（属性累加、战力合计），与 _聚合队伍快照 对称。
+func _构造敌方快照(关卡ID: String) -> Dictionary:
+	var 关卡 = 获取关卡(关卡ID)
+	var 怪物ids: Array = 关卡怪物映射.get(关卡ID, [])
+	var 单位列表: Array = []
+	if 怪物ids.size() > 0:
+		单位列表 = StageDataLoader.build_monster_units_by_ids(怪物ids)
+	# 兜底：关卡未配置怪物（数据缺口）时，退化为最弱练气野怪，保证不崩、不造臆造属性
+	if 单位列表.is_empty():
+		单位列表 = StageDataLoader.build_monster_units_by_ids(["M101"])
+	if 单位列表.size() == 1:
+		var u = 单位列表[0]
+		return {
+			"战力": BattleCalculator.战力度量(u),
+			"属性": u.get("属性", {}),
+			"道途": u.get("道途", ""),
+			"职业": u.get("道途", ""),
+			"灵根": u.get("灵根", {"主": "金", "纯度": "单"}),
+			"灵兽战力": 0,
+			"灵兽": [],
+			"极品特效": [],
+			"通用增益": 0.0,
+			"道心增益": 0.0,
+			"暴击率": u.get("暴击率", 0.0),
+			"闪避率": u.get("闪避率", 0.0),
+			"名称": u.get("名称", "妖兽"),
+			"技能": [],
+			"功法被动": [],
+		}
+	# 多怪物聚合
+	var 聚合属性 := {"攻": 0, "防": 0, "血": 0, "速": 0}
+	var 总战力 = 0
+	var 暴击累加 = 0.0
+	var 闪避累加 = 0.0
+	var 反伤累加 = 0.0
+	var 穿透累加 = 0.0
+	var 名称列表 := []
+	for u in 单位列表:
+		var a = u.get("属性", {})
+		聚合属性["攻"] += int(a.get("攻", 0))
+		聚合属性["防"] += int(a.get("防", 0))
+		聚合属性["血"] += int(a.get("血", 0))
+		聚合属性["速"] += int(a.get("速", 0))
+		总战力 += BattleCalculator.战力度量(u)
+		暴击累加 += float(u.get("暴击率", 0.0))
+		闪避累加 += float(u.get("闪避率", 0.0))
+		反伤累加 += float(u.get("反伤率", 0.0))
+		穿透累加 += float(u.get("穿透率", 0.0))
+		名称列表.append(u.get("名称", "妖兽"))
+	var 人数 = 单位列表.size()
+	return {
+		"战力": 总战力,
+		"属性": 聚合属性,
+		"道途": "",
+		"职业": "",
+		"灵根": 单位列表[0].get("灵根", {"主": "金", "纯度": "单"}),
+		"灵兽战力": 0,
+		"灵兽": [],
+		"极品特效": [],
+		"通用增益": 0.0,
+		"道心增益": 0.0,
+		"暴击率": 暴击累加 / float(人数),
+		"闪避率": 闪避累加 / float(人数),
+		"反伤率": 反伤累加 / float(人数),
+		"穿透率": 穿透累加 / float(人数),
+		"名称": "妖兽群·" + "、".join(名称列表),
+		"技能": [],
+		"功法被动": [],
+	}
+
+# 聚合 1-3 名弟子的战斗快照为一个「队伍代表」（属性累加、战力合计）
+func _聚合队伍快照(弟子ID列表: Array) -> Dictionary:
+	var 队员快照 := []
+	for did in 弟子ID列表:
+		var d = _获取弟子(did)
+		if d != null and d.has_method("get_final_combat_attr"):
+			队员快照.append(d.get_final_combat_attr())
+	if 队员快照.is_empty():
+		return {}
+	var 队长 = 队员快照[0]
+	var 聚合属性 := {"攻": 0, "防": 0, "血": 0, "速": 0}
+	var 总战力 = 0
+	var 暴击累加 = 0.0
+	var 闪避累加 = 0.0
+	var 反伤累加 = 0.0
+	var 穿透累加 = 0.0
+	for s in 队员快照:
+		var a = s.get("属性", {})
+		聚合属性["攻"] += int(a.get("攻", 0))
+		聚合属性["防"] += int(a.get("防", 0))
+		聚合属性["血"] += int(a.get("血", 0))
+		聚合属性["速"] += int(a.get("速", 0))
+		总战力 += int(s.get("战力", 0))
+		暴击累加 += float(s.get("暴击率", 0.0))
+		闪避累加 += float(s.get("闪避率", 0.0))
+		反伤累加 += float(s.get("反伤率", 0.0))
+		穿透累加 += float(s.get("穿透率", 0.0))
+	var 人数 = 队员快照.size()
+	return {
+		"战力": 总战力,
+		"属性": 聚合属性,
+		"道途": 队长.get("道途", "道修"),
+		"职业": 队长.get("职业", "道修"),
+		"灵根": 队长.get("灵根", {"主": "金", "纯度": "单"}),
+		"灵兽战力": 队长.get("灵兽战力", 0),
+		"灵兽": 队长.get("灵兽", []),
+		"极品特效": 队长.get("极品特效", []),
+		"通用增益": 队长.get("通用增益", 0.0),
+		"道心增益": 队长.get("道心增益", 0.0),
+		"暴击率": 暴击累加 / float(人数),
+		"闪避率": 闪避累加 / float(人数),
+		"反伤率": 反伤累加 / float(人数),
+		"穿透率": 穿透累加 / float(人数),
+		"名称": "队伍·" + str(队长.get("名称", "弟子")) + "等" + str(人数) + "人小队",
+		"技能": [],
+		"功法被动": 队长.get("功法被动", []),
+	}
+
+# 把 BattleManager 战报 log 转为可读文本（供历练结果/纪事展示）
+func _格式化战报(战报: Dictionary) -> Array:
+	var 文本 := []
+	for e in 战报.get("battle_log", []):
+		if e.get("pet_action", false):
+			continue
+		var 回合 = int(e.get("round", 0))
+		var 行动 = str(e.get("actor", ""))
+		var 目标 = str(e.get("target", ""))
+		var 伤害 = int(e.get("damage", 0))
+		var 标记 = ""
+		if e.get("is_crit", false):
+			标记 = "暴击"
+		if e.get("is_restrain", false):
+			标记 += ("克制" if 标记 == "" else "·克制")
+		var 后缀 = ""
+		if 标记 != "":
+			后缀 = "（" + 标记 + "）"
+		文本.append("第" + str(回合) + "回合 " + 行动 + " → " + 目标 + " 造成" + str(伤害) + "伤害" + 后缀)
+	return 文本
+
 func 检查并结算历练() -> Array:
 	## 每日推演时调用，检查所有进行中历练是否到期，到期则结算
 	var 结算结果列表: Array = []
@@ -423,18 +645,23 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 	var 关卡ID = 实例["关卡ID"]
 	var 关卡 = 获取关卡(关卡ID)
 	var 弟子ID列表 = 实例["弟子ID列表"]
-	# 计算总战力
+	# 计算总战力（境界表口径，供界面/回传展示）
 	var 总战力 = 0
 	for did in 弟子ID列表:
 		var d = _获取弟子(did)
 		if d != null:
 			总战力 += int(d.get("战力", 0))
-	# 计算成功率
+	# S1-1：先构造双方真实战斗快照（玩家队 + 关卡真实怪物）
+	var 攻方快照 = _聚合队伍快照(弟子ID列表)
+	var 守方快照 = _构造敌方快照(关卡ID)
+	# 真实战力度量比（贴合真实战斗引擎，替代原 总战力/推荐战力 口径）
+	var 我方度量 = BattleCalculator.战力度量(攻方快照) if not 攻方快照.is_empty() else 0
+	var 敌方度量 = BattleCalculator.战力度量(守方快照)
+	var 战力比 = float(我方度量) / float(敌方度量) if 敌方度量 > 0 else 1.0
+	# 计算成功率（以真实战力度量比为基准的预估，供界面展示）
 	var 推荐战力 = int(关卡["推荐战力"])
-	var 难度系数 = float(关卡["难度"])
-	var 战力比 = float(总战力) / float(推荐战力) if 推荐战力 > 0 else 1.0
-	var 成功率 = clamp(战力比 / 难度系数, 0.1, 0.95)
-	# 心境/道心加成（取队伍平均值）
+	var 成功率 = clamp(战力比, 0.1, 0.95)
+	# 心境/道心加成（取队伍平均值）作为真实胜率的修正预估
 	var 平均心境 = 0
 	var 平均道心 = 0
 	var 平均心魔 = 0
@@ -450,8 +677,12 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 		平均心魔 /= 弟子ID列表.size()
 	成功率 += (float(平均心境) * 0.05 + float(平均道心) * 0.08 - float(平均心魔) * 0.1) / 100.0
 	成功率 = clamp(成功率, 0.05, 0.95)
-	# 判定成功/失败
-	var 成功 = randf() < 成功率
+	# 判定成功/失败（S1-1：真实战斗引擎替代掷骰绕过）
+	var 战报 = {"is_win": false, "battle_log": []}
+	if not 攻方快照.is_empty():
+		战报 = BattleManager.发起1v1(攻方快照, 守方快照, "quick", false)
+	var 成功 = 战报.get("is_win", false)
+	var 战斗战报 = _格式化战报(战报)
 	# 失败→按难度 + 阶差 概率标记弟子「失踪」，并下发调查任务（P3 逻辑链）
 	# 阶差 = 关卡要求阶 - 弟子修为阶：低阶弟子做高级任务时阶差大→失踪率显著升高（贴合真实修真：弱者闯险地易失联）
 	if not 成功:
@@ -519,6 +750,7 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 		"总战力": 总战力,
 		"推荐战力": 推荐战力,
 		"成功率": 成功率,
+		"战斗战报": 战斗战报,
 		"掉落": 掉落,
 		"事件": 事件,
 		"弟子ID列表": 弟子ID列表,
@@ -710,11 +942,19 @@ func _结算调查(实例ID: String) -> Dictionary:
 				Game.添加纪事("历练", "寻回弟子", "高阶弟子寻得%s，安然归来，宗门已发赏赐" % (失踪者.姓名 if 失踪者 != null else "失踪弟子"), 1)
 			结果文本 = "寻得%s，安然归来" % (失踪者.姓名 if 失踪者 != null else "失踪弟子")
 		else:
+			var 已转世: bool = false
 			if 失踪者 != null:
-				失踪者.状态 = "陨落"
-			if Game != null:
-				Game.添加纪事("历练", "弟子陨落", "寻得%s骸骨，确认陨落，命牌碎裂" % (失踪者.姓名 if 失踪者 != null else "失踪弟子"), 2)
-			结果文本 = "寻得%s骸骨，确认陨落" % (失踪者.姓名 if 失踪者 != null else "失踪弟子")
+				if Game != null and Game._转世判定(失踪者):
+					已转世 = true
+					Game.添加纪事("历练", "转世重修", "%s 于陨落之际转世重修，再入轮回" % 失踪者.姓名, 2)
+					结果文本 = "寻得%s，竟已转世重修，再踏仙途" % 失踪者.姓名
+				else:
+					失踪者.状态 = "陨落"
+					if Game != null:
+						Game.添加纪事("历练", "弟子陨落", "寻得%s骸骨，确认陨落，命牌碎裂" % 失踪者.姓名, 2)
+						结果文本 = "寻得%s骸骨，确认陨落" % 失踪者.姓名
+			else:
+				结果文本 = "寻得失踪弟子骸骨，确认陨落"
 		if 调查任务列表.has(tid):
 			调查任务列表.erase(tid)
 		# 任务联动（因果链）：寻回/确认后派生后继任务（A 影响 B、B 建立在 A 之上）
@@ -880,41 +1120,74 @@ func _发放奖励(掉落: Dictionary) -> void:
 		return
 	for 物品名 in 掉落.keys():
 		var 数量 = int(掉落[物品名])
-		match 物品名:
-			"灵石": Game.灵石 += 数量
-			"贡献点":
-				if Game.has("贡献点"):
-					Game.贡献点 += 数量
-			"声望":
-				if Game.has("声望"):
-					Game.声望 += 数量
-			"悟道点":
-				if Game.has("悟道点"):
-					Game.悟道点 += 数量
-			_:
-				# 碎片物品：以"frag_"开头，添加到碎片库存
-				if 物品名.begins_with("frag_"):
-					if Game.has_method("添加碎片"):
-						Game.添加碎片(物品名, 数量)
-					else:
-						# 兜底：进入宗门仓库
-						if not Game.has("历练仓库"):
-							Game.历练仓库 = {}
-						Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
-				# 宝箱物品：以"chest_"开头，添加到宝箱库存
-				elif 物品名.begins_with("chest_"):
-					if Game.has_method("添加宝箱"):
-						Game.添加宝箱(物品名, 数量)
-					else:
-						# 兜底：进入宗门仓库
-						if not Game.has("历练仓库"):
-							Game.历练仓库 = {}
-						Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
-				else:
-					# 其他物品进入宗门仓库（暂存到Game的仓库字典）
-					if not Game.has("历练仓库"):
-						Game.历练仓库 = {}
-					Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
+		# S2 增强·毕业物掉落：神器 / 无上功法 / 奇物 / 超道阶神兽 专属授予（if/elif 链，规避 match 歧义）
+		if 物品名 == "灵石":
+			Game.灵石 += 数量
+		elif 物品名 == "贡献点":
+			if Game.has("贡献点"):
+				Game.贡献点 += 数量
+		elif 物品名 == "声望":
+			if Game.has("声望"):
+				Game.声望 += 数量
+		elif 物品名 == "悟道点":
+			if Game.has("悟道点"):
+				Game.悟道点 += 数量
+		elif 物品名.begins_with("shenqi_"):
+			var 神器ID: String = 物品名.trim_prefix("shenqi_")
+			if Item.神器库.has(神器ID):
+				var 神器 = Item.生成神器(神器ID)
+				if 神器 != null and Game.has("仓库"):
+					Game.仓库.append(神器)
+					if Game.has_method("添加纪事"):
+						Game.添加纪事("历练", "神器现世", "秘境深处惊现神器【%s】，已收入宗门库房。" % 神器.名称, 2)
+			continue
+		elif 物品名.begins_with("gongfa_"):
+			var 功法ID: String = 物品名.trim_prefix("gongfa_")
+			var 功法 = GongFaSystem.功法库.get(功法ID, {})
+			if not 功法.is_empty() and Game.has("弟子列表") and Game.弟子列表.size() > 0:
+				var 宗主 = Game.弟子列表[0]
+				if not 宗主.已学功法.has(功法ID):
+					宗主.已学功法.append(功法ID)
+					宗主.修炼速度 = float(宗主.修炼速度) * (1.0 + float(功法.get("修炼加成", 0)))
+					宗主.战力 = int(宗主.战力) + int(功法.get("战力加成", 0))
+					if Game.has_method("添加纪事"):
+						Game.添加纪事("历练", "无上传承", "宗主于秘境参悟无上功法【%s】！" % 功法.get("名称", ""), 2)
+			continue
+		elif 物品名.begins_with("奇物_"):
+			var 奇物品阶: String = 物品名.trim_prefix("奇物_")
+			var 奇物 = Item.生成奇物(奇物品阶)
+			if 奇物 != null and Game.has("仓库"):
+				Game.仓库.append(奇物)
+				if Game.has_method("添加纪事"):
+					Game.添加纪事("历练", "奇物惊现", "秘境中得变异奇物【%s】！" % 奇物.名称, 1)
+			continue
+		elif 物品名 == "beast_hun":
+			if Game.has("灵兽库存"):
+				var 兽 = Beast.new()
+				兽.随机成蛋("hun_jie")
+				兽.孵化()
+				Game.灵兽库存.append(兽)
+				if Game.has_method("添加纪事"):
+					Game.添加纪事("历练", "源初现世", "秘境深处降生超道阶源初神兽【%s】！" % 兽.种类名, 2)
+			continue
+		elif 物品名.begins_with("frag_"):
+			if Game.has_method("添加碎片"):
+				Game.添加碎片(物品名, 数量)
+			else:
+				if not Game.has("历练仓库"):
+					Game.历练仓库 = {}
+				Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
+		elif 物品名.begins_with("chest_"):
+			if Game.has_method("添加宝箱"):
+				Game.添加宝箱(物品名, 数量)
+			else:
+				if not Game.has("历练仓库"):
+					Game.历练仓库 = {}
+				Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
+		else:
+			if not Game.has("历练仓库"):
+				Game.历练仓库 = {}
+			Game.历练仓库[物品名] = Game.历练仓库.get(物品名, 0) + 数量
 
 # ============ 辅助函数 ============
 func _获取弟子(弟子ID: int):

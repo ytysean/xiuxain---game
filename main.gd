@@ -4699,7 +4699,7 @@ func _刷新_差事页(结果: Label):
 	for c in 差事列.get_children():
 		c.queue_free()
 	# —— 日常差事 ——
-	var 日常倒计秒 := max(0, 86400 - (int(Time.get_unix_time_from_system()) - Game.上次日常真实秒))
+	var 日常倒计秒: int = int(max(0, 86400 - (int(Time.get_unix_time_from_system()) - Game.上次日常真实秒)))
 	var 日头 := Label.new(); 日头.text = "【日常】每日刷新(距 %d 时 %d 分) 领灵石/灵气" % [日常倒计秒 / 3600, (日常倒计秒 % 3600) / 60]; 差事列.add_child(日头)
 	for i in Game.当前日常.size():
 		var q: Dictionary = Game.当前日常[i]
@@ -4713,7 +4713,7 @@ func _刷新_差事页(结果: Label):
 			var res: Dictionary = Game.领取日常(i)
 			_差事提示 = res.get("msg", "")
 			if res.get("ok", false):
-				var qq: Dictionary = Game.当前日常[i]
+				var qq: Dictionary = Game.当前日常[i] as Dictionary
 				var 灵: int = int(float(qq.get("reward_lingjing", "0")) * Game.差事赏赐系数())
 				var 气: int = int(float(qq.get("reward_lingqi", "0")) * Game.差事赏赐系数())
 				_数值跳字(差事列, "灵石+%d 灵气+%d" % [灵, 气], 玉石绿)
@@ -4731,7 +4731,7 @@ func _刷新_差事页(结果: Label):
 			行.add_child(往)
 		差事列.add_child(行)
 	# —— 周常差事 ——
-	var 周常倒计秒 := max(0, 604800 - (int(Time.get_unix_time_from_system()) - Game.上次周常真实秒))
+	var 周常倒计秒: int = int(max(0, 604800 - (int(Time.get_unix_time_from_system()) - Game.上次周常真实秒)))
 	var 周头 := Label.new(); 周头.text = "【周常】每周刷新(距 %d 天 %d 时)" % [周常倒计秒 / 86400, (周常倒计秒 % 86400) / 3600]; 差事列.add_child(周头)
 	if Game.当前周常.is_empty():
 		var 无 := Label.new(); 无.text = "（暂未解锁，提升门派等级后开启）"; 差事列.add_child(无)

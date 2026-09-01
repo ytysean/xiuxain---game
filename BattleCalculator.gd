@@ -39,6 +39,17 @@ const 五行下限 := 0.82
 const 职业克制乘率 := 1.20
 const 职业被克乘率 := 0.85
 
+# 功法流派克制环（S2：独立于道途克制的第二克制维度；默认中性 1.0 不破坏现役数学）
+# 四象环：攻伐→守御→奇诡→化生→攻伐（由弟子主修功法 skill_type 驱动；空→"无"→中性）
+const 功法克制环 := {
+	"攻伐": "守御",
+	"守御": "奇诡",
+	"奇诡": "化生",
+	"化生": "攻伐",
+}
+const 功法克制乘率 := 1.18
+const 功法被克乘率 := 0.86
+
 # 防御减伤：减伤率 = 防 / (防 + 基准)，封顶（P0 占位常数，待 design 校准）
 const 防御减伤基准 := 200.0
 const 防御减伤上限 := 0.75
@@ -98,6 +109,18 @@ static func profession_multiplier(atk_prof: String, def_prof: String) -> float:
 		return 职业被克乘率
 	return 1.0
 
+# ============ 纯函数：功法流派克制乘率（S2，独立于道途克制的第二维度）============
+# 攻伐/守御/奇诡/化生 四象环；空流派（"无"）或同流派 → 中性 1.0。
+# 现役快照无「功法」字段 → 恒 1.0 → 原版/空技能增强数学不变 → 72 断言红线不破。
+static func method_multiplier(atk_m: String, def_m: String) -> float:
+	if atk_m == "" or def_m == "":
+		return 1.0
+	if 功法克制环.get(atk_m, "") == def_m:
+		return 功法克制乘率
+	if 功法克制环.get(def_m, "") == atk_m:
+		return 功法被克乘率
+	return 1.0
+
 # ============ 比率封顶（AC7② 边界）============
 static func 封顶暴击率(率: float) -> float:
 	return clamp(率, 0.0, 暴击率上限)
@@ -113,7 +136,7 @@ static func 封顶闪避率(率: float) -> float:
 #   dodge_mult   : 闪避系数（完整随机取 0/1，速算取期望值 1-闪避率）
 #   is_true      : 真实/固定伤害（wuxing 恒 1.0）
 # 边界（AC7①）：攻击=0 不出负伤（返回 0）；防御极高时伤害下限夹 1。
-static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: float, crit_mult: float, dodge_mult: float, is_true: bool = false) -> int:
+static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: float, crit_mult: float, dodge_mult: float, is_true: bool = false, 穿透率: float = 0.0) -> int:
 	if dodge_mult <= 0.0:
 		return 0
 	var 攻击: float = float(atk.get("属性", {}).get("攻", 0))
@@ -121,6 +144,11 @@ static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: floa
 		return 0   # 攻击=0 不出负伤
 	var 防御: float = float(def.get("属性", {}).get("防", 0))
 	var 减伤率: float = clamp(防御 / (防御 + 防御减伤基准), 0.0, 防御减伤上限)
+	# S2 套装·穿透：按攻方穿透率无视部分减伤（默认 0.0 → 原数学不变，72 断言不破）
+	减伤率 = clamp(减伤率 * (1.0 - clamp(穿透率, 0.0, 1.0)), 0.0, 防御减伤上限)
+	# S2 套装·额外减伤：守方自身减伤率无视部分减伤（默认 0.0 → 原数学不变）
+	var 守方减伤: float = clamp(float(def.get("减伤率", 0.0)), 0.0, 0.9)
+	减伤率 = clamp(减伤率 * (1.0 - 守方减伤), 0.0, 防御减伤上限)
 	var wux: float = wuxing_multiplier(
 		atk.get("灵根", {}).get("主", ""),
 		def.get("灵根", {}).get("主", ""),
@@ -128,10 +156,11 @@ static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: floa
 		is_true
 	)
 	var 职业倍率: float = profession_multiplier(atk.get("职业", ""), def.get("职业", ""))
+	var 功法倍率: float = method_multiplier(atk.get("功法", ""), def.get("功法", ""))
 	var 通用增益: float = 1.0 + float(atk.get("通用增益", 0.0))
 	var 道心增益: float = 1.0 + float(atk.get("道心增益", 0.0))
 	var 防御系数: float = 1.0 - 减伤率
-	var dmg: float = 攻击 * 职业倍率 * 通用增益 * 道心增益 * wux * 防御系数 * crit_mult
+	var dmg: float = 攻击 * 职业倍率 * 功法倍率 * 通用增益 * 道心增益 * wux * 防御系数 * crit_mult
 	dmg *= float_factor
 	return int(max(伤害下限, round(dmg)))
 
@@ -179,7 +208,35 @@ static func _build_unit_state(snap: Dictionary) -> Dictionary:
 			var pb: Dictionary = _被动_to_buff(sk)
 			if not pb.is_empty():
 				_apply_buff(st, pb, "passive")
+	# S2 增强·3v3 全队光环：快照携带 初始buff（常驻）在进场即生效，覆盖整场（bf_aura 全队光环等）
+	for bid in snap.get("初始buff", []):
+		if typeof(bid) != TYPE_STRING:
+			continue
+		var tpl: Dictionary = _buff模板(bid)
+		if not tpl.is_empty():
+			_apply_buff(st, tpl, "aura")
+			st["active_buffs"][st["active_buffs"].size() - 1]["常驻"] = true
+			# S2 增强·全属性类常驻 buff（bf_aura）的最大生命加成：血属损耗池，不进 _recompute_attr
+			# 的每回合重置逻辑，故在进场一次性作用于 base/cur 血，避免「全属性+15%」漏血、也避免每回合
+			# 重算把已损耗的血拉回满值。攻防速仍由 _recompute_attr 基于 base 重算（base 未动，不重复加成）。
+			if tpl.get("作用属性", "") == "全":
+				var mult: float = 1.0 + float(tpl.get("数值", 0.0))
+				st["base属性"]["血"] = float(st["base属性"]["血"]) * mult
+				st["cur属性"]["血"] = float(st["cur属性"]["血"]) * mult
 	return st
+
+# S2 增强·3v3 全队光环兜底：原版路径（无技能）也消费 初始buff；仅 bf_aura 影响四维属性。
+# 注意：3v3 传入的是深拷贝，此处就地修改 属性 不会污染外部调用方。
+static func _应用初始buff(snap: Dictionary) -> void:
+	if not snap.has("初始buff"):
+		return
+	for bid in snap["初始buff"]:
+		if str(bid) == "bf_aura":
+			var a: Dictionary = snap.get("属性", {})
+			for k in ["攻", "防", "血", "速"]:
+				if a.has(k):
+					a[k] = float(a[k]) * 1.15
+			break
 
 static func _recompute_attr(st: Dictionary) -> void:
 	var base: Dictionary = st["base属性"]
@@ -213,7 +270,9 @@ static func _tick_buffs(st: Dictionary, other_st: Dictionary, side_is_atk: bool,
 		if b["类型"] != "dot":
 			continue
 		var 损: int = 0
-		if b["数值类型"] == "percent":
+		if b["buff_id"] == "bf_true_dmg":
+			损 = int(st["base属性"]["血"] * float(b["数值"]))   # 真实伤害：按最大生命%
+		elif b["数值类型"] == "percent":
 			损 = int(st["cur属性"]["血"] * float(b["数值"]))
 		else:
 			损 = int(float(b["数值"]))
@@ -248,6 +307,25 @@ static func _has_control(st: Dictionary) -> bool:
 		if b["类型"] == "控制":
 			return true
 	return false
+
+static func _try_revive(st: Dictionary, 回合: int, 日志: Array) -> void:
+	# S2 毕业·复活：致命伤恢复 base属性["血"]*数值 一次（bf_revive 消耗后失效）
+	if st["cur属性"]["血"] > 0:
+		return
+	var idx: int = -1
+	for i in st["active_buffs"].size():
+		if st["active_buffs"][i]["buff_id"] == "bf_revive":
+			idx = i
+			break
+	if idx < 0:
+		return
+	var b: Dictionary = st["active_buffs"][idx]
+	var frac: float = float(b.get("数值", 0.0))
+	st["cur属性"]["血"] = float(int(float(st["base属性"]["血"]) * frac))
+	st["active_buffs"].remove_at(idx)
+	日志.append(_log_entry(回合, st["snapshot"].get("名称", "?"), st["snapshot"].get("名称", "?"), 0, false, false,
+		int(st["cur属性"]["血"]), int(st["cur属性"]["血"]),
+		"revive", "", "buff", "bf_revive", "复活"))
 
 static func _apply_buff(st: Dictionary, template: Dictionary, source: String) -> void:
 	var b: Dictionary = template.duplicate(true)
@@ -299,6 +377,13 @@ static func _buff模板(buff_id: String) -> Dictionary:
 		return {"buff_id": "bf_spdup", "buff名": "疾行", "类型": "增益", "作用属性": "速", "数值": 0.15, "数值类型": "percent", "持续回合": 3, "来源类型": "passive", "可叠加": false}
 	if buff_id == "bf_regen":
 		return {"buff_id": "bf_regen", "buff名": "回春", "类型": "增益", "作用属性": "血", "数值": 0.08, "数值类型": "percent", "持续回合": 3, "来源类型": "item", "可叠加": false}
+	# S2 毕业·神器/无上功法/奇物 专属 buff（纯增量，零红线）
+	if buff_id == "bf_true_dmg":
+		return {"buff_id": "bf_true_dmg", "buff名": "真实伤害", "类型": "dot", "作用属性": "血", "数值": 0.05, "数值类型": "percent", "持续回合": 2, "来源类型": "skill", "可叠加": false}
+	if buff_id == "bf_revive":
+		return {"buff_id": "bf_revive", "buff名": "复活", "类型": "增益", "作用属性": "无", "数值": 0.30, "数值类型": "percent", "持续回合": 9999, "来源类型": "item", "可叠加": false}
+	if buff_id == "bf_aura":
+		return {"buff_id": "bf_aura", "buff名": "灵光护佑", "类型": "增益", "作用属性": "全", "数值": 0.15, "数值类型": "percent", "持续回合": 3, "来源类型": "skill", "可叠加": false}
 	return {}
 
 static func _skill_buff映射(skill: Dictionary) -> Array:
@@ -317,6 +402,32 @@ static func _skill_buff映射(skill: Dictionary) -> Array:
 		return [{"buff": "bf_freeze", "目标": "enemy"}]
 	if sid == "sk_fa_05":
 		return [{"buff": "bf_burn", "目标": "enemy"}]
+	# S2 套装·特效族：set_xxx → 增强引擎 buff 模板（控制/灼烧/眩晕/护盾/回春/破甲/增益/疾行）
+	if sid == "set_freeze":
+		return [{"buff": "bf_freeze", "目标": "enemy"}]
+	if sid == "set_stun":
+		return [{"buff": "bf_stun", "目标": "enemy"}]
+	if sid == "set_burn":
+		return [{"buff": "bf_burn", "目标": "enemy"}]
+	if sid == "set_defdown":
+		return [{"buff": "bf_defdown", "目标": "enemy"}]
+	if sid == "set_shield":
+		return [{"buff": "bf_shield", "目标": "self"}]
+	if sid == "set_regen":
+		return [{"buff": "bf_regen", "目标": "self"}]
+	if sid == "set_atkup":
+		return [{"buff": "bf_atkup", "目标": "self"}]
+	if sid == "set_defup":
+		return [{"buff": "bf_defup", "目标": "self"}]
+	if sid == "set_spdup":
+		return [{"buff": "bf_spdup", "目标": "self"}]
+	# S2 毕业·神器/无上功法/奇物 专属特效
+	if sid == "set_true_dmg":
+		return [{"buff": "bf_true_dmg", "目标": "enemy"}]
+	if sid == "set_revive":
+		return [{"buff": "bf_revive", "目标": "self"}]
+	if sid == "set_aura":
+		return [{"buff": "bf_aura", "目标": "self"}]
 	return []
 
 static func _select_skill(actor_st: Dictionary, target_st: Dictionary) -> Dictionary:
@@ -365,8 +476,21 @@ static func _cast_skill(actor_st: Dictionary, target_st: Dictionary, skill: Dict
 	var float_factor: float = randf_range(浮动下限, 浮动上限)
 	var crit_mult: float = 暴击系数 if randf() < float(actor_st["cur暴击"]) else 1.0
 	var dodge_mult: float = 0.0 if randf() < float(target_st["cur闪避"]) else 1.0
-	var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false)
+	var 穿透率: float = float(actor_st["snapshot"].get("穿透率", 0.0))
+	var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false, 穿透率)
 	target_st["cur属性"]["血"] = float(target_st["cur属性"]["血"]) - 伤害
+	# S2 套装·反伤：受击方按攻方反伤率反弹部分伤害（不递归触发）
+	var 反弹率: float = float(actor_st["snapshot"].get("反伤率", 0.0))
+	if 反弹率 > 0.0:
+		var 反弹伤: int = int(float(伤害) * 反弹率)
+		if 反弹伤 > 0:
+			actor_st["cur属性"]["血"] = float(actor_st["cur属性"]["血"]) - 反弹伤
+	# S2 套装·吸血（技能命中）
+	var 吸血v3: float = float(actor_st["snapshot"].get("吸血率", 0.0))
+	if 吸血v3 > 0.0 and 伤害 > 0:
+		var h3: int = int(float(伤害) * 吸血v3)
+		if h3 > 0:
+			actor_st["cur属性"]["血"] = min(float(actor_st["base属性"]["血"]), float(actor_st["cur属性"]["血"]) + h3)
 	# 施加 buff（按 §3.2.5 映射：self/enemy）+ 写 buff_apply 日志（§3.3）
 	for m in _skill_buff映射(skill):
 		var buff_id: String = m["buff"]
@@ -392,8 +516,14 @@ static func _tick_cooldowns(st: Dictionary) -> void:
 		st["cooldowns"][k] = max(0, int(st["cooldowns"][k]) - 1)
 
 static func _结算_1v1_原版(atk: Dictionary, def: Dictionary, mode: String = "full") -> Dictionary:
+	# S2 增强·3v3 全队光环兜底：原版路径（无技能）消费 初始buff（bf_aura 直接加成属性）；
+	# 须在读取 a_hp/a_spd 等派生量之前执行，否则加成不生效。
+	_应用初始buff(atk)
+	_应用初始buff(def)
 	var a_hp: int = int(atk.get("属性", {}).get("血", 1))
 	var d_hp: int = int(def.get("属性", {}).get("血", 1))
+	var a_hp_max: int = a_hp
+	var d_hp_max: int = d_hp
 	var a_spd: float = float(atk.get("属性", {}).get("速", 0))
 	var d_spd: float = float(def.get("属性", {}).get("速", 0))
 	var a_crit: float = 封顶暴击率(float(atk.get("暴击率", 0.0)))
@@ -439,15 +569,35 @@ static func _结算_1v1_原版(atk: Dictionary, def: Dictionary, mode: String = 
 				float_factor = randf_range(浮动下限, 浮动上限)
 				crit_mult = 暴击系数 if randf() < actor_crit else 1.0
 				dodge_mult = 0.0 if randf() < target_dodge else 1.0
-			var 伤害: int = calc_hit_damage(actor, target, float_factor, crit_mult, dodge_mult, false)
+			var 穿透率: float = float(actor.get("穿透率", 0.0))
+			var 伤害: int = calc_hit_damage(actor, target, float_factor, crit_mult, dodge_mult, false, 穿透率)
 			if target == def:
 				d_hp -= 伤害
 			else:
 				a_hp -= 伤害
+			# S2 套装·反伤：受击方按攻方反伤率反弹部分伤害（不递归触发）
+			var 反弹率: float = float(actor.get("反伤率", 0.0))
+			if 反弹率 > 0.0:
+				var 反弹伤: int = int(float(伤害) * 反弹率)
+				if 反弹伤 > 0:
+					if target == def:
+						a_hp -= 反弹伤
+					else:
+						d_hp -= 反弹伤
+						日志.append(_log_entry(回合, target_label, actor_label, 反弹伤, false, false, a_hp, d_hp, "reflect"))
+			# S2 套装·吸血：攻方按自身吸血率回复部分伤害（默认 0.0 → 不变；夹在初始血量内防过量）
+			var 吸血v: float = float(actor.get("吸血率", 0.0))
+			if 吸血v > 0.0 and 伤害 > 0:
+				var 吸伤: int = int(float(伤害) * 吸血v)
+				if 吸伤 > 0:
+					if actor == atk:
+						a_hp = min(a_hp_max, a_hp + 吸伤)
+					else:
+						d_hp = min(d_hp_max, d_hp + 吸伤)
 			# D7 强制结构化日志：每回合双方出手均记录（行动单位/伤害/暴击/克制/双方剩余血量）
 			日志.append(_log_entry(回合, actor_label, target_label, 伤害, crit_mult > 1.0,
-				profession_multiplier(actor.get("职业", ""), target.get("职业", "")) > 1.0,
-				a_hp, d_hp))
+			profession_multiplier(actor.get("职业", ""), target.get("职业", "")) > 1.0,
+			a_hp, d_hp))
 		if a_hp <= 0 or d_hp <= 0:
 			break
 
@@ -539,14 +689,23 @@ static func _结算_1v1_增强(atk: Dictionary, def: Dictionary, mode: String = 
 				d_state["cur属性"]["血"] = float(d_state["cur属性"]["血"]) - 伤害
 			else:
 				a_state["cur属性"]["血"] = float(a_state["cur属性"]["血"]) - 伤害
+			# S2 套装·吸血（增强普攻）：攻方(actor_st)按自身吸血率回复部分伤害
+			var 吸血v2: float = float(actor_st["snapshot"].get("吸血率", 0.0))
+			if 吸血v2 > 0.0 and 伤害 > 0:
+				var h2: int = int(float(伤害) * 吸血v2)
+				if h2 > 0:
+					actor_st["cur属性"]["血"] = min(float(actor_st["base属性"]["血"]), float(actor_st["cur属性"]["血"]) + h2)
 			# D7 强制结构化日志：每次普攻均记录（行动单位/伤害/暴击/克制/双方剩余血量）
 			日志.append(_log_entry(回合, actor_label, target_label, 伤害, crit_mult > 1.0,
-				profession_multiplier(actor_view.get("职业", ""), target_view.get("职业", "")) > 1.0,
-				int(a_state["cur属性"]["血"]), int(d_state["cur属性"]["血"])))
+			profession_multiplier(actor_view.get("职业", ""), target_view.get("职业", "")) > 1.0,
+			int(a_state["cur属性"]["血"]), int(d_state["cur属性"]["血"])))
 
 		# 回合末冷却 tick
 		_tick_cooldowns(a_state)
 		_tick_cooldowns(d_state)
+		# S2 毕业·复活：致命伤恢复一次（回合末死亡判定前）
+		_try_revive(a_state, 回合, 日志)
+		_try_revive(d_state, 回合, 日志)
 		if a_state["cur属性"]["血"] <= 0 or d_state["cur属性"]["血"] <= 0:
 			break
 
@@ -581,6 +740,28 @@ static func 结算_3v3(atk_list: Array, def_list: Array, mode: String = "quick")
 	var 守 := []
 	for u in def_list:
 		守.append(u.duplicate(true))
+	# S2 增强·3v3 全队光环传播：任一队员持 set_aura → 全队获得常驻 bf_aura（覆盖整场），
+	# 并移除个人 set_aura 技能，避免子战重复释放（全队光环已由初始buff承担）
+	for 侧 in [攻, 守]:
+		var 有光环 := false
+		for u in 侧:
+			for sk in u.get("技能", []):
+				if typeof(sk) == TYPE_DICTIONARY and sk.get("skill_id", "") == "set_aura":
+					有光环 = true
+					break
+			if 有光环:
+				break
+		if 有光环:
+			for u in 侧:
+				if not u.has("初始buff"):
+					u["初始buff"] = []
+				if "bf_aura" not in u["初始buff"]:
+					u["初始buff"].append("bf_aura")
+				var 新技能 := []
+				for sk in u.get("技能", []):
+					if typeof(sk) == TYPE_DICTIONARY and sk.get("skill_id", "") != "set_aura":
+						新技能.append(sk)
+				u["技能"] = 新技能
 	var a_idx := 0
 	var d_idx := 0
 	var 总日志 := []

@@ -1832,10 +1832,10 @@ func _refresh_record_page() -> void:
 		for c in _record_social_grid.get_children():
 			c.queue_free()
 		var socials = [
-			["💗 道侣", (str(d.道侣) if d.道侣 != "" else "尚无道侣"), "双修加成+15%"],
+			["💗 道侣", (str(d.道侣) if d.道侣 != "" else "尚无道侣"), "双修加成+%.0f%%" % (d.双修加成 * 100.0)],
 			["🤝 道友", "0人", "组队历练加成+10%"],
 			["🏛 家族", str(d.来源) if d.来源 != "" else "散修", "家族声望+5%"],
-			["👶 子嗣", "0人", ""],
+			["👶 子嗣", "%d人" % d.子嗣列表.size(), ""],
 		]
 		for s in socials:
 			var sp := PanelContainer.new()

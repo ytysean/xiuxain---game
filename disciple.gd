@@ -147,6 +147,17 @@ var 灵根品阶: String = "凡品"   # 灵根品阶轴（天品/极品/上品/�
 var 身份: String = "外门"       # 弟子身份（外门/内门弟子/核心弟子），天品/极品破格标记
 var 来源: String = ""           # 接引来源标签（凡俗子弟/散修投奔/世家旁支），纯展示，不影响数值
 var 道侣: String = ""           # 道侣名（双修伴侣；缔结时赠予保命护身，P3 保命来源之一）
+var 主目标: String = "修成大道"   # §4.0 目标驱动：人生主目标（默认修成大道，可突变）
+var 目标栈: Array = []            # §4.0 目标演化史：每项为{目标,来源,起始日}
+var 执念: String = ""             # §4.0 突变后的旧目标留存（驱动因果/后续和解）
+# === §12 人生线字段（双修/子嗣/飞升/转世）===
+var 道侣ID: int = -1              # §12.1 道侣弟子ID互链（缔结时双向赋值；缺值-1）
+var 双修加成: float = 0.0         # §12.2 当前双修修炼加成（每月由 _结算双修 写回，默认0）
+var 子嗣列表: Array = []          # §12.3 子嗣弟子ID列表
+var 父母ID: Array = []            # §12.3 父母弟子ID列表
+var 遗传记忆: String = ""         # §12.3 继承自父母的记忆片段
+var 飞升: bool = false            # §12.4 是否已飞升
+var 前世记忆: String = ""         # §12.5 转世/夺舍后保留的前世记忆
 # 行踪状态（2026-08-31 P3 扩展）：在宗/失踪/陨落。
 # 历练中由 ExpeditionSystem.进行中历练 推导，不存此字段；失踪/陨落为定态，驱动命牌显示与派遣资格。
 var 状态: String = "在宗"
@@ -307,6 +318,180 @@ func 套装增益() -> float:
 		elif 数量 >= 2:
 			总增益 += 0.03
 	return 总增益
+
+# S2 build轴·套装实战加成：读取 Item.套装库 真实 2/3/5件效果，按各套装已达最高档位取该档加成，跨套装累加。
+# 战斗维度（% 小数）：攻/防/血/速/暴击/反伤/穿透/减伤/吸血/闪避；修炼速度/寿命/突破率等非战斗维度忽略。
+# 支持单条多维度（如「攻击+14% 吸血+10%」按空格拆分逐段解析）。
+func 套装战斗加成() -> Dictionary:
+	var 合计: Dictionary = {"攻": 0.0, "防": 0.0, "血": 0.0, "速": 0.0, "暴击": 0.0, "反伤": 0.0, "穿透": 0.0, "减伤": 0.0, "吸血": 0.0, "闪避": 0.0}
+	var 套装计数: Dictionary = {}
+	for it in 装备.values():
+		if it == null or not it.has_method("get"):
+			continue
+		var sid = str(it.套装ID)
+		if sid == "":
+			continue
+		套装计数[sid] = 套装计数.get(sid, 0) + 1
+	var 触发共鸣: bool = false
+	for sid in 套装计数.keys():
+		var 数量 = 套装计数[sid]
+		var 配置 = Item.套装库.get(sid, {})
+		if 配置.is_empty():
+			continue
+		var 档位键: String = ""
+		if 数量 >= 5:
+			档位键 = "5件"
+			触发共鸣 = true
+		elif 数量 >= 3:
+			档位键 = "3件"
+		elif 数量 >= 2:
+			档位键 = "2件"
+		if 档位键 == "":
+			continue
+		_解析套装效果(配置.get(档位键, ""), 合计)
+	# S2 增强·五件同套共鸣：达成任一整套(5件) → 全属性(攻防血速)+10%，独立于单套5件效果叠加
+	if 触发共鸣:
+		for _st in ["攻", "防", "血", "速"]:
+			合计[_st] += 0.10
+	return 合计
+
+# 解析单条套装效果文案 → 累加进 合计。支持多维度（按空格/、/， 拆分逐段独立解析）。
+func _解析套装效果(文案: String, 合计: Dictionary) -> void:
+	if 文案 == "":
+		return
+	var 段列表: Array = 文案.replace("，", " ").replace("、", " ").split(" ", false)
+	for 段 in 段列表:
+		_解析单段(段, 合计)
+
+func _解析单段(段: String, 合计: Dictionary) -> void:
+	var 数文: String = 段.replace("+", "").replace("%", "")
+	for 词 in ["攻击", "防御", "全属性", "暴击", "反伤", "穿透", "减伤", "吸血", "闪避", "速度", "气血", "血"]:
+		数文 = 数文.replace(词, "")
+	var 数: float = 数文.strip_edges().to_float() / 100.0
+	if 数 <= 0.0:
+		return
+	if "全属性" in 段:
+		for _st in ["攻", "防", "血", "速"]:
+			合计[_st] += 数
+	elif "攻击" in 段:
+		合计["攻"] += 数
+	elif "防御" in 段:
+		合计["防"] += 数
+	elif "暴击" in 段:
+		合计["暴击"] += 数
+	elif "反伤" in 段:
+		合计["反伤"] += 数
+	elif "穿透" in 段:
+		合计["穿透"] += 数
+	elif "减伤" in 段:
+		合计["减伤"] += 数
+	elif "吸血" in 段:
+		合计["吸血"] += 数
+	elif "闪避" in 段:
+		合计["闪避"] += 数
+	elif "速度" in 段:
+		合计["速"] += 数
+	elif "气血" in 段 or "血" in 段:
+		合计["血"] += 数
+	# 其余（修炼速度/寿命/突破成功率）→ 非战斗维度，忽略
+
+# S2 build轴·套装特效：读取 Item.套装库 的 "X技能" 键（X=已达档位 2/3/5），
+# 将对应 set_xxx 技能注入战斗快照「技能」数组 → 激活 BattleCalculator 增强引擎（控制/灼烧/护盾/回春/破甲/增益/疾行）。
+# 无特效套装返回空数组 → 战斗走原版路径（零风险）。
+func 套装技能() -> Array:
+	var 技能列表: Array = []
+	var 套装计数: Dictionary = {}
+	for it in 装备.values():
+		if it == null or not it.has_method("get"):
+			continue
+		var sid = str(it.套装ID)
+		if sid == "":
+			continue
+		套装计数[sid] = 套装计数.get(sid, 0) + 1
+	for sid in 套装计数.keys():
+		var 数量 = 套装计数[sid]
+		var 配置 = Item.套装库.get(sid, {})
+		if 配置.is_empty():
+			continue
+		var 技能键列表: Array = []
+		if 数量 >= 5:
+			for _k in ["5技能", "5技能2", "5技能3"]:
+				if 配置.has(_k):
+					技能键列表.append(_k)
+		elif 数量 >= 3:
+			for _k in ["3技能", "3技能2"]:
+				if 配置.has(_k):
+					技能键列表.append(_k)
+		elif 数量 >= 2:
+			for _k in ["2技能", "2技能2"]:
+				if 配置.has(_k):
+					技能键列表.append(_k)
+		if 技能键列表.is_empty():
+			continue
+		for _sk in 技能键列表:
+			技能列表.append(_构造套装技能(str(配置[_sk])))
+	return 技能列表
+
+# S2 毕业·全品类毕业技能汇总：聚合 套装 + 功法(无上) + 神器/奇物 + 灵宠(专属契约技) 四源
+func 战斗技能汇总() -> Array:
+	var 列表: Array = []
+	列表.append_array(套装技能())
+	列表.append_array(功法毕业技能())
+	列表.append_array(神器奇物技能())
+	列表.append_array(灵宠毕业技能())
+	return 列表
+
+# 无上功法特殊技能（GongFaSystem.功法库 中带 特殊技能 的条目，经 已学功法 注入）
+func 功法毕业技能() -> Array:
+	var 列表: Array = []
+	for gid in 已学功法:
+		var g: Dictionary = GongFaSystem.功法库.get(gid, {})
+		if g.is_empty() or not g.has("特殊技能"):
+			continue
+		列表.append(_构造套装技能(str(g["特殊技能"])))
+	return 列表
+
+# 神器(独一无二) / 奇物(变异小极品) 附带技能
+func 神器奇物技能() -> Array:
+	var 列表: Array = []
+	for it in 装备.values():
+		if it == null:
+			continue
+		if it.独一无二 and it.神器技能 != "":
+			列表.append(_构造套装技能(it.神器技能))
+			if it.神器技能2 != "":
+				列表.append(_构造套装技能(it.神器技能2))
+		elif it.奇物 and it.奇物技能 != "":
+			列表.append(_构造套装技能(it.奇物技能))
+	return 列表
+
+# 灵宠专属契约技（始祖完美血脉 / 超道阶源初神兽，经 主宠/副宠 注入）
+func 灵宠毕业技能() -> Array:
+	var 列表: Array = []
+	for b in [主宠灵兽, 副宠灵兽]:
+		if b == null:
+			continue
+		for k in b.专属契约技():
+			列表.append(_构造套装技能(k))
+	return 列表
+
+# set_xxx → 增强引擎技能字典（damage_rate=1.0 → 既造成伤害又施加特效，避免「只放技能不普攻」导致零输出）。
+# mp_cost=0 / cooldown 适中 → 每隔数回合触发一次，与普攻交替。
+func _构造套装技能(sk_id: String) -> Dictionary:
+	match sk_id:
+		"set_freeze": return {"skill_id": "set_freeze", "skill_name": "玄冰封", "skill_type": "控制", "effect_type": "控制", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_stun": return {"skill_id": "set_stun", "skill_name": "震魂击", "skill_type": "控制", "effect_type": "控制", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 4}
+		"set_burn": return {"skill_id": "set_burn", "skill_name": "业火焚", "skill_type": "灼烧", "effect_type": "灼烧", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_defdown": return {"skill_id": "set_defdown", "skill_name": "破甲击", "skill_type": "破甲", "effect_type": "破甲", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_shield": return {"skill_id": "set_shield", "skill_name": "太虚护", "skill_type": "护盾", "effect_type": "护盾", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 4}
+		"set_regen": return {"skill_id": "set_regen", "skill_name": "青木回春", "skill_type": "回春", "effect_type": "回春", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_atkup": return {"skill_id": "set_atkup", "skill_name": "战意勃发", "skill_type": "增益", "effect_type": "增伤", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_defup": return {"skill_id": "set_defup", "skill_name": "金钟罩", "skill_type": "增益", "effect_type": "减伤", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_spdup": return {"skill_id": "set_spdup", "skill_name": "疾风步", "skill_type": "增益", "effect_type": "疾行", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 3}
+		"set_true_dmg": return {"skill_id": "set_true_dmg", "skill_name": "真伤蚀", "skill_type": "真伤", "effect_type": "真伤", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 4}
+		"set_revive": return {"skill_id": "set_revive", "skill_name": "浴血生", "skill_type": "复活", "effect_type": "复活", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 6}
+		"set_aura": return {"skill_id": "set_aura", "skill_name": "灵光佑", "skill_type": "增益", "effect_type": "增伤", "damage_rate": 1.0, "mp_cost": 0, "cooldown": 4}
+	return {}
 
 # 获取套装进度信息（用于UI显示）
 func 获取套装进度() -> Array:
@@ -1426,6 +1611,12 @@ func get_final_combat_attr() -> Dictionary:
 	var 全局buff: Dictionary = _取负责人全局buff()
 	for _st in ["攻", "防", "血", "速"]:
 		战斗属性[_st] = int(战斗属性[_st] * (1.0 + 全局buff.get(_st, 0.0)))
+	# S2 build轴·套装实战加成（读取 Item.套装库 真实 2/3/5件效果；仅战斗维度，非战斗维度忽略）
+	var 套装战加: Dictionary = 套装战斗加成()
+	for _st in ["攻", "防", "血", "速"]:
+		战斗属性[_st] = int(战斗属性[_st] * (1.0 + 套装战加.get(_st, 0.0)))
+	暴击率 += 套装战加.get("暴击", 0.0)
+	闪避率 += 套装战加.get("闪避", 0.0)
 	return {
 		"战力": 总战力(),
 		"属性": 战斗属性,
@@ -1433,6 +1624,7 @@ func get_final_combat_attr() -> Dictionary:
 		# S1 零战斗触碰红线：战斗引擎(BattleCalculator/BattleManager)内部仍按 "职业" 键读取，
 		# 此处桥接暴露旧键（值取自新字段 道途），不改战斗文件。
 		"职业": 道途,
+		"功法": _推导功法(),   # S2：功法流派（攻伐/守御/奇诡/化生），驱动 calc method_multiplier；空→"无"中性
 		"灵根": {"主": 主灵根, "纯度": 纯度},
 		"灵兽战力": 灵兽契约战力(),
 		"灵兽": _灵兽出战快照(),
@@ -1441,14 +1633,34 @@ func get_final_combat_attr() -> Dictionary:
 		"道心增益": 0.0,   # 当前无道心系统（ADR-001 §4.1 占位）
 		"暴击率": 暴击率,
 		"闪避率": 闪避率,
+		"反伤率": 套装战加.get("反伤", 0.0),
+		"穿透率": 套装战加.get("穿透", 0.0),
+		"减伤率": 套装战加.get("减伤", 0.0),
+		"吸血率": 套装战加.get("吸血", 0.0),
 		"名称": 姓名,
-		"技能": [],   # S1 批3：可释放技能列表（由 已修功法→skill.csv 解锁链接驱动，批4 unlock_skill 列就绪后填充；本批恒为 []）
+		"技能": 战斗技能汇总(),   # S2 毕业·全品类毕业技能汇总（套装+功法+神器/奇物+灵宠，无特效→[]→走原版路径）
 		"功法被动": SkillCultivationLoader.功法被动加成(已修功法),   # S1 批3：功法被动四维增量（已修功法默认 [] → 全 0）
 	}
 
 # 纯度推导（P0 单灵根占位；多灵根档位预留）
 func _推导纯度() -> String:
 	return "单"
+
+# 功法流派推导（S2：由主修功法 skill_type 映射流派，驱动 calc method_multiplier）
+# 空（已修功法默认 []）→ "无" 中性，不触发功法克制；功法系统填充后自然生效
+func _推导功法() -> String:
+	if 已修功法.is_empty():
+		return "无"
+	for gid in 已修功法:
+		var g: Dictionary = SkillCultivationLoader.get_skill(gid)
+		if g.is_empty():
+			continue
+		match g.get("skill_type", ""):
+			"攻击": return "攻伐"
+			"辅助防御": return "守御"
+			"控制": return "奇诡"
+			"通用": return "化生"
+	return "无"
 
 func to_dict() -> Dictionary:
 	var 背包列表: Array = []
@@ -1464,6 +1676,9 @@ func to_dict() -> Dictionary:
 		"境界": 境界, "寿元": 寿元, "基础修炼速度": 基础修炼速度, "修炼速度": 修炼速度, "战力": 战力, "备注": 备注,
 		"道途": 道途, "司职": 司职, "修炼进度": 修炼进度, "年龄": 年龄, "瓶颈打磨值": 瓶颈打磨值, "稳固期剩余": 稳固期剩余, "丹毒": 丹毒,
 		"灵根品阶": 灵根品阶, "身份": 身份, "来源": 来源, "道侣": 道侣, "保命护身": 保命护身,
+		"主目标": 主目标, "目标栈": 目标栈, "执念": 执念,
+		"道侣ID": 道侣ID, "双修加成": 双修加成, "子嗣列表": 子嗣列表, "父母ID": 父母ID,
+		"遗传记忆": 遗传记忆, "飞升": 飞升, "前世记忆": 前世记忆,
 		"阶位": 阶位, "试炼冷却剩余": 试炼冷却剩余, "试炼心得": 试炼心得,
 		"层数": 层数, "突破冷却剩余": 突破冷却剩余,
 		"属性": 属性, "背包": 背包列表, "装备": 装备字典, "履历": 履历, "已修功法": 已修功法, "当前法阵": 当前法阵,
@@ -1504,6 +1719,16 @@ func from_dict(d: Dictionary):
 		身份 = _默认身份(灵根品阶, 境界)
 	来源 = d.get("来源", "")
 	道侣 = d.get("道侣", "")
+	主目标 = d.get("主目标", "修成大道")
+	目标栈 = d.get("目标栈", [])
+	执念 = d.get("执念", "")
+	道侣ID = int(d.get("道侣ID", -1))
+	双修加成 = float(d.get("双修加成", 0.0))
+	子嗣列表 = d.get("子嗣列表", [])
+	父母ID = d.get("父母ID", [])
+	遗传记忆 = d.get("遗传记忆", "")
+	飞升 = bool(d.get("飞升", false))
+	前世记忆 = d.get("前世记忆", "")
 	保命护身 = int(d.get("保命护身", 0))
 	状态 = d.get("状态", "在宗")   # 旧档缺键→回落在宗，零回归
 	# S1 批1：阶位轴字段（旧档缺键 → 按身份推导 legacy 阶位，D1 豁免名额上限）

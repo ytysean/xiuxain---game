@@ -390,6 +390,3 @@ func _on卸下() -> void:
 	var 结果 = Game.傀儡卸下(傀儡.get("傀儡ID", 0))
 	if 结果.get("成功", false):
 		refresh()
-
-
-

@@ -358,4 +358,3 @@ func _add_kv_row(parent: Control, caption: String, value: String) -> void:
 	UITheme.apply_body_font(v)
 	hb.add_child(v)
 	parent.add_child(hb)
-

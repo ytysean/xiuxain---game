@@ -974,5 +974,3 @@ func _make_corner_badge_tex() -> Texture2D:
 	var img := Image.new()
 	img.load_svg_from_string(svg, 2.0)
 	return ImageTexture.create_from_image(img)
-
-

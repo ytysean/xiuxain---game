@@ -45,7 +45,7 @@ const PageHerbGardenScene: PackedScene = preload("res://ui/page_herb_garden.tscn
 const PagePillFormulaScene: PackedScene = preload("res://ui/page_pill_formula.tscn")
 const PageEquipmentBlueprintScene: PackedScene = preload("res://ui/page_equipment_blueprint.tscn")
 const PageActivityScene: PackedScene = preload("res://ui/page_activity.tscn")
-const PageSectQiScene: PackedScene = preload("res://ui/page_sect_qi.gd")
+const PageSectQiScene: PackedScene = preload("res://ui/page_sect_qi.tscn")
 
 # 与 BottomTabBar.TABS 保持一致（§7.1）；首位 宗门 为已建成展示型首页（SectHomePage）。
 const PAGE_IDS: Array = ["宗门", "弟子", "殿阁", "历练", "纪事"]
@@ -527,4 +527,3 @@ func _预热_编辑弹窗() -> void:
 	容器.add_child(_edit_popup_instance)
 	if _edit_popup_instance.has_signal("宗主名已改"):
 		_edit_popup_instance.宗主名已改.connect(_on_宗主名已改)
-

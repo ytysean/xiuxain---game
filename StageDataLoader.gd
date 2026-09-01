@@ -94,6 +94,19 @@ static func build_monster_units(id: String) -> Array:
 			units.append(_monster_to_unit(m))
 	return units
 
+# 历练专用：直接按 monster_id 列表组装怪物单位（不经 stage_main.csv 的 stage 映射）。
+# 与 build_monster_units 完全同口径，复用 _get_monster + _monster_to_unit（含 怪物境界倍率缩放）。
+static func build_monster_units_by_ids(ids: Array) -> Array:
+	var units: Array = []
+	for raw in ids:
+		var mid: String = str(raw).strip_edges()
+		if mid == "":
+			continue
+		var m: Dictionary = _get_monster(mid)
+		if not m.is_empty():
+			units.append(_monster_to_unit(m))
+	return units
+
 static func _get_monster(mid: String) -> Dictionary:
 	for m in _read_csv(怪物路径):
 		if m.get("monster_id", "") == mid:

@@ -611,4 +611,3 @@ func _on_auth_pressed(分类: String) -> void:
 
 func _on_history_more_pressed() -> void:
 	权责请求.emit("宗门纪事")
-

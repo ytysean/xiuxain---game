@@ -731,6 +731,3 @@ func _显示战报(结果: Dictionary) -> void:
 		refresh()
 	)
 	列.add_child(确)
-
-
-

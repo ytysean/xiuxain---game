@@ -606,6 +606,3 @@ func _on_lottery_ten() -> void:
 		refresh()
 	else:
 		_状态标签.text = 结果.get("msg", "抽奖受阻")
-
-
-

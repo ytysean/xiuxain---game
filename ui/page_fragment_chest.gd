@@ -352,6 +352,3 @@ func refresh() -> void:
 		_build_fragment_content()
 	else:
 		_build_chest_content()
-
-
-

@@ -788,6 +788,44 @@ func _on_challenge_pressed() -> void:
 	_refresh_stage_list()
 	_refresh_detail()
 
+# S2 战斗过程演出：逐回合播放 battle_log，更新双方血条 + 伤害数字强调 + 暴击/克制浮标 + 淡入
+func _播放战报(战报: Dictionary, 日志: VBoxContainer, 攻血条: ProgressBar, 守血条: ProgressBar, 攻满: int, 守满: int, 确: Button) -> void:
+	var 列表: Array = 战报.get("battle_log", [])
+	for e in 列表:
+		攻血条.value = int(e.get("attacker_hp", 0))
+		守血条.value = int(e.get("defender_hp", 0))
+		var 伤害: int = int(e.get("damage", 0))
+		var 标签: String = ""
+		if e.get("is_crit", false):
+			标签 += "【暴击】"
+		if e.get("is_restrain", false):
+			标签 += "【克制】"
+		if e.get("log_type", "") == "reflect":
+			标签 += "【反伤】"
+		var l: Label = Label.new()
+		l.text = "第%d回合 %s → %s 造成%d伤害 %s" % [int(e.get("round", 0)), str(e.get("actor", "")), str(e.get("target", "")), 伤害, 标签]
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_body_font(l)
+		if e.get("log_type", "") == "reflect":
+			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
+		elif e.get("is_crit", false):
+			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+			l.add_theme_font_size_override("font_size", int(UITheme.FONT_VALUE * 2))
+		elif 伤害 > 0:
+			l.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+		else:
+			l.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		l.modulate.a = 0.0
+		日志.add_child(l)
+		var tw: Tween = create_tween()
+		tw.tween_property(l, "modulate:a", 1.0, 0.25)
+		var sc: Node = 日志.get_parent()
+		if sc is ScrollContainer:
+			sc.scroll_vertical = 1000000
+		await get_tree().create_timer(0.35).timeout
+	确.visible = true
+
+
 func _展示战报(战报: Dictionary) -> void:
 	var 遮 := ColorRect.new()
 	遮.color = Color(0, 0, 0, 0.82)
@@ -825,8 +863,33 @@ func _展示战报(战报: Dictionary) -> void:
 	赏.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
 	内容.add_child(赏)
 
+	# 双方血条（S2 战斗过程演出）
+	var 攻满: int = 1
+	var 守满: int = 1
+	for e in 战报.get("battle_log", []):
+		攻满 = max(攻满, int(e.get("attacker_hp", 0)))
+		守满 = max(守满, int(e.get("defender_hp", 0)))
+	var 血条行: HBoxContainer = HBoxContainer.new()
+	内容.add_child(血条行)
+	var 攻血条: ProgressBar = ProgressBar.new()
+	攻血条.max_value = 攻满
+	攻血条.value = 攻满
+	攻血条.show_percentage = false
+	攻血条.tint_progress = UITheme.COLOR_STATUS_SUCCESS
+	攻血条.custom_minimum_size = Vector2(0, 22)
+	攻血条.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	血条行.add_child(攻血条)
+	var 守血条: ProgressBar = ProgressBar.new()
+	守血条.max_value = 守满
+	守血条.value = 守满
+	守血条.show_percentage = false
+	守血条.tint_progress = UITheme.COLOR_TEXT_RED
+	守血条.custom_minimum_size = Vector2(0, 22)
+	守血条.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	血条行.add_child(守血条)
+
 	var 日志标 := Label.new()
-	日志标.text = "—— 战斗日志 ——"
+	日志标.text = "—— 战斗过程 ——"
 	日志标.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
 	内容.add_child(日志标)
 
@@ -836,13 +899,7 @@ func _展示战报(战报: Dictionary) -> void:
 	内容.add_child(滚)
 	var 日志 := VBoxContainer.new()
 	滚.add_child(日志)
-	for line in 战报.get("battle_log", []):
-		var l := Label.new()
-		l.text = str(line)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		l.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-		日志.add_child(l)
+	_播放战报(战报, 日志, 攻血条, 守血条, 攻满, 守满, 确)
 
 	var 确 := Button.new()
 	确.text = "可"

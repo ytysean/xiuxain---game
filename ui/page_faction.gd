@@ -325,4 +325,3 @@ func _update_comprehensive() -> void:
 
 func _on_back_pressed() -> void:
 	返回主页.emit()
-
