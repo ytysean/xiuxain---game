@@ -1,5 +1,10 @@
-ship_id,ship_name,ship_type,unlock_condition,base_carry,speed_bonus,risk_reduce,max_durability,per_trip_durability,max_passenger,war_power,build_cost,monthly_maintain,max_stack
-ss01,下品御风灵舟,trade,sect_level=6,500,0.5,0.2,1000,20,20,100,20000,500,1
-ss02,中品跨域灵舟,trade,sect_level=8,1200,0.7,0.3,2500,50,50,300,80000,2000,1
-ss03,上品玄甲战舰,war,sect_level=9,800,0.6,0.45,3000,80,80,800,200000,5000,1
-ss04,极品紫府仙舟,flagship,sect_level=10,2500,0.9,0.5,6000,100,120,1500,500000,12000,1
+ship_id,ship_name,ship_type,tier,unlock_condition,base_carry,speed_bonus,risk_reduce,max_durability,per_trip_durability,max_passenger,war_power,build_cost,monthly_maintain,max_stack,build_material,build_days,required_forge_tier,required_core_tier,formation_slots,features
+ss01,云霭轻舟,scout,1,sect_level=6,300,0.6,0.15,600,15,8,60,15000,300,1,g003:15|g010:10,8,2,1,1,隐匿|轻灵
+ss01b,凌波快舟,trade,1,sect_level=6,500,0.55,0.2,800,20,15,120,25000,500,1,g003:20|g010:15,10,2,1,1,载重|轻灵
+ss02,跨域商舟,trade,2,sect_level=8,1200,0.7,0.3,2500,50,50,300,80000,2000,1,g013:20|g010:40,25,3,2,2,载重|稳健
+ss02b,玄龟卫舟,guard,2,sect_level=7,700,0.4,0.5,4000,60,30,400,120000,3000,1,g016:10|g010:30,30,4,2,2,防御|护送
+ss03,玄甲战舰,war,3,sect_level=9,800,0.6,0.45,3000,80,80,800,200000,5000,1,g016:15|g013:30,45,5,3,2,攻防|护盾
+ss03b,灵虚遁舟,scout,3,sect_level=8,400,1.0,0.25,1500,40,12,350,180000,4000,1,g017:10|g013:20,40,5,3,2,隐匿|极速|逃逸
+ss04,紫府仙舟,flagship,4,sect_level=10,2500,0.9,0.5,6000,100,120,1500,500000,12000,1,g017:20|g016:30|g014:5,80,7,4,3,全能|器灵|载客
+ss04b,虚空雷舟,war,4,sect_level=9,1500,0.85,0.5,5000,90,90,1200,600000,14000,1,g017:30|g016:20|g014:3,85,8,4,3,攻防|空间雏形|极速
+ss05,破虚神舰,flagship,5,sect_level=10,4000,1.1,0.6,10000,150,200,2500,1200000,30000,1,g018:10|g017:50|g016:40,120,10,5,3,虚空|器灵|自成天地

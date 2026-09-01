@@ -1,0 +1,15 @@
+event_id,event_name,event_level,base_chance,risk_mult,effect_type,effect_value_min,effect_value_max,option1_text,option1_cost,option1_result,option2_text,option2_cost,option2_result,cooldown_day
+te001,山路颠簸货损,1,0.2,1.0,goods_loss,0.05,0.1,加固货箱,lingstone:50,0.3,硬扛到底,none,1.0,3
+te002,山匪拦路劫掠,2,0.1,1.2,goods_loss,0.15,0.3,护卫迎战,power:200,0.0,缴纳买路财,lingstone:200,0.0,7
+te003,散修强收过路费,2,0.08,1.0,lingstone_cost,100,200,据理力争,wisdom:60,0.5,破财消灾,none,1.0,5
+te004,邪修商队伏击,3,0.03,1.5,goods_loss+disciple_hurt,0.4,0.6,全力死战,power:500,0.2,弃货逃生,none,0.6,15
+te005,关卡加征商税,2,0.1,0.8,lingstone_cost,0.1,0.2,疏通关系,reputation:20,0.3,足额缴税,none,1.0,10
+te006,妖兽潮冲击商道,3,0.04,1.3,goods_loss+disciple_hurt,0.3,0.5,绕路避开,day:+2,0.1,正面冲过,power:400,0.5,20
+te007,黑市违禁品查获,4,0.02,1.0,lingstone_cost+reputation,0.5,1.0,行贿脱罪,lingstone:1000,0.3,当场伏法,none,1.0,30
+te008,商队掌柜贪墨,2,0.05,0.7,lingstone_cost,0.1,0.2,当场查办,loyalty:-10,0.0,睁一只眼闭一只眼,none,1.0,10
+te009,古道迷雾失向,1,0.15,1.0,goods_loss,0.03,0.08,依星辰辨位,wisdom:40,0.2,随波逐流,none,1.0,4
+te010,灵气风暴袭舟,3,0.03,1.4,goods_loss+disciple_hurt,0.3,0.5,结阵护舟,power:600,0.3,弃舟保命,none,0.7,18
+te011,奸商以次充好,2,0.12,0.9,lingstone_cost,80,200,当场验货,wisdom:50,0.3,自认倒霉,none,1.0,6
+te012,散修结伴同行,2,0.1,0.8,lingstone_cost,50,150,慷慨结交,reputation:10,0.4,婉言谢绝,none,1.0,8
+te013,城主征调物资,3,0.04,1.2,goods_loss,0.1,0.25,上书陈情,reputation:30,0.4,如数上缴,none,1.0,12
+te014,秘境遗宝现世,2,0.05,1.0,goods_loss,0.05,0.15,冒险探宝,power:300,0.5,按兵不动,none,1.0,10

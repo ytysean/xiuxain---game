@@ -119,12 +119,12 @@ func _build_header(parent: Control) -> void:
 
 	_香火标签 = Label.new()
 	_香火标签.name = "XianghuoValue"
-	var xianghuo_capsule: PanelContainer = _make_currency_capsule("res://art/icons/hd/res_xianghuo_36.png", _香火标签)
+	var xianghuo_capsule: PanelContainer = _make_currency_capsule("res://art/icons/resource/res_xianghuo_36.png", _香火标签)
 	bar.add_child(xianghuo_capsule)
 
 	_仙玉标签 = Label.new()
 	_仙玉标签.name = "XianyuValue"
-	var xianyu_capsule: PanelContainer = _make_currency_capsule("res://art/icons/hd/res_xianyu_36.png", _仙玉标签)
+	var xianyu_capsule: PanelContainer = _make_currency_capsule("res://art/icons/resource/res_xianyu_36.png", _仙玉标签)
 	bar.add_child(xianyu_capsule)
 
 func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContainer:

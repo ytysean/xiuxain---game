@@ -136,38 +136,38 @@ const FONT_BODY_PATH: String = ASSET_DIR + "fonts/SourceHanSansCN-Regular.otf"
 # 所有图标已迁移到 res://art/ui/buttons/，扩展名为 .png。
 const ICON_BY_LABEL: Dictionary = {
 	# ── 底部主导航（normal/selected 成对）──
-	"宗门": "nav_jy_normal",
-	"宗门_选中": "nav_jy_selected",
-	"弟子": "nav_dz_normal",
-	"弟子_选中": "nav_dz_selected",
-	"历练": "nav_ll_normal",
-	"历练_选中": "nav_ll_selected",
-	"纪事": "nav_js_normal",
-	"纪事_选中": "nav_js_selected",
-	"殿阁": "grid_jz",              # 底部 5 Tab 中“殿阁”用六宫格总览图标
-	"更多": "nav_gd_normal",
-	"更多_选中": "nav_gd_selected",
+	"宗门": "res://art/icons/hd/tab_sect_36.png",
+	"宗门_选中": "res://art/icons/hd/tab_sect_36.png",
+	"弟子": "res://art/icons/hd/tab_disciple_36.png",
+	"弟子_选中": "res://art/icons/hd/tab_disciple_36.png",
+	"历练": "res://art/icons/hd/tab_explore_36.png",
+	"历练_选中": "res://art/icons/hd/tab_explore_36.png",
+	"纪事": "res://art/icons/hd/tab_chronicle_36.png",
+	"纪事_选中": "res://art/icons/hd/tab_chronicle_36.png",
+	"殿阁": "res://art/icons/hd/tab_building_36.png",
+	"更多": "res://art/icons/entry/entry_more_36.png",
+	"更多_选中": "res://art/icons/entry/entry_more_36.png",
 
 	# ── 宗门首页六宫格入口 ──
-	"殿阁总览": "grid_jz",
-	"弟子录": "grid_dz",
-	"丹器炼制": "grid_dq",
-	"宗门洞府": "grid_df",
-	"差事目标": "grid_rw",
-	"宗门库藏": "grid_zc",
+	"殿阁总览": "res://art/icons/building/hall_zhishi_36.png",
+	"弟子录": "res://art/icons/entry/entry_tujian_36.png",
+	"丹器炼制": "res://art/icons/entry/entry_pill_formula_36.png",
+	"宗门洞府": "res://art/icons/entry/entry_huanxing_36.png",
+	"差事目标": "res://art/icons/entry/entry_zongmenyaowu_36.png",
+	"宗门库藏": "res://art/icons/entry/entry_kucang_36.png",
 
 	# ── 殿阁页内部殿阁图标（bld_*）──
-	"宗门正殿": "bld_zd",
-	"执事殿": "bld_jy",
-	"灵田": "bld_lt",
-	"矿脉": "bld_km",
-	"探微阁": "bld_tw",
-	"丹殿": "bld_dt",
-	"器殿": "bld_qt",
-	"功勋阁": "bld_gx",
-	"阵殿": "bld_zt",
-	"藏书阁": "bld_cs",
-	"坊市": "bld_sy",
+	"宗门正殿": "res://art/icons/building/hall_tanwei_36.png",
+	"执事殿": "res://art/icons/building/hall_zhishi_36.png",
+	"灵田": "res://art/icons/building/hall_lingtian_36.png",
+	"矿脉": "res://art/icons/building/hall_kuangmai_36.png",
+	"探微阁": "res://art/icons/building/hall_qidian_36.png",
+	"丹殿": "res://art/icons/building/hall_dantang_36.png",
+	"器殿": "res://art/icons/building/hall_xichi_36.png",
+	"功勋阁": "res://art/icons/building/hall_gongxun_36.png",
+	"阵殿": "res://art/icons/building/hall_zhenfa_36.png",
+	"藏书阁": "res://art/icons/building/hall_cangjing_36.png",
+	"坊市": "res://art/icons/entry/entry_fangshi_36.png",
 
 	# ── 主操作按钮 / 返回按钮（长条底板，无中心图）──
 	"主按钮_常态": "btn_primary_normal",
@@ -186,15 +186,15 @@ const ICON_BY_LABEL: Dictionary = {
 	"筛选_选中": "filter_selected",
 
 	# ── 顶栏资源小图标（20×20）──
-	"灵石": "res_lingshi",
-	"灵气": "res_lingqi",
-	"灵植": "res_lingzhi",
-	"声望": "res_shengwang",
+	"灵石": "res://art/icons/resource/res_lingshi_36.png",
+	"灵气": "res://art/icons/resource/res_lingqi_36.png",
+	"灵植": "res://art/icons/resource/res_lingzhi_36.png",
+	"声望": "res://art/icons/resource/res_shengwang_36.png",
 	# 旧兼容键（部分旧代码可能传小写 stem）
-	"lingshi": "res_lingshi",
-	"lingqi": "res_lingqi",
-	"lingzhi": "res_lingzhi",
-	"shengwang": "res_shengwang",
+	"lingshi": "res://art/icons/resource/res_lingshi_36.png",
+	"lingqi": "res://art/icons/resource/res_lingqi_36.png",
+	"lingzhi": "res://art/icons/resource/res_lingzhi_36.png",
+	"shengwang": "res://art/icons/resource/res_shengwang_36.png",
 
 	# ── 玩法入口按钮（play_*）──
 	"历练派遣": "play_lj",
@@ -214,13 +214,13 @@ const ICON_BY_LABEL: Dictionary = {
 	"开始炼制": "refine_start",
 	"加速炼制": "refine_speed",
 	"切换丹方": "refine_recipe",
-	"布阵": "refine_array",
+	"布阵": "res://art/icons/entry/entry_zhenfa_36.png",
 
 	# ── 商店入口按钮（shop_*）──
-	"签到": "shop_signin",
-	"商城": "shop_mall",
-	"活动": "shop_event",
-	"首充": "shop_firstpay",
+	"签到": "res://art/icons/entry/entry_qiandao_36.png",
+	"商城": "res://art/icons/entry/entry_fangshi_36.png",
+	"活动": "res://art/icons/entry/entry_activity_36.png",
+	"首充": "res://art/icons/entry/entry_activity_36.png",
 
 	# ── 物品品阶槽位（slot_*）──
 	"槽位_凡": "slot_fan",
@@ -562,21 +562,52 @@ func apply_divider(control: Control) -> void:
 
 # ───────── 资产加载 helper（图标 / 贴图）─────────
 # 按 Chinese label 取图标（§3.1 修真器物映射）；label 不在 ICON_BY_LABEL → 返 null，调用方保留原占位。
+# 支持两种格式：1) 完整路径（以 "res://" 开头）直接加载；2) stem 文件名（从 ICON_DIR 加载）。
 # 图标已迁移为 .png；load() 内部按路径缓存结果，重复调用成本极低。
 func load_icon(label: String) -> Texture2D:
 	var stem: String = ICON_BY_LABEL.get(label, "")
 	if stem == "":
 		return null
+	# 支持完整路径直接加载
+	if stem.begins_with("res://"):
+		if ResourceLoader.exists(stem):
+			return load(stem) as Texture2D
+		return null
 	return load(ICON_DIR + stem + ".png") as Texture2D
 
-# 01 屏画布 1:1 高清图标加载：stem 为 art/icons/hd/ 下的文件名（不含扩展名）。
-# 例：load_hd_icon("entry_shanmen_36") / load_hd_icon("res_lingshi_20") / load_hd_icon("tab_zongmen_28")。
+# 01 屏画布 1:1 高清图标加载：stem 为图标文件名（不含扩展名）。
+# 自动根据文件名前缀判断目录：
+# - beast_* -> characters/beasts/
+# - skill_* -> icons/skill/
+# - array_* -> icons/array/
+# - daotu_*/linggen_*/xingge_*/mingge_*/quality_*/realm_*/equip_* -> icons/disciple/
+# - hall_* -> icons/building/
+# - entry_* -> icons/entry/
+# - res_* -> icons/resource/
+# - 其他 -> icons/hd/
+# 例：load_hd_icon("entry_shanmen_36") / load_hd_icon("res_lingshi_36") / load_hd_icon("tab_zongmen_36")。
 # 图标已按目标像素整数落盘，使用时务必以原生尺寸摆放（TextureRect 用 STRETCH_KEEP_ASPECT_CENTERED），
 # 二次缩放会破坏 USM 锐化边缘、导致画布上的清晰度在实机丢失。
 func load_hd_icon(stem: String) -> Texture2D:
 	if stem == "":
 		return null
-	var path: String = ICON_HD_DIR + stem + ".png"
+	# 根据文件名前缀判断目录
+	var dir: String = ICON_HD_DIR
+	if stem.begins_with("beast_"):
+		dir = "res://art/characters/beasts/"
+	elif stem.begins_with("skill_"):
+		dir = "res://art/icons/skill/"
+	elif stem.begins_with("array_"):
+		dir = "res://art/icons/array/"
+	elif stem.begins_with("daotu_") or stem.begins_with("linggen_") or stem.begins_with("xingge_") or stem.begins_with("mingge_") or stem.begins_with("quality_") or stem.begins_with("realm_") or stem.begins_with("equip_"):
+		dir = "res://art/icons/disciple/"
+	elif stem.begins_with("hall_"):
+		dir = "res://art/icons/building/"
+	elif stem.begins_with("entry_"):
+		dir = "res://art/icons/entry/"
+	elif stem.begins_with("res_"):
+		dir = "res://art/icons/resource/"
+	var path: String = dir + stem + ".png"
 	if not ResourceLoader.exists(path):
 		return null
 	return load(path) as Texture2D

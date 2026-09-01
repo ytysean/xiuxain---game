@@ -358,18 +358,68 @@ var 商队列表: Array = []  # 正在派遣的商队列：[{id, 地区, 出发�
 var 商队历史: Array = []  # 商队历史记录
 var 商队岗位表: Dictionary = {}  # S2 商路贸易：岗位配置（caravan_post_config.csv，表格驱动零硬编码）
 var 商队载具表: Dictionary = {}  # S2 商路贸易：载具配置（caravan_vehicle_config.csv，表格驱动零硬编码）
-var 商队地区: Array = [
-	{"id": "附近城镇", "名称": "附近城镇", "距离": 1, "特产": "灵草", "收购价": 1.2, "风险": 0.05, "偏好类别": ["灵草"], "溢价倍率": 1.1, "当前收购价": 1.2},
-	{"id": "修真集市", "名称": "修真集市", "距离": 3, "特产": "矿石", "收购价": 1.5, "风险": 0.10, "偏好类别": ["矿石"], "溢价倍率": 1.2, "当前收购价": 1.5},
-	{"id": "仙城坊市", "名称": "仙城坊市", "距离": 7, "特产": "法器", "收购价": 2.0, "风险": 0.15, "偏好类别": ["法器"], "溢价倍率": 1.3, "当前收购价": 2.0},
-	{"id": "秘境边境", "名称": "秘境边境", "距离": 15, "特产": "天材地宝", "收购价": 3.0, "风险": 0.25, "偏好类别": ["天材地宝"], "溢价倍率": 1.5, "当前收购价": 3.0},
-]
+var 商队地区: Array = []        # §11.15 数据驱动：运行时从 city_config.csv 装载派生（删除内联常量）
+var 商队城市表: Dictionary = {}  # §11.15 数据驱动：city_id(String)→城市配置(dict)
+var 商队商路表: Dictionary = {}  # §11.15 数据驱动：route_id(String)→商路配置(dict)
+var 商队商品表: Dictionary = {}  # §11.15 数据驱动：goods_id(String)→商品配置(dict)
+var 商队事件库: Array = []       # §11.15 数据驱动：trade_event_config 事件列表(Array[dict])
 var 商队ID计数器: int= 0
+# §11.15 优化：现实时间贸易模型（不升SAVE_VERSION，旧档缺键→默认零回归）
+#   单次贸易 = 现实 6 小时（21600 秒）后结算；每日配额按现实日重置；月卡/季卡/永久卡 +1 次/日
+var 商队每日已派: int = 0
+var 上次配额日真实秒: int = 0
+# §11.20 修复：行情刷新按现实日节流（原每次推演一月都刷新 → 1真实天≈360次，供需系数+0.02/次瞬间回满，压价机制失效）
+var 上次行情日真实秒: int = 0
+const 商队单次贸易现实秒: int = 21600   # 6 小时
+# §11.15 优化：贸易现实时间加速体系——多途径缩短单次贸易现实耗时
+const 贸易最短时间系数: float = 0.2       # 现实耗时封顶：最快≈72分钟（不破坏长途贸易感）
+const 神行符_ID: String = "g048"
+const 神行符名: String = "神行符"
+const 神行符加速: float = 0.3             # 使用1张神行符：-30%时间（系数÷1.3）
+const 仙玉即时完成费: int = 30            # 仙玉即时完成本次贸易的仙玉消耗（游戏内货币，不破经济红线）
+const 阵法堂航速每级: float = 0.02        # 阵法堂司职每级 +2% 航速（满10级 +20%）
+const 声望航速每500: float = 0.03         # 商队总声望每 500 +3% 航速
+const 声望航速上限: float = 0.20          # 声望航速被动封顶 +20%
+# §11.15 阶段三（黑市/灵舟/NPC商队竞争）：灵舟坞/黑市禁闭/竞争状态（不升SAVE_VERSION，旧档缺键→默认零回归）
+var 灵舟坞等级: int = 0            # 0=未建；≥1 即 has_ship 为真（解锁跨域城 7/8）
+var 灵舟坞表: Dictionary = {}      # ship_dock_config.csv（sd01-06 飞舟坞，按等级解锁）
+var 宗门灵舟表: Dictionary = {}    # sect_ship_config.csv（ss01-04 灵舟）
+var 灵舟库存: Array = []          # 已建成灵舟：{ship_id,名称,tier,ship_type,durability,max_durability,speed_bonus,risk_reduce}
+var 灵舟坞建造中: Dictionary = {}  # {目标档:int, 完成日:int}（非空中表示坞在建造/升级）
+var 灵舟建造队列: Array = []      # 灵舟炼制队列：[{ship_id, 完成日}]
+var 灵材名称表: Dictionary = {}    # goods_config 桥接：goods_id→中文名（扣材时按名遍历仓库）
+var 灵舟阵法表: Dictionary = {}    # 灵舟阵法配置：formation_id→{name,category,tier,effect_dim,effect_val,cost_lingstone,cost_material,required_array_tier}
+var 虚空大阵冷却日: int = 0        # 破虚神舰·虚空大阵 瞬移冷却（累计游戏日；>0 表示冷却中）
+const 灵核品阶物品: Dictionary = {1:"g021", 2:"g022", 3:"g023", 4:"g024", 5:"g025"}  # 灵舟所需能量核心品阶→goods_id
+var 黑市禁闭日: int = 0            # 黑市查缉命中后禁闭计时（天），>0 时不可黑市交易
+var 商路竞争状态: Dictionary = {}  # 黄金商路 NPC 竞争：city_id→{强度, 压价率, 策略}
+var 跨域风险事件: Array = [        # 跨域商路顶级风险（轻量 const；设计 §11.15 L4366）
+	{"名": "跨海妖兽袭击", "损失min": 0.4, "损失max": 0.7, "额外扣": 0},
+	{"名": "飓风暴浪", "损失min": 0.3, "损失max": 0.6, "额外扣": 0},
+	{"名": "海盗截掠", "损失min": 0.5, "损失max": 0.8, "额外扣": 300},
+	{"名": "灵舟灵能故障", "损失min": 0.2, "损失max": 0.5, "额外扣": 0},
+]
+# §11.20：trade_event_config.csv 未提供独立声望数值列，reputation 类事件按 比例×20 折算商路声望（0.5~1.0 → 10~20）
+const 事件声望折算: float = 20.0
+# §11.15 策略深度（声望/行情）：商路声望(city_id→int，影响价差) 与 全局行情事件队列(独立，不污染 EventManager)
+var 商路声望: Dictionary = {}
+var 行情事件列表: Array = []
 
 # S2 商路贸易：加载 caravan 配置表（岗位/载具），表格驱动零硬编码
 func 加载商队配置() -> void:
 	商队岗位表 = _读商队岗位表()
 	商队载具表 = _读商队载具表()
+	# §11.15 数据驱动：装载 city/goods/route/event 四表
+	商队商品表 = _读商品表()
+	商队城市表 = _读城市表()
+	商队商路表 = _读商路表()
+	商队事件库 = _读商路事件表()
+	# §11.15 阶段三：装载灵舟坞 / 宗门灵舟 两表（数据已备，原未装载）
+	灵舟坞表 = _读灵舟坞表()
+	宗门灵舟表 = _读宗门灵舟表()
+	灵材名称表 = _读灵材名称表()   # goods_id→中文名 桥接（灵舟炼制按名扣仓库灵材）
+	灵舟阵法表 = _读灵舟阵法表()   # §11.15 阶段三·灵舟：装载灵舟可刻录阵法配置
+	_构建商队地区()
 
 func _读商队岗位表() -> Dictionary:
 	var 表: Dictionary = {}
@@ -430,10 +480,318 @@ func _读商队载具表() -> Dictionary:
 	f.close()
 	return 表
 
+# ===== §11.15 数据驱动：city/goods/route/event 四表读取 + 运行时商队地区构建 =====
+func _读商品表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/goods_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("goods_config.csv 缺失，商品表为空")
+		return 表
+	f.get_csv_line()  # 跳过表头
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 7:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"goods_id": id,
+			"goods_name": p[1].strip_edges(),
+			"goods_type": p[2].strip_edges(),
+			"base_price": int(p[3]),
+			"weight": int(p[4]),
+			"is_illegal": int(p[5]),
+			"tier": int(p[6]),
+		}
+	f.close()
+	return 表
+
+func _读城市表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/city_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("city_config.csv 缺失，城市表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 8:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"city_id": id,
+			"city_name": p[1].strip_edges(),
+			"city_level": int(p[2]),
+			"unlock_condition": p[3].strip_edges(),
+			"base_price_rate": float(p[4]),
+			"special_goods": p[5].strip_edges(),
+			"lack_goods": p[6].strip_edges(),
+			"reputation_level": int(p[7]),
+		}
+	f.close()
+	return 表
+
+func _读商路表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/trade_route_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("trade_route_config.csv 缺失，商路表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 6:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"route_id": id,
+			"start_city": p[1].strip_edges(),
+			"end_city": p[2].strip_edges(),
+			"travel_day": float(p[3]),
+			"base_risk_rate": float(p[4]),
+			"unlock_need": p[5].strip_edges(),
+		}
+	f.close()
+	return 表
+
+func _读商路事件表() -> Array:
+	var 表: Array = []
+	var f = FileAccess.open("res://config/trade_event_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("trade_event_config.csv 缺失，商路事件库为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 15:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表.append({
+			"event_id": id,
+			"event_name": p[1].strip_edges(),
+			"event_level": int(p[2]),
+			"base_chance": float(p[3]),
+			"risk_mult": float(p[4]),
+			"effect_type": p[5].strip_edges(),
+			"effect_value_min": float(p[6]),
+			"effect_value_max": float(p[7]),
+			"option1_text": p[8].strip_edges(),
+			"option1_cost": p[9].strip_edges(),
+			"option1_result": float(p[10]),
+			"option2_text": p[11].strip_edges(),
+			"option2_cost": p[12].strip_edges(),
+			"option2_result": float(p[13]),
+			"cooldown_day": int(p[14]),
+		})
+	f.close()
+	return 表
+
+func _读灵舟坞表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/ship_dock_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("ship_dock_config.csv 缺失，灵舟坞表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 13:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"dock_id": id,
+			"dock_name": p[1].strip_edges(),
+			"level": int(p[2]),
+			"unlock_sect_level": int(p[3]),
+			"max_ship_count": int(p[4]),
+			"build_speed_bonus": float(p[5]),
+			"repair_speed_bonus": float(p[6]),
+			"daily_maintain_cost": int(p[7]),
+			"upgrade_lingstone": int(p[8]),
+			"upgrade_material": p[9].strip_edges(),
+			"upgrade_days": int(p[10]),
+			"unlock_ship_tier": int(p[11]),
+			"can_build_war_ship": int(p[12]),
+		}
+	f.close()
+	return 表
+
+func _读宗门灵舟表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/sect_ship_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("sect_ship_config.csv 缺失，宗门灵舟表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 17:
+			continue
+		var id = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"ship_id": id,
+			"ship_name": p[1].strip_edges(),
+			"ship_type": p[2].strip_edges(),
+			"tier": int(p[3]) if p.size() > 3 else int(id.replace("ss", "")),
+			"unlock_condition": p[4].strip_edges(),
+			"base_carry": int(p[5]),
+			"speed_bonus": float(p[6]),
+			"risk_reduce": float(p[7]),
+			"max_durability": int(p[8]),
+			"per_trip_durability": int(p[9]),
+			"max_passenger": int(p[10]),
+			"war_power": int(p[11]),
+			"build_cost": int(p[12]),
+			"monthly_maintain": int(p[13]),
+			"max_stack": int(p[14]),
+			"build_material": p[15].strip_edges(),
+			"build_days": int(p[16]),
+			"required_forge_tier": int(p[17]) if p.size() > 17 else 1,
+			"required_core_tier": int(p[18]) if p.size() > 18 else 1,
+			"formation_slots": int(p[19]) if p.size() > 19 else 0,
+			"features": p[20].strip_edges() if p.size() > 20 else "",
+		}
+	f.close()
+	return 表
+
+# 灵舟炼制桥接：goods_config 的 goods_id → 中文名（仓库灵材按中文名存，扣材需按名遍历）
+func _读灵材名称表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/goods_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("goods_config.csv 缺失，灵材名称表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 7:
+			continue
+		var gid = p[0].strip_edges()
+		var gname = p[1].strip_edges()
+		if gid.is_empty() or gname.is_empty():
+			continue
+		表[gid] = gname
+	f.close()
+	return 表
+
+# §11.15 阶段三·灵舟：装载灵舟可刻录阵法配置（ship_formation_config.csv）
+func _读灵舟阵法表() -> Dictionary:
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/ship_formation_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("ship_formation_config.csv 缺失，灵舟阵法表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 9:
+			continue
+		var fid = p[0].strip_edges()
+		if fid.is_empty():
+			continue
+		表[fid] = {
+			"formation_id": fid,
+			"name": p[1].strip_edges(),
+			"category": p[2].strip_edges(),
+			"tier": int(p[3]),
+			"effect_dim": p[4].strip_edges(),
+			"effect_val": float(p[5]),
+			"cost_lingstone": int(p[6]),
+			"cost_material": p[7].strip_edges(),
+			"required_array_tier": int(p[8]),
+		}
+	f.close()
+	return 表
+
+# §11.15 数据驱动：从 城市表/商路表/商品表 构建运行时 商队地区（保留旧字段名供 UI/结算消费）
+func _构建商队地区() -> void:
+	商队地区 = []
+	for cid in 商队城市表.keys():
+		var 城 = 商队城市表[cid]
+		var 距离 = 1.0
+		var 风险 = 0.05
+		var 最优距离 = 99999.0
+		var 最优风险 = 99999.0
+		for rid in 商队商路表.keys():
+			var r = 商队商路表[rid]
+			if str(r.get("end_city", "")) == cid:
+				if float(r.get("travel_day", 999.0)) < 最优距离:
+					最优距离 = float(r.get("travel_day", 999.0))
+				if float(r.get("base_risk_rate", 1.0)) < 最优风险:
+					最优风险 = float(r.get("base_risk_rate", 1.0))
+		if 最优距离 < 99999.0:
+			距离 = 最优距离
+		if 最优风险 < 99999.0:
+			风险 = 最优风险
+		var 偏好: Array = []
+		for gid in str(城.get("special_goods", "")).split("|"):
+			gid = gid.strip_edges()
+			if gid != "" and 商队商品表.has(gid):
+				var t = str(商队商品表[gid].get("goods_type", ""))
+				if t != "" and not 偏好.has(t):
+					偏好.append(t)
+		var 层级 = int(城.get("city_level", 1))
+		var 溢价倍率 = 1.0 + float(层级 - 1) * 0.1
+		var 物价 = float(城.get("base_price_rate", 1.0))
+		商队地区.append({
+			"id": cid,
+			"名称": str(城.get("city_name", cid)),
+			"距离": 距离,
+			"特产": str(城.get("special_goods", "")).split("|"),
+			"收购价": 物价,
+			"风险": 风险,
+			"偏好类别": 偏好,
+			"溢价倍率": 溢价倍率,
+			"当前收购价": 物价,
+			"供需系数": 1.0,
+			"city_level": 层级,
+			"unlock_condition": str(城.get("unlock_condition", "")),
+			"reputation_level": int(城.get("reputation_level", 0)),
+		})
+
+# §11.15 数据驱动：按 实际风险 从 商队事件库 抽取商路事件（替硬编码四分支）
+func _抽取商路事件(实际风险: float) -> Dictionary:
+	if 商队事件库.is_empty():
+		return {}
+	var 候选: Array = []
+	var 总权: float = 0.0
+	for e in 商队事件库:
+		var 权 = float(e.get("base_chance", 0.0)) * float(e.get("risk_mult", 1.0))
+		if 权 <= 0.0:
+			continue
+		候选.append({"e": e, "权": 权})
+		总权 += 权
+	if 候选.is_empty() or 总权 <= 0.0:
+		return {}
+	var r = randf_range(0.0, 总权)
+	for c in 候选:
+		r -= c["权"]
+		if r <= 0.0:
+			var e = c["e"]
+			return {
+				"事件名": str(e.get("event_name", "商路事件")),
+				"effect_type": str(e.get("effect_type", "")),
+				"effect_value_min": float(e.get("effect_value_min", 0.0)),
+				"effect_value_max": float(e.get("effect_value_max", 0.0)),
+				"option1_result": float(e.get("option1_result", 1.0)),
+			}
+	return {}
+
 # 派遣商队
 # S2 商路贸易：派遣商队（运力/智谋价差/战力抗风险/载具 三要素）
 #   人员列表: Array[Dictionary{"弟子ID":int, "post_id":String}]；载具ID: 商队载具表 key（可空）
-func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载具ID: String = "", 人员列表: Array = []) -> Dictionary:
+func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载具ID: String = "", 人员列表: Array = [], 灵舟索引: int = -1, 使用神行符: bool = false) -> Dictionary:
 
 	var 地区 = null
 	for d in 商队地区:
@@ -460,10 +818,27 @@ func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载
 		return {"成功": false, "消息": "未配置运力（需至少1名脚夫或1辆载具）"}
 	if 货物总价值 > 运力:
 		return {"成功": false, "消息": "运力不足（需%d，当前%d）" % [货物总价值, 运力]}
+	# §11.15 优化：商队槽位 / 每日配额（现实时间模型）
+	刷新商队配额()
+	if 商队列表.size() >= 商队槽位数():
+		return {"成功": false, "消息": "出征槽位已满（%d/%d），请等待商队返回" % [商队列表.size(), 商队槽位数()]}
+	if 商队每日已派 >= 商队每日配额():
+		return {"成功": false, "消息": "今日派遣配额已用尽（%d/%d），明日可再派遣" % [商队每日已派, 商队每日配额()]}
 	# 启动资金（货值10%）
 	var 启动资金 = int(货物总价值 * 0.1)
 	if 灵石 < 启动资金:
 		return {"成功": false, "消息": "灵石不足，需要启动资金%d" % 启动资金}
+	# §11.20 修复：装载货物须真实出库（原实现只扣启动资金、不扣货物 → 货物白嫖，空手套白狼无限套利）
+	var 货主 = _取弟子(弟子ID)
+	if 货主 == null and 弟子列表.size() > 0:
+		货主 = 弟子列表[0]   # 货物固定取自宗主背包；缺省宗主ID 时回退列表首位
+	if 货主 != null:
+		var 校验结果: Dictionary = _校验货物库存(货主, 货物列表)
+		if not bool(校验结果.get("充足", false)):
+			return {"成功": false, "消息": str(校验结果.get("消息", "货物不足"))}
+	灵石 -= 启动资金
+	if 货主 != null:
+		_出库货物(货主, 货物列表)
 	# 汇总 掌柜智谋价差加成（道心代理）/ 风险减免 / 速度加成
 	var 价差加成 = 0.0
 	var 风险减免 = 0.0
@@ -484,9 +859,43 @@ func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载
 		var 载 = 商队载具表[载具ID]
 		风险减免 += float(载.get("loss_reduce", 0))
 		速度加成 += float(载.get("speed_bonus", 0))
+	# §11.15 阶段三·灵舟：指派某艘灵舟出使（套用其有效属性；枯竭不可驱使；含虚空瞬移）
+	var 灵舟指派索引 = -1
+	var 虚空瞬移 = false
+	if 灵舟索引 >= 0 and 灵舟索引 < 灵舟库存.size():
+		var 舟 = 灵舟库存[灵舟索引]
+		if str(舟.get("核心状态", "正常")) == "枯竭":
+			return {"成功": false, "消息": "灵舟能量核心枯竭，无法驱使，请先补充核心"}
+		var 舟定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
+		var eff = 灵舟有效属性(舟)
+		风险减免 += eff["risk_reduce"]
+		速度加成 += eff["speed_bonus"]
+		灵舟指派索引 = 灵舟索引
+		# 虚空大阵·破碎虚空：跨域（city_level≥4）且冷却就绪 → 瞬移（即时+风险归零），耗仙品核心+灵石，冷却30日
+		if "sf07" in 舟.get("阵法", []) and int(地区.get("city_level", 1)) >= 4 and 虚空大阵冷却日 <= 0:
+			var 仙核名 = 灵舟核心物品名(5)
+			if _仓库灵材数量(仙核名) >= 1 and 灵石 >= 50000:
+				灵石 -= 50000
+				_扣灵材([{"id": 灵核品阶物品.get(5, "g025"), "名": 仙核名, "需": 1, "有": 1}])
+				虚空大阵冷却日 = 累计游戏日 + 30
+				虚空瞬移 = true
+				添加纪事("神异", "破碎虚空", "【%s】催动虚空大阵，破碎虚空瞬抵%s！" % [str(舟.get("名称", "")), 地区["名称"]], 3)
+			else:
+				添加纪事("庶务", "灵舟刻阵", "【%s】虚空大阵就绪，然仙品核心或灵石不足，未能瞬移" % str(舟.get("名称", "")), 1)
 	风险减免 = clamp(风险减免, 0.0, 0.8)   # 风险减免硬上限 0.8
 	var 速度 = 1.0 + 速度加成
 	var 行程 = max(1, int(round(float(地区["距离"]) / 速度)))
+	# §11.15 优化：现实时间加速——聚合多途径航速加成，换算现实耗时（封顶 贸易最短时间系数）
+	var 航速被动 = _阵法堂航速被动() + _声望航速被动()
+	var 符箓加成 = 0.0
+	if 使用神行符:
+		if _仓库灵材数量(神行符名) >= 1:
+			符箓加成 = 神行符加速
+			_扣灵材([{"id": 神行符_ID, "名": 神行符名, "需": 1, "有": 1}])
+		else:
+			return {"成功": false, "消息": "背包无神行符，无法使用（坊市可购置）"}
+	var 总速度加成 = 速度加成 + 航速被动 + 符箓加成
+	var 贸易耗时秒 = _计算贸易现实秒(总速度加成)
 	灵石 -= 启动资金
 	商队ID计数器 += 1
 	var 商队 = {
@@ -494,20 +903,27 @@ func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载
 		"地区": 地区ID,
 		"地区名": 地区["名称"],
 		"出发日": 累计游戏日,
-		"预计返回日": 累计游戏日 + 行程,
+		"预计返回日": 累计游戏日 + int(ceil(float(贸易耗时秒) / 现实秒每游戏日)),   # 仅展示用（≈现实耗时折算游戏日）
+		"预计完成真实秒": int(Time.get_unix_time_from_system()) + 贸易耗时秒,
 		"货物": 货物列表,
 		"货物价值": 货物总价值,
 		"弟子ID": 弟子ID,
 		"载具ID": 载具ID,
 		"人员": 人员列表,
+		"灵舟索引": 灵舟指派索引,
+		"虚空瞬移": 虚空瞬移,
 		"价差加成": 价差加成,
 		"风险减免": 风险减免,
 		"速度": 速度,
 		"状态": "派遣中",
 	}
 	商队列表.append(商队)
-	添加纪事("庶务", "商队出发", "商队前往%s贸易，货物价值%d灵石，运力%d，行程%d日" % [地区["名称"], 货物总价值, 运力, 行程], 1)
-	return {"成功": true, "消息": "商队已出发，预计%d日后返回" % 行程, "商队ID": 商队ID计数器}
+	商队每日已派 += 1
+	var 加速说明 = ""
+	if 符箓加成 > 0:
+		加速说明 = "【神行符加速】"
+	添加纪事("庶务", "商队出发", "商队前往%s贸易，货物价值%d灵石，运力%d，预计%d分钟后返回%s" % [地区["名称"], 货物总价值, 运力, int(贸易耗时秒 / 60), 加速说明], 1)
+	return {"成功": true, "消息": "商队已出发，预计%d分钟后返回%s" % [int(贸易耗时秒 / 60), 加速说明], "商队ID": 商队ID计数器}
 
 # S2 商路贸易：按 ID 取弟子对象（商队编组用）
 func _取弟子(目标ID: int) -> Object:
@@ -515,6 +931,46 @@ func _取弟子(目标ID: int) -> Object:
 		if d.弟子ID == 目标ID:
 			return d
 	return null
+
+# §11.20 修复：派遣前全量校验背包货物（先校验再出库，避免部分扣货后失败留下残缺库存）
+func _校验货物库存(货主: Variant, 货物列表: Array) -> Dictionary:
+	if 货主 == null:
+		return {"充足": true, "消息": ""}
+	var 需求: Dictionary = {}
+	for 货物 in 货物列表:
+		var 名 = str(货物.get("名称", ""))
+		var 数 = int(货物.get("数量", 0))
+		if 名 == "" or 数 <= 0:
+			continue
+		需求[名] = int(需求.get(名, 0)) + 数
+	var 持有: Dictionary = {}
+	for it in 货主.背包:
+		持有[str(it.名称)] = int(持有.get(str(it.名称), 0)) + 1
+	for 名 in 需求.keys():
+		var 需 = int(需求[名])
+		var 有 = int(持有.get(名, 0))
+		if 有 < 需:
+			return {"充足": false, "消息": "货物不足：%s（需%d，现存%d）" % [名, 需, 有]}
+	return {"充足": true, "消息": ""}
+
+# §11.20 修复：从背包移除已装车货物（真实出库；货物成本 = 货值，贸易利润 = 结算收益 - 货值 - 启动资金）
+func _出库货物(货主: Variant, 货物列表: Array) -> int:
+	var 已扣: int = 0
+	if 货主 == null:
+		return 已扣
+	for 货物 in 货物列表:
+		var 名 = str(货物.get("名称", ""))
+		var 需 = int(货物.get("数量", 0))
+		if 名 == "" or 需 <= 0:
+			continue
+		for it in 货主.背包.duplicate():
+			if 需 <= 0:
+				break
+			if str(it.名称) == 名:
+				货主.背包.erase(it)
+				需 -= 1
+				已扣 += 1
+	return 已扣
 
 # 结算返回的商：
 func 结算商队(商队: Dictionary) -> Dictionary:
@@ -530,34 +986,74 @@ func 结算商队(商队: Dictionary) -> Dictionary:
 	var 货值 = int(商队["货物价值"])
 	var 匹配价值 = 0
 	for 货物 in 商队["货物"]:
-		var 名 = str(货物.get("名称", ""))
-		for 偏好 in 地区.get("偏好类别", []):
-			if 偏好 in 名:
-				匹配价值 += int(货物.get("价", 0))
-				break
+		var 类 = str(货物.get("类别", ""))
+		if 类 != "" and 类 in 地区.get("偏好类别", []):
+			匹配价值 += int(货物.get("价", 0))
 	var 匹配占比 = 0.0
 	if 货值 > 0:
 		匹配占比 = float(匹配价值) / float(货值)
 	var 溢价系数 = 匹配占比 * float(地区.get("溢价倍率", 1.0)) + (1.0 - 匹配占比) * 1.0
 	# 基础收益 = 货值 × 当前收购价(浮动) × (1+掌柜智谋价差加成) × 品类溢价系数
 	var 价差加成 = float(商队.get("价差加成", 0.0))
-	var 基础收益 = int(float(货值) * float(地区.get("当前收购价", 地区["收购价"])) * (1.0 + 价差加成) * 溢价系数)
+	# §11.15 策略深度：商路声望 → 卖价价差加成（随声望升）
+	价差加成 += _商路声望价差加成(地区["id"])
+	# §11.15 策略深度：全局行情事件 → 匹配本城偏好品类时叠加溢价倍率
+	var 事件倍率 = _行情事件倍率(地区)
+	if 事件倍率 > 1.0:
+		溢价系数 = 匹配占比 * float(地区.get("溢价倍率", 1.0)) * 事件倍率 + (1.0 - 匹配占比) * 1.0
+	# §11.15 阶段三：商路竞争压价（NPC 对手压低该城有效收购价；独占→红利×1.2）
+	var 有效收购价 = float(地区.get("当前收购价", 地区["收购价"]))
+	var 城市id = str(地区.get("id", ""))
+	if 商路竞争状态.has(城市id):
+		var 压 = float(商路竞争状态[城市id].get("压价率", 0.0))
+		有效收购价 *= (1.0 - 压)
+		if 压 <= 0.0:
+			有效收购价 *= 1.2   # 独占红利：最高收益
+	var 基础收益 = int(float(货值) * 有效收购价 * (1.0 + 价差加成) * 溢价系数 * float(地区.get("供需系数", 1.0)))
 	# 风险判定：实际风险 = 地区风险 × (1 - 商队风险减免)，护卫/载具降风险
 	var 实际风险 = clamp(float(地区["风险"]) * (1.0 - float(商队.get("风险减免", 0.0))), 0.0, 1.0)
 	var 随机值 = randf()
 	var 实际收益 = 基础收益
 	var 事件 = "顺利贸易"
+	var 事件灵石扣: int = 0
+	var 事件声望扣: int = 0
 	if 随机值 < 实际风险:
-		var 风险类型 = randf()
-		if 风险类型 < 0.4:
-			实际收益 = int(基础收益 * 0.5)
-			事件 = "遭遇山贼，损失一半货物"
-		elif 风险类型 < 0.7:
-			实际收益 = int(基础收益 * 0.8)
-			事件 = "路途颠簸，部分货物损坏"
+		# §11.15 数据驱动：从 trade_event_config.csv 抽取风险事件替代硬编码四分支
+		var 事件结果 = _抽取商路事件(实际风险)
+		if not 事件结果.is_empty():
+			事件 = str(事件结果.get("事件名", "商路生变"))
+			var emin = float(事件结果.get("effect_value_min", 0.0))
+			var emax = float(事件结果.get("effect_value_max", 0.0))
+			var ev = randf_range(emin, emax) if emax > emin else emin
+			# §11.20 修复（原实现两处致命语义错误）：
+			#   ① effect_value 语义 = 损失率(0~1) / 绝对值(>=1，仅 lingstone_cost)。
+			#      原 `实际收益 = 基础收益 * ev` 把损失率当保留率：颠簸设计丢 8% → 实丢 92%
+			#   ② effect_type 支持 "a+b" 组合（CSV 中 4 条），原 `==` 精确匹配使组合事件全部落 else，
+			#      被乘 option1_result（那是「选项减免后的损失系数」，不是收益系数）
+			var 留存系数 = 1.0
+			for eff in str(事件结果.get("effect_type", "")).split("+"):
+				var 效 = str(eff).strip_edges()
+				if 效 == "goods_loss":
+					留存系数 *= clamp(1.0 - ev, 0.0, 1.0)
+				elif 效 == "disciple_hurt":
+					留存系数 *= clamp(1.0 - ev * 0.5, 0.0, 1.0)   # 受伤弟子照看不力，货款按半额折损
+				elif 效 == "lingstone_cost":
+					事件灵石扣 += int(ev * float(货值)) if emax <= 1.0 else int(ev)
+				elif 效 == "reputation":
+					事件声望扣 += int(ev * 事件声望折算) if emax <= 1.0 else int(ev)
+			实际收益 = int(float(基础收益) * 留存系数)
 		else:
-			实际收益 = 0
-			事件 = "商队失踪，全部货物损失"
+			# 事件库为空时 Fallback 旧硬编码：山贼/颠簸/失踪
+			var 风险类型 = randf()
+			if 风险类型 < 0.4:
+				实际收益 = int(基础收益 * 0.5)
+				事件 = "遭遇山贼，损失一半货物"
+			elif 风险类型 < 0.7:
+				实际收益 = int(基础收益 * 0.8)
+				事件 = "路途颠簸，部分货物损坏"
+			else:
+				实际收益 = 0
+				事件 = "商队失踪，全部货物损失"
 	elif 随机值 > 1.0 - 0.1:   # 10% 偶遇高人
 		实际收益 = int(基础收益 * 1.5)
 		事件 = "偶遇高人指点，贸易大获成功"
@@ -569,13 +1065,55 @@ func 结算商队(商队: Dictionary) -> Dictionary:
 		实际收益 = int(基础收益 * 1.1)
 		增加阵营声望("散修联盟", 10)
 		事件 = 文案表["friendly_caravan_event"]
-	# 收益上限：单趟净收益 ≤ 货值（利润率封顶100%），守「商队收益≤自产50%」红线（自产月收益远大于单次货值）
-	if 实际收益 > 货值:
-		实际收益 = 货值
-	# 接 F2 经济阀门（trade_profit_rate 等），补全商队结算审计缺口
+	# §11.15 阶段三：跨域商路（城7/8，city_level≥4）顶级风险：跨海妖兽/风暴/海盗/灵舟故障
+	if 实际收益 > 0 and int(地区.get("city_level", 1)) >= 4:
+		# 虚空瞬移：直接零风险（指派灵舟刻有虚空大阵且已瞬移抵达）
+		var 跨域险 = 0.0
+		if not 商队.get("虚空瞬移", false):
+			# 灵舟运力降险：指定灵舟用其有效属性；否则舰队级取最优（均含阵法加成，枯竭不计）
+			var 灵舟减险 = 0.0
+			var 指idx = int(商队.get("灵舟索引", -1))
+			if 指idx >= 0 and 指idx < 灵舟库存.size():
+				var 指舟 = 灵舟库存[指idx]
+				if str(指舟.get("核心状态", "正常")) != "枯竭":
+					灵舟减险 = 灵舟有效属性(指舟)["risk_reduce"]
+			else:
+				var 需求tier = int(地区.get("city_level", 1)) - 3
+				for 舟 in 灵舟库存:
+					if int(舟.get("tier", 0)) >= 需求tier and str(舟.get("核心状态", "正常")) != "枯竭":
+						灵舟减险 = max(灵舟减险, 灵舟有效属性(舟)["risk_reduce"])
+			跨域险 = clamp(float(地区.get("风险", 0.1)) * 0.5 + 0.15 - 灵舟减险, 0.0, 0.9)
+		if 跨域险 > 0.0 and randf() < 跨域险:
+			var d = 跨域风险事件[randi() % 跨域风险事件.size()]
+			var dl = float(d.get("损失min", 0.3))
+			var dh = float(d.get("损失max", 0.6))
+			var 损失 = randf_range(dl, dh)
+			# §11.20 修复：以「当前实际收益」为基数（原用基础收益 → 偶遇高人1.5x、事件减免全被抹掉，
+			#                                 导致高级跨域城收益低于低级安全城，形成逆向激励）
+			实际收益 = int(float(实际收益) * (1.0 - 损失))
+			事件 = str(d.get("名", "跨域生变"))
+			var 扣 = int(d.get("额外扣", 0))
+			if 扣 > 0:
+				灵石 = max(0, 灵石 - 扣)
+	# §11.20 修复：毛收益封顶（阶梯随「商队总声望」提升，货值×1.5 → 最高×4.5）
+	#   原 1.0~4.0x 会把正常加成（收购价×溢价×掌柜价差≈1.2x）削平 93%，溢价/声望/行情事件全部作废；
+	#   阀门须先行、封顶后置——封顶是硬红线，原顺序允许阀门纠偏结果突破上限
+	#   接 F2 经济阀门（trade_profit_rate 等），补全商队结算审计缺口
 	实际收益 = int(EconomyBalance.new().平衡(float(实际收益)))
+	var 封顶倍率 = _商队收益封顶倍率()
+	var 收益上限 = int(float(货值) * 封顶倍率)
+	if 实际收益 > 收益上限:
+		实际收益 = 收益上限
 	# 结算入灵石主账户（不新建独立资金池，守 GDD 九·3）
 	灵石 += 实际收益
+	if 事件灵石扣 > 0:
+		灵石 = max(0, 灵石 - 事件灵石扣)
+	if 事件声望扣 > 0:
+		商路声望[地区["id"]] = int(商路声望.get(地区["id"], 0)) - 事件声望扣
+	# §11.15 策略深度：累加商路声望 + 大批量抛售压价（供需系数跌，逐日回升）
+	_累加商路声望(地区["id"], 实际收益)
+	if 货值 >= 500:
+		地区["供需系数"] = max(0.6, float(地区.get("供需系数", 1.0)) - 0.1)
 	商队["状态"] = "已返回"
 	商队["实际收益"] = 实际收益
 	商队["事件"] = 事件
@@ -587,25 +1125,696 @@ func 结算商队(商队: Dictionary) -> Dictionary:
 # 每日更新商队状态
 # S2 商路贸易：月度行情刷新（商队周期补货世界观），收购价/风险 ±10% 浮动，锁定 ±15% 红线
 func 刷新商队行情() -> void:
-	for 地区 in 商队地区:
-		var 基准价 = float(地区["收购价"])
-		var 价浮 = randf_range(-0.10, 0.10)
-		var 新价 = clamp(基准价 * (1.0 + 价浮), 基准价 * 0.9, 基准价 * 1.1)  # 硬锁 ±10%
-		地区["当前收购价"] = round(新价 * 100) / 100.0
-		var 基准险 = float(地区["风险"])
-		var 险浮 = randf_range(-0.10, 0.10)
-		地区["风险"] = clamp(基准险 * (1.0 + 险浮), 0.0, 0.5)
+	# §11.20 修复：按现实日节流（原每次「推演一月」都刷新 → 1真实天≈360次，
+	#   ① 供需系数 +0.02/次 → 大批量抛售的 -0.1 压价瞬间回满，压价机制形同虚设；
+	#   ② 收购价/风险每 4 分钟跳变，玩家派遣时看到的价格与 6 小时后结算时的价格脱节）
+	var 现在 = int(Time.get_unix_time_from_system())
+	var 跨日: bool = (现在 - 上次行情日真实秒) >= 86400
+	if 跨日:
+		上次行情日真实秒 = 现在
+		for 地区 in 商队地区:
+			var 基准价 = float(地区["收购价"])
+			var 价浮 = randf_range(-0.15, 0.15)
+			var 新价 = clamp(基准价 * (1.0 + 价浮), 基准价 * 0.85, 基准价 * 1.15)  # §11.15 设计值：硬锁 ±15%
+			地区["当前收购价"] = round(新价 * 100) / 100.0
+			var 基准险 = float(地区["风险"])
+			var 险浮 = randf_range(-0.10, 0.10)
+			地区["风险"] = clamp(基准险 * (1.0 + 险浮), 0.0, 0.5)
+			# §11.20 修复：供需系数按现实日回升（+0.10/日，与结算抛售压价 -0.10 对称；原 +0.02/次 × 360 次/天 → 压价瞬间回满）
+			var 供需 = float(地区.get("供需系数", 1.0))
+			地区["供需系数"] = clamp(供需 + 0.10, 0.6, 1.0)
+		# §11.15 策略深度：行情事件倒计时按现实日递减，过期移除
+		for i in range(行情事件列表.size() - 1, -1, -1):
+			var ev = 行情事件列表[i]
+			ev["剩余天数"] = int(ev.get("剩余天数", 0)) - 1
+			if int(ev.get("剩余天数", 0)) <= 0:
+				行情事件列表.remove_at(i)
 
 func 更新商队状态() -> void:
 	刷新商队行情()   # S2 商路贸易：月度行情刷新（接推演一月调用）
+	_推进灵舟建造()   # §11.15 阶段三：灵舟坞/灵舟炼制 推演追帧完工
+	_结算灵舟月度()    # §11.15 阶段三·灵舟：灵石维护 + 能量核心月度消耗
+	if 累计游戏日 % 30 == 0:
+		_刷新行情事件()   # §11.15 策略深度：每月触发全局行情事件
+		_刷新商路竞争()    # §11.15 阶段三：月度 NPC 商队竞争推演
+	if 黑市禁闭日 > 0:     # §11.15 阶段三：黑市查缉禁闭倒计时
+		黑市禁闭日 = max(0, 黑市禁闭日 - 1)
 
+	结算到期商队()
+
+# §11.15 优化：现实时间结算——到期（预计完成真实秒）即结算，不依赖游戏日 tick；离线/未推演也能正确返还
+func 结算到期商队() -> void:
+	var 现在 = int(Time.get_unix_time_from_system())
 	var 待结算: Array = []
 	for 商队 in 商队列表:
-		if 商队["状态"] == "派遣中" and 累计游戏日>= 商队["预计返回日"]:
+		if 商队["状态"] != "派遣中":
+			continue
+		var 到期 = int(商队.get("预计完成真实秒", 0))
+		var 到期标志 = false
+		if 到期 > 0:
+			到期标志 = 现在 >= 到期
+		else:
+			# 旧档兼容：无真实秒字段则按游戏日
+			到期标志 = 累计游戏日 >= int(商队.get("预计返回日", 0))
+		if 到期标志:
 			待结算.append(商队)
 	for 商队 in 待结算:
 		结算商队(商队)
 		商队列表.erase(商队)
+
+# ===== §11.15 预留接口：PVP / 全服事件 / 域外战斗（本期不实装，仅留钩子供后期版本接入）=====
+# 设计意图：灵舟系统已具「破损虚空瞬移」「灵舟坞」「阵法刻录」等修真基底，后期可在此分支接入：
+#   - PVP：宗门敌对城（city 11）开放「灵舟斗法」，以 灵舟有效属性 为战力投影
+#   - 全服事件：稀缺商路/秘境产出全服竞拍，复用 商路声望 / 行情事件队列
+#   - 域外战斗：破虚神舰（ss05）虚空瞬移抵达 域外 后触发战斗（预留 _预留_域外战斗）
+func 预留_域外战斗(目标: Dictionary = {}) -> Dictionary:
+	# TODO(预留): 后期版本接入 PVP / 全服事件 / 域外战斗，当前返回未实装
+	return {"成功": false, "消息": "域外战斗接口预留中（未实装）"}
+
+# ===== §11.15 阶段三：灵舟坞 / 黑市 / NPC 商队竞争 =====
+func 已建灵舟坞() -> bool:
+	return 灵舟坞等级 > 0
+
+func 灵舟坞建造信息() -> Dictionary:
+	if not 灵舟坞建造中.is_empty():
+		return {"可建": false, "建造中": true, "目标档": int(灵舟坞建造中.get("目标档", 0)), "完成日": int(灵舟坞建造中.get("完成日", 0))}
+	var 目标 = 灵舟坞等级 + 1
+	if 目标 > 灵舟坞表.size():
+		return {"可建": false, "已满": true}
+	var 档 = 灵舟坞表.get("sd%02d" % 目标, null)
+	if 档 == null:
+		return {"可建": false}
+	var 清单 = _解析材料清单(档.get("upgrade_material", ""))
+	for m in 清单:
+		m["有"] = _仓库灵材数量(m["名"])
+	return {"可建": true, "等级": 目标, "名称": str(档.get("dock_name", "")),
+		"需门派等级": int(档.get("unlock_sect_level", 99)), "工费": int(档.get("upgrade_lingstone", 0)),
+		"时日": int(档.get("upgrade_days", 0)), "材料": 清单}
+
+# 建造/升级飞舟坞（顺序解锁 sd01→sd06）：主成本=各阶灵材 + 时日；工费灵石为祭炼之资，不可替材料。
+# 提交后进入「建造中」，由 _推进灵舟建造() 在推演中按 累计游戏日 完工。
+func 建造灵舟坞() -> Dictionary:
+	if not 灵舟坞建造中.is_empty():
+		return {"成功": false, "消息": "飞舟坞正在建造中，不可重复开工"}
+	var 信息 = 灵舟坞建造信息()
+	if not 信息.get("可建", false):
+		if 信息.get("已满", false):
+			return {"成功": false, "消息": "飞舟坞已达最高等级"}
+		return {"成功": false, "消息": "飞舟坞配置缺失"}
+	if 门派等级 < int(信息.get("需门派等级", 99)):
+		return {"成功": false, "消息": "门派等级不足（需%d级）" % int(信息.get("需门派等级", 99))}
+	var 费 = int(信息.get("工费", 0))
+	if 灵石 < 费:
+		return {"成功": false, "消息": "祭炼灵石不足（需%d）" % 费}
+	var 扣 = _扣灵材(信息.get("材料", []))
+	if not 扣.get("成功", false):
+		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
+	灵石 -= 费
+	var 目标档 = int(信息.get("等级", 1))
+	灵舟坞建造中 = {"目标档": 目标档, "完成日": 累计游戏日 + int(信息.get("时日", 0))}
+	添加纪事("庶务", "飞舟坞", "历时%d日，动工兴建%s（等级%d），灵材已耗、祭炼灵石已付" % [int(信息.get("时日", 0)), str(信息.get("名称", "")), 目标档], 1)
+	return {"成功": true, "消息": "飞舟坞（%s）动工，预计%d日完工" % [str(信息.get("名称", "")), int(信息.get("时日", 0))], "等级": 目标档, "完成日": 灵舟坞建造中["完成日"]}
+
+# 灵材清单解析： "g010:20|g003:15" → [{id, 名, 需}]（名由 goods_config 桥接）
+func _解析材料清单(mat_str: String) -> Array:
+	var 清单: Array = []
+	if mat_str == null:
+		return 清单
+	var s = str(mat_str).strip_edges()
+	if s.is_empty():
+		return 清单
+	for 段 in s.split("|"):
+		var t = 段.strip_edges()
+		if t.is_empty():
+			continue
+		var 部分 = t.split(":")
+		if 部分.size() < 2:
+			continue
+		var gid = 部分[0].strip_edges()
+		var 数 = int(部分[1].strip_edges())
+		if gid.is_empty() or 数 <= 0:
+			continue
+		清单.append({"id": gid, "名": 灵材名称表.get(gid, gid), "需": 数})
+	return 清单
+
+# 仓库内某中文名灵材现有数量
+func _仓库灵材数量(名: String) -> int:
+	var n = 0
+	for it in 仓库:
+		if it != null and str(it.get("名称", "")) == 名:
+			n += 1
+	return n
+
+# 扣灵材（按中文名遍历仓库逐一移除）；够则扣净返回成功，不足返回缺项（不扣，避免半扣）
+func _扣灵材(清单: Array) -> Dictionary:
+	var 缺: Array = []
+	for m in 清单:
+		var 有 = _仓库灵材数量(m["名"])
+		if 有 < m["需"]:
+			缺.append("%s（缺%d）" % [m["名"], m["需"] - 有])
+	if 缺.size() > 0:
+		return {"成功": false, "缺": 缺}
+	for m in 清单:
+		var 剩 = m["需"]
+		var i = 0
+		while i < 仓库.size() and 剩 > 0:
+			var it = 仓库[i]
+			if it != null and str(it.get("名称", "")) == m["名"]:
+				仓库.remove_at(i)
+				剩 -= 1
+			else:
+				i += 1
+	return {"成功": true, "缺": []}
+
+# 推演追帧：灵舟坞建造/升级 + 灵舟炼制队列 完工（接 更新商队状态 调用）
+func _推进灵舟建造() -> void:
+	if not 灵舟坞建造中.is_empty():
+		if 累计游戏日 >= int(灵舟坞建造中.get("完成日", 0)):
+			var 目标档 = int(灵舟坞建造中.get("目标档", 1))
+			var 档 = 灵舟坞表.get("sd%02d" % 目标档, null)
+			灵舟坞等级 = 目标档
+			灵舟坞建造中 = {}
+			if 档 != null:
+				添加纪事("庶务", "飞舟坞", "历时%d日，%s（等级%d）建成，自此可跨域通商" % [int(档.get("upgrade_days", 0)), str(档.get("dock_name", "")), 灵舟坞等级], 1)
+	var 仍进行: Array = []
+	for q in 灵舟建造队列:
+		if 累计游戏日 >= int(q.get("完成日", 0)):
+			var sid = str(q.get("ship_id", ""))
+			var 舟 = 宗门灵舟表.get(sid, null)
+			if 舟 != null:
+				灵舟库存.append({
+					"ship_id": sid, "名称": str(舟.get("ship_name", "")),
+					"tier": int(舟.get("tier", 0)), "ship_type": str(舟.get("ship_type", "")),
+					"durability": int(舟.get("max_durability", 0)), "max_durability": int(舟.get("max_durability", 0)),
+					"speed_bonus": float(舟.get("speed_bonus", 0)), "risk_reduce": float(舟.get("risk_reduce", 0)),
+					"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常", "可命名次数": 1,
+				})
+				添加纪事("庶务", "灵舟炼成", "历时%d日，灵舟【%s】炼制功成！" % [int(舟.get("build_days", 0)), str(舟.get("ship_name", ""))], 1)
+		else:
+			仍进行.append(q)
+	灵舟建造队列 = 仍进行
+
+# 炼制灵舟（需已建坞，受坞解锁档位与容量限制）：主成本=各阶灵材 + 时日；工费灵石为祭炼之资。
+func 炼制灵舟(ship_id: String) -> Dictionary:
+	if 灵舟坞等级 <= 0:
+		return {"成功": false, "消息": "须先建成飞舟坞"}
+	var 舟 = 宗门灵舟表.get(ship_id, null)
+	if 舟 == null:
+		return {"成功": false, "消息": "灵舟型号不存在"}
+	var 舟tier = int(舟.get("tier", 0))
+	var 坞 = 灵舟坞表.get("sd%02d" % 灵舟坞等级, null)
+	if 坞 == null:
+		return {"成功": false, "消息": "飞舟坞状态异常"}
+	var 需等级 = int(str(舟.get("unlock_condition", "sect_level=1")).replace("sect_level=", ""))
+	if 门派等级 < 需等级:
+		return {"成功": false, "消息": "门派等级不足（需%d级）" % 需等级}
+	if int(坞.get("unlock_ship_tier", 0)) < 舟tier:
+		return {"成功": false, "消息": "当前飞舟坞仅可炼制 tier%d 及以下灵舟" % int(坞.get("unlock_ship_tier", 0))}
+	# §11.15 阶段三·灵舟：炼器师品阶门槛（复用 ForgeSystem.获取炼器等级）
+	var 所需炼器师 = int(舟.get("required_forge_tier", 1))
+	if ForgeSystem.获取炼器等级(炼器经验值) < 所需炼器师:
+		return {"成功": false, "消息": "炼器师品阶不足（需 %d 品炼器师）" % 所需炼器师}
+	# 战舰型灵舟需更高级船坞（坞 can_build_war_ship≥1）
+	if str(舟.get("ship_type", "")) == "war" and int(坞.get("can_build_war_ship", 0)) < 1:
+		return {"成功": false, "消息": "当前飞舟坞不可炼制战舰（需更高级船坞）"}
+	if 灵舟库存.size() + 灵舟建造队列.size() >= int(坞.get("max_ship_count", 1)):
+		return {"成功": false, "消息": "飞舟坞容量已满（上限%d）" % int(坞.get("max_ship_count", 1))}
+	for q in 灵舟建造队列:
+		if str(q.get("ship_id", "")) == ship_id:
+			return {"成功": false, "消息": "该灵舟已在炼制队列中"}
+	var 清单 = _解析材料清单(舟.get("build_material", ""))
+	for m in 清单:
+		m["有"] = _仓库灵材数量(m["名"])
+	var 费 = int(舟.get("build_cost", 0))
+	if 灵石 < 费:
+		return {"成功": false, "消息": "祭炼灵石不足（需%d）" % 费}
+	var 扣 = _扣灵材(清单)
+	if not 扣.get("成功", false):
+		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
+	灵石 -= 费
+	灵舟建造队列.append({"ship_id": ship_id, "完成日": 累计游戏日 + int(舟.get("build_days", 0))})
+	添加纪事("庶务", "灵舟炼制", "历时%d日，开工炼制【%s】，灵材已耗、祭炼灵石已付" % [int(舟.get("build_days", 0)), str(舟.get("ship_name", ""))], 1)
+	return {"成功": true, "消息": "【%s】动工炼制，预计%d日完工" % [str(舟.get("ship_name", "")), int(舟.get("build_days", 0))], "完成日": 累计游戏日 + int(舟.get("build_days", 0))}
+
+# ===== §11.15 阶段三：拍卖会（双向市场）=====
+# 唯一「纯灵石直接获得灵舟」途径：购买 NPC/其他势力成品（跳过材料+时日）。
+# 反向：本宗炼制的灵舟亦可挂拍换灵石。
+func 获取拍卖会灵舟() -> Array:
+	var 势力池: Array = ["玄天宫", "万宝楼", "散修联盟", "北海龙宫", "天机阁", "九幽邪宗"]
+	var 列表: Array = []
+	for sid in 宗门灵舟表.keys():
+		var 舟 = 宗门灵舟表[sid]
+		var tier = int(舟.get("tier", 0))
+		var 价 = int(float(舟.get("build_cost", 0)) * (1.5 + 0.5 * tier))   # 成品较自炼溢价（省材料+时日）
+		列表.append({
+			"ship_id": sid, "名称": str(舟.get("ship_name", "")), "tier": tier,
+			"ship_type": str(舟.get("ship_type", "")), "价": 价,
+			"卖家": 势力池[randi() % 势力池.size()],
+		})
+	return 列表
+
+# 拍卖购买灵舟（纯灵石，唯一直接途径，跳过材料+时日）
+func 拍卖购买灵舟(ship_id: String) -> Dictionary:
+	var 在售 = 获取拍卖会灵舟()
+	var 命中 = null
+	for s in 在售:
+		if str(s.get("ship_id", "")) == ship_id:
+			命中 = s
+			break
+	if 命中 == null:
+		return {"成功": false, "消息": "该灵舟不在拍卖会"}
+	var 价 = int(命中.get("价", 0))
+	if 灵石 < 价:
+		return {"成功": false, "消息": "灵石不足（需%d）" % 价}
+	灵石 -= 价
+	var 舟 = 宗门灵舟表.get(ship_id, null)
+	if 舟 != null:
+		灵舟库存.append({
+			"ship_id": ship_id, "名称": str(舟.get("ship_name", "")), "tier": int(舟.get("tier", 0)),
+			"ship_type": str(舟.get("ship_type", "")), "durability": int(舟.get("max_durability", 0)),
+			"max_durability": int(舟.get("max_durability", 0)), "speed_bonus": float(舟.get("speed_bonus", 0)),
+			"risk_reduce": float(舟.get("risk_reduce", 0)),
+			"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常",
+		})
+		添加纪事("拍卖", "购得灵舟", "于拍卖会以%d灵石拍得【%s】（出自%s）" % [价, str(舟.get("ship_name", "")), str(命中.get("卖家", ""))], 1)
+	return {"成功": true, "消息": "以%d灵石拍得【%s】" % [价, str(舟.get("ship_name", ""))]}
+
+# 拍卖出售本宗灵舟（换取灵石）
+func 拍卖出售灵舟(索引: int, 价: int) -> Dictionary:
+	if 索引 < 0 or 索引 >= 灵舟库存.size():
+		return {"成功": false, "消息": "灵舟库存索引越界"}
+	var 舟 = 灵舟库存[索引]
+	灵舟库存.remove_at(索引)
+	灵石 += 价
+	添加纪事("拍卖", "售出灵舟", "于拍卖会售出【%s】，得灵石%d" % [str(舟.get("名称", "")), 价], 0)
+	return {"成功": true, "消息": "售出【%s】，得灵石%d" % [str(舟.get("名称", "")), 价]}
+
+# 通用灵舟奖励发放（秘境/斗法/成就等渠道调用）：直接入库存，无需材料+时日
+func 发放灵舟奖励(ship_id: String) -> Dictionary:
+	var 舟 = 宗门灵舟表.get(ship_id, null)
+	if 舟 == null:
+		return {"成功": false, "消息": "灵舟型号不存在"}
+	灵舟库存.append({
+		"ship_id": ship_id, "名称": str(舟.get("ship_name", "")), "tier": int(舟.get("tier", 0)),
+		"ship_type": str(舟.get("ship_type", "")), "durability": int(舟.get("max_durability", 0)),
+		"max_durability": int(舟.get("max_durability", 0)), "speed_bonus": float(舟.get("speed_bonus", 0)),
+		"risk_reduce": float(舟.get("risk_reduce", 0)),
+		"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常",
+	})
+	添加纪事("奇遇", "灵舟现世", "于秘境/斗法之中获赠灵舟【%s】！" % str(舟.get("ship_name", "")), 2)
+	return {"成功": true, "消息": "获得灵舟【%s】" % str(舟.get("ship_name", ""))}
+
+# §11.15 阶段三·灵舟：能量核心品阶→物品中文名
+func 灵舟核心物品名(品阶: int) -> String:
+	var gid = 灵核品阶物品.get(品阶, "g021")
+	return 灵材名称表.get(gid, gid)
+
+# §11.15 阶段三·灵舟：聚合一艘灵舟的「有效属性」（基础 + 已刻阵法加成）
+func 灵舟有效属性(舟: Dictionary) -> Dictionary:
+	var 有效: Dictionary = {
+		"speed_bonus": float(舟.get("speed_bonus", 0.0)),
+		"risk_reduce": float(舟.get("risk_reduce", 0.0)),
+		"max_durability": int(舟.get("max_durability", 0)),
+		"war_power": int(舟.get("war_power", 0)),
+		"有回灵": false,
+	}
+	for fid in 舟.get("阵法", []):
+		var fm = 灵舟阵法表.get(str(fid), null)
+		if fm == null:
+			continue
+		var dim = str(fm.get("effect_dim", ""))
+		var val = float(fm.get("effect_val", 0.0))
+		if dim == "speed":
+			有效["speed_bonus"] += val
+		elif dim == "risk":
+			有效["risk_reduce"] += val
+		elif dim == "durability":
+			有效["max_durability"] += int(val)
+		elif dim == "war":
+			有效["war_power"] += int(val)
+		elif dim == "regen":
+			有效["有回灵"] = true
+	return 有效
+
+# §11.15 阶段三·灵舟：刻录阵法（消耗灵石+灵材，受阵法堂司职等级+槽位+特性门槛）
+func 刻录灵舟阵法(索引: int, formation_id: String) -> Dictionary:
+	if 索引 < 0 or 索引 >= 灵舟库存.size():
+		return {"成功": false, "消息": "灵舟库存索引越界"}
+	var 舟 = 灵舟库存[索引]
+	var 舟定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
+	var fm = 灵舟阵法表.get(formation_id, null)
+	if fm == null:
+		return {"成功": false, "消息": "阵法不存在"}
+	var 已刻 = 舟.get("阵法", [])
+	if 已刻.size() >= int(舟定义.get("formation_slots", 0)):
+		return {"成功": false, "消息": "灵舟阵法槽已满（%d/%d）" % [已刻.size(), int(舟定义.get("formation_slots", 0))]}
+	if formation_id in 已刻:
+		return {"成功": false, "消息": "该阵法已刻录"}
+	# 虚空大阵仅「虚空」特性灵舟可刻（破虚神舰）
+	if str(fm.get("category", "")) == "虚空" and not ("虚空" in str(舟定义.get("features", "")).split("|")):
+		return {"成功": false, "消息": "仅「虚空」特性灵舟（破虚神舰）可刻录虚空大阵"}
+	# 阵法堂司职等级门槛
+	var 阵法堂等级: int = 1
+	if 司职列表.has("zhenfa"):
+		var v = 司职列表["zhenfa"].get("等级", 1)
+		阵法堂等级 = int(v) if v != null else 1
+	if 阵法堂等级 < int(fm.get("required_array_tier", 1)):
+		return {"成功": false, "消息": "阵法堂等级不足（需 %d 级）" % int(fm.get("required_array_tier", 1))}
+	var 费 = int(fm.get("cost_lingstone", 0))
+	if 灵石 < 费:
+		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
+	var 清单 = _解析材料清单(str(fm.get("cost_material", "")))
+	for m in 清单:
+		m["有"] = _仓库灵材数量(m["名"])
+	var 扣 = _扣灵材(清单)
+	if not 扣.get("成功", false):
+		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
+	灵石 -= 费
+	已刻.append(formation_id)
+	舟["阵法"] = 已刻
+	添加纪事("器殿", "灵舟刻阵", "于【%s】刻录【%s】" % [str(舟.get("名称", "")), str(fm.get("name", ""))], 1)
+	return {"成功": true, "消息": "灵舟刻录【%s】成功" % str(fm.get("name", ""))}
+
+# §11.15 阶段三·灵舟：补充能量核心（手动，耗 1 枚对应品阶核心恢复驱动）
+func 补充灵舟核心(索引: int) -> Dictionary:
+	if 索引 < 0 or 索引 >= 灵舟库存.size():
+		return {"成功": false, "消息": "灵舟库存索引越界"}
+	var 舟 = 灵舟库存[索引]
+	if str(舟.get("核心状态", "正常")) == "正常":
+		return {"成功": false, "消息": "灵舟核心状态正常，无需补充"}
+	var 品阶 = int(舟.get("核心品阶", 1))
+	var gid = 灵核品阶物品.get(品阶, "g021")
+	var 名 = 灵材名称表.get(gid, gid)
+	if _仓库灵材数量(名) < 1:
+		return {"成功": false, "消息": "仓库无【%s】（需1枚）" % 名}
+	_扣灵材([{"id": gid, "名": 名, "需": 1, "有": 1}])
+	舟["核心状态"] = "正常"
+	添加纪事("庶务", "灵舟补核", "为【%s】补充%s，恢复驱动" % [str(舟.get("名称", "")), 名], 1)
+	return {"成功": true, "消息": "已为【%s】补充%s" % [str(舟.get("名称", "")), 名]}
+
+# §11.15 阶段三·灵舟：重命名（每名仅一次机会，可于库存面板随时触发）
+func 重命名灵舟(索引: int, 新名: String) -> Dictionary:
+	if 索引 < 0 or 索引 >= 灵舟库存.size():
+		return {"成功": false, "消息": "灵舟库存索引越界"}
+	var 舟 = 灵舟库存[索引]
+	var 余 = int(舟.get("可命名次数", 1))
+	if 余 <= 0:
+		return {"成功": false, "消息": "【%s】已无重命名机会（每舟仅可命名一次）" % str(舟.get("名称", ""))}
+	var 名 = str(新名).strip_edges()
+	if 名.is_empty():
+		return {"成功": false, "消息": "灵舟名不可为空"}
+	if 名.length() > 12:
+		return {"成功": false, "消息": "灵舟名过长（限12字）"}
+	var 旧名 = str(舟.get("名称", ""))
+	舟["名称"] = 名
+	舟["可命名次数"] = 余 - 1
+	添加纪事("庶务", "灵舟命名", "【%s】更名为【%s】" % [旧名, 名], 1)
+	return {"成功": true, "消息": "已将【%s】更名为【%s】" % [旧名, 名]}
+
+# §11.15 阶段三·灵舟：月度结算——灵石维护 + 能量核心消耗（驱使灵舟之耗，按月）
+func _结算灵舟月度() -> void:
+	var 总维护 = 0
+	for 舟 in 灵舟库存:
+		var 定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
+		总维护 += int(定义.get("monthly_maintain", 0))
+		# 回灵聚气阵：自续核心，不耗仓库核心
+		var 有回灵 = false
+		for fid in 舟.get("阵法", []):
+			var fm = 灵舟阵法表.get(str(fid), null)
+			if fm != null and str(fm.get("effect_dim", "")) == "regen":
+				有回灵 = true
+		if 有回灵:
+			舟["核心状态"] = "正常"
+			continue
+		var 品阶 = int(舟.get("核心品阶", 1))
+		var gid = 灵核品阶物品.get(品阶, "g021")
+		var 名 = 灵材名称表.get(gid, gid)
+		if _仓库灵材数量(名) >= 1:
+			_扣灵材([{"id": gid, "名": 名, "需": 1, "有": 1}])
+			舟["核心状态"] = "正常"
+		else:
+			舟["核心状态"] = "枯竭"
+	if 总维护 > 0:
+		灵石 = max(0, 灵石 - 总维护)
+
+# 黑市：魔道专属（设计 L105-106）；正道不可入，查缉命中扣正道声望+禁闭
+func 黑市可交易() -> bool:
+	return 正邪路线 == "九幽邪道" and 黑市禁闭日 <= 0
+
+func 黑市违禁品列表() -> Array:
+	var 表: Array = []
+	for gid in 商队商品表.keys():
+		var g = 商队商品表[gid]
+		if int(g.get("is_illegal", 0)) == 1:
+			表.append({"名": str(g.get("goods_name", "")), "单价": int(g.get("base_price", 0)) * 2})
+	return 表
+
+func 黑市出售(货物名: String, 数量: int = 1) -> Dictionary:
+	if 正邪路线 != "九幽邪道":
+		return {"成功": false, "消息": "黑市仅魔道势力可入（需择九幽邪道）"}
+	if 黑市禁闭日 > 0:
+		return {"成功": false, "消息": "正道执法封禁中（剩余%d天）" % 黑市禁闭日}
+	var 目标 = null
+	for gid in 商队商品表.keys():
+		var g = 商队商品表[gid]
+		if str(g.get("goods_name", "")) == 货物名 and int(g.get("is_illegal", 0)) == 1:
+			目标 = g
+			break
+	if 目标 == null:
+		return {"成功": false, "消息": "该货物非违禁品或不存在"}
+	var 单价 = int(目标.get("base_price", 0)) * 2   # 黑市价差翻倍
+	var 收益 = 单价 * max(1, 数量)
+	灵石 += 收益
+	# 查缉判定：基础 15%，魔道声望越高越隐蔽
+	var 查缉率 = clamp(0.15 - int(阵营声望.get("魔道邪宗", 0)) / 5000.0, 0.03, 0.15)
+	if randf() < 查缉率:
+		黑市禁闭日 = 30
+		阵营声望["正道宗门"] = max(0, int(阵营声望.get("正道宗门", 0)) - 50)
+		添加纪事("庶务", "黑市查缉", "黑市交易被正道执法队查获，遭禁闭30日，正道声望-50", 1)
+		return {"成功": true, "消息": "黑市售出%s×%d获%d灵石，但被查获！禁闭30日" % [货物名, 数量, 收益], "收益": 收益, "查获": true}
+	添加纪事("庶务", "黑市交易", "于黑市售出%s×%d，获%d灵石" % [货物名, 数量, 收益], 1)
+	return {"成功": true, "消息": "黑市售出%s×%d，获%d灵石" % [货物名, 数量, 收益], "收益": 收益}
+
+# NPC 商队竞争：黄金商路（物价系数≥1.1）月度推演
+func 黄金商路列表() -> Array:
+	var 表: Array = []
+	for 地区 in 商队地区:
+		if float(地区.get("收购价", 1.0)) >= 1.1:
+			表.append(地区)
+	return 表
+
+func _刷新商路竞争() -> void:
+	for 地区 in 黄金商路列表():
+		var cid = str(地区.get("id", ""))
+		if not 商路竞争状态.has(cid):
+			商路竞争状态[cid] = {"强度": randi_range(30, 80), "压价率": randf_range(0.10, 0.25), "策略": "压价"}
+		else:
+			var s = 商路竞争状态[cid]
+			s["强度"] = clamp(int(s["强度"]) + randi_range(-10, 15), 10, 100)
+			s["压价率"] = clamp(float(s["压价率"]) + randf_range(-0.03, 0.03), 0.0, 0.35)
+
+func _检查独占(城市id: String) -> void:
+	if not 商路竞争状态.has(城市id):
+		return
+	var s = 商路竞争状态[城市id]
+	if float(s.get("压价率", 0.0)) <= 0.0:
+		s["策略"] = "已独占"
+
+func 商路竞争价格战(城市id: String) -> Dictionary:
+	if not 商路竞争状态.has(城市id):
+		return {"成功": false, "消息": "该商路无竞争者"}
+	var s = 商路竞争状态[城市id]
+	var 费 = 2000
+	if 灵石 < 费:
+		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
+	灵石 -= 费
+	s["压价率"] = clamp(float(s["压价率"]) - 0.08, 0.0, 0.35)
+	_检查独占(城市id)
+	return {"成功": true, "消息": "发动价格战，压价率降至%.0f%%" % [float(s["压价率"]) * 100]}
+
+func 商路竞争打压(城市id: String) -> Dictionary:
+	if not 商路竞争状态.has(城市id):
+		return {"成功": false, "消息": "该商路无竞争者"}
+	var s = 商路竞争状态[城市id]
+	var 费 = 5000
+	if 灵石 < 费:
+		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
+	灵石 -= 费
+	s["强度"] = clamp(int(s["强度"]) - 30, 0, 100)
+	if int(s["强度"]) <= 0:
+		s["压价率"] = 0.0
+	_检查独占(城市id)
+	return {"成功": true, "消息": "打压对手，其强度降至%d" % int(s["强度"])}
+
+func 商路竞争协商(城市id: String) -> Dictionary:
+	if not 商路竞争状态.has(城市id):
+		return {"成功": false, "消息": "该商路无竞争者"}
+	var s = 商路竞争状态[城市id]
+	var 费 = 3000
+	if 灵石 < 费:
+		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
+	灵石 -= 费
+	s["策略"] = "协商分润"
+	s["压价率"] = clamp(float(s["压价率"]) * 0.5, 0.0, 0.35)
+	return {"成功": true, "消息": "与对手协商分润，压价缓和至%.0f%%" % [float(s["压价率"]) * 100]}
+
+# ===== §11.15 策略深度：商路声望 / 全局行情事件 辅助 =====
+func _商路声望价差加成(地区id: String) -> float:
+	var 阈值 = [0, 100, 500, 2000, 5000]
+	var 加成 = [0.0, 0.03, 0.06, 0.10, 0.15]
+	var rep = int(商路声望.get(地区id, 0))
+	var tier = 0
+	for i in range(阈值.size()):
+		if rep >= 阈值[i]:
+			tier = i
+	return 加成[tier]
+
+func _累加商路声望(地区id: String, 收益: int) -> void:
+	商路声望[地区id] = int(商路声望.get(地区id, 0)) + max(1, int(收益 / 100))
+
+# §11.15 优化：商队总声望（全局聚合，用于槽位解锁 / 阶梯封顶）
+func _商队总声望() -> int:
+	var tot = 0
+	for v in 商路声望.values():
+		tot += int(v)
+	return tot
+
+# §11.15 优化 + §11.20 修复：阶梯封顶倍率（毛收益口径 = 货值 × 倍率）
+#   原 1.0~4.0x 会把基础加成（收购价×溢价×掌柜价差≈1.2x）削平 → 策略深度归零；
+#   改为 1.5~4.5x：低声望也不削正常加成，高声望放开到 4.5x（此时收益主要靠跨域高物价城 + 溢价匹配）
+func _商队收益封顶倍率() -> float:
+	var tot = _商队总声望()
+	var 阈值 = [0, 200, 600, 1500, 3500, 7000]
+	var 倍率 = [1.5, 2.0, 2.5, 3.0, 3.5, 4.5]
+	var m = 1.0
+	for i in range(阈值.size()):
+		if tot >= 阈值[i]:
+			m = 倍率[i]
+	return m
+
+# §11.15 优化：贸易现实时间加速——多途径缩短单次贸易现实耗时（统一封顶系数）
+func _阵法堂航速被动() -> float:
+	var lv = 1
+	if 司职列表.has("zhenfa"):
+		var v = 司职列表["zhenfa"].get("等级", 1)
+		lv = int(v) if v != null else 1
+	return float(lv) * 阵法堂航速每级
+
+func _声望航速被动() -> float:
+	var 总 = _商队总声望()
+	return min(声望航速上限, float(总) / 500.0 * 声望航速每500)
+
+# 总速度加成 → 现实耗时秒（封顶 贸易最短时间系数）
+func _计算贸易现实秒(总速度加成: float) -> int:
+	var 系数 = clamp(1.0 / (1.0 + 总速度加成), 贸易最短时间系数, 1.0)
+	return int(round(float(商队单次贸易现实秒) * 系数))
+
+# §11.15 优化：仙玉即时完成贸易——消耗仙玉将本次贸易立即结算（仅时间加速，不破经济红线）
+func 仙玉即时完成贸易(商队ID: int) -> Dictionary:
+	for 商队 in 商队列表:
+		if int(商队.get("id", -1)) == 商队ID and str(商队.get("状态", "")) == "派遣中":
+			if 仙玉_非绑定 + 仙玉_绑定 < 仙玉即时完成费:
+				return {"成功": false, "消息": "仙玉不足（需%d）" % 仙玉即时完成费}
+			var 余 = 仙玉即时完成费
+			if 仙玉_非绑定 >= 余:
+				仙玉_非绑定 -= 余
+			else:
+				var 先 = 仙玉_非绑定
+				仙玉_非绑定 = 0
+				仙玉_绑定 -= (余 - 先)
+			商队["预计完成真实秒"] = int(Time.get_unix_time_from_system())
+			结算到期商队()
+			添加纪事("神异", "仙玉催行", "以%d仙玉催动神行法，商队即刻返航" % 仙玉即时完成费, 1)
+			return {"成功": true, "消息": "已消耗%d仙玉，贸易即时完成" % 仙玉即时完成费}
+	return {"成功": false, "消息": "未找到该派遣中商队"}
+
+# §11.15 优化：商队槽位数——初始1，随商队总声望解锁，最多6
+func 商队槽位数() -> int:
+	var tot = _商队总声望()
+	var 阈值 = [0, 200, 600, 1500, 3500, 7000]
+	var n = 1
+	for i in range(阈值.size()):
+		if tot >= 阈值[i]:
+			n = i + 1
+	return min(n, 6)
+
+# §11.15 优化：每日派遣配额——= 槽位数 ×（1 + 月卡/季卡/永久卡增益）
+func 商队每日配额() -> int:
+	var 增益 = 0
+	if 月卡有效() or 季卡有效() or 永久卡激活:
+		增益 = 1
+	return 商队槽位数() * (1 + 增益)
+
+# §11.15 优化：每日配额按现实日重置（复用项目 real-time 范式）
+func 刷新商队配额() -> void:
+	var 现在 = int(Time.get_unix_time_from_system())
+	if 现在 - 上次配额日真实秒 >= 86400:
+		商队每日已派 = 0
+		上次配额日真实秒 = 现在
+
+func _行情事件倍率(地区: Dictionary) -> float:
+	var m = 1.0
+	for ev in 行情事件列表:
+		if int(ev.get("剩余天数", 0)) > 0 and str(ev.get("地区", "")) == str(地区.get("id", "")):
+			for 偏好 in 地区.get("偏好类别", []):
+				if str(ev.get("品类", "")) == 偏好:
+					m = max(m, float(ev.get("倍率", 1.0)))
+	return m
+
+# §11.15 数据驱动：解析城市/商路 unlock_condition / unlock_need
+func 检查商路城市解锁(条件: String, 地区id: String = "") -> bool:
+	if 条件.strip_edges() == "" or 条件.strip_edges() == "none":
+		return true
+	var 项列表 = 条件.split(" AND ", false)
+	for 项 in 项列表:
+		var t = str(项).strip_edges()
+		if t == "":
+			continue
+		# sect_level=N / sect_level>=N
+		if t.begins_with("sect_level"):
+			var 需 = int(t.split("=")[-1])
+			if 门派等级 < 需:
+				return false
+		elif t.begins_with("has_shop"):
+			# 坊市系统已存在，视为满足
+			pass
+		elif t.begins_with("has_ship"):
+			# §11.15 阶段三：已实装灵舟坞；已建坞(has_ship)才解锁跨域城 7/8
+			if 灵舟坞等级 <= 0:
+				return false
+		elif t.begins_with("reputation"):
+			# 本地区商路声望
+			var 需 = int(t.split("=")[-1]) if "=" in t else int(t.split(">=")[-1])
+			if int(商路声望.get(地区id, 0)) < 需:
+				return false
+		else:
+			push_warning("未知商路解锁条件: %s" % t)
+	return true
+
+func _刷新行情事件() -> void:
+	# §11.15 策略深度：每月 1~2 次全局行情事件（独立队列，不污染 EventManager）
+	var 池 = [
+		{"地区": "附近城镇", "品类": "灵草", "倍率": 1.4, "天数": 8, "名": "灵草疫疾，药价飙升"},
+		{"地区": "修真集市", "品类": "矿石", "倍率": 1.5, "天数": 10, "名": "矿脉告急，矿石暴涨"},
+		{"地区": "仙城坊市", "品类": "法器", "倍率": 1.6, "天数": 12, "名": "法器盛会，法器稀缺"},
+		{"地区": "秘境边境", "品类": "天材地宝", "倍率": 1.8, "天数": 15, "名": "天材地宝争夺战"},
+		{"地区": "仙城坊市", "品类": "法器", "倍率": 0.7, "天数": 10, "名": "法器滞销，价格承压"},
+		{"地区": "修真集市", "品类": "矿石", "倍率": 0.75, "天数": 9, "名": "矿石过剩，行情走低"},
+	]
+	var 次数 = 1 + int(randf() * 2)
+	for _n in range(次数):
+		var t = 池[randi() % 池.size()]
+		var 重复 = false
+		for ev in 行情事件列表:
+			if str(ev.get("地区", "")) == t["地区"] and str(ev.get("品类", "")) == t["品类"]:
+				重复 = true
+				break
+		if 重复:
+			continue
+		var ev = {"地区": t["地区"], "品类": t["品类"], "倍率": t["倍率"], "剩余天数": t["天数"], "名": t["名"]}
+		行情事件列表.append(ev)
+		添加纪事("庶务", "行情事件", "商路行情：%s" % t["名"], 1)
+
 # ===== 阵营声望系统（v2.0 五大阵营体系：====
 # 5大阵营：正道宗门、魔道邪宗、中立散修、上古妖兽、远古遗泽
 # 5级声望：冷淡→中立→友善→尊敬→崇敬
@@ -8168,7 +9377,7 @@ func _方针自动派遣() -> void:
 			var 战力比: float = float(d.战力) / max(1.0, float(关["推荐战力"]))
 			if 战力比 < (0.6 + 风险偏好 * 0.8):
 				continue
-		候选.append(关ID)
+			候选.append(关ID)
 		if 候选.is_empty():
 			continue
 		var 选定: String = ""
@@ -8233,7 +9442,7 @@ func 抽取月度事件() -> void:
 	var 抽数: int = 1 + (1 if randf() < 0.4 else 0)
 	for _i in range(抽数):
 		var 事件: Dictionary = _按权重抽事件()
-		if 事件 != null:
+		if not 事件.is_empty():
 			处理事件(事件)
 
 func _按权重抽事件() -> Dictionary:
@@ -8241,13 +9450,13 @@ func _按权重抽事件() -> Dictionary:
 	for e in 世界事件表:
 		总权 += float(e.get("权重", 1)) * _事件阵营权重(e)
 	if 总权 <= 0:
-		return null
+		return {}
 	var r: float = randf() * 总权
 	for e in 世界事件表:
 		r -= float(e.get("权重", 1)) * _事件阵营权重(e)
 		if r <= 0:
 			return e
-	return null
+	return {}
 # §12/B2 方针·修炼风格 → 推演月内修炼速度乘区（不改 disciple.gd 内部，纯调用参数调制）
 func _修炼风格乘区() -> float:
 	var 风: String = str(方针.get("修炼", {}).get("风格", "均衡"))
@@ -12404,6 +13613,16 @@ func save_game():
 		"已拥有弟子皮肤": 已拥有弟子皮肤,
 		# 历练派遣系统（不升SAVE_VERSION，旧档缺键→默认零回归）
 		"历练系统": ExpeditionSystem.to_dict() if ExpeditionSystem != null else {},
+		# §11.15 商路贸易：商队状态持久化（旧档缺键→默认零回归，不升SAVE_VERSION）
+		"商队列表": 商队列表, "商队历史": 商队历史, "商队地区": 商队地区,
+		"商路声望": 商路声望, "行情事件列表": 行情事件列表,
+		# §11.15 优化：现实时间贸易模型（每日配额/槽位，旧档缺键→默认零回归，不升SAVE_VERSION）
+		"商队每日已派": 商队每日已派, "上次配额日真实秒": 上次配额日真实秒,
+		# §11.20 修复：行情刷新按现实日节流（旧档缺键→默认零回归，不升SAVE_VERSION）
+		"上次行情日真实秒": 上次行情日真实秒,
+		# §11.15 阶段三：灵舟坞/黑市禁闭/商路竞争（旧档缺键→默认零回归，不升SAVE_VERSION）
+		"灵舟坞等级": 灵舟坞等级, "黑市禁闭日": 黑市禁闭日, "商路竞争状态": 商路竞争状态,
+		"灵舟库存": 灵舟库存, "灵舟坞建造中": 灵舟坞建造中, "灵舟建造队列": 灵舟建造队列, "虚空大阵冷却日": 虚空大阵冷却日,
 		# v3 新增：阵营任务和商店系统（旧档缺键→默认零回归）
 		"阵营任务进度": 阵营任务进度,
 		"阵营商店购买记录": 阵营商店购买记录,
@@ -12507,6 +13726,25 @@ func load_game(账号id: String = "") -> void:
 	# 历练派遣系统（旧档缺键→默认零回归，不升 SAVE_VERSION）
 	if ExpeditionSystem != null:
 		ExpeditionSystem.from_dict(data.get("历练系统") if "历练系统" in data else {})
+	# §11.15 商路贸易：商队状态持久化（旧档缺键→默认零回归，不升SAVE_VERSION）
+	商队列表 = data.get("商队列表") if "商队列表" in data else []
+	商队历史 = data.get("商队历史") if "商队历史" in data else []
+	商队地区 = data.get("商队地区") if "商队地区" in data else 商队地区
+	商路声望 = data.get("商路声望") if "商路声望" in data else {}
+	行情事件列表 = data.get("行情事件列表") if "行情事件列表" in data else []
+	# §11.15 优化：现实时间贸易模型（旧档缺键→默认零回归，不升SAVE_VERSION）
+	商队每日已派 = int(data.get("商队每日已派") if "商队每日已派" in data else 0)
+	上次配额日真实秒 = int(data.get("上次配额日真实秒") if "上次配额日真实秒" in data else 0)
+	# §11.20 修复：行情刷新节流锚点（旧档缺键→默认 0，首次推演即刷新一次，不升SAVE_VERSION）
+	上次行情日真实秒 = int(data.get("上次行情日真实秒") if "上次行情日真实秒" in data else 0)
+	# §11.15 阶段三：灵舟坞/黑市禁闭/商路竞争（旧档缺键→默认零回归，不升SAVE_VERSION）
+	灵舟坞等级 = data.get("灵舟坞等级") if "灵舟坞等级" in data else 0
+	黑市禁闭日 = data.get("黑市禁闭日") if "黑市禁闭日" in data else 0
+	商路竞争状态 = data.get("商路竞争状态") if "商路竞争状态" in data else {}
+	灵舟库存 = data.get("灵舟库存") if "灵舟库存" in data else []
+	灵舟坞建造中 = data.get("灵舟坞建造中") if "灵舟坞建造中" in data else {}
+	灵舟建造队列 = data.get("灵舟建造队列") if "灵舟建造队列" in data else []
+	虚空大阵冷却日 = int(data.get("虚空大阵冷却日", 0)) if "虚空大阵冷却日" in data else 0
 	# 开宗捏脸（旧档缺键→默认零回归，不升SAVE_VERSION）
 	宗门名 = data.get("宗门名") if "宗门名" in data else "太玄宗"
 	宗主名= data.get("宗主名") if "宗主名" in data else "太虚道君"

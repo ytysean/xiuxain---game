@@ -16,6 +16,9 @@ var _派遣地区: Dictionary = {}
 var _货物勾选: Dictionary = {}
 var _派遣载具选: OptionButton = null
 var _派遣可用载具: Array = []
+var _派遣神行符勾选: CheckBox = null   # §11.15 优化：派遣面板「使用神行符」勾选状态
+var _派遣灵舟选: OptionButton = null
+var _派遣可用灵舟: Array = []
 var _派遣岗位选: Dictionary = {}
 var _派遣运力提示: Label = null
 var _tab_btns: Dictionary = {}
@@ -660,11 +663,29 @@ func _populate_caravan() -> void:
 	var card := _make_card("商队管理")
 	var vb := card.get_node("VBox")
 
+	# §11.15 优化：打开面板即结算到期商队（现实时间模型，离线/未推演也能正确返还）+ 刷新每日配额
+	if is_instance_valid(Game):
+		Game.刷新商队配额()
+		Game.结算到期商队()
+
 	var desc := Label.new()
 	desc.text = "派遣商队前往各地贸易，低买高卖赚取灵石。商队途中可能遭遇风险或偶遇高人。"
 	UITheme.apply_body_text(desc)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)
+
+	# §11.15 优化：商队槽位 / 每日配额概览
+	if is_instance_valid(Game):
+		var 配额信息 := Label.new()
+		var 卡增益 = "（含月卡+1）" if (Game.月卡有效() or Game.季卡有效() or Game.永久卡激活) else ""
+		var 总声望 = 0
+		for v in Game.商路声望.values():
+			总声望 += int(v)
+		配额信息.text = "◆ 商队槽位 %d/6（总声望%d）｜今日派遣 %d/%d%s" % [
+			Game.商队槽位数(), 总声望, Game.商队每日已派, Game.商队每日配额(), 卡增益
+		]
+		UITheme.apply_aux_text(配额信息)
+		vb.add_child(配额信息)
 
 	# 正在派遣的商队
 	var 进行中头 := Label.new()
@@ -682,12 +703,26 @@ func _populate_caravan() -> void:
 			UITheme.apply_body_text(名)
 			hb.add_child(名)
 			var 信息 := Label.new()
-			信息.text = "%s | 出发:%d日 | 预计返回:%d日 | 货物价值:%d" % [
-				商队["地区名"], int(商队["出发日"]), int(商队["预计返回日"]), int(商队["货物价值"])
-			]
+			var 灵舟后缀 = ""
+			var li = int(商队.get("灵舟索引", -1))
+			if li >= 0 and li < Game.灵舟库存.size():
+				var 舟 = Game.灵舟库存[li]
+				灵舟后缀 = " | 灵舟:%s%s" % [str(舟.get("名称", "")), "【虚空瞬移】" if 商队.get("虚空瞬移", false) else ""]
+			var 倒计时秒 = int(商队.get("预计完成真实秒", 0)) - int(Time.get_unix_time_from_system())
+			var 倒计时txt = "即时"
+			if 倒计时秒 > 0:
+				倒计时txt = "约%d时%d分后返回" % [倒计时秒 / 3600, (倒计时秒 % 3600) / 60]
+			信息.text = "%s | 货物价值:%d | %s%s" % [商队["地区名"], int(商队["货物价值"]), 倒计时txt, 灵舟后缀]
 			UITheme.apply_aux_text(信息)
 			信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			hb.add_child(信息)
+			var 仙玉btn: Button = Button.new()
+			仙玉btn.text = "仙玉即时(%d)" % Game.仙玉即时完成费
+			UITheme.apply_button_label(仙玉btn, false)
+			仙玉btn.custom_minimum_size = Vector2(115, 0)
+			仙玉btn.tooltip_text = "消耗%d仙玉立即结算本次贸易" % Game.仙玉即时完成费
+			仙玉btn.pressed.connect(_on_仙玉即时完成.bind(int(商队["id"])))
+			hb.add_child(仙玉btn)
 			vb.add_child(hb)
 	else:
 		var 空 := Label.new()
@@ -703,6 +738,8 @@ func _populate_caravan() -> void:
 
 	if is_instance_valid(Game):
 		for 地区 in Game.商队地区:
+			var rid = str(地区.get("id", ""))
+			var 解锁 = Game.检查商路城市解锁(str(地区.get("unlock_condition", "")), rid)
 			var hb := HBoxContainer.new()
 			hb.add_theme_constant_override("separation", UITheme.GRID)
 			var 名 := Label.new()
@@ -718,11 +755,46 @@ func _populate_caravan() -> void:
 			信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			hb.add_child(信息)
 			var btn := Button.new()
-			btn.text = "派遣"
 			btn.custom_minimum_size = Vector2(80, 0)
-			btn.pressed.connect(_on_派遣商队.bind(地区["id"]))
+			if 解锁:
+				btn.text = "派遣"
+				btn.pressed.connect(_on_派遣商队.bind(地区["id"]))
+			else:
+				btn.text = "未解锁"
+				btn.disabled = true
+				# 信息栏追加解锁条件
+				var 条件文本 = " | 解锁:%s" % str(地区.get("unlock_condition", ""))
+				信息.text += 条件文本
 			hb.add_child(btn)
 			vb.add_child(hb)
+
+	# 商路声望（§11.15 策略深度）
+		var 声望头 := Label.new()
+		声望头.text = "◆ 商路声望"
+		UITheme.apply_section_title(声望头)
+		vb.add_child(声望头)
+		if is_instance_valid(Game) and Game.商路声望.size() > 0:
+			for 地区 in Game.商队地区:
+				var rid = str(地区.get("id", ""))
+				var rep = int(Game.商路声望.get(rid, 0))
+				var hb := HBoxContainer.new()
+				hb.add_theme_constant_override("separation", UITheme.GRID)
+				var 名 := Label.new()
+				名.text = 地区["名称"]
+				名.custom_minimum_size = Vector2(100, 0)
+				UITheme.apply_body_text(名)
+				hb.add_child(名)
+				var 信息 := Label.new()
+				信息.text = "%d 声望" % rep
+				UITheme.apply_aux_text(信息)
+				信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				hb.add_child(信息)
+				vb.add_child(hb)
+		else:
+			var 空 := Label.new()
+			空.text = "尚无商路声望积累"
+			UITheme.apply_aux_text(空)
+			vb.add_child(空)
 
 	# 商队历史
 	var 历史头 := Label.new()
@@ -754,12 +826,553 @@ func _populate_caravan() -> void:
 		UITheme.apply_aux_text(空)
 		vb.add_child(空)
 
+	# 行情动态（§11.15 策略深度：全局行情事件）
+	var 行情头 := Label.new()
+	行情头.text = "◆ 行情动态"
+	UITheme.apply_section_title(行情头)
+	vb.add_child(行情头)
+	if is_instance_valid(Game) and Game.行情事件列表.size() > 0:
+		for ev in Game.行情事件列表:
+			var hb := HBoxContainer.new()
+			hb.add_theme_constant_override("separation", UITheme.GRID)
+			var 名 := Label.new()
+			名.text = str(ev.get("名", "行情事件"))
+			名.custom_minimum_size = Vector2(160, 0)
+			UITheme.apply_body_text(名)
+			hb.add_child(名)
+			var 信息 := Label.new()
+			信息.text = "%s ×%s · 剩%d日" % [str(ev.get("地区", "")), str(ev.get("倍率", "1.0")), int(ev.get("剩余天数", 0))]
+			UITheme.apply_aux_text(信息)
+			信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			hb.add_child(信息)
+			vb.add_child(hb)
+	else:
+		var 空 := Label.new()
+		空.text = "暂无行情波动"
+		UITheme.apply_aux_text(空)
+		vb.add_child(空)
+
+	# ===== §11.15 阶段三：灵舟（坞/炼制/拍卖会/库存） + 黑市 + NPC 商队竞争 =====
+	if is_instance_valid(Game):
+		# ---- 飞舟坞 ----
+		var 坞头 := Label.new()
+		坞头.text = "◆ 飞舟坞（跨域贸易）"
+		UITheme.apply_section_title(坞头)
+		vb.add_child(坞头)
+		var 坞信息 := Label.new()
+		if not Game.灵舟坞建造中.is_empty():
+			var 建中 = Game.灵舟坞建造信息()
+			var 剩余 = int(建中.get("完成日", 0)) - Game.累计游戏日
+			坞信息.text = "建造中：%s（目标等级%d），预计剩余 %d 日" % [
+				Game.灵舟坞表.get("sd%02d" % int(建中.get("目标档", 0)), {}).get("dock_name", ""),
+				int(建中.get("目标档", 0)), max(0, 剩余)]
+		elif Game.已建灵舟坞():
+			坞信息.text = "已建成飞舟坞（等级%d），可跨域通商至紫府仙都/北海商港" % Game.灵舟坞等级
+		else:
+			var 建 = Game.灵舟坞建造信息()
+			if 建.get("可建", false):
+				var 材料txt = ""
+				for m in 建.get("材料", []):
+					材料txt += "%s ×%d（有%d）  " % [str(m.get("名", "")), int(m.get("需", 0)), int(m.get("有", 0))]
+				坞信息.text = "可建：%s（Lv%d）｜需门派%d级｜工费灵石%d｜历时%d日\n灵材：%s" % [
+					str(建.get("名称", "")), int(建.get("等级", 1)), int(建.get("需门派等级", 99)),
+					int(建.get("工费", 0)), int(建.get("时日", 0)), 材料txt.strip_edges()]
+			else:
+				坞信息.text = "暂无可建飞舟坞"
+		UITheme.apply_aux_text(坞信息)
+		坞信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vb.add_child(坞信息)
+		if Game.灵舟坞建造中.is_empty() and not Game.已建灵舟坞():
+			var 建btn := Button.new()
+			建btn.text = "建造/升级飞舟坞"
+			建btn.custom_minimum_size = Vector2(180, 0)
+			建btn.pressed.connect(_on_建造灵舟坞)
+			vb.add_child(建btn)
+
+		# ---- 灵舟炼制 ----
+		if Game.已建灵舟坞():
+			var 炼头 := Label.new()
+			炼头.text = "◆ 灵舟炼制（各阶灵材 + 时日）"
+			UITheme.apply_section_title(炼头)
+			vb.add_child(炼头)
+			var 坞 = Game.灵舟坞表.get("sd%02d" % Game.灵舟坞等级, {})
+			var 容量 = int(坞.get("max_ship_count", 1))
+			var 余量 = 容量 - Game.灵舟库存.size() - Game.灵舟建造队列.size()
+			var 容info := Label.new()
+			容info.text = "飞舟坞容量 %d／已持%d＋炼制中%d（余%d）" % [容量, Game.灵舟库存.size(), Game.灵舟建造队列.size(), max(0, 余量)]
+			UITheme.apply_aux_text(容info)
+			vb.add_child(容info)
+			for sid in Game.宗门灵舟表.keys():
+				var 舟 = Game.宗门灵舟表[sid]
+				var tier = int(舟.get("tier", 0))
+				if int(坞.get("unlock_ship_tier", 0)) < tier:
+					continue
+				var 需等级 = int(str(舟.get("unlock_condition", "sect_level=1")).replace("sect_level=", ""))
+				if Game.门派等级 < 需等级:
+					continue
+				var hb := HBoxContainer.new()
+				hb.add_theme_constant_override("separation", UITheme.GRID)
+				var 名 := Label.new()
+				名.text = str(舟.get("ship_name", ""))
+				名.custom_minimum_size = Vector2(120, 0)
+				UITheme.apply_body_text(名)
+				hb.add_child(名)
+				var 材料txt = ""
+				for 段 in str(舟.get("build_material", "")).split("|"):
+					if 段.strip_edges().is_empty():
+						continue
+					var p2 = 段.split(":")
+					if p2.size() < 2:
+						continue
+					var gid = p2[0].strip_edges()
+					var n = int(p2[1].strip_edges())
+					var 中文 = Game.灵材名称表.get(gid, gid)
+					var 有 = 0
+					for it in Game.仓库:
+						if it != null and str(it.get("名称", "")) == 中文:
+							有 += 1
+					材料txt += "%s×%d(有%d) " % [中文, n, 有]
+				var 信息 := Label.new()
+				信息.text = "T%d｜需%d品炼器师｜核心%d阶｜槽%d｜%s｜工费%d｜%d日｜%s" % [
+					tier, int(舟.get("required_forge_tier", 1)), int(舟.get("required_core_tier", 1)),
+					int(舟.get("formation_slots", 0)), str(舟.get("features", "")),
+					int(舟.get("build_cost", 0)), int(舟.get("build_days", 0)), 材料txt.strip_edges()]
+				UITheme.apply_aux_text(信息)
+				信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				hb.add_child(信息)
+				var 炼 := Button.new()
+				炼.text = "炼制"
+				炼.custom_minimum_size = Vector2(70, 0)
+				炼.pressed.connect(_on_炼制灵舟.bind(sid))
+				hb.add_child(炼)
+				vb.add_child(hb)
+
+		# ---- 拍卖会（双向市场）----
+		var 拍头 := Label.new()
+		拍头.text = "◆ 拍卖会（纯灵石购成品 / 售本宗灵舟）"
+		UITheme.apply_section_title(拍头)
+		vb.add_child(拍头)
+		var 在售 = Game.获取拍卖会灵舟()
+		for s in 在售:
+			var hb := HBoxContainer.new()
+			hb.add_theme_constant_override("separation", UITheme.GRID)
+			var 名 := Label.new()
+			名.text = "%s（%s）" % [str(s.get("名称", "")), str(s.get("卖家", ""))]
+			名.custom_minimum_size = Vector2(180, 0)
+			UITheme.apply_body_text(名)
+			hb.add_child(名)
+			var 价 := Label.new()
+			价.text = "%d 灵石" % int(s.get("价", 0))
+			UITheme.apply_aux_text(价)
+			价.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			hb.add_child(价)
+			var 买 := Button.new()
+			买.text = "购买"
+			买.custom_minimum_size = Vector2(70, 0)
+			买.pressed.connect(_on_拍卖购买灵舟.bind(str(s.get("ship_id", ""))))
+			hb.add_child(买)
+			vb.add_child(hb)
+		if 在售.is_empty():
+			var 空a := Label.new()
+			空a.text = "拍卖会暂无灵舟挂单"
+			UITheme.apply_aux_text(空a)
+			vb.add_child(空a)
+
+		# ---- 灵舟库存 ----
+		if Game.灵舟库存.size() > 0:
+			var 库头 := Label.new()
+			库头.text = "◆ 灵舟库存"
+			UITheme.apply_section_title(库头)
+			vb.add_child(库头)
+			if Game.虚空大阵冷却日 > Game.累计游戏日:
+				var 虚注 := Label.new()
+				虚注.text = "（破虚神舰·虚空大阵冷却中，剩余 %d 日）" % (Game.虚空大阵冷却日 - Game.累计游戏日)
+				UITheme.apply_aux_text(虚注)
+				vb.add_child(虚注)
+			for i in range(Game.灵舟库存.size()):
+				var 舟 = Game.灵舟库存[i]
+				var eff = Game.灵舟有效属性(舟)
+				var 阵法名: Array = []
+				for fid in 舟.get("阵法", []):
+					var fm = Game.灵舟阵法表.get(str(fid), null)
+					if fm != null:
+						阵法名.append(str(fm.get("name", fid)))
+				var 核心状态 = str(舟.get("核心状态", "正常"))
+				# 有效属性行
+				var hb := HBoxContainer.new()
+				hb.add_theme_constant_override("separation", UITheme.GRID)
+				var 名 := Label.new()
+				名.text = str(舟.get("名称", ""))
+				名.custom_minimum_size = Vector2(110, 0)
+				UITheme.apply_body_text(名)
+				hb.add_child(名)
+				var 信息 := Label.new()
+				信息.text = "T%d｜耐久%d/%d｜降险%.0f%%｜提速%.0f%%｜核心:%s(%d阶)｜阵法:%s" % [
+					int(舟.get("tier", 0)), int(舟.get("durability", 0)), int(eff["max_durability"]),
+					eff["risk_reduce"] * 100, eff["speed_bonus"] * 100,
+					核心状态, int(舟.get("核心品阶", 1)),
+					"、".join(阵法名) if 阵法名.size() > 0 else "无"]
+				UITheme.apply_aux_text(信息)
+				信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				hb.add_child(信息)
+				vb.add_child(hb)
+				# 操作行：刻录阵法 / 补充核心 / 拍卖
+				var bh := HBoxContainer.new()
+				bh.add_theme_constant_override("separation", UITheme.GRID)
+				var 刻 := Button.new()
+				刻.text = "刻录阵法"
+				刻.custom_minimum_size = Vector2(90, 0)
+				刻.pressed.connect(_on_刻录灵舟阵法.bind(i))
+				bh.add_child(刻)
+				var 补 := Button.new()
+				补.text = "补充核心"
+				补.custom_minimum_size = Vector2(90, 0)
+				补.disabled = (核心状态 == "正常")
+				补.pressed.connect(_on_补充灵舟核心.bind(i))
+				bh.add_child(补)
+				var 余命名 = int(舟.get("可命名次数", 1))
+				var 命名 := Button.new()
+				命名.text = "命名" if 余命名 > 0 else "已命名"
+				命名.custom_minimum_size = Vector2(70, 0)
+				命名.disabled = (余命名 <= 0)
+				命名.pressed.connect(_on_命名灵舟.bind(i))
+				bh.add_child(命名)
+				var 售 := Button.new()
+				售.text = "拍卖"
+				售.custom_minimum_size = Vector2(70, 0)
+				售.pressed.connect(_on_拍卖出售灵舟.bind(i))
+				bh.add_child(售)
+				vb.add_child(bh)
+
+		# 黑市（魔道专属）
+		var 黑头 := Label.new()
+		黑头.text = "◆ 黑市（魔道专属）"
+		UITheme.apply_section_title(黑头)
+		vb.add_child(黑头)
+		if Game.正邪路线 != "九幽邪道":
+			var 提示 := Label.new()
+			提示.text = "黑市仅向魔道势力开放（需择「九幽邪道」路线）"
+			UITheme.apply_aux_text(提示)
+			vb.add_child(提示)
+		elif Game.黑市禁闭日 > 0:
+			var 禁 := Label.new()
+			禁.text = "正道执法封禁中，剩余 %d 天" % Game.黑市禁闭日
+			UITheme.apply_aux_text(禁)
+			vb.add_child(禁)
+		else:
+			var 违禁 = Game.黑市违禁品列表()
+			if 违禁.is_empty():
+				var 空3 := Label.new()
+				空3.text = "暂无可交易违禁品"
+				UITheme.apply_aux_text(空3)
+				vb.add_child(空3)
+			else:
+				for 物 in 违禁:
+					var hb := HBoxContainer.new()
+					hb.add_theme_constant_override("separation", UITheme.GRID)
+					var 名 := Label.new()
+					名.text = str(物.get("名", ""))
+					名.custom_minimum_size = Vector2(140, 0)
+					UITheme.apply_body_text(名)
+					hb.add_child(名)
+					var 价 := Label.new()
+					价.text = "单价 %d 灵石（×2 价差）" % int(物.get("单价", 0))
+					UITheme.apply_aux_text(价)
+					价.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					hb.add_child(价)
+					var 售 := Button.new()
+					售.text = "出售"
+					售.custom_minimum_size = Vector2(70, 0)
+					售.pressed.connect(_on_黑市出售.bind(str(物.get("名", ""))))
+					hb.add_child(售)
+					vb.add_child(hb)
+
+		# NPC 商队竞争（黄金商路）
+		var 竞头 := Label.new()
+		竞头.text = "◆ 商路竞争（黄金商路）"
+		UITheme.apply_section_title(竞头)
+		vb.add_child(竞头)
+		var 黄金 = Game.黄金商路列表()
+		if 黄金.is_empty():
+			var 空4 := Label.new()
+			空4.text = "暂无黄金商路竞争者"
+			UITheme.apply_aux_text(空4)
+			vb.add_child(空4)
+		else:
+			for 地区 in 黄金:
+				var cid = str(地区.get("id", ""))
+				var hb := HBoxContainer.new()
+				hb.add_theme_constant_override("separation", UITheme.GRID)
+				var 名 := Label.new()
+				名.text = 地区["名称"]
+				名.custom_minimum_size = Vector2(100, 0)
+				UITheme.apply_body_text(名)
+				hb.add_child(名)
+				var 状态 := Label.new()
+				if Game.商路竞争状态.has(cid):
+					var s = Game.商路竞争状态[cid]
+					状态.text = "对手强度%d｜压价%.0f%%｜%s" % [int(s.get("强度", 0)), float(s.get("压价率", 0)) * 100, str(s.get("策略", ""))]
+				else:
+					状态.text = "暂无竞争者"
+				UITheme.apply_aux_text(状态)
+				状态.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				hb.add_child(状态)
+				vb.add_child(hb)
+				if Game.商路竞争状态.has(cid):
+					var ahb := HBoxContainer.new()
+					ahb.add_theme_constant_override("separation", UITheme.GRID)
+					var b1 := Button.new(); b1.text = "价格战(2000)"; b1.custom_minimum_size = Vector2(110, 0); b1.pressed.connect(_on_商路价格战.bind(cid)); ahb.add_child(b1)
+					var b2 := Button.new(); b2.text = "打压(5000)"; b2.custom_minimum_size = Vector2(100, 0); b2.pressed.connect(_on_商路打压.bind(cid)); ahb.add_child(b2)
+					var b3 := Button.new(); b3.text = "协商(3000)"; b3.custom_minimum_size = Vector2(100, 0); b3.pressed.connect(_on_商路协商.bind(cid)); ahb.add_child(b3)
+					vb.add_child(ahb)
+
 	_content.add_child(card)
 
 func _on_派遣商队(地区ID: String) -> void:
 	if not is_instance_valid(Game):
 		return
 	_show_dispatch_panel(地区ID)
+
+# ===== §11.15 阶段三：商队管理 tab 动作处理器 =====
+func _on_建造灵舟坞() -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.建造灵舟坞()
+	_populate()
+
+func _on_炼制灵舟(ship_id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.炼制灵舟(ship_id)
+	_populate()
+
+func _on_拍卖购买灵舟(ship_id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.拍卖购买灵舟(ship_id)
+	_populate()
+
+func _on_拍卖出售灵舟(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	if 索引 < 0 or 索引 >= Game.灵舟库存.size():
+		return
+	var 舟 = Game.灵舟库存[索引]
+	var 基准 = int(Game.宗门灵舟表.get(str(舟.get("ship_id", "")), {}).get("build_cost", 0))
+	Game.拍卖出售灵舟(索引, int(基准 * 0.6))
+	_populate()
+
+func _on_刻录灵舟阵法(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	if 索引 < 0 or 索引 >= Game.灵舟库存.size():
+		return
+	_show_ship_formation_panel(索引)
+
+func _on_补充灵舟核心(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果 = Game.补充灵舟核心(索引)
+	UIHint.show_hint(self, "灵舟核心", str(结果.get("消息", "")))
+	_populate()
+
+# §11.15 阶段三·灵舟：阵法效果文案
+func _ship_formation_effect_text(fm: Dictionary) -> String:
+	var dim = str(fm.get("effect_dim", ""))
+	var val = float(fm.get("effect_val", 0.0))
+	match dim:
+		"speed":
+			return "提速 +%.0f%%" % (val * 100)
+		"risk":
+			return "降险 +%.0f%%" % (val * 100)
+		"durability":
+			return "增耐久 +%d" % int(val)
+		"war":
+			return "增战力 +%d" % int(val)
+		"regen":
+			return "回灵聚气·核心自续"
+		"void":
+			return "虚空大阵·可破碎虚空瞬移（跨域即时·风险归零）"
+		_:
+			return str(fm.get("category", ""))
+
+# §11.15 阶段三·灵舟：刻录阵法面板（展示可刻阵法 + 消耗 + 门槛）
+func _show_ship_formation_panel(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	if 索引 < 0 or 索引 >= Game.灵舟库存.size():
+		return
+	for child in _content.get_children():
+		child.queue_free()
+	var 舟 = Game.灵舟库存[索引]
+	var 舟定义 = Game.宗门灵舟表.get(str(舟.get("ship_id", "")), {})
+	var 已刻 = 舟.get("阵法", [])
+	var card: PanelContainer = _make_card("刻录阵法 · %s" % str(舟.get("名称", "")))
+	var vb: VBoxContainer = card.get_node("VBox")
+
+	var 概: Label = Label.new()
+	概.text = "品阶 T%d｜阵法槽 %d/%d｜特性：%s" % [
+		int(舟.get("tier", 0)), 已刻.size(), int(舟定义.get("formation_slots", 0)), str(舟定义.get("features", ""))
+	]
+	UITheme.apply_value_text(概)
+	vb.add_child(概)
+
+	var 阵法堂等级: int = 1
+	if Game.司职列表.has("zhenfa"):
+		var v = Game.司职列表["zhenfa"].get("等级", 1)
+		阵法堂等级 = int(v) if v != null else 1
+	var 堂注: Label = Label.new()
+	堂注.text = "当前阵法堂司职等级：%d" % 阵法堂等级
+	UITheme.apply_aux_text(堂注)
+	vb.add_child(堂注)
+
+	var 可刻列表: Array = []
+	for fid in Game.灵舟阵法表.keys():
+		var fm = Game.灵舟阵法表[fid]
+		if 已刻.has(fid):
+			continue
+		if 已刻.size() >= int(舟定义.get("formation_slots", 0)):
+			break
+		if str(fm.get("category", "")) == "虚空" and not ("虚空" in str(舟定义.get("features", "")).split("|")):
+			continue
+		if 阵法堂等级 < int(fm.get("required_array_tier", 1)):
+			continue
+		可刻列表.append(fid)
+
+	if 可刻列表.is_empty():
+		var 空: Label = Label.new()
+		if 已刻.size() >= int(舟定义.get("formation_slots", 0)):
+			空.text = "阵法槽已满，无法继续刻录"
+		else:
+			空.text = "暂无可刻阵法（受阵法堂等级或灵舟特性限制）"
+		UITheme.apply_aux_text(空)
+		vb.add_child(空)
+	else:
+		for fid in 可刻列表:
+			var fm = Game.灵舟阵法表[fid]
+			var 行: HBoxContainer = HBoxContainer.new()
+			行.add_theme_constant_override("separation", UITheme.GRID)
+			var 信息: Label = Label.new()
+			信息.text = "%s（%s·T%d）%s｜耗灵石%d＋灵材:%s｜需阵法堂%d级" % [
+				str(fm.get("name", fid)), str(fm.get("category", "")), int(fm.get("tier", 1)),
+				_ship_formation_effect_text(fm), int(fm.get("cost_lingstone", 0)),
+				str(fm.get("cost_material", "")), int(fm.get("required_array_tier", 1))
+			]
+			UITheme.apply_body_text(信息)
+			信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			行.add_child(信息)
+			var 刻: Button = Button.new()
+			刻.text = "刻录"
+			刻.custom_minimum_size = Vector2(70, 0)
+			刻.pressed.connect(_on_确认刻录灵舟阵法.bind(索引, fid))
+			行.add_child(刻)
+			vb.add_child(行)
+
+	var 返回: Button = Button.new()
+	返回.text = "返回"
+	UITheme.apply_button_label(返回, false)
+	返回.pressed.connect(_on_刻录返回)
+	vb.add_child(返回)
+	_content.add_child(card)
+
+func _on_确认刻录灵舟阵法(索引: int, formation_id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果 = Game.刻录灵舟阵法(索引, formation_id)
+	UIHint.show_hint(self, "灵舟刻阵", str(结果.get("消息", "")))
+	if 结果.get("成功", false):
+		_show_ship_formation_panel(索引)  # 刷新槽位/已刻
+	else:
+		_populate()
+
+func _on_刻录返回() -> void:
+	_populate()
+
+# §11.15 阶段三·灵舟：命名入口（每名仅一次机会，随时可触发）
+func _on_命名灵舟(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	if 索引 < 0 or 索引 >= Game.灵舟库存.size():
+		return
+	_show_ship_rename_panel(索引)
+
+# §11.15 阶段三·灵舟：重命名面板（展示机会余量 + 输入新名）
+func _show_ship_rename_panel(索引: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	if 索引 < 0 or 索引 >= Game.灵舟库存.size():
+		return
+	for child in _content.get_children():
+		child.queue_free()
+	var 舟 = Game.灵舟库存[索引]
+	var 余 = int(舟.get("可命名次数", 1))
+	var card: PanelContainer = _make_card("灵舟命名 · %s" % str(舟.get("名称", "")))
+	var vb: VBoxContainer = card.get_node("VBox")
+	var 注: Label = Label.new()
+	if 余 > 0:
+		注.text = "当前名：【%s】｜重命名机会剩余 %d 次（每舟仅可命名一次）" % [str(舟.get("名称", "")), 余]
+	else:
+		注.text = "【%s】已无重命名机会（每舟仅可命名一次）" % str(舟.get("名称", ""))
+	UITheme.apply_value_text(注)
+	vb.add_child(注)
+	if 余 <= 0:
+		var 返回: Button = Button.new()
+		返回.text = "返回"
+		UITheme.apply_button_label(返回, false)
+		返回.pressed.connect(_on_刻录返回)
+		vb.add_child(返回)
+		_content.add_child(card)
+		return
+	var 输入: LineEdit = LineEdit.new()
+	输入.placeholder_text = "请输入新灵舟名（限12字）"
+	输入.max_length = 12
+	输入.text = str(舟.get("名称", ""))
+	vb.add_child(输入)
+	var 确认: Button = Button.new()
+	确认.text = "确认命名"
+	UITheme.apply_button_label(确认, true)
+	确认.pressed.connect(_on_确认命名灵舟.bind(索引, 输入))
+	vb.add_child(确认)
+	var 返回2: Button = Button.new()
+	返回2.text = "返回"
+	UITheme.apply_button_label(返回2, false)
+	返回2.pressed.connect(_on_刻录返回)
+	vb.add_child(返回2)
+	_content.add_child(card)
+
+func _on_确认命名灵舟(索引: int, 输入: LineEdit) -> void:
+	if not is_instance_valid(Game) or not is_instance_valid(输入):
+		return
+	var 结果 = Game.重命名灵舟(索引, 输入.text)
+	UIHint.show_hint(self, "灵舟命名", str(结果.get("消息", "")))
+	_populate()
+
+func _on_黑市出售(名: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.黑市出售(名, 1)
+	_populate()
+
+func _on_商路价格战(城市id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.商路竞争价格战(城市id)
+	_populate()
+
+func _on_商路打压(城市id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.商路竞争打压(城市id)
+	_populate()
+
+func _on_商路协商(城市id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.商路竞争协商(城市id)
+	_populate()
 
 # S2 商路贸易：真实派遣配置面板（货物来自宗主背包 + 载具选择 + 人员编组）
 func _show_dispatch_panel(地区ID: String) -> void:
@@ -779,6 +1392,7 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	_派遣地区 = 地区
 	_货物勾选 = {}
 	_派遣可用载具 = []
+	_派遣可用灵舟 = []
 	_派遣岗位选 = {}
 
 	var card: PanelContainer = _make_card("派遣商队 · %s" % 地区["名称"])
@@ -793,6 +1407,12 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	]
 	UITheme.apply_value_text(行情)
 	vb.add_child(行情)
+	# §11.20 修复：货物真实出库提示（原实现装货不扣背包，玩家不知货物去向）
+	var 出库提示: Label = Label.new()
+	出库提示.text = "※ 确认派遣后货物即从宗主背包出库，商队返回时按当地行情结算货款（成本 = 货值 + 10%启动资金）"
+	UITheme.apply_aux_text(出库提示)
+	出库提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(出库提示)
 
 	# —— 货物（宗主背包聚合为批） ——
 	var 货头: Label = Label.new()
@@ -872,6 +1492,26 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	_派遣载具选 = 载具选
 	vb.add_child(载具选)
 
+	# —— 灵舟（§11.15 阶段三：指派灵舟出使，套用有效属性；枯竭不可驱；破虚神舰可虚空瞬移）——
+	var 舟头: Label = Label.new()
+	舟头.text = "◆ 指派灵舟（可选）"
+	UITheme.apply_section_title(舟头)
+	vb.add_child(舟头)
+	var 舟选: OptionButton = OptionButton.new()
+	舟选.add_item("不遣灵舟（仅载具/脚夫）", 0)
+	if Game.灵舟库存.size() > 0:
+		for si in range(Game.灵舟库存.size()):
+			var s舟 = Game.灵舟库存[si]
+			var 核心状 = str(s舟.get("核心状态", "正常"))
+			var 枯竭标 = "（枯竭!）" if 核心状 == "枯竭" else ""
+			var 瞬标 = "【虚空】" if "sf07" in s舟.get("阵法", []) else ""
+			if 核心状 != "枯竭":
+				舟选.add_item("%s%s T%d｜降险%.0f%%｜提速%.0f%% %s" % [瞬标, str(s舟.get("名称", "")), int(s舟.get("tier", 0)), float(s舟.get("risk_reduce", 0)) * 100, float(s舟.get("speed_bonus", 0)) * 100, 枯竭标], _派遣可用灵舟.size() + 1)
+				_派遣可用灵舟.append(si)
+	舟选.item_selected.connect(_刷新运力提示)
+	_派遣灵舟选 = 舟选
+	vb.add_child(舟选)
+
 	# —— 人员编组 ——
 	var 人: Label = Label.new()
 	人.text = "◆ 人员编组（掌柜智谋→价差 / 护卫战力→抗风险 / 脚夫→运力）"
@@ -922,6 +1562,22 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	操作行.add_child(确认)
 	vb.add_child(操作行)
 
+	# —— 神行符（缩短贸易现实耗时）——
+	var 符行: HBoxContainer = HBoxContainer.new()
+	符行.add_theme_constant_override("separation", UITheme.GRID)
+	var 符勾: CheckBox = CheckBox.new()
+	符勾.text = "使用神行符（背包有则 -30% 贸易耗时）"
+	UITheme.apply_body_text(符勾)
+	var 有符 = Game._仓库灵材数量(Game.神行符名) if (Game != null and Game.has_method("_仓库灵材数量")) else 0
+	if 有符 <= 0:
+		符勾.disabled = true
+		符勾.tooltip_text = "背包无神行符（坊市可购置）"
+	else:
+		符勾.tooltip_text = "当前背包神行符×%d，使用1张缩短本次贸易耗时" % 有符
+	_派遣神行符勾选 = 符勾
+	符行.add_child(符勾)
+	vb.add_child(符行)
+
 	_content.add_child(card)
 
 # 实时刷新运力/货值提示
@@ -971,7 +1627,7 @@ func _on_确认派遣(地区ID: String) -> void:
 		var q: int = int(数量.value)
 		if 勾.button_pressed and q > 0:
 			var 价: int = int(项["单价"]) * q
-			货物.append({"名称": 名, "价": 价, "数量": q})
+			货物.append({"名称": 名, "价": 价, "数量": q, "类别": str(项["item"].类别)})
 			货值 += 价
 	# 收集载具
 	var 载具ID: String = ""
@@ -980,6 +1636,13 @@ func _on_确认派遣(地区ID: String) -> void:
 		vidx = _派遣载具选.get_selected_id()
 	if vidx > 0 and (vidx - 1) < _派遣可用载具.size():
 		载具ID = _派遣可用载具[vidx - 1]
+	# 收集灵舟
+	var 灵舟索引: int = -1
+	var sidx: int = 0
+	if _派遣灵舟选 != null:
+		sidx = _派遣灵舟选.get_selected_id()
+	if sidx > 0 and (sidx - 1) < _派遣可用灵舟.size():
+		灵舟索引 = _派遣可用灵舟[sidx - 1]
 	# 收集人员
 	var 人员: Array = []
 	for pid in _派遣岗位选.keys():
@@ -996,8 +1659,18 @@ func _on_确认派遣(地区ID: String) -> void:
 	var 宗主ID: int = -1
 	if Game.弟子列表.size() > 0:
 		宗主ID = int(Game.弟子列表[0].弟子ID)
-	var 结果: Dictionary = Game.派遣商队(地区ID, 货物, 宗主ID, 载具ID, 人员)
+	var 使用符 = (_派遣神行符勾选 != null and _派遣神行符勾选.button_pressed)
+	var 结果: Dictionary = Game.派遣商队(地区ID, 货物, 宗主ID, 载具ID, 人员, 灵舟索引, 使用符)
 	UIHint.show_hint(self, "商队派遣", str(结果.get("消息", "派遣成功")))
+	if 结果.get("成功", false):
+		refresh()
+
+# §11.15 优化：仙玉即时完成贸易——消耗仙玉立即结算指定商队
+func _on_仙玉即时完成(商队ID: int) -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果: Dictionary = Game.仙玉即时完成贸易(商队ID)
+	UIHint.show_hint(self, "仙玉催行", str(结果.get("消息", "")))
 	if 结果.get("成功", false):
 		refresh()
 

@@ -1,0 +1,8 @@
+formation_id,name,category,tier,effect_dim,effect_val,cost_lingstone,cost_material,required_array_tier
+sf01,御风疾行阵,加速,1,speed,0.15,500,g003:10,1
+sf02,玄龟护体阵,防御,1,durability,400,500,g010:10,1
+sf03,敛息匿踪阵,隐匿,2,risk,0.10,1500,g013:5,2
+sf04,庚金杀阵,攻击,2,war,250,1500,g016:5,2
+sf05,回灵聚气阵,聚灵,3,regen,1,4000,g017:5,3
+sf06,周天星斗阵,防御,4,durability,1000,12000,g018:3,4
+sf07,虚空大阵,虚空,5,void,0,50000,g018:10|g017:20,5

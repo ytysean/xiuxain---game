@@ -54,7 +54,7 @@ const 商品库: Array = [
 		"desc": "镇派至宝 · 道品",
 		"price": 128,
 		"original_price": 648,
-		"icon": "res://assets/ui/icons/fabao.svg",
+		"icon": "res://art/icons/equipment/fabao_fan.png",
 		"rewards": {"皮肤": "jiuxiao_tower"},
 	},
 	{
@@ -65,7 +65,7 @@ const 商品库: Array = [
 		"desc": "攻击 +128 · 凡品",
 		"price": 128,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/zhuangbei.svg",
+		"icon": "res://art/icons/equipment/faqi_fan.png",
 		"rewards": {"灵石": 1000},
 	},
 	{
@@ -76,7 +76,7 @@ const 商品库: Array = [
 		"desc": "修为 +5000 · 灵品",
 		"price": 88,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/danyao.svg",
+		"icon": "res://art/icons/equipment/danyao_fan.png",
 		"rewards": {"灵气": 5000},
 	},
 	{
@@ -87,7 +87,7 @@ const 商品库: Array = [
 		"desc": "身法 +60 · 宝品",
 		"price": 268,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/gongfa.svg",
+		"icon": "res://art/icons/skill/skill_taichu_36.png",
 		"rewards": {"声望": 60},
 	},
 	{
@@ -98,7 +98,7 @@ const 商品库: Array = [
 		"desc": "灵兽 · 赤焰兽",
 		"price": 520,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/lingshou.svg",
+		"icon": "res://art/characters/beasts/beast_lintu_36.png",
 		"rewards": {"灵草": 200},
 	},
 	{
@@ -109,7 +109,7 @@ const 商品库: Array = [
 		"desc": "镇派至宝 · 道品",
 		"price": 1288,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/fabao.svg",
+		"icon": "res://art/icons/equipment/fabao_fan.png",
 		"rewards": {"皮肤": "jiuxiao_tower"},
 	},
 	# ==================== 碎片宝箱商品 ====================
@@ -121,7 +121,7 @@ const 商品库: Array = [
 		"desc": "凡品装备碎片×5",
 		"price": 30,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/zhuangbei.svg",
+		"icon": "res://art/icons/equipment/faqi_fan.png",
 		"rewards": {"frag_equip_common": 5},
 	},
 	{
@@ -132,7 +132,7 @@ const 商品库: Array = [
 		"desc": "灵品装备碎片×5",
 		"price": 88,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/zhuangbei.svg",
+		"icon": "res://art/icons/equipment/faqi_fan.png",
 		"rewards": {"frag_equip_rare": 5},
 	},
 	{
@@ -143,7 +143,7 @@ const 商品库: Array = [
 		"desc": "灵品功法碎片×5",
 		"price": 68,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/gongfa.svg",
+		"icon": "res://art/icons/skill/skill_taichu_36.png",
 		"rewards": {"frag_gongfa_rare": 5},
 	},
 	{
@@ -154,7 +154,7 @@ const 商品库: Array = [
 		"desc": "普通宝箱×1，内含基础资源与碎片",
 		"price": 50,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/fabao.svg",
+		"icon": "res://art/icons/equipment/fabao_fan.png",
 		"rewards": {"chest_common": 1},
 	},
 	{
@@ -165,7 +165,7 @@ const 商品库: Array = [
 		"desc": "稀有宝箱×1，内含较好资源与碎片",
 		"price": 128,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/fabao.svg",
+		"icon": "res://art/icons/equipment/fabao_fan.png",
 		"rewards": {"chest_rare": 1},
 	},
 	{
@@ -176,7 +176,7 @@ const 商品库: Array = [
 		"desc": "史诗宝箱×1，内含珍贵资源与碎片",
 		"price": 328,
 		"original_price": 0,
-		"icon": "res://assets/ui/icons/fabao.svg",
+		"icon": "res://art/icons/equipment/fabao_fan.png",
 		"rewards": {"chest_epic": 1},
 	},
 ]
