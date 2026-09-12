@@ -39,6 +39,7 @@ accept_shots_full/
 accept_shots_p2/
 accept_shots_p2b/
 accept_report.html
+accept_fangshi_before_after.png
 
 # 备份文件的时间戳/标签后缀变体（上面的 *.bak 只覆盖了后缀恰好为 .bak 的）
 *.bak_*

@@ -149,6 +149,11 @@ func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContain
 	var icon := TextureRect.new()
 	icon.name = "Icon"
 	icon.custom_minimum_size = Vector2(16, 16)
+	# 修复（视觉收口 · 2026-09-13）：TextureRect 默认 expand_mode=EXPAND_KEEP_SIZE，
+	# 其 get_minimum_size() 返回**贴图原始尺寸**（本项目图标为 512/72 高清图），
+	# 会无视 custom_minimum_size 把父容器撑爆 → 图标在屏幕上超大。
+	# 全项目 21 个文件均已设此值，本处为漏网。
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -629,6 +634,11 @@ func _make_icon_bg(商品: Dictionary) -> PanelContainer:
 		var icon := TextureRect.new()
 		icon.name = "Icon"
 		icon.custom_minimum_size = Vector2(72, 72)
+		# 修复（视觉收口 · 2026-09-13）：TextureRect 默认 expand_mode=EXPAND_KEEP_SIZE，
+		# 其 get_minimum_size() 返回**贴图原始尺寸**（本项目图标为 512/72 高清图），
+		# 会无视 custom_minimum_size 把父容器撑爆 → 图标在屏幕上超大。
+		# 全项目 21 个文件均已设此值，本处为漏网。
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = tex
 		icon.modulate = c

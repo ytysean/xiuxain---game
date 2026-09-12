@@ -81,6 +81,11 @@ func _build_header(parent: Control) -> void:
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		tr.custom_minimum_size = Vector2(24, 24)
+		# 修复（视觉收口 · 2026-09-13）：TextureRect 默认 expand_mode=EXPAND_KEEP_SIZE，
+		# 其 get_minimum_size() 返回**贴图原始尺寸**（本项目图标为 512/72 高清图），
+		# 会无视 custom_minimum_size 把父容器撑爆 → 图标在屏幕上超大。
+		# 全项目 21 个文件均已设此值，本处为漏网。
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		top.add_child(tr)
 
 	var title := Label.new()
