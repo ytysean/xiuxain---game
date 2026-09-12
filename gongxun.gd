@@ -95,11 +95,22 @@ static func 兑换(商品ID: String, 弟子总功绩: int = 0) -> Dictionary:
 	elif 类型 == "悟道点":
 		Game.悟道点 += 数量
 	elif 类型 == "灵材":
-		if Game.仓库 != null:
-			Game.仓库.append({"名称": str(商品.get("名称", "灵材")), "类别": "灵材", "数量": 数量})
+		if Game.宗门库房 != null:
+			# S25：库房统一装 Item（原塞裸 Dictionary，存档 to_dict() 会崩）；Item 无数量字段 → 按数量逐件入库
+			for n in range(数量):
+				var 新品: Item = Item.new()
+				新品.名称 = str(商品.get("名称", "灵材"))
+				新品.类别 = "灵材"
+				新品.品阶 = str(商品.get("品阶", "凡阶"))
+				Game.宗门库房.append(新品)
 	elif 类型 == "丹药":
-		if Game.仓库 != null:
-			Game.仓库.append({"名称": str(商品.get("名称", "丹药")), "类别": "丹药", "数量": 数量, "品阶": str(商品.get("品阶", "凡阶"))})
+		if Game.宗门库房 != null:
+			for n in range(数量):
+				var 新品: Item = Item.new()
+				新品.名称 = str(商品.get("名称", "丹药"))
+				新品.类别 = "丹药"
+				新品.品阶 = str(商品.get("品阶", "凡阶"))
+				Game.宗门库房.append(新品)
 	return {"成功": true, "原因": "兑换成功：%s" % str(商品.get("名称", ""))}
 
 ## 记录功绩
@@ -115,10 +126,10 @@ static func 记录功绩(弟子, 类型名: String, 功绩值: int) -> int:
 	if Game != null:
 		Game.贡献点 += 实际值
 		# 记录到弟子履历
-		if 弟子.has("履历") and 弟子.履历 != null:
+		if "履历" in 弟子 and 弟子.履历 != null:
 			弟子.履历.append({"日": Game.累计游戏日 if Game != null else 0, "事件": "功绩：%s" % 类型名, "详情": "获得贡献点%d" % 实际值})
 		# 记录弟子总功绩
-		if not 弟子.has("总功绩"):
+		if not "总功绩" in 弟子:
 			弟子["总功绩"] = 0
 		弟子.总功绩 = int(弟子.get("总功绩", 0)) + 实际值
 	return 实际值

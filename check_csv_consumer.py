@@ -143,9 +143,10 @@ def scan_consumers(root, scope="runtime"):
     referenced = {}
     for dirpath, dirs, files in os.walk(root):
         # 跳过隐藏/缓存目录（.git/.godot/.workbuddy/__pycache__ 等），避免扫到缓存副本误报
+        # 跳过 backup/：历史快照里的消费者不算数，否则死表检测会被备份"救活"成假绿
         dirs[:] = [d for d in dirs
                    if not d.startswith(".")
-                   and d not in ("__pycache__",)]
+                   and d not in ("__pycache__", "backup", "backups")]
         rel_dir = os.path.relpath(dirpath, root)
         in_tests = rel_dir == "tests" or rel_dir.startswith("tests" + os.sep)
         for fn in files:

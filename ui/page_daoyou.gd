@@ -205,12 +205,20 @@ func _populate_sect() -> void:
 		i += 1
 
 func _read_friends() -> Array:
-	if is_instance_valid(Game) and Game.has_method("道友列表"):
-		var raw = Game.道友列表()
+	if is_instance_valid(Game) and Game.has_method("获取所有道友列表"):
+		var raw = Game.获取所有道友列表()
 		if raw is Array and not raw.is_empty():
 			var out: Array = []
-			for nm in raw:
-				out.append({"name": str(nm), "status": "在线 · 同道", "sel": false})
+			for d in raw:
+				if d is Dictionary:
+					var 好感度: int = int(d.get("好感度", 50))
+					out.append({
+						"name": str(d.get("name", "")),
+						"status": "%s · 好感%d" % [str(d.get("status", "")), 好感度],
+						"sel": false,
+					})
+				else:
+					out.append({"name": str(d), "status": "在线 · 同道", "sel": false})
 			return out
 	return SAMPLE_FRIENDS
 
@@ -384,20 +392,22 @@ func _on_add_pressed() -> void:
 		if name == "":
 			_toast("道号不可为空")
 			return
-		Game.道友列表().append(name)
-		# S1-2：添加道友（玩家决策，日常 daily_029 / 周常 weekly_021）
-		#   埋点在 UI 层：后端 添加道友()(game_state.gd:3571) 是零调用者死函数
+		var 果: Dictionary = Game.添加道友(name)
 		if Game.has_method("记任务进度"):
 			Game.记任务进度("add_friend")
-		Game.save_game()
-		_toast("已添加道友：%s" % name)
+		_toast(str(果.get("原因", "操作完成")))
 		dialog.queue_free()
 		_refresh_tab()
 	)
 
 func _on_interact_pressed(name: String) -> void:
-	# 互动：仅切 sel 高亮 + toast，不写 Game（Game 无道友互动后端，留 TODO）
-	_toast("与【%s】互动：问候递达" % name)
+	# 互动：给道友送礼（提升好感度）
+	if not is_instance_valid(Game) or not Game.has_method("给道友送礼"):
+		_toast("道友互动功能未接入")
+		return
+	var 果: Dictionary = Game.给道友送礼(name, 100)
+	_toast(str(果.get("原因", "互动完成")))
+	_refresh_tab()
 
 func _on_send_pressed() -> void:
 	# 发送：从 LineEdit 取文本 → 追加到 Game.道友消息 + save_game + 刷新聊天
@@ -414,12 +424,9 @@ func _on_send_pressed() -> void:
 	var f_list = Game.道友列表()
 	if f_list is Array and not f_list.is_empty():
 		名 = str(f_list[0])
-	var msg: Dictionary = {"name": 名, "text": edit.text.strip_edges(), "time": 时间}
-	Game.道友消息().append(msg)
-	if Game.has_method("save_game"):
-		Game.save_game()
+	var 果: Dictionary = Game.发送道友消息(名, edit.text.strip_edges())
 	edit.text = ""
-	_toast("传讯已发出")
+	_toast(str(果.get("原因", "传讯已发出")))
 	_refresh_tab()
 
 # ───────── 模态输入框（复用：添加道友）─────────
@@ -483,7 +490,7 @@ func _弹输入框(title: String, placeholder: String, default_text: String, on_
 
 func _toast(msg: String) -> void:
 	if is_instance_valid(Game) and Game.has_method("toast"):
-		Game.toast(msg)
+		Game.添加提示(msg)
 
 
 

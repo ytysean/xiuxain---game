@@ -278,15 +278,23 @@ func _populate() -> void:
 	# 仙玉兑换（带每日上限）：数据层未就绪时显示为筹备中，按钮置灰
 	var 兑换就绪: bool = is_instance_valid(Game) and Game.has_method("仙玉兑换")
 	var 兑头 := Label.new()
-	兑头.text = "仙玉兑换（每次 10 仙玉，带每日上限）"
+	兑头.text = "仙玉兑换（每次耗仙玉十枚，有每日限额）"
 	UITheme.apply_section_title(兑头)
 	_scroll_vbox.add_child(兑头)
+	# P2优化：修真化描述
+	var 兑换修真名: Dictionary = {
+		"灵石": "灵石",
+		"战功": "战功",
+		"传承积分": "道统传承",
+		"宗门贡献": "宗门功勋",
+	}
 	for 类型 in ["灵石", "战功", "传承积分", "宗门贡献"]:
 		var t: Dictionary = XianyuShop.仙玉兑换表.get(类型, {})
 		if t.is_empty():
 			continue
+		var 修真名: String = 兑换修真名.get(类型, 类型)
 		var b := Button.new()
-		b.text = "仙玉 → %s（1:%d，日上限 %d）%s" % [类型, int(t["率"]), int(t["日上限"]), "（筹备中）" if not 兑换就绪 else ""]
+		b.text = "以仙玉易%s（十枚仙玉换%d，每日限%d）%s" % [修真名, int(t["率"]), int(t["日上限"]), "（筹备中）" if not 兑换就绪 else ""]
 		b.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 		b.disabled = not 兑换就绪
 		if 兑换就绪:
@@ -346,6 +354,9 @@ func _populate() -> void:
 	永久卡按钮.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	永久卡按钮.pressed.connect(_on_购买永久卡)
 	_scroll_vbox.add_child(永久卡按钮)
+
+	# ===== VIP特权展示（P0新增）=====
+	_build_vip_section()
 
 	# S1-4 付费：仙玉购买全局增益(+5%战斗通用增益，共享封顶)
 	var 增益btn := PrimaryButton.new()
@@ -686,3 +697,468 @@ func _on_付费_全局增益() -> void:
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
 	refresh()
+
+# ===== VIP特权展示（P0新增）=====
+func _build_vip_section() -> void:
+	if not is_instance_valid(Game):
+		return
+	if not Game.has_method("获取VIP统计") or not Game.has_method("get_vip_benefits"):
+		return
+
+	var 统计: Dictionary = Game.获取VIP统计()
+	var 权益: Dictionary = Game.get_vip_benefits()
+	var 当前等级: int = int(统计.get("当前等级", 0))
+	var 下一等级: int = int(统计.get("下一等级", 1))
+	var 累充额: int = int(统计.get("累充额", 0))
+	var 下一级金额: int = int(统计.get("下一级金额", 0))
+	var 升级进度: float = float(统计.get("升级进度", 0.0))
+	var 离线上限: int = int(统计.get("离线上限小时", 8))
+	var 机缘加成: float = float(统计.get("机缘加成", 0.0))
+
+	# VIP标题
+	var vip头 := Label.new()
+	vip头.text = "◆ 仙阶礼遇（VIP%d）" % 当前等级
+	UITheme.apply_section_title(vip头)
+	vip头.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
+	_scroll_vbox.add_child(vip头)
+
+	# VIP等级卡片
+	var vip卡 := PanelContainer.new()
+	vip卡.name = "VIPCard"
+	vip卡.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var vip卡样式 := StyleBoxFlat.new()
+	vip卡样式.bg_color = Color(0.15, 0.12, 0.08, 0.9)
+	vip卡样式.set_corner_radius_all(int(round(10.0 * UITheme.UI_SCALE)))
+	vip卡样式.set_border_width_all(2)
+	vip卡样式.border_color = Color(0.7, 0.55, 0.3)
+	vip卡样式.set_content_margin_all(UITheme.PAD_PANEL)
+	vip卡.add_theme_stylebox_override("panel", vip卡样式)
+
+	var vip卡vbox := VBoxContainer.new()
+	vip卡vbox.name = "VIPCardVBox"
+	vip卡vbox.add_theme_constant_override("separation", 8)
+	vip卡.add_child(vip卡vbox)
+
+	# 等级展示行
+	var 等级行 := HBoxContainer.new()
+	等级行.add_theme_constant_override("separation", 16)
+	vip卡vbox.add_child(等级行)
+
+	var 当前等级label := Label.new()
+	当前等级label.text = "当前仙阶：VIP%d" % 当前等级
+	当前等级label.add_theme_font_size_override("font_size", 18)
+	当前等级label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.5))
+	等级行.add_child(当前等级label)
+
+	var 累充label := Label.new()
+	累充label.text = "累充：%d元" % 累充额
+	累充label.add_theme_font_size_override("font_size", 14)
+	累充label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
+	等级行.add_child(累充label)
+
+	# 升级进度条
+	if 当前等级 < 12:
+		var 进度label := Label.new()
+		进度label.text = "距VIP%d还需%d元（%.0f%%）" % [下一等级, max(0, 下一级金额 - 累充额), 升级进度 * 100]
+		进度label.add_theme_font_size_override("font_size", 12)
+		进度label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+		vip卡vbox.add_child(进度label)
+
+		var 进度条 := ProgressBar.new()
+		进度条.min_value = 0.0
+		进度条.max_value = 1.0
+		进度条.value = clamp(升级进度, 0.0, 1.0)
+		进度条.custom_minimum_size = Vector2(0, 12)
+		# fill/background 继承 main_theme.tres 的 ProgressBar 默认（门禁「进度条单源化」）
+		vip卡vbox.add_child(进度条)
+	else:
+		var 已满级label := Label.new()
+		已满级label.text = "★ 已达最高仙阶 ★"
+		已满级label.add_theme_font_size_override("font_size", 14)
+		已满级label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+		已满级label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vip卡vbox.add_child(已满级label)
+
+	# 核心权益概览
+	var 权益概览行 := HBoxContainer.new()
+	权益概览行.add_theme_constant_override("separation", 20)
+	vip卡vbox.add_child(权益概览行)
+
+	var 离线label := Label.new()
+	离线label.text = "离线上限：%d小时" % 离线上限
+	离线label.add_theme_font_size_override("font_size", 12)
+	离线label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+	权益概览行.add_child(离线label)
+
+	var 机缘label := Label.new()
+	机缘label.text = "机缘加成：+%d%%" % int(机缘加成 * 100)
+	机缘label.add_theme_font_size_override("font_size", 12)
+	机缘label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+	权益概览行.add_child(机缘label)
+
+	var 倍率label := Label.new()
+	倍率label.text = "战斗倍速：%.0fx" % float(统计.get("战斗倍率", 1.0))
+	倍率label.add_theme_font_size_override("font_size", 12)
+	倍率label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.6))
+	权益概览行.add_child(倍率label)
+
+	_scroll_vbox.add_child(vip卡)
+
+	# 已解锁权益列表
+	var 已解锁: Array = 权益.get("已解锁权益", [])
+	if 已解锁.size() > 0:
+		var 已解锁头 := Label.new()
+		已解锁头.text = "【已解锁礼遇】"
+		已解锁头.add_theme_font_size_override("font_size", 14)
+		已解锁头.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
+		_scroll_vbox.add_child(已解锁头)
+
+		var 权益网格 := GridContainer.new()
+		权益网格.columns = 2
+		权益网格.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		权益网格.add_theme_constant_override("h_separation", 12)
+		权益网格.add_theme_constant_override("v_separation", 4)
+		for 权 in 已解锁:
+			var 权label := Label.new()
+			权label.text = "✓ %s" % str(权)
+			权label.add_theme_font_size_override("font_size", 12)
+			权label.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
+			权益网格.add_child(权label)
+		_scroll_vbox.add_child(权益网格)
+
+	# 下一等级权益预览
+	if 当前等级 < 12:
+		var 下一级权益: Array = 权益.get("下一等级权益", [])
+		if 下一级权益.size() > 0:
+			var 下一级头 := Label.new()
+			下一级头.text = "【VIP%d新增礼遇】" % 下一等级
+			下一级头.add_theme_font_size_override("font_size", 14)
+			下一级头.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
+			_scroll_vbox.add_child(下一级头)
+
+			for 权 in 下一级权益:
+				var 权label := Label.new()
+				权label.text = "○ %s" % str(权)
+				权label.add_theme_font_size_override("font_size", 12)
+				权label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
+				_scroll_vbox.add_child(权label)
+
+	# 充值引导按钮
+	if 当前等级 < 12:
+		var 充值引导btn := PrimaryButton.new()
+		充值引导btn.text = "提升仙阶（还需%d元）" % max(0, 下一级金额 - 累充额)
+		充值引导btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+		充值引导btn.pressed.connect(_on_vip_recharge_guide)
+		_scroll_vbox.add_child(充值引导btn)
+
+	# ===== P1新增：4个功能 =====
+	_build_vip_activities()
+	_build_vip_appearance()
+	_build_vip_comparison()
+	_build_recharge_recommendation()
+
+# VIP充值引导
+func _on_vip_recharge_guide() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 统计: Dictionary = Game.获取VIP统计()
+	var 当前等级: int = int(统计.get("当前等级", 0))
+	var 下一等级: int = int(统计.get("下一等级", 1))
+	var 下一级金额: int = int(统计.get("下一级金额", 0))
+	var 累充额: int = int(统计.get("累充额", 0))
+	var 还需: int = max(0, 下一级金额 - 累充额)
+	UIHint.show_hint(self, "仙阶提升", "累计充值%d元即可晋升VIP%d\n当前累充：%d元\n还需：%d元" % [下一级金额, 下一等级, 累充额, 还需])
+
+# ===== P1：VIP专属活动入口 =====
+func _build_vip_activities() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 当前等级: int = Game.当前VIP等级()
+
+	# 标题
+	var 活动头 := Label.new()
+	活动头.text = "◆ 仙阶专属活动"
+	UITheme.apply_section_title(活动头)
+	活动头.add_theme_color_override("font_color", Color(0.85, 0.65, 0.35))
+	_scroll_vbox.add_child(活动头)
+
+	# VIP专属活动列表
+	var 活动列表: Array = [
+		{"名称": "每日仙阶礼遇", "描述": "VIP每日奖励领取", "最低VIP": 1, "入口": "日供"},
+		{"名称": "仙阶特惠礼包", "描述": "VIP专属折扣礼包", "最低VIP": 3, "入口": "礼包"},
+		{"名称": "仙阶双倍日供", "描述": "永久卡用户日供翻倍", "最低VIP": 6, "入口": "日供"},
+		{"名称": "仙阶专属秘境", "描述": "高阶VIP专属秘境探索", "最低VIP": 9, "入口": "历练"},
+		{"名称": "仙阶专属拍卖", "描述": "高阶VIP专属拍卖场次", "最低VIP": 10, "入口": "拍卖行"},
+	]
+
+	for 活动 in 活动列表:
+		var 最低VIP: int = int(活动.get("最低VIP", 1))
+		var 已解锁: bool = 当前等级 >= 最低VIP
+
+		var 活动卡 := PanelContainer.new()
+		活动卡.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var 活动卡样式 := StyleBoxFlat.new()
+		活动卡样式.bg_color = Color(0.12, 0.10, 0.08, 0.8) if 已解锁 else Color(0.08, 0.08, 0.08, 0.6)
+		活动卡样式.set_corner_radius_all(8)
+		活动卡样式.set_border_width_all(1)
+		活动卡样式.border_color = Color(0.6, 0.5, 0.3) if 已解锁 else Color(0.3, 0.3, 0.3)
+		活动卡样式.set_content_margin_all(12)
+		活动卡.add_theme_stylebox_override("panel", 活动卡样式)
+
+		var 活动hb := HBoxContainer.new()
+		活动hb.add_theme_constant_override("separation", 12)
+		活动卡.add_child(活动hb)
+
+		var 活动信息vbox := VBoxContainer.new()
+		活动信息vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		活动hb.add_child(活动信息vbox)
+
+		var 活动名称label := Label.new()
+		活动名称label.text = "%s%s" % ["✓ " if 已解锁 else "🔒 ", str(活动.get("名称", ""))]
+		活动名称label.add_theme_font_size_override("font_size", 14)
+		活动名称label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5) if 已解锁 else Color(0.5, 0.5, 0.5))
+		活动信息vbox.add_child(活动名称label)
+
+		var 活动描述label := Label.new()
+		活动描述label.text = "%s（需VIP%d）" % [str(活动.get("描述", "")), 最低VIP]
+		活动描述label.add_theme_font_size_override("font_size", 11)
+		活动描述label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))
+		活动信息vbox.add_child(活动描述label)
+
+		_scroll_vbox.add_child(活动卡)
+
+# ===== P1：VIP专属外观预览 =====
+func _build_vip_appearance() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 当前等级: int = Game.当前VIP等级()
+
+	# 标题
+	var 外观头 := Label.new()
+	外观头.text = "◆ 仙阶专属外观"
+	UITheme.apply_section_title(外观头)
+	外观头.add_theme_color_override("font_color", Color(0.85, 0.65, 0.35))
+	_scroll_vbox.add_child(外观头)
+
+	# 宗主头像专属外观
+	var 头像头 := Label.new()
+	头像头.text = "【宗主头像】"
+	头像头.add_theme_font_size_override("font_size", 13)
+	头像头.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+	_scroll_vbox.add_child(头像头)
+
+	# VIP专属头像列表（基于宗主头像目录中的unlock类别）
+	var vip头像: Array = [
+		{"名称": "幽冢剑客/仙子", "最低VIP": 4, "渠道": "秘境探索"},
+		{"名称": "驭兽灵修/仙姬", "最低VIP": 5, "渠道": "秘境探索"},
+		{"名称": "星陨道君/灵姬", "最低VIP": 6, "渠道": "秘境探索"},
+		{"名称": "幽冥修士/玄女", "最低VIP": 7, "渠道": "秘境探索"},
+		{"名称": "丹霞道君/仙姬", "最低VIP": 8, "渠道": "秘境探索"},
+		{"名称": "寒玉真君/冰仙", "最低VIP": 9, "渠道": "秘境探索"},
+		{"名称": "太宗主尊/凤尊", "最低VIP": 10, "渠道": "宗门晋升"},
+		{"名称": "太上玄翁/玄姬", "最低VIP": 11, "渠道": "宗门晋升"},
+		{"名称": "护法神将", "最低VIP": 12, "渠道": "宗门晋升"},
+	]
+
+	var 头像网格 := GridContainer.new()
+	头像网格.columns = 2
+	头像网格.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	头像网格.add_theme_constant_override("h_separation", 8)
+	头像网格.add_theme_constant_override("v_separation", 4)
+
+	for 头像 in vip头像:
+		var 最低VIP: int = int(头像.get("最低VIP", 1))
+		var 已解锁: bool = 当前等级 >= 最低VIP
+		var 头像label := Label.new()
+		头像label.text = "%s%s（VIP%d）" % ["✓ " if 已解锁 else "🔒 ", str(头像.get("名称", "")), 最低VIP]
+		头像label.add_theme_font_size_override("font_size", 11)
+		头像label.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55) if 已解锁 else Color(0.45, 0.45, 0.45))
+		头像网格.add_child(头像label)
+
+	_scroll_vbox.add_child(头像网格)
+
+	# 宗门外观专属
+	var 宗门外观头 := Label.new()
+	宗门外观头.text = "【宗门外观】"
+	宗门外观头.add_theme_font_size_override("font_size", 13)
+	宗门外观头.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+	_scroll_vbox.add_child(宗门外观头)
+
+	var 宗门外观列表: Array = [
+		{"名称": "青竹别院", "最低VIP": 1, "描述": "基础宗门外观"},
+		{"名称": "紫云仙府", "最低VIP": 4, "描述": "VIP4专属宗门外观"},
+		{"名称": "九霄天宫", "最低VIP": 7, "描述": "VIP7专属宗门外观"},
+		{"名称": "太玄圣殿", "最低VIP": 10, "描述": "VIP10专属宗门外观"},
+	]
+
+	for 外观 in 宗门外观列表:
+		var 最低VIP: int = int(外观.get("最低VIP", 1))
+		var 已解锁: bool = 当前等级 >= 最低VIP
+		var 外观label := Label.new()
+		外观label.text = "%s%s - %s（VIP%d）" % ["✓ " if 已解锁 else "🔒 ", str(外观.get("名称", "")), str(外观.get("描述", "")), 最低VIP]
+		外观label.add_theme_font_size_override("font_size", 11)
+		外观label.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55) if 已解锁 else Color(0.45, 0.45, 0.45))
+		_scroll_vbox.add_child(外观label)
+
+# ===== P1：VIP等级对比表 =====
+func _build_vip_comparison() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 当前等级: int = Game.当前VIP等级()
+
+	# 标题
+	var 对比头 := Label.new()
+	对比头.text = "◆ 仙阶礼遇对比"
+	UITheme.apply_section_title(对比头)
+	对比头.add_theme_color_override("font_color", Color(0.85, 0.65, 0.35))
+	_scroll_vbox.add_child(对比头)
+
+	# 对比表
+	var 对比表 := GridContainer.new()
+	对比表.columns = 5
+	对比表.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	对比表.add_theme_constant_override("h_separation", 4)
+	对比表.add_theme_constant_override("v_separation", 2)
+
+	# 表头
+	var 表头: Array = ["仙阶", "离线上限", "机缘加成", "战斗倍速", "核心礼遇"]
+	for 头 in 表头:
+		var 头label := Label.new()
+		头label.text = str(头)
+		头label.add_theme_font_size_override("font_size", 11)
+		头label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+		头label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		对比表.add_child(头label)
+
+	# 对比数据
+	var 对比数据: Array = [
+		{"等级": 0, "离线": "8h", "机缘": "0%", "倍速": "1x", "礼遇": "基础功能"},
+		{"等级": 3, "离线": "8h", "机缘": "0%", "倍速": "2x", "礼遇": "背包扩容/跳过战斗"},
+		{"等级": 6, "离线": "12h", "机缘": "0%", "倍速": "2x", "礼遇": "炼制加成/商队加成"},
+		{"等级": 9, "离线": "24h", "机缘": "20%", "倍速": "3x", "礼遇": "自动熔炼/专属皮肤"},
+		{"等级": 12, "离线": "48h", "机缘": "50%", "倍速": "3x", "礼遇": "全功能解锁/专属客服"},
+	]
+
+	for 数据 in 对比数据:
+		var 等级: int = int(数据.get("等级", 0))
+		var 是当前: bool = 等级 == 当前等级
+
+		var 等级label := Label.new()
+		等级label.text = "VIP%d%s" % [等级, " ←当前" if 是当前 else ""]
+		等级label.add_theme_font_size_override("font_size", 10)
+		等级label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5) if 是当前 else Color(0.7, 0.7, 0.65))
+		等级label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		对比表.add_child(等级label)
+
+		var 离线label := Label.new()
+		离线label.text = str(数据.get("离线", ""))
+		离线label.add_theme_font_size_override("font_size", 10)
+		离线label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
+		离线label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		对比表.add_child(离线label)
+
+		var 机缘label := Label.new()
+		机缘label.text = str(数据.get("机缘", ""))
+		机缘label.add_theme_font_size_override("font_size", 10)
+		机缘label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+		机缘label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		对比表.add_child(机缘label)
+
+		var 倍速label := Label.new()
+		倍速label.text = str(数据.get("倍速", ""))
+		倍速label.add_theme_font_size_override("font_size", 10)
+		倍速label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.6))
+		倍速label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		对比表.add_child(倍速label)
+
+		var 礼遇label := Label.new()
+		礼遇label.text = str(数据.get("礼遇", ""))
+		礼遇label.add_theme_font_size_override("font_size", 10)
+		礼遇label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.6))
+		对比表.add_child(礼遇label)
+
+	_scroll_vbox.add_child(对比表)
+
+# ===== P1：充值套餐推荐 =====
+func _build_recharge_recommendation() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 统计: Dictionary = Game.获取VIP统计()
+	var 当前等级: int = int(统计.get("当前等级", 0))
+	var 累充额: int = int(统计.get("累充额", 0))
+	var 下一级金额: int = int(统计.get("下一级金额", 0))
+
+	# 标题
+	var 推荐头 := Label.new()
+	推荐头.text = "◆ 充值套餐推荐"
+	UITheme.apply_section_title(推荐头)
+	推荐头.add_theme_color_override("font_color", Color(0.85, 0.65, 0.35))
+	_scroll_vbox.add_child(推荐头)
+
+	# 推荐套餐
+	var 推荐套餐: Array = []
+	if 当前等级 < 12:
+		var 还需: int = max(0, 下一级金额 - 累充额)
+		# 根据还需金额推荐最合适的套餐
+		if 还需 <= 6:
+			推荐套餐.append({"名称": "6元套餐", "价格": 6, "仙玉": 60, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+		elif 还需 <= 30:
+			推荐套餐.append({"名称": "30元套餐", "价格": 30, "仙玉": 300, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+		elif 还需 <= 68:
+			推荐套餐.append({"名称": "68元套餐", "价格": 68, "仙玉": 680, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+		elif 还需 <= 128:
+			推荐套餐.append({"名称": "128元套餐", "价格": 128, "仙玉": 1280, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+		elif 还需 <= 298:
+			推荐套餐.append({"名称": "298元套餐", "价格": 298, "仙玉": 2980, "推荐": "刚好晋升VIP%d，含永久卡" % min(当前等级 + 1, 12)})
+		else:
+			推荐套餐.append({"名称": "648元套餐", "价格": 648, "仙玉": 6480, "推荐": "大额充值，快速提升仙阶"})
+			推荐套餐.append({"名称": "12888元套餐", "价格": 12888, "仙玉": 128880, "推荐": "直达VIP12，全功能解锁"})
+
+	# 热门套餐（始终显示）
+	推荐套餐.append({"名称": "月卡（清修卡）", "价格": 30, "仙玉": 300, "推荐": "30天离线+20%、历练+1、一键收取"})
+	推荐套餐.append({"名称": "季卡（悟道卡）", "价格": 80, "仙玉": 800, "推荐": "90天炼制+30%、商队+15%"})
+	推荐套餐.append({"名称": "永久卡（道统卡）", "价格": 298, "仙玉": 2980, "推荐": "终身日供翻倍、离线上限48h"})
+
+	for 套餐 in 推荐套餐:
+		var 套餐卡 := PanelContainer.new()
+		套餐卡.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var 套餐卡样式 := StyleBoxFlat.new()
+		套餐卡样式.bg_color = Color(0.10, 0.12, 0.08, 0.8)
+		套餐卡样式.set_corner_radius_all(8)
+		套餐卡样式.set_border_width_all(1)
+		套餐卡样式.border_color = Color(0.4, 0.6, 0.4)
+		套餐卡样式.set_content_margin_all(12)
+		套餐卡.add_theme_stylebox_override("panel", 套餐卡样式)
+
+		var 套餐hb := HBoxContainer.new()
+		套餐hb.add_theme_constant_override("separation", 12)
+		套餐卡.add_child(套餐hb)
+
+		var 套餐信息vbox := VBoxContainer.new()
+		套餐信息vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		套餐hb.add_child(套餐信息vbox)
+
+		var 套餐名称label := Label.new()
+		套餐名称label.text = str(套餐.get("名称", ""))
+		套餐名称label.add_theme_font_size_override("font_size", 14)
+		套餐名称label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.7))
+		套餐信息vbox.add_child(套餐名称label)
+
+		var 套餐描述label := Label.new()
+		套餐描述label.text = "%s | %s" % [str(套餐.get("推荐", "")), "含%d仙玉" % int(套餐.get("仙玉", 0))]
+		套餐描述label.add_theme_font_size_override("font_size", 11)
+		套餐描述label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))
+		套餐信息vbox.add_child(套餐描述label)
+
+		var 购买btn := Button.new()
+		购买btn.text = "%d元" % int(套餐.get("价格", 0))
+		购买btn.custom_minimum_size = Vector2(80, 36)
+		购买btn.add_theme_font_size_override("font_size", 13)
+		购买btn.pressed.connect(_on_recharge_package.bind(str(套餐.get("名称", "")), int(套餐.get("价格", 0))))
+		套餐hb.add_child(购买btn)
+
+		_scroll_vbox.add_child(套餐卡)
+
+# 充值套餐购买
+func _on_recharge_package(名称: String, 价格: int) -> void:
+	UIHint.show_hint(self, "充值指引", "选择【%s】（%d元）\n请前往充值中心完成支付\n支付成功后仙阶礼遇自动生效" % [名称, 价格])

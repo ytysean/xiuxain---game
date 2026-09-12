@@ -11,7 +11,7 @@ extends Control
 signal 任务领取完成
 signal 返回主页
 
-const TABS: Array = ["主线", "日常", "周常", "宗门里程碑", "成就"]
+const TABS: Array = ["主线", "日常", "周常", "宗门里程碑", "成就", "悬赏榜"]
 
 # 活跃度宝箱三态图标（决策 2 视觉脚手架，复用 art/icons/hd/ 已落盘资产）
 const CHEST_LOCKED: String = "chest_locked_36"
@@ -169,10 +169,33 @@ func _populate() -> void:
 		"成就":
 			_populate_成就()
 			return
+		"悬赏榜":
+			_populate_悬赏榜()
+			return
 		"主线":
 			var mains: Array = []
 			if Game.has_method("取主线任务列表"):
 				mains = Game.取主线任务列表()
+			# P3联动：显示已解锁系统
+			if Game.has_method("获取已解锁系统"):
+				var 已解锁: Array = Game.获取已解锁系统()
+				if not 已解锁.is_empty():
+					var panel := PanelContainer.new()
+					panel.custom_minimum_size = Vector2(0, 80)
+					_list_parent.add_child(panel)
+					var vb := VBoxContainer.new()
+					vb.add_theme_constant_override("separation", 4)
+					panel.add_child(vb)
+					var title := Label.new()
+					title.text = "【宗门已启道法】"
+					UITheme.apply_aux_font_sized(title, 14)
+					title.add_theme_color_override("font_color", Color(0.8, 0.7, 0.4))
+					vb.add_child(title)
+					var sys_label := Label.new()
+					sys_label.text = " · ".join(已解锁)
+					UITheme.apply_body_font_sized(sys_label, 12)
+					sys_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					vb.add_child(sys_label)
 			if mains.is_empty():
 				_add_empty("宗务清闲，静待机缘")
 			else:
@@ -360,6 +383,492 @@ func _populate_成就() -> void:
 	for it in items:
 		_list_parent.add_child(_make_achievement_card(it["a"], it["done"]))
 	_add_achievement_footer()
+
+# ───────── 悬赏榜（S28）─────────
+func _populate_悬赏榜() -> void:
+	# 发布悬赏按钮
+	var pub_btn := Button.new()
+	pub_btn.name = "PublishBounty"
+	pub_btn.text = "发布悬赏"
+	pub_btn.custom_minimum_size = Vector2(0, int(round(44.0 * UITheme.UI_SCALE)))
+	pub_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_gold_button(pub_btn)
+	UITheme.apply_button_label(pub_btn, true)
+	pub_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+	pub_btn.pressed.connect(_on_publish_bounty_pressed)
+	_list_parent.add_child(pub_btn)
+	# 悬赏列表
+	var 悬赏榜: Dictionary = Game.get("宗门悬赏榜") if is_instance_valid(Game) else {}
+	if 悬赏榜 == null or 悬赏榜.is_empty():
+		_add_empty("悬赏榜空空如也，点击上方按钮发布悬赏")
+		return
+	for bid in 悬赏榜:
+		var b: Dictionary = 悬赏榜[bid]
+		_list_parent.add_child(_make_bounty_card(b))
+
+func _make_bounty_card(b: Dictionary) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.name = "BountyCard_" + str(b.get("悬赏ID", ""))
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UITheme.C01_FLOAT_BG
+	sb.set_corner_radius_all(int(round(10.0 * UITheme.UI_SCALE)))
+	sb.set_border_width_all(1)
+	var 状态: String = str(b.get("状态", ""))
+	var border_col: Color = UITheme.C01_TEXT_GOLD if 状态 == "进行中" else (UITheme.C05_PROG_FILL if 状态 == "招募中" else Color(0.5, 0.5, 0.5))
+	sb.border_color = border_col
+	sb.set_content_margin_all(UITheme.PAD_PANEL)
+	card.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", int(round(6.0 * UITheme.UI_SCALE)))
+	card.add_child(vb)
+	# 标题行
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", UITheme.GRID)
+	var title := Label.new()
+	title.text = "【%s】%s×%d" % [str(b.get("目标物类别", "")), str(b.get("目标物名称", "")), int(b.get("需求数量", 0))]
+	UITheme.apply_title_text(title)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title)
+	# 评级标签
+	var 评级: String = str(b.get("评级", "C"))
+	var rating_lab := Label.new()
+	rating_lab.text = 评级 + "级"
+	UITheme.apply_value_text(rating_lab)
+	var rating_col: Color = Color(1.0, 0.84, 0.0)  # S级金色
+	match 评级:
+		"A": rating_col = Color(0.8, 0.2, 0.2)  # A级红色
+		"B": rating_col = Color(0.2, 0.6, 1.0)  # B级蓝色
+		"C": rating_col = Color(0.5, 0.5, 0.5)  # C级灰色
+	rating_lab.add_theme_color_override("font_color", rating_col)
+	title_row.add_child(rating_lab)
+	var status_lab := Label.new()
+	status_lab.text = 状态
+	UITheme.apply_aux_text(status_lab)
+	status_lab.add_theme_color_override("font_color", border_col)
+	title_row.add_child(status_lab)
+	vb.add_child(title_row)
+	# 进度
+	var 已收集: int = int(b.get("已收集", 0))
+	var 需求: int = int(b.get("需求数量", 0))
+	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.C01_TEXT_GOLD, int(round(6.0 * UITheme.UI_SCALE)))
+	prog.fill.anchor_right = clamp(float(已收集) / float(max(需求, 1)), 0.0, 1.0)
+	vb.add_child(prog.control)
+	var prog_lab := Label.new()
+	prog_lab.text = "进度：%d/%d" % [已收集, 需求]
+	UITheme.apply_aux_text(prog_lab)
+	prog_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	vb.add_child(prog_lab)
+	# 奖励和接取人
+	var info_row := HBoxContainer.new()
+	info_row.add_theme_constant_override("separation", UITheme.GRID)
+	var reward_lab := Label.new()
+	var 奖励类型: String = str(b.get("奖励类型", ""))
+	if 奖励类型 == "物品":
+		reward_lab.text = "奖励：%s" % str(b.get("奖励物品名称", "未知物品"))
+	else:
+		reward_lab.text = "奖励：%s×%d" % [奖励类型, int(b.get("奖励数量", 0))]
+	UITheme.apply_aux_text(reward_lab)
+	reward_lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_row.add_child(reward_lab)
+	var 接取人ID: int = int(b.get("接取弟子ID", -1))
+	if 接取人ID >= 0:
+		var d: Object = Game._取弟子(接取人ID) if Game.has_method("_取弟子") else null
+		var taker_lab := Label.new()
+		taker_lab.text = "接取人：%s" % (str(d.姓名) if d != null else "未知")
+		UITheme.apply_aux_text(taker_lab)
+		taker_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		info_row.add_child(taker_lab)
+	vb.add_child(info_row)
+	# 有效期
+	var 累计日: int = int(Game.累计游戏日) if "累计游戏日" in Game else 0
+	var 剩余日: int = int(b.get("发布日", 0)) + int(b.get("有效期", 30)) - 累计日
+	var expire_lab := Label.new()
+	expire_lab.text = "剩余：%d日" % max(0, 剩余日)
+	UITheme.apply_aux_text(expire_lab)
+	expire_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	vb.add_child(expire_lab)
+	# 撤销按钮（仅招募中状态）
+	if 状态 == "招募中":
+		var cancel_btn := Button.new()
+		cancel_btn.text = "撤销悬赏"
+		cancel_btn.custom_minimum_size = Vector2(0, int(round(36.0 * UITheme.UI_SCALE)))
+		cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_ghost_button(cancel_btn)
+		UITheme.apply_button_label(cancel_btn, false)
+		cancel_btn.pressed.connect(_on_cancel_bounty.bind(str(b.get("悬赏ID", ""))))
+		vb.add_child(cancel_btn)
+	return card
+
+# 发布面板状态
+var _publish_panel: Panel = null
+var _publish_category: String = "灵草"
+var _publish_item: String = ""
+var _publish_count: int = 5
+var _publish_reward_type: String = "灵石"
+var _publish_reward_count: int = 1000
+var _publish_duration: int = 30
+var _publish_item_list: VBoxContainer = null
+var _publish_reward_item: String = ""
+var _reward_item_list_panel: VBoxContainer = null
+
+# 预设物品库（按分类）
+const 悬赏物品库: Dictionary = {
+	"灵草": ["百年灵芝", "千年人参", "雪莲", "何首乌", "紫河车", "九叶灵芝", "幽冥草", "太阳神花"],
+	"矿石": ["玄精铁", "寒铁", "紫金", "星辰砂", "九天玄铁", "万年寒铁", "混沌石", "太阳神金"],
+	"妖兽材料": ["妖兽内丹", "妖兽精血", "妖兽皮", "妖兽骨", "妖丹", "妖王内丹", "神兽精血", "凶兽骸骨"],
+	"丹药": ["筑基丹", "疗伤丹", "培元丹", "突破丹", "金丹", "元婴丹", "化神丹", "渡劫丹"],
+	"符箓": ["火球符", "护盾符", "传送符", "隐身符", "天雷符", "冰封符", "巨力符", "定神符"],
+	"特殊物品": ["储物袋", "秘境钥匙", "古地图", "传承玉简", "天材地宝", "空间戒指", "传讯玉符", "护身玉佩"],
+}
+
+func _on_publish_bounty_pressed() -> void:
+	# 打开完整发布面板
+	_open_publish_panel()
+
+func _open_publish_panel() -> void:
+	if _publish_panel != null:
+		_close_publish_panel()
+	_publish_category = "灵草"
+	_publish_item = ""
+	_publish_count = 5
+	_publish_reward_type = "灵石"
+	_publish_reward_count = 1000
+	_publish_duration = 30
+	# 半透明遮罩
+	var overlay := ColorRect.new()
+	overlay.name = "PublishOverlay"
+	overlay.color = Color(0, 0, 0, 0.7)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(overlay)
+	# 面板
+	var panel := Panel.new()
+	panel.name = "PublishPanel"
+	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(UITheme.C01_FLOAT_BG, UITheme.C01_GOLD_LINE, 12, 2))
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.custom_minimum_size = Vector2(int(round(340.0 * UITheme.UI_SCALE)), int(round(480.0 * UITheme.UI_SCALE)))
+	overlay.add_child(panel)
+	_publish_panel = panel
+	var vb := VBoxContainer.new()
+	vb.name = "PublishVB"
+	vb.add_theme_constant_override("separation", int(round(8.0 * UITheme.UI_SCALE)))
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vb.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vb.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vb.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vb.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
+	panel.add_child(vb)
+	# 标题
+	var title := Label.new()
+	title.text = "发布悬赏"
+	UITheme.apply_title_text(title)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(title)
+	# 分类标签（横向滚动）
+	var cat_scroll := ScrollContainer.new()
+	cat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	cat_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	cat_scroll.custom_minimum_size = Vector2(0, int(round(36.0 * UITheme.UI_SCALE)))
+	vb.add_child(cat_scroll)
+	var cat_hb := HBoxContainer.new()
+	cat_hb.add_theme_constant_override("separation", int(round(6.0 * UITheme.UI_SCALE)))
+	cat_scroll.add_child(cat_hb)
+	for cat in 悬赏物品库.keys():
+		var btn := Button.new()
+		btn.text = str(cat)
+		btn.custom_minimum_size = Vector2(int(round(60.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		if str(cat) == _publish_category:
+			_style_gold_button(btn)
+			btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+		else:
+			_style_ghost_button(btn)
+		UITheme.apply_button_label(btn, false)
+		btn.pressed.connect(_on_select_category.bind(str(cat), btn))
+		cat_hb.add_child(btn)
+	# 物品列表（纵向滚动）
+	var item_scroll := ScrollContainer.new()
+	item_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	item_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	item_scroll.custom_minimum_size = Vector2(0, int(round(160.0 * UITheme.UI_SCALE)))
+	vb.add_child(item_scroll)
+	_publish_item_list = VBoxContainer.new()
+	_publish_item_list.name = "ItemList"
+	_publish_item_list.add_theme_constant_override("separation", int(round(4.0 * UITheme.UI_SCALE)))
+	_publish_item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	item_scroll.add_child(_publish_item_list)
+	_refresh_publish_item_list()
+	# 数量选择
+	var count_row := HBoxContainer.new()
+	count_row.add_theme_constant_override("separation", UITheme.GRID)
+	var count_lab := Label.new()
+	count_lab.text = "需求数量："
+	UITheme.apply_aux_text(count_lab)
+	count_row.add_child(count_lab)
+	var count_minus := Button.new()
+	count_minus.text = "-"
+	count_minus.custom_minimum_size = Vector2(int(round(36.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+	_style_ghost_button(count_minus)
+	count_minus.pressed.connect(func(): _publish_count = max(1, _publish_count - 1); _refresh_publish_labels())
+	count_row.add_child(count_minus)
+	var count_val := Label.new()
+	count_val.name = "CountVal"
+	count_val.text = str(_publish_count)
+	count_val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	count_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UITheme.apply_value_text(count_val)
+	count_row.add_child(count_val)
+	var count_plus := Button.new()
+	count_plus.text = "+"
+	count_plus.custom_minimum_size = Vector2(int(round(36.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+	_style_gold_button(count_plus)
+	count_plus.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+	count_plus.pressed.connect(func(): _publish_count += 1; _refresh_publish_labels())
+	count_row.add_child(count_plus)
+	vb.add_child(count_row)
+	# 奖励类型选择
+	var reward_row := HBoxContainer.new()
+	reward_row.add_theme_constant_override("separation", UITheme.GRID)
+	var reward_lab := Label.new()
+	reward_lab.text = "奖励类型："
+	UITheme.apply_aux_text(reward_lab)
+	reward_row.add_child(reward_lab)
+	for rt in ["灵石", "贡献点", "物品"]:
+		var rt_btn := Button.new()
+		rt_btn.text = rt
+		rt_btn.custom_minimum_size = Vector2(int(round(60.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+		if rt == _publish_reward_type:
+			_style_gold_button(rt_btn)
+			rt_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+		else:
+			_style_ghost_button(rt_btn)
+		UITheme.apply_button_label(rt_btn, false)
+		rt_btn.pressed.connect(func(): _publish_reward_type = rt; _publish_reward_item = ""; _refresh_publish_panel())
+		reward_row.add_child(rt_btn)
+	vb.add_child(reward_row)
+	# 物品奖励选择（仅当奖励类型为物品时显示）
+	if _publish_reward_type == "物品":
+		var item_reward_row := HBoxContainer.new()
+		item_reward_row.add_theme_constant_override("separation", UITheme.GRID)
+		var ir_lab := Label.new()
+		ir_lab.text = "奖励物品："
+		UITheme.apply_aux_text(ir_lab)
+		item_reward_row.add_child(ir_lab)
+		var ir_val := Label.new()
+		ir_val.text = _publish_reward_item if _publish_reward_item != "" else "未选择"
+		ir_val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ir_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		UITheme.apply_value_text(ir_val)
+		ir_val.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		item_reward_row.add_child(ir_val)
+		var ir_btn := Button.new()
+		ir_btn.text = "选择"
+		ir_btn.custom_minimum_size = Vector2(int(round(60.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+		_style_gold_button(ir_btn)
+		ir_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+		UITheme.apply_button_label(ir_btn, false)
+		ir_btn.pressed.connect(_show_reward_item_selector)
+		item_reward_row.add_child(ir_btn)
+		vb.add_child(item_reward_row)
+	# 奖励数量
+	var reward_count_row := HBoxContainer.new()
+	reward_count_row.add_theme_constant_override("separation", UITheme.GRID)
+	var rc_lab := Label.new()
+	rc_lab.text = "奖励数量："
+	UITheme.apply_aux_text(rc_lab)
+	reward_count_row.add_child(rc_lab)
+	var rc_minus := Button.new()
+	rc_minus.text = "-"
+	rc_minus.custom_minimum_size = Vector2(int(round(36.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+	_style_ghost_button(rc_minus)
+	rc_minus.pressed.connect(func(): _publish_reward_count = max(10, _publish_reward_count - 100); _refresh_publish_labels())
+	reward_count_row.add_child(rc_minus)
+	var rc_val := Label.new()
+	rc_val.name = "RewardVal"
+	rc_val.text = str(_publish_reward_count)
+	rc_val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rc_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UITheme.apply_value_text(rc_val)
+	reward_count_row.add_child(rc_val)
+	var rc_plus := Button.new()
+	rc_plus.text = "+"
+	rc_plus.custom_minimum_size = Vector2(int(round(36.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+	_style_gold_button(rc_plus)
+	rc_plus.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+	rc_plus.pressed.connect(func(): _publish_reward_count += 100; _refresh_publish_labels())
+	reward_count_row.add_child(rc_plus)
+	vb.add_child(reward_count_row)
+	# 有效期选择
+	var dur_row := HBoxContainer.new()
+	dur_row.add_theme_constant_override("separation", UITheme.GRID)
+	var dur_lab := Label.new()
+	dur_lab.text = "有效期："
+	UITheme.apply_aux_text(dur_lab)
+	dur_row.add_child(dur_lab)
+	for d in [7, 15, 30, 60]:
+		var d_btn := Button.new()
+		d_btn.text = "%d天" % d
+		d_btn.custom_minimum_size = Vector2(int(round(50.0 * UITheme.UI_SCALE)), int(round(32.0 * UITheme.UI_SCALE)))
+		if d == _publish_duration:
+			_style_gold_button(d_btn)
+			d_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+		else:
+			_style_ghost_button(d_btn)
+		UITheme.apply_button_label(d_btn, false)
+		d_btn.pressed.connect(func(): _publish_duration = d; _refresh_publish_panel())
+		dur_row.add_child(d_btn)
+	vb.add_child(dur_row)
+	# 确认/取消按钮
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", UITheme.GRID)
+	var cancel_btn := Button.new()
+	cancel_btn.text = "取消"
+	cancel_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cancel_btn.custom_minimum_size = Vector2(0, int(round(40.0 * UITheme.UI_SCALE)))
+	_style_ghost_button(cancel_btn)
+	UITheme.apply_button_label(cancel_btn, false)
+	cancel_btn.pressed.connect(_close_publish_panel)
+	btn_row.add_child(cancel_btn)
+	var confirm_btn := Button.new()
+	confirm_btn.text = "确认发布"
+	confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	confirm_btn.custom_minimum_size = Vector2(0, int(round(40.0 * UITheme.UI_SCALE)))
+	_style_gold_button(confirm_btn)
+	UITheme.apply_button_label(confirm_btn, true)
+	confirm_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+	confirm_btn.pressed.connect(_on_confirm_publish)
+	btn_row.add_child(confirm_btn)
+	vb.add_child(btn_row)
+
+func _refresh_publish_item_list() -> void:
+	if _publish_item_list == null:
+		return
+	for child in _publish_item_list.get_children():
+		_publish_item_list.remove_child(child)
+		child.queue_free()
+	var items: Array = 悬赏物品库.get(_publish_category, [])
+	for item in items:
+		var btn := Button.new()
+		btn.text = str(item)
+		btn.custom_minimum_size = Vector2(0, int(round(36.0 * UITheme.UI_SCALE)))
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if str(item) == _publish_item:
+			_style_gold_button(btn)
+			btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
+		else:
+			_style_ghost_button(btn)
+		UITheme.apply_button_label(btn, false)
+		btn.pressed.connect(_on_select_item.bind(str(item)))
+		_publish_item_list.add_child(btn)
+
+func _on_select_category(cat: String, btn: Button) -> void:
+	_publish_category = cat
+	_publish_item = ""
+	_refresh_publish_panel()
+
+func _on_select_item(item: String) -> void:
+	_publish_item = item
+	_refresh_publish_item_list()
+
+func _refresh_publish_labels() -> void:
+	if _publish_panel == null:
+		return
+	var count_val = _publish_panel.find_child("CountVal", true, false)
+	if count_val != null:
+		count_val.text = str(_publish_count)
+	var reward_val = _publish_panel.find_child("RewardVal", true, false)
+	if reward_val != null:
+		reward_val.text = str(_publish_reward_count)
+
+func _refresh_publish_panel() -> void:
+	# 简化：关闭重开（避免复杂的状态刷新）
+	_close_publish_panel()
+	_open_publish_panel()
+
+func _on_confirm_publish() -> void:
+	if _publish_item == "":
+		_show_toast("请先选择目标物品")
+		return
+	var r: Dictionary = Game.发布悬赏(_publish_category, _publish_item, _publish_count, _publish_reward_type, _publish_reward_count, _publish_duration, _publish_reward_item)
+	if bool(r.get("成功", false)):
+		_show_toast("悬赏发布成功！")
+		_close_publish_panel()
+		refresh()
+	else:
+		_show_toast("发布失败：%s" % str(r.get("原因", "")))
+
+func _show_reward_item_selector() -> void:
+	# 显示宗门库房中的物品列表（简化：显示前20件）
+	if _publish_panel == null:
+		return
+	# 移除旧的物品列表面板
+	if _reward_item_list_panel != null and is_instance_valid(_reward_item_list_panel):
+		_reward_item_list_panel.queue_free()
+		_reward_item_list_panel = null
+	var panel := VBoxContainer.new()
+	panel.name = "RewardItemSelector"
+	panel.add_theme_constant_override("separation", int(round(4.0 * UITheme.UI_SCALE)))
+	# 从宗门库房读取物品
+	var 库房: Array = Game.get("宗门库房") if is_instance_valid(Game) else []
+	var 显示数: int = 0
+	for it in 库房:
+		if it != null and it is Item:
+			var btn := Button.new()
+			btn.text = "%s（%s）" % [str(it.名称), str(it.品阶)]
+			btn.custom_minimum_size = Vector2(0, int(round(32.0 * UITheme.UI_SCALE)))
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_style_ghost_button(btn)
+			UITheme.apply_button_label(btn, false)
+			btn.pressed.connect(_on_select_reward_item.bind(str(it.名称)))
+			panel.add_child(btn)
+			显示数 += 1
+			if 显示数 >= 15:
+				break
+	if 显示数 == 0:
+		var empty_lab := Label.new()
+		empty_lab.text = "宗门库房为空"
+		empty_lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		panel.add_child(empty_lab)
+	# 插入到发布面板中（在奖励类型行后面）
+	var publish_vb = _publish_panel.find_child("PublishVB", true, false)
+	if publish_vb != null:
+		# 找到奖励类型行的索引，在其后插入
+		var insert_idx: int = -1
+		for i in range(publish_vb.get_child_count()):
+			var child = publish_vb.get_child(i)
+			if child is HBoxContainer and child.get_child_count() > 0:
+				var first = child.get_child(0)
+				if first is Label and "奖励类型" in str(first.text):
+					insert_idx = i + 1
+					break
+		if insert_idx >= 0:
+			panel.add_theme_constant_override("margin_left", int(round(20.0 * UITheme.UI_SCALE)))
+			publish_vb.add_child(panel)
+			publish_vb.move_child(panel, insert_idx)
+	_reward_item_list_panel = panel
+
+func _on_select_reward_item(物品名: String) -> void:
+	_publish_reward_item = 物品名
+	_refresh_publish_panel()
+
+func _close_publish_panel() -> void:
+	if _publish_panel != null and is_instance_valid(_publish_panel):
+		var overlay = _publish_panel.get_parent()
+		_publish_panel.queue_free()
+		if overlay != null:
+			overlay.queue_free()
+	_publish_panel = null
+	_publish_item_list = null
+	_reward_item_list_panel = null
+
+func _on_cancel_bounty(悬赏ID: String) -> void:
+	var r: Dictionary = Game.撤销悬赏(悬赏ID)
+	if bool(r.get("成功", false)):
+		_show_toast("悬赏已撤销")
+	else:
+		_show_toast("撤销失败：%s" % str(r.get("原因", "")))
+	refresh()
 
 func _make_achievement_header(已得: int, 总: int) -> Control:
 	var hb := HBoxContainer.new()
@@ -1041,6 +1550,45 @@ func _style_gold_button(b: BaseButton) -> void:
 	b.add_theme_stylebox_override("pressed", pressed)
 	b.add_theme_stylebox_override("disabled", disabled)
 	b.add_theme_stylebox_override("hover", normal)
+
+func _style_ghost_button(b: BaseButton) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.1, 0.1, 0.15, 0.6)
+	normal.border_color = UITheme.C01_TEXT_TERTIARY
+	normal.set_corner_radius_all(int(round(13.0 * UITheme.UI_SCALE)))
+	normal.set_border_width_all(1)
+	normal.set_content_margin_all(UITheme.GRID)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("pressed", normal)
+	b.add_theme_stylebox_override("hover", normal)
+	b.add_theme_stylebox_override("disabled", normal)
+
+func _show_toast(text: String) -> void:
+	if _toast_panel == null:
+		_toast_panel = Panel.new()
+		_toast_panel.name = "ToastPanel"
+		_toast_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0.043, 0.078, 0.094, 0.92), UITheme.C01_GOLD_LINE, 8, 1))
+		_toast_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_toast_panel.visible = false
+		var lab := Label.new()
+		lab.name = "ToastText"
+		UITheme.apply_aux_text(lab)
+		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_toast_panel.add_child(lab)
+		_toast_label = lab
+		add_child(_toast_panel)
+	_toast_label.text = text
+	_toast_panel.visible = true
+	var font: Font = _toast_label.get_theme_font("font")
+	var text_size: Vector2 = font.get_string_size(_toast_label.text, HORIZONTAL_ALIGNMENT_CENTER, -1, int(round(14.0 * UITheme.UI_SCALE)))
+	var panel_w: float = text_size.x + 32.0 * UITheme.UI_SCALE
+	var panel_h: float = text_size.y + 16.0 * UITheme.UI_SCALE
+	_toast_panel.size = Vector2(panel_w, panel_h)
+	_toast_panel.global_position = Vector2((size.x - panel_w) / 2, 100.0 * UITheme.UI_SCALE)
+	if get_tree() != null:
+		get_tree().create_timer(1.5).timeout.connect(_hide_toast)
 
 func _apply_dark_capsule(b: BaseButton) -> void:
 	var normal := StyleBoxFlat.new()

@@ -21,9 +21,11 @@ UITheme="*res://ui_theme.gd"
 UIThemeConfig="*res://ui_theme_config.gd"
 UITween="*res://ui_tween.gd"
 ToastManager="*res://components/ToastManager.gd"
+AchievementPopup="*res://components/AchievementPopupManager.gd"
 UIHint="*res://ui/ui_hint.gd"
 AlchemySystem="*res://alchemy.gd"
 ForgeSystem="*res://forge.gd"
+TalismanSystem="*res://talisman.gd"
 LingTianSystem="*res://lingtian.gd"
 KuangMaiSystem="*res://kuangmai.gd"
 GongFaSystem="*res://gongfa.gd"
@@ -34,6 +36,7 @@ GongXunSystem="*res://gongxun.gd"
 ZhenFaSystem="*res://zhenfa.gd"
 ExpeditionSystem="*res://expedition.gd"
 SectManager="*res://sect_manager.gd"
+VFXBus="*res://vfx/vfx_bus.gd"
 
 [display]
 
@@ -52,6 +55,5 @@ theme/custom="res://theme/main_theme.tres"
 
 [rendering]
 
-textures/canvas_textures/default_texture_filter=0
 2d/snap_2d_transforms_to_pixel=true
 2d/snap_2d_vertices_to_pixel=true

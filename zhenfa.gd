@@ -168,11 +168,11 @@ static func 升级阵法(阵法ID: String, 当前等级: int, 阵法堂等级: i
 	var 材料消耗: int = 0
 	if 材料名 != "" and 材料基础数 > 0:
 		材料消耗 = 材料基础数 + 当前等级  # 每级多消耗1个材料
-		# 检查材料是否足够（简化处理：从仓库中查找）
+		# 检查材料是否足够（简化处理：从宗门库房中查找）
 		var 材料足够: bool = false
 		var 材料数量: int = 0
-		if Game != null and Game.has("仓库"):
-			for item in Game.仓库:
+		if Game != null and "宗门库房" in Game:
+			for item in Game.宗门库房:
 				if item != null and typeof(item) == TYPE_OBJECT and "名称" in item and str(item.名称) == 材料名:
 					材料数量 += 1
 		if 材料数量 >= 材料消耗:
@@ -184,12 +184,12 @@ static func 升级阵法(阵法ID: String, 当前等级: int, 阵法堂等级: i
 	# 扣除材料
 	if 材料名 != "" and 材料消耗 > 0:
 		var 已扣除: int = 0
-		for i in range(Game.仓库.size() - 1, -1, -1):
+		for i in range(Game.宗门库房.size() - 1, -1, -1):
 			if 已扣除 >= 材料消耗:
 				break
-			var item = Game.仓库[i]
+			var item = Game.宗门库房[i]
 			if item != null and typeof(item) == TYPE_OBJECT and "名称" in item and str(item.名称) == 材料名:
-				Game.仓库.remove_at(i)
+				Game.宗门库房.remove_at(i)
 				已扣除 += 1
 	# 升级
 	var 新等级 = 当前等级 + 1
@@ -208,18 +208,18 @@ static func 获取升级消耗(阵法ID: String, 当前等级: int) -> int:
 
 ## 计算驻守弟子境界加成
 ## 弟子境界越高，阵法效果越强
-## 练气=1.0, 筑基=1.1, 金丹=1.2, 元婴=1.3, 化神=1.4, 炼虚=1.5, 合体=1.6, 大乘=1.7, 渡劫=1.8, 飞升=2.0
+## 练气=1.0 … 每升一阶 +0.1（序为 Disciple.境界序 11 阶，道阶=2.0）
 static func 计算驻守境界加成(驻守弟子列表: Array) -> float:
 	if 驻守弟子列表 == null or 驻守弟子列表.size() == 0:
 		return 1.0
-	var 境界序: Array = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "飞升"]
+	var 境界序: Array = Disciple.境界序   # 唯一真源（2026-09-02）
 	var 总加成: float = 0.0
 	var 有效弟子数: int = 0
 	for 弟子 in 驻守弟子列表:
 		if 弟子 == null:
 			continue
 		var 境界 = ""
-		if 弟子.has("境界"):
+		if "境界" in 弟子:
 			境界 = str(弟子.境界)
 		elif 弟子.has_method("get"):
 			境界 = str(弟子.get("境界", "练气"))

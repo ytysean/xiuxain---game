@@ -1,13 +1,13 @@
-city_id,city_name,city_level,unlock_condition,base_price_rate,special_goods,lack_goods,reputation_level
-1,黑石镇,1,sect_level=1,0.9,g001|g002|g038,g005|g009,0
-2,青牛村,1,sect_level=1,0.85,g003|g004|g039,g006|g010,0
-3,青阳城,2,sect_level=3 AND has_shop=1,1.0,g001|g007|g040,g005|g008|g011,1
-4,玄月城,2,sect_level=4 AND has_shop=1,1.05,g004|g008|g041,g006|g007|g012,1
-5,天剑城,3,sect_level=6 AND reputation>=300,1.15,g007|g013|g042,g009|g014|g015,2
-6,丹神宗城,3,sect_level=7 AND reputation>=500,1.1,g005|g006|g014|g043,g007|g013,2
-7,紫府仙都,4,sect_level=9 AND has_ship=1,1.25,g015|g016|g044,g001|g002|g017,3
-8,北海商港,4,sect_level=10 AND has_ship=1,1.2,g017|g018|g045,g008|g014|g016,3
-9,妖族领,3,sect_level>=5,1.2,g036|g037,g005|g010,3
-10,秘境门户,4,sect_level>=8 AND has_ship=1,1.3,g026|g044,g001|g002,3
-11,宗门敌对城,3,sect_level>=6,1.15,g042|g040,g007|g013,3
-12,中州王都,4,sect_level>=10,1.25,g046|g047,g008|g014,4
+city_id,city_name,city_level,unlock_condition,base_price_rate,special_goods,lack_goods,reputation_level,population,garrison,is_mortal,loyalty,gratitude,disaster
+1,黑石镇,1,sect_level=1,0.9,g001|g002|g038,g005|g009,0,8000,200,1,55,30,0
+2,青牛村,1,sect_level=1,0.85,g003|g004|g039,g006|g010,0,8000,200,1,58,28,0
+3,青阳城,2,sect_level=3 AND has_shop=1,1.0,g001|g007|g040,g005|g008|g011,1,30000,800,1,62,32,0
+4,玄月城,2,sect_level=4 AND has_shop=1,1.05,g004|g008|g041,g006|g007|g012,1,30000,800,1,50,25,0
+5,天剑城,3,sect_level=6 AND reputation>=300,1.15,g007|g013|g042,g009|g014|g015,2,120000,3000,1,45,20,0
+6,丹神宗城,3,sect_level=7 AND reputation>=500,1.1,g005|g006|g014|g043,g007|g013,2,120000,3000,1,48,22,0
+7,紫府仙都,4,sect_level=9 AND has_ship=1,1.25,g015|g016|g044,g001|g002|g017,3,500000,12000,0,0,0,0
+8,北海商港,4,sect_level=10 AND has_ship=1,1.2,g017|g018|g045,g008|g014|g016,3,500000,12000,1,52,35,0
+9,妖族领,3,sect_level>=5,1.2,g036|g037,g005|g010,3,120000,3000,0,0,0,0
+10,秘境门户,4,sect_level>=8 AND has_ship=1,1.3,g026|g044,g001|g002,3,500000,12000,0,0,0,0
+11,宗门敌对城,3,sect_level>=6,1.15,g042|g040,g007|g013,3,120000,3000,1,30,10,0
+12,中州王都,4,sect_level>=10,1.25,g046|g047,g008|g014,4,500000,12000,1,78,40,0

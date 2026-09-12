@@ -37,6 +37,7 @@ const ACHIEVEMENT_CONDITION_TYPES := [
 	"disciple_max_realm", "disciple_dajingjie_count", "total_puppet_made", "total_salary_paid",
 	"library_book_count", "medicine_garden_plots", "unlocked_pill_formula_count",
 	"unlocked_equipment_blueprint_count", "all_factions_worship", "pill_and_equipment_all",
+	"trade_count", "trade_income",
 	"placeholder",
 ]
 # 日常/周常差事类型：取 config/quest_daily.csv 实际取值（2026-08-31 核准）
@@ -54,6 +55,18 @@ const SKILL_TYPES := ["攻击", "控制", "辅助防御", "通用", "普攻", "�
 const EQUIP_SLOTS := ["武器", "法袍", "头盔", "护腕", "腰带", "靴子", "饰品", "法宝"]
 const APPLY_CLASSES := ["通用", "体修", "道修", "法修"]
 const SET_CLASSES := ["全道途通用", "道修", "体修", "法修"]
+
+# ---------- S33 阵营三表单一真源（PROP_23 §2.8 决策②③）----------
+# 六阵营 = faction_system.gd FACTION_LIST 五大阵营 + fz_danqi（§11.26 第 6 阵营扩展）
+# fz_yuan（远古遗泽）已于 S33-1 补齐 base 5 档，§11.26.6 TODO-③ 的「暂缓」结论解除
+const FACTION_IDS := ["fz_zhengdao", "fz_mo", "fz_zhongli", "fz_yaozu", "fz_yuan", "fz_danqi"]
+const FACTION_NAMES := ["正道宗门", "魔道邪宗", "中立散修", "上古妖兽", "远古遗泽", "丹器师公会"]
+# 声望等级：对齐 faction_system.gd REPUTATION_LEVELS（运行时权威；game_state.gd 声望等级 为第二佐证）
+# 旧 faction_base.csv 的「崇拜」档是孤儿等级，get_reputation_level() 永不返回，已于 S33-1 移除
+const FACTION_REP_LEVELS := ["冷淡", "中立", "友善", "尊敬", "崇敬"]
+const FACTION_TAGS := ["正道", "魔道", "中立"]
+const FACTION_ITEM_TYPES := ["功法", "丹药", "装备", "材料", "特殊"]
+const FACTION_QUEST_TYPES := ["daily", "weekly"]
 
 # ---------- 各表校验规则 ----------
 const TABLE_RULES := {
@@ -122,7 +135,7 @@ const TABLE_RULES := {
         }
     },
     "item_talisman": {
-        "required_fields": ["talisman_id","talisman_name","grade","sub_grade","talisman_type","use_effect","effect_value","use_limit","craft_material","sell_price"],
+        "required_fields": ["talisman_id","talisman_name","grade","sub_grade","talisman_type","use_effect","effect_value","use_limit","base_rate","craft_material","sell_price"],
         "primary_key": "talisman_id",
         "field_rules": {
             "grade": {"type": "enum", "values": VALID_GRADES},
@@ -130,6 +143,7 @@ const TABLE_RULES := {
             "talisman_type": {"type": "enum", "values": TAL_TYPES, "tip": "符箓类型非法"},
             "effect_value": {"type": "percent", "max": 200.0, "tip": "符箓效果超出合理上限"},
             "use_limit": {"type": "int", "min": 1, "tip": "每战使用上限必须大于0"},
+            "base_rate": {"type": "percent", "min": MIN_SUCCESS_RATE, "max": MAX_SUCCESS_RATE, "tip": "基础成功率必须在5%-95%区间内"},
             "sell_price": {"type": "int", "min": 0, "tip": "售价不能为负数"}
         }
     },
@@ -389,9 +403,9 @@ const TABLE_RULES := {
             "event_type": {"type": "enum", "values": ["宗门常驻","野外历练","昼夜专属","阵营专属","征伐","奇遇机遇"], "tip": "奇遇大类非法"},
             "rarity": {"type": "enum", "values": ["普通","优秀","稀有","传说"], "tip": "稀有度非法（四档：普通/优秀/稀有/传说）"},
             "trigger_type": {"type": "enum", "values": ["monthly","login","adventure_return","breakthrough","building_up"], "tip": "奇遇触发类型非法（S0 仅 monthly 生效，其余预埋）"},
-            "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录","机缘"], "tip": "触发场景非法"},
+            "trigger_scene": {"type": "enum", "values": ["宗门内","历练结算","秘境通关","战斗胜利","昼夜切换","登录","机缘","凡人王朝"], "tip": "触发场景非法"},
             "unlock_sect_level": {"type": "int", "min": 1, "max": 10, "tip": "解锁宗门等级须在1-10"},
-            "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体"], "tip": "境界非法"},
+            "unlock_realm": {"type": "enum", "values": ["练气","筑基","金丹","元婴","化神","炼虚","合体","大乘","渡劫","仙阶","道阶"], "tip": "境界非法"},
             "trigger_weight": {"type": "int", "min": 0, "tip": "触发权重不能为负"},
             "cooldown_hour": {"type": "int", "min": 0, "tip": "调息周期不能为负"},
             "is_counted_in_balance": {"type": "bool", "tip": "是否计入经济平衡应为 true/false"}
@@ -405,26 +419,60 @@ const TABLE_RULES := {
         #   机缘类事件（event_type=奇遇机遇 / trigger_scene=机缘）走独立 roll 语义，豁免 check_event_weight_sum 的=100 加权约定。
     },
     "faction_base": {
-        "required_fields": ["faction_id","faction_name","reputation_level","need_reputation","global_buff_1","global_buff_2","unlock_content","shop_unlock_grade"],
+        "required_fields": ["faction_id","faction_name","reputation_level","need_reputation","global_buff_1","global_buff_2","unlock_content","shop_unlock_grade","buff_1_value","buff_2_value","faction_tag","exposure_pub"],
         "primary_key": "faction_id+reputation_level",
         "field_rules": {
-            "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi"], "tip": "阵营编码非法（fz_yuan 暂缓 TODO-③）"},
-            "reputation_level": {"type": "enum", "values": ["中立","友善","尊敬","崇敬","崇拜"], "tip": "声望等级非法"},
+            "faction_id": {"type": "enum", "values": FACTION_IDS, "tip": "阵营编码非法（六阵营，含 fz_yuan）"},
+            "faction_name": {"type": "enum", "values": FACTION_NAMES, "tip": "阵营名非法（须对齐 FACTION_LIST）"},
+            "reputation_level": {"type": "enum", "values": FACTION_REP_LEVELS, "tip": "声望等级非法（冷淡/中立/友善/尊敬/崇敬）"},
             "need_reputation": {"type": "int", "min": 0, "tip": "所需声望不能为负"},
-            "shop_unlock_grade": {"type": "int", "min": 0, "max": 4, "tip": "商店解锁档位须在0-4"}
+            "shop_unlock_grade": {"type": "int", "min": 0, "max": 4, "tip": "商店解锁档位须在0-4"},
+            "buff_1_value": {"type": "float", "min": 0.0, "max": 0.25, "tip": "增益值须∈[0,0.25]（§4.1 软上限）"},
+            "buff_2_value": {"type": "float", "min": 0.0, "max": 0.25, "tip": "增益值须∈[0,0.25]（§4.1 软上限）"},
+            "faction_tag": {"type": "enum", "values": FACTION_TAGS, "tip": "阵营标签非法（正道/魔道/中立）"},
+            "exposure_pub": {"type": "float", "min": 0.0, "max": 20.0, "tip": "曝光基数须∈[0,20]"}
         }
     },
+    # S33-2：规则改为匹配**真实老表结构**（决策③：不升级 CSV，改校验器）
+    # 此前 required_fields 是 §11.26 新表结构 → 表头不匹配 → identify_table 返回 null → 整表零校验
     "faction_shop": {
-        "required_fields": ["shop_id","faction_id","item_id","item_name","item_grade","price_lingjing","price_token","limit_daily","limit_weekly","unlock_reputation"],
-        "primary_key": "shop_id",
+        "required_fields": ["item_id","faction","faction_id","item_name","item_type","unlock_reputation","price","description"],
+        "primary_key": "item_id",
         "field_rules": {
-            "faction_id": {"type": "enum", "values": ["fz_zhengdao","fz_zhongli","fz_mo","fz_yaozu","fz_danqi"], "tip": "阵营编码非法"},
-            "item_grade": {"type": "enum", "values": ["凡品","灵品","宝品","王品","圣品","真品","道品"], "tip": "道具品阶非法（7大品阶）"},
-            "price_lingjing": {"type": "int", "min": 0, "tip": "灵石价不能为负"},
-            "price_token": {"type": "int", "min": 0, "tip": "代币价不能为负"},
-            "limit_daily": {"type": "int", "min": 0, "tip": "每日限购不能为负"},
-            "limit_weekly": {"type": "int", "min": 0, "tip": "每周限购不能为负"},
-            "unlock_reputation": {"type": "int", "min": 0, "tip": "解锁声望阈值不能为负"}
+            "faction_id": {"type": "enum", "values": FACTION_IDS, "tip": "阵营编码非法（六阵营）"},
+            "faction": {"type": "enum", "values": FACTION_NAMES, "tip": "阵营名非法（须对齐 FACTION_LIST）"},
+            "item_type": {"type": "enum", "values": FACTION_ITEM_TYPES, "tip": "商品类别非法"},
+            "unlock_reputation": {"type": "enum", "values": FACTION_REP_LEVELS, "tip": "解锁声望须为等级名（非数值）"},
+            "price": {"type": "int", "min": 0, "tip": "售价不能为负"}
+        }
+    },
+    # S33-5：faction_conflict 阵营战役表（新建即纳入校验）
+    "faction_conflict": {
+        "required_fields": ["conflict_id","faction_id","faction","enemy_tag","conflict_name","battle_type","unlock_reputation","cost_lingshi","reward_reputation","description"],
+        "primary_key": "conflict_id",
+        "field_rules": {
+            "faction_id": {"type": "enum", "values": FACTION_IDS, "tip": "阵营编码非法（六阵营）"},
+            "faction": {"type": "enum", "values": FACTION_NAMES, "tip": "阵营名非法（须对齐 FACTION_LIST）"},
+            "enemy_tag": {"type": "enum", "values": FACTION_TAGS, "tip": "守方阵营标签非法（正道/魔道/中立）"},
+            "battle_type": {"type": "enum", "values": ["宗门攻防战","秘境争夺战","妖兽围剿战","阵营围剿战"], "tip": "战型非法（须属 ZongmenBattle.BATTLE_TYPES）"},
+            "unlock_reputation": {"type": "enum", "values": FACTION_REP_LEVELS, "tip": "解锁声望须为等级名（非数值）"},
+            "cost_lingshi": {"type": "int", "min": 0, "tip": "出征耗灵石不能为负"},
+            "reward_reputation": {"type": "int", "min": 0, "tip": "声望奖励不能为负"}
+        }
+    },
+    # S33-2：faction_quests 首次纳入校验（此前在规则表中完全不存在 → 整表零校验）
+    "faction_quests": {
+        "required_fields": ["quest_id","faction","faction_id","quest_name","quest_type","unlock_reputation","target_desc","target_num","reward_lingjing","reward_lingqi","reward_reputation","description"],
+        "primary_key": "quest_id",
+        "field_rules": {
+            "faction_id": {"type": "enum", "values": FACTION_IDS, "tip": "阵营编码非法（六阵营）"},
+            "faction": {"type": "enum", "values": FACTION_NAMES, "tip": "阵营名非法（须对齐 FACTION_LIST）"},
+            "quest_type": {"type": "enum", "values": FACTION_QUEST_TYPES, "tip": "任务周期非法（daily/weekly）"},
+            "unlock_reputation": {"type": "enum", "values": FACTION_REP_LEVELS, "tip": "解锁声望须为等级名（非数值）"},
+            "target_num": {"type": "int", "min": 1, "tip": "目标数量须≥1"},
+            "reward_lingjing": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
+            "reward_lingqi": {"type": "int", "min": 0, "tip": "灵气奖励不能为负"},
+            "reward_reputation": {"type": "int", "min": 0, "tip": "声望奖励不能为负"}
         }
     },
     "inner_demon": {
@@ -570,15 +618,15 @@ const TABLE_RULES := {
         "required_fields": ["achievement_id","ach_name","category","grade","condition_desc","condition_type","condition_param","condition_extra","reward_type","reward_id","reward_num","reward_lingshi","reward_lingqi","reward_shengwang","point_num","unlock_tip","备注"],
         "primary_key": "achievement_id",
         "field_rules": {
-            "category": {"type": "enum", "values": ["成长","经营","战斗","探索","社交"], "tip": "成就分类非法"},
-            "grade": {"type": "enum", "values": ["普通","稀有","传说"], "tip": "成就等级非法"},
-            "point_num": {"type": "enum", "values": [10,30,100], "tip": "成就点数必须为10/30/100"},
+            "category": {"type": "enum", "values": ["成长","经营","战斗","探索","社交","贸易","收集","特殊"], "tip": "成就分类非法（源：ui/page_achievement.gd 分类映射 key）"},
+            "grade": {"type": "enum", "values": ["普通","稀有","传说","史诗"], "tip": "成就等级非法"},
+            "point_num": {"type": "enum", "values": [5,10,20,30,50,80,100,200], "tip": "成就点数必须为枚举值之一"},
             "condition_type": {"type": "enum", "values": ACHIEVEMENT_CONDITION_TYPES, "tip": "成就达成条件类型非法（须为 game_state._复检成就 的 match 分支键，或 S2 占位 placeholder）"},
             "condition_param": {"type": "int", "min": 0, "tip": "达成条件参数（阈值/数量/境界序）不能为负"},
             "condition_extra": {"type": "string", "tip": "复合条件匹配键：境界名(练气/筑基/...)/殿阁key(lingtian等)/灵根品阶(上品)；简单条件留空"},
             "reward_type": {"type": "enum", "values": ["灵石","道具","装备","材料","代币","声望","永久增益","称号","传说称号","外观","buff","阵法","弟子","种子","功能"], "tip": "赏赐类型非法（S1 仅灵石/灵气/声望三类标准资源经 reward_lingshi/lingqi/shengwang 实发，其余悬空容错跳过）"},
             # reward_num 原拟 int；实测 ach_grow_021 为 1.5（永久增益 fang_yu 倍率）。
-            # 依据本仓库「CSV 为唯一真相源」原则（见文件头 B2/B3 裁决）改为 float，min 0。
+            # 依据本宗门库房「CSV 为唯一真相源」原则（见文件头 B2/B3 裁决）改为 float，min 0。
             # 整数数量（如灵石 50000）与小数倍率（如 1.5）均合法。
             "reward_num": {"type": "float", "min": 0, "tip": "赏赐数量/倍率不能为负；永久增益类可为小数倍率（如 1.5）"},
             "reward_lingshi": {"type": "int", "min": 0, "tip": "标准资源·灵石赏赐不能为负"},
@@ -648,6 +696,94 @@ const TABLE_RULES := {
             "阀门": {"type": "enum", "values": ["global_income_rate","global_cost_rate","trade_profit_rate","event_damage_rate","熔断阈值","基准值"], "tip": "F2 阀门参数名非法（应为四个阀门 + 熔断阈值 + 基准值）"},
             "系数": {"type": "float", "min": 0.0, "tip": "阀门系数须为非负浮点；±15% 硬范围由 economy_balance.gd 载入时强校验"},
             "开关": {"type": "float", "min": 0.0, "max": 1.0, "tip": "开关须为 0/1（off/on）"}
+        }
+    },
+    # ---- S34 凡人王朝五表（dynasty_*）----
+    # 枚举值由 _s34b_patch16.py 从 CSV / game_state.gd 现读回填，禁手抄。
+    "dynasty_config": {
+        "required_fields": ["policy_id", "policy_name", "tribute_rate", "talent_rate",
+            "army_rate", "attitude_decay", "crisis_weight", "description"],
+        "primary_key": "policy_id",
+        "field_rules": {
+            "tribute_rate": {"type": "float", "min": 0.0, "tip": "供奉系数不能为负"},
+            "talent_rate": {"type": "float", "min": 0.0, "tip": "苗子系数不能为负"},
+            "army_rate": {"type": "float", "min": 0.0, "tip": "兵锋系数不能为负"},
+            "attitude_decay": {"type": "float", "min": 0.1, "tip": "态度衰减须 >0.1（否则关系永不衰减）"},
+            "crisis_weight": {"type": "float", "min": 0.0, "tip": "危机权重不能为负"}
+        }
+    },
+    "dynasty_phase_config": {
+        "required_fields": ["phase_id", "phase_name", "dynasty_min", "dynasty_max",
+            "tribute_rate", "talent_rate", "t_w_fan_su", "t_w_pingyong", "t_w_youliang",
+            "t_w_tiancai", "t_w_yaonie", "t_w_kuangshi", "monthly_drift", "crisis_weight",
+            "description"],
+        "primary_key": "phase_id",
+        "field_rules": {
+            "dynasty_min": {"type": "float", "min": 0.0, "tip": "国祚下限不能为负"},
+            "dynasty_max": {"type": "float", "min": 0.0, "max": 100.0, "tip": "国祚上限须在 0~100"},
+            "tribute_rate": {"type": "float", "min": 0.0, "tip": "供奉系数不能为负"},
+            "talent_rate": {"type": "float", "min": 0.0, "tip": "苗子系数不能为负"},
+            "t_w_fan_su": {"type": "float", "min": 0.0, "tip": "凡俗权重不能为负"},
+            "t_w_pingyong": {"type": "float", "min": 0.0, "tip": "平庸权重不能为负"},
+            "t_w_youliang": {"type": "float", "min": 0.0, "tip": "优良权重不能为负"},
+            "t_w_tiancai": {"type": "float", "min": 0.0, "tip": "天才权重不能为负"},
+            "t_w_yaonie": {"type": "float", "min": 0.0, "tip": "妖孽权重不能为负"},
+            "t_w_kuangshi": {"type": "float", "min": 0.0, "tip": "旷世权重不能为负"},
+            "crisis_weight": {"type": "float", "min": 0.0, "tip": "危机权重不能为负"}
+        }
+    },
+    "dynasty_decree_config": {
+        "required_fields": ["decree_id", "decree_name", "decree_type", "difficulty",
+            "require_realm", "require_power", "duration_days", "reward_gratitude",
+            "reward_lingshi", "reward_merit", "penalty_gratitude", "penalty_loyalty",
+            "description"],
+        "primary_key": "decree_id",
+        "field_rules": {
+            "decree_type": {"type": "enum", "values": ["escort", "purge", "regent", "relief", "scout", "suppress"], "tip": "差事类型非法"},
+            "difficulty": {"type": "int", "min": 1, "max": 3, "tip": "难度须为 1~3"},
+            "require_realm": {"type": "enum", "values": ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "仙阶", "道阶"], "tip": "需求境界不在 Disciple.境界序"},
+            "require_power": {"type": "int", "min": 0, "tip": "战力需求不能为负"},
+            "duration_days": {"type": "int", "min": 1, "tip": "持续天数须 >= 1"},
+            "reward_gratitude": {"type": "float", "min": 0.0, "tip": "感恩奖励不能为负"},
+            "reward_lingshi": {"type": "int", "min": 0, "tip": "灵石奖励不能为负"},
+            "reward_merit": {"type": "int", "min": 0, "tip": "战功奖励不能为负"},
+            "penalty_gratitude": {"type": "float", "max": 0.0, "tip": "感恩惩罚须 <= 0"},
+            "penalty_loyalty": {"type": "float", "max": 0.0, "tip": "忠诚惩罚须 <= 0"}
+        }
+    },
+    "dynasty_faction_config": {
+        "required_fields": ["faction_id", "faction_name", "desire_type", "desire_cost",
+            "tribute_rate", "talent_rate", "crisis_rate", "merit_rate", "ruling_power",
+            "ruling_decay", "ruling_decay_growth", "grudge_coef", "description"],
+        "primary_key": "faction_id",
+        "field_rules": {
+            "faction_name": {"type": "enum", "values": ["士族", "边将", "宦官", "外戚"], "tip": "派系名须与 game_state.gd 派系序一致"},
+            "desire_type": {"type": "enum", "values": ["contribution", "disciple", "lingshi", "pill"], "tip": "诉求资源类型非法"},
+            "desire_cost": {"type": "int", "min": 1, "tip": "扶持代价须 >= 1（否则可白嫖）"},
+            "tribute_rate": {"type": "float", "min": 0.0, "tip": "供奉系数不能为负"},
+            "talent_rate": {"type": "float", "min": 0.0, "tip": "苗子系数不能为负"},
+            "crisis_rate": {"type": "float", "min": 0.0, "tip": "危机系数不能为负"},
+            "merit_rate": {"type": "float", "min": 0.0, "tip": "战功系数不能为负"},
+            "ruling_power": {"type": "int", "min": 0, "tip": "权柄红利不能为负"},
+            "ruling_decay": {"type": "int", "min": 1, "tip": "反对派压力须 >= 1"},
+            "ruling_decay_growth": {"type": "int", "min": 1, "tip": "压力递增须 >= 1（否则该项失效）"},
+            "grudge_coef": {"type": "float", "min": 0.0, "tip": "记仇系数不能为负"}
+        }
+    },
+    "dynasty_title_config": {
+        "required_fields": ["title_id", "title_name", "need_relation", "need_gratitude_count",
+            "need_grade", "merit_kind", "need_merit", "right_desc", "duty_type",
+            "duty_cost", "duty_desc"],
+        "primary_key": "title_id",
+        "field_rules": {
+            "title_name": {"type": "enum", "values": ["未册封", "护国宗", "国师", "帝师", "监国", "摄政", "自立为王"], "tip": "爵位名须与 game_state.gd 爵位序一致"},
+            "need_relation": {"type": "float", "min": 0.0, "max": 100.0, "tip": "关系门槛须在 0~100"},
+            "need_gratitude_count": {"type": "int", "min": 0, "tip": "感恩次数门槛不能为负"},
+            "need_grade": {"type": "int", "min": 1, "tip": "门派等级门槛须 >= 1"},
+            "merit_kind": {"type": "enum", "values": ["karma", "merit", "none"], "tip": "功勋类型非法"},
+            "need_merit": {"type": "int", "min": 0, "tip": "功勋门槛不能为负"},
+            "duty_type": {"type": "enum", "values": ["heir", "independent", "none", "recommend", "regent", "tribute"], "tip": "义务类型非法"},
+            "duty_cost": {"type": "int", "min": 0, "tip": "义务开销不能为负"}
         }
     }
 }

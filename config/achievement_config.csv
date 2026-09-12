@@ -163,3 +163,121 @@ ach_social_011,宗门大比,社交,稀有,成功举办一届宗门大比活动,p
 ach_social_012,八方来朝,社交,传说,与10个宗门缔结友好同盟,placeholder,10,,传说称号,xuan_zhou_meng_zhu,1,0,0,0,100,八方来朝，玄洲盟主,[PL]S2待回填
 ach_social_013,至交满天下,社交,传说,好友数量达到100人且好感度均满值,placeholder,100,,功能,liaotian_qipao,1,0,0,0,100,至交满天下，四海皆兄弟,[PL]S2待回填
 ach_social_014,通商四海,社交,传说,与所有阵营势力均开启通商权限,placeholder,1,,功能,jiaoyi_shouxufei,5,0,0,0,100,通商四海，商道圣手,[PL]S2待回填
+ach_trade_001,初通商道,贸易,普通,累计完成10次贸易结算,trade_count,10,,灵石,ling_shi,0,200,0,10,10,通商之路启程,
+ach_trade_002,商路渐广,贸易,普通,累计完成50次贸易结算,trade_count,50,,灵石,ling_shi,0,600,0,30,20,商路声名渐起,
+ach_trade_003,富甲一方,贸易,稀有,累计贸易收益达100000,trade_income,100000,,灵石,ling_shi,0,2000,0,80,50,富甲一方,
+ach_trade_004,贸易宗师,贸易,史诗,累计贸易收益达500000,trade_income,500000,,灵石,ling_shi,0,8000,0,200,100,贸易宗师,
+ach_master_001,宗主筑基,成长,普通,宗主突破至筑基期,master_realm,1,,道具,zhu_ji_dan,2,0,100,0,10,宗主精进，宗门之幸,[PL]待接入
+ach_master_002,宗主金丹,成长,普通,宗主突破至金丹期,master_realm,2,,道具,gu_jin_dan,2,0,150,0,10,金丹大道，气度不凡,[PL]待接入
+ach_master_003,宗主元婴,成长,稀有,宗主突破至元婴期,master_realm,3,,道具,ying_yuan_dan,2,0,250,0,30,元婴化神，威震一方,[PL]待接入
+ach_master_004,宗主化神,成长,稀有,宗主突破至化神期,master_realm,4,,永久增益,xiulian_sudu,1,0,400,50,30,化神大道，道尊之名,[PL]待接入
+ach_master_005,宗主炼虚,成长,传说,宗主突破至炼虚期,master_realm,5,,传说称号,dao_zun,1,0,600,100,100,炼虚合道，一代宗师,[PL]待接入
+ach_master_006,亲炼金丹,成长,普通,宗主亲自炼制出第一炉金丹,placeholder,1,,道具,ju_qi_dan,5,0,0,0,10,丹道亲修，炉火纯青,[PL]待接入 原条件=master_pill_count:1
+ach_master_007,亲铸神兵,成长,普通,宗主亲自锻造出第一件神兵,placeholder,1,,装备,fan_pin_wu_qi,1,0,0,0,10,器道亲修，神兵始铸,[PL]待接入 原条件=master_forge_count:1
+ach_master_008,亲绘仙符,成长,普通,宗主亲自绘制出第一张仙符,placeholder,1,,道具,fu_zhui,3,0,0,0,10,符道亲修，符箓初成,[PL]待接入 原条件=master_talisman_count:1
+ach_master_009,亲探秘境,成长,普通,宗主亲自探索第一个秘境,placeholder,1,,道具,cang_bao_tu,1,0,0,0,10,秘境亲探，机缘将至,[PL]待接入 原条件=master_explore_count:1
+ach_master_010,闭关百日,成长,稀有,宗主连续闭关100游戏日,placeholder,100,,永久增益,xiulian_sudu,2,0,200,30,30,闭关百日，道心愈坚,[PL]待接入 原条件=master_retreat_days:100
+ach_master_011,闭关千日,成长,传说,宗主连续闭关1000游戏日,placeholder,1000,,传说称号,bi_guan_da_shi,1,0,500,100,100,闭关千日，大道可期,[PL]待接入 原条件=master_retreat_days:1000
+ach_advanced_001,神魂初显,成长,普通,首位弟子修炼出神魂,placeholder,1,,道具,dun_wu_dan,3,0,0,0,10,神魂初显，元神出窍,[PL]待接入 原条件=disciple_shenhun_count:1
+ach_advanced_002,法相初凝,成长,稀有,首位弟子凝聚出法相,placeholder,1,,道具,hexin_gongfa,2,0,0,0,30,法相初凝，法身万丈,[PL]待接入 原条件=disciple_faxiang_count:1
+ach_advanced_003,领域初开,成长,稀有,首位弟子开辟出领域,placeholder,1,,道具,hexin_gongfa,2,0,0,0,30,领域初开，一方天地,[PL]待接入 原条件=disciple_lingyu_count:1
+ach_advanced_004,神魂九重,成长,传说,首位弟子神魂修至9级,placeholder,9,,永久增益,wu_dian,5,0,0,0,100,神魂九重，元神不灭,[PL]待接入 原条件=disciple_shenhun_level:9
+ach_advanced_005,法相九重,成长,传说,首位弟子法相修至9级,placeholder,9,,永久增益,gong_ji,5,0,0,0,100,法相九重，法身通天,[PL]待接入 原条件=disciple_faxiang_level:9
+ach_advanced_006,领域九重,成长,传说,首位弟子领域修至9级,placeholder,9,,永久增益,fang_yu,5,0,0,0,100,领域九重，天地随动,[PL]待接入 原条件=disciple_lingyu_level:9
+ach_advanced_007,三高齐备,成长,传说,首位弟子同时拥有神魂+法相+领域,placeholder,1,,传说称号,gao_jie_da_shi,1,0,0,0,100,三高齐备，高阶大成,[PL]待接入 原条件=disciple_three_advanced:1
+ach_talent_001,体质初觉,成长,普通,首位弟子觉醒特殊体质,placeholder,1,,道具,xi_sui_dan,3,0,0,0,10,体质初觉，天赋异禀,[PL]待接入 原条件=disciple_tizhi_count:1
+ach_talent_002,先天道体,成长,稀有,培养出先天道体弟子,placeholder,1,先天道体,道具,xi_sui_dan,5,0,150,30,30,先天道体，大道之基,[PL]待接入 原条件=disciple_tizhi_specific:1
+ach_talent_003,混沌道体,成长,传说,培养出混沌道体弟子,placeholder,1,混沌道体,传说称号,hundun_tizhi,1,0,300,50,100,混沌道体，万古无一,[PL]待接入 原条件=disciple_tizhi_specific:1
+ach_talent_004,百毒不侵,成长,稀有,培养出百毒不侵弟子,placeholder,1,百毒不侵,道具,qing_du_dan,5,0,0,0,30,百毒不侵，邪秽不沾,[PL]待接入 原条件=disciple_tizhi_specific:1
+ach_talent_005,体质收集,成长,稀有,收集5种不同特殊体质,placeholder,5,,道具,xi_sui_dan,10,0,0,0,30,体质多样，天赋云集,[PL]待接入 原条件=disciple_tizhi_variety:5
+ach_talent_006,体质大全,成长,传说,收集全部9种特殊体质,placeholder,9,,传说称号,ti_zhi_da_shi,1,0,0,0,100,体质大全，万体朝宗,[PL]待接入 原条件=disciple_tizhi_variety:9
+ach_culture_001,祭祖大典,经营,普通,首次举办祭祖大典,placeholder,1,,道具,xiang_huo,5,0,0,0,10,祭祖大典，缅怀先贤,[PL]待接入 原条件=jizu_dadian_count:1
+ach_culture_002,收徒大典,经营,普通,首次举办收徒大典,placeholder,1,,道具,men_gui,3,0,0,0,10,收徒大典，薪火相传,[PL]待接入 原条件=shoutu_dadian_count:1
+ach_culture_003,论道大会,经营,普通,首次举办论道大会,placeholder,1,,道具,dun_wu_dan,3,0,0,0,10,论道大会，以道会友,[PL]待接入 原条件=lundao_dahui_count:1
+ach_culture_004,典籍初成,经营,普通,宗门史馆收录10条典籍,placeholder,10,,道具,gong_fa_can_juan,3,0,0,0,10,典籍初成，史笔如铁,[PL]待接入 原条件=dianji_count:10
+ach_culture_005,典籍万卷,经营,稀有,宗门史馆收录100条典籍,placeholder,100,,永久增益,sheng_wang,5,0,0,0,30,典籍万卷，青史留名,[PL]待接入 原条件=dianji_count:100
+ach_culture_006,论道顿悟,经营,稀有,论道大会上有弟子顿悟,placeholder,1,,道具,dun_wu_dan,5,0,0,0,30,论道顿悟，道法自然,[PL]待接入 原条件=lundao_dunwu_count:1
+ach_qi_001,气运昌隆,经营,普通,宗门气运达到昌隆,placeholder,3,,buff,lingqi_chanchu,5,0,100,0,10,气运昌隆，灵气充盈,[PL]待接入 原条件=qi_yun_level:3
+ach_qi_002,气运旺盛,经营,稀有,宗门气运达到旺盛,placeholder,4,,永久增益,chanxiao_lv,3,0,200,30,30,气运旺盛，百业兴旺,[PL]待接入 原条件=qi_yun_level:4
+ach_qi_003,气运鼎盛,经营,传说,宗门气运达到鼎盛,placeholder,5,,传说称号,qi_yun_ding_sheng,1,0,500,100,100,气运鼎盛，天命所归,[PL]待接入 原条件=qi_yun_level:5
+ach_qi_004,机缘天降,经营,普通,触发气运机缘事件,placeholder,1,,道具,qi_yu_xiansuo,1,0,0,0,10,机缘天降，气运所钟,[PL]待接入 原条件=qi_yun_j yuan_count:1
+ach_qi_005,逢凶化吉,经营,稀有,化解气运灾厄事件,placeholder,1,,永久增益,xinmo_dikang,5,0,0,0,30,逢凶化吉，遇难成祥,[PL]待接入 原条件=qi_yun_zai_e_count:1
+ach_leisure_001,灵厨初成,经营,普通,首次烹饪灵食,placeholder,1,,道具,ling_shi,3,0,0,0,10,灵厨初成，食之有味,[PL]待接入 原条件=lingchu_count:1
+ach_leisure_002,灵茶初品,经营,普通,首次冲泡灵茶,placeholder,1,,道具,ling_cha,3,0,0,0,10,灵茶初品，清心悟道,[PL]待接入 原条件=lingcha_count:1
+ach_leisure_003,灵兽繁殖,经营,普通,首次繁殖灵兽,placeholder,1,,道具,ling_shou_si_liao,5,0,0,0,10,灵兽繁殖，血脉延续,[PL]待接入 原条件=lingshou_fanzhi_count:1
+ach_leisure_004,厨道大师,经营,稀有,厨道等级达到5级,placeholder,5,,永久增益,dan_du,5,0,0,0,30,厨道大师，灵食天成,[PL]待接入 原条件=lingchu_level:5
+ach_leisure_005,茶道大师,经营,稀有,茶道等级达到5级,placeholder,5,,永久增益,wu_dian,5,0,0,0,30,茶道大师，茶韵悟道,[PL]待接入 原条件=lingcha_level:5
+ach_leisure_006,灵兽满园,经营,稀有,繁殖出10只幼崽,placeholder,10,,道具,xi_you_lingshou_dan,1,0,0,0,30,灵兽满园，万灵来朝,[PL]待接入 原条件=lingshou_fanzhi_count:10
+ach_leisure_007,蟠桃盛宴,经营,传说,烹饪出蟠桃盛宴,placeholder,1,蟠桃盛宴,传说称号,pan_tao_sheng_yan,1,0,0,0,100,蟠桃盛宴，仙食难求,[PL]待接入 原条件=lingchu_specific:1
+ach_leisure_008,道韵仙茶,经营,传说,冲泡出道韵茶,placeholder,1,道韵茶,传说称号,dao_yun_cha,1,0,0,0,100,道韵仙茶，一盏悟道,[PL]待接入 原条件=lingcha_specific:1
+ach_diplomacy_001,散修来投,社交,普通,首次招募散修,placeholder,1,,灵石,ling_shi,200,0,0,0,10,散修来投，宗门增辉,[PL]待接入 原条件=sanxiu_zhaomu_count:1
+ach_diplomacy_002,宗门结盟,社交,稀有,首次与其他宗门结盟,placeholder,1,,永久增益,sheng_wang,3,0,0,0,30,宗门结盟，守望相助,[PL]待接入 原条件=zongmen_jiemeng_count:1
+ach_diplomacy_003,宗门宣战,社交,普通,首次向其他宗门宣战,placeholder,1,,代币,zongmenzhan_dai_bi,20,0,0,0,10,宗门宣战，兵锋所指,[PL]待接入 原条件=zongmen_xuanzhan_count:1
+ach_diplomacy_004,大比冠军,社交,稀有,宗门大比获得冠军,placeholder,1,,称号,dabi_guanjun,1,0,0,0,30,大比冠军，威震宗门,[PL]待接入 原条件=dabi_guanjun_count:1
+ach_diplomacy_005,散修满门,社交,稀有,招募10名散修,placeholder,10,,弟子,zhuan_shu_san_xiu,1,0,0,0,30,散修满门，人才济济,[PL]待接入 原条件=sanxiu_zhaomu_count:10
+ach_diplomacy_006,八方来朝,社交,传说,与5个宗门结盟,placeholder,5,,传说称号,xuan_zhou_meng_zhu,1,0,0,0,100,八方来朝，玄洲盟主,[PL]待接入 原条件=zongmen_jiemeng_count:5
+ach_adventure_001,邪修退散,探索,普通,首次击退邪修来袭,placeholder,1,,灵石,ling_shi,300,0,0,0,10,邪修退散，宗门安然,[PL]待接入 原条件=xiexiu_tuisan_count:1
+ach_adventure_002,情劫渡过,探索,稀有,首次渡过情劫,placeholder,1,,永久增益,xinjing,5,0,0,0,30,情劫渡过，道心通明,[PL]待接入 原条件=qingjie_duguo_count:1
+ach_adventure_003,遗迹初探,探索,普通,首次探索遗迹,placeholder,1,,道具,shang_gu_can_juan,1,0,0,0,10,遗迹初探，上古尘封,[PL]待接入 原条件=yiji_tansuo_count:1
+ach_adventure_004,邪修克星,探索,稀有,累计击退10次邪修,placeholder,10,,永久增益,gong_ji,3,0,0,0,30,邪修克星，正道砥柱,[PL]待接入 原条件=xiexiu_tuisan_count:10
+ach_adventure_005,遗迹全通,探索,传说,探索全部遗迹,placeholder,1,,传说称号,yi_ji_da_shi,1,0,0,0,100,遗迹全通，寻幽探胜,[PL]待接入 原条件=yiji_tansuo_all:1
+ach_adventure_006,情劫不侵,探索,传说,累计渡过3次情劫,placeholder,3,,传说称号,qing_jie_bu_qin,1,0,0,0,100,情劫不侵，太上忘情,[PL]待接入 原条件=qingjie_duguo_count:3
+ach_pangmen_001,毒道初成,经营,普通,首次炼制毒药,placeholder,1,,道具,du_yao,3,0,0,0,10,毒道初成，毒术入门,[PL]待接入 原条件=dudao_count:1
+ach_pangmen_002,傀儡初成,经营,普通,首次制作傀儡,placeholder,1,,材料,ji_guan_cai_liao,5,0,0,0,10,傀儡初成，机关之妙,[PL]待接入 原条件=kuilei_count:1
+ach_pangmen_003,符箓初成,经营,普通,首次绘制符箓,placeholder,1,,道具,fu_zhui,3,0,0,0,10,符箓初成，符道入门,[PL]待接入 原条件=fulu_count:1
+ach_pangmen_004,毒医双修,经营,稀有,毒道等级达到5级,placeholder,5,,永久增益,dan_du,5,0,0,0,30,毒医双修，亦毒亦医,[PL]待接入 原条件=dudao_level:5
+ach_pangmen_005,傀儡大师,经营,稀有,制作10具不同傀儡,placeholder,10,,材料,bao_pin_kui_lei_hexin,1,0,0,0,30,傀儡大师，机关宗师,[PL]待接入 原条件=kuilei_variety:10
+ach_pangmen_006,符箓大师,经营,稀有,绘制10种不同符箓,placeholder,10,,道具,wang_pin_fu_zhui,3,0,0,0,30,符箓大师，符道大成,[PL]待接入 原条件=fulu_variety:10
+ach_pangmen_007,毒傀儡,经营,稀有,首次制作毒傀儡,placeholder,1,,材料,du_kuilei_hexin,1,0,0,0,30,毒傀儡成，毒机关合,[PL]待接入 原条件=du_kuilei_count:1
+ach_pangmen_008,百艺精通,经营,传说,毒道+傀儡+符箓均达到5级,placeholder,1,,传说称号,bai_yi_jing_tong,1,0,0,0,100,百艺精通，旁门至尊,[PL]待接入 原条件=pangmen_three_master:1
+ach_hongchen_001,化身初显,特殊,普通,首次创建身外化身,placeholder,1,,道具,hua_shen_fu,1,0,0,0,10,化身初显，身外有身,[PL]待接入 原条件=huashen_count:1
+ach_hongchen_002,红尘历练,特殊,普通,化身首次完成红尘历练,placeholder,1,,道具,dao_xin_dan,3,0,0,0,10,红尘历练，道心磨练,[PL]待接入 原条件=huashen_lian_count:1
+ach_hongchen_003,百炼成钢,特殊,稀有,化身累计历练10次,placeholder,10,,永久增益,xinjing,5,0,0,0,30,百炼成钢，道心坚定,[PL]待接入 原条件=huashen_lian_count:10
+ach_hongchen_004,人生百态,特殊,稀有,化身体验5种不同职业,placeholder,5,,道具,hong_chen_meng,1,0,0,0,30,人生百态，世事洞明,[PL]待接入 原条件=huashen_zhiye_variety:5
+ach_hongchen_005,红尘圆满,特殊,传说,化身完成一次完整人生,placeholder,1,,传说称号,hong_chen_yuan_man,1,0,0,0,100,红尘圆满，返璞归真,[PL]待接入 原条件=huashen_complete_life:1
+ach_feisheng_001,首位飞升,成长,稀有,首位弟子飞升,placeholder,1,,永久增益,xiulian_sudu,3,0,0,0,30,首位飞升，白日飞升,[PL]待接入 原条件=disciple_feisheng_count:1
+ach_feisheng_002,飞升大典,成长,稀有,首次举办飞升大典,placeholder,1,,道具,fei_sheng_dan,3,0,0,0,30,飞升大典，恭送仙师,[PL]待接入 原条件=feisheng_dadian_count:1
+ach_feisheng_003,祖师初供,成长,普通,祖师堂首位祖师入册,placeholder,1,,buff,xiulian_sudu,1,0,0,0,10,祖师初供，受享香火,[PL]待接入 原条件=zushi_tang_count:1
+ach_feisheng_004,先贤满堂,成长,稀有,先贤堂收录10位先贤,placeholder,10,,永久增益,sheng_wang,3,0,0,0,30,先贤满堂，薪火相传,[PL]待接入 原条件=xianxian_tang_count:10
+ach_feisheng_005,飞升十人,成长,传说,累计10位弟子飞升,placeholder,10,,传说称号,shi_ren_fei_sheng,1,0,0,0,100,飞升十人，仙道昌盛,[PL]待接入 原条件=disciple_feisheng_count:10
+ach_feisheng_006,祖师满堂,成长,传说,祖师堂收录10位祖师,placeholder,10,,传说称号,zu_shi_man_tang,1,0,0,0,100,祖师满堂，仙道永昌,[PL]待接入 原条件=zushi_tang_count:10
+ach_codex_001,万宝初录,收集,普通,万宝录收录10种,placeholder,10,,材料,yi_jie_ling_cao,10,0,0,0,10,万宝初录，藏识渐丰,[PL]待接入 原条件=codex_wanbao_count:10
+ach_codex_002,万兽初谱,收集,普通,万兽谱收录10种,placeholder,10,,材料,guaiwu_cailiao,10,0,0,0,10,万兽初谱，知彼知己,[PL]待接入 原条件=codex_wanshou_count:10
+ach_codex_003,功法初录,收集,普通,功法录收录10种,placeholder,10,,道具,gong_fa_can_juan,3,0,0,0,10,功法初录，万法之始,[PL]待接入 原条件=codex_gongfa_count:10
+ach_codex_004,万宝圆满,收集,稀有,万宝录全部集齐,placeholder,1,,永久增益,chanxiao_lv,3,0,0,0,30,万宝圆满，藏宝盈阁,[PL]待接入 原条件=codex_wanbao_all:1
+ach_codex_005,万兽圆满,收集,稀有,万兽谱全部集齐,placeholder,1,,永久增益,lingshou_shouyi,3,0,0,0,30,万兽圆满，驭兽大成,[PL]待接入 原条件=codex_wanshou_all:1
+ach_codex_006,功法圆满,收集,稀有,功法录全部集齐,placeholder,1,,永久增益,xiulian_sudu,3,0,0,0,30,功法圆满，万法归宗,[PL]待接入 原条件=codex_gongfa_all:1
+ach_codex_007,仙品初现,收集,稀有,首次收录仙品典藏,placeholder,1,,道具,xian_pin_wu_pin,1,0,0,0,30,仙品初现，灵气冲天,[PL]待接入 原条件=codex_xianpin_count:1
+ach_codex_008,典藏圆满,收集,传说,五大类全部集齐,placeholder,1,,传说称号,dian_cang_da_cheng,1,0,0,0,100,典藏圆满，一代阁主,[PL]待接入 原条件=codex_all_complete:1
+ach_fishing_001,初入灵渊,收集,普通,首次进行灵钓,placeholder,1,,道具,ling_er,3,0,0,0,10,初入灵渊，垂钓之始,[PL]待接入 原条件=fishing_count:1
+ach_fishing_002,钓道初成,收集,普通,钓道等级达到3级,placeholder,3,,道具,ju_qi_dan,3,0,0,0,10,钓道初成，技艺渐精,[PL]待接入 原条件=fishing_level:3
+ach_fishing_003,钓道大师,收集,稀有,钓道等级达到5级,placeholder,5,,永久增益,xiulian_sudu,2,0,0,0,30,钓道大师，心如止水,[PL]待接入 原条件=fishing_level:5
+ach_fishing_004,钓道宗师,收集,传说,钓道等级达到9级,placeholder,9,,传说称号,diao_dao_zong_shi,1,0,0,0,100,钓道宗师，万鱼来朝,[PL]待接入 原条件=fishing_level:9
+ach_fishing_005,灵鱼满仓,收集,普通,累计钓到100条灵鱼,placeholder,100,,灵石,ling_shi,500,0,0,0,10,灵鱼满仓，收获颇丰,[PL]待接入 原条件=fishing_total_count:100
+ach_fishing_006,传说之鱼,收集,稀有,首次钓到传说品质灵鱼,placeholder,1,,道具,xian_pin_wu_pin,1,0,0,0,30,传说之鱼，灵气冲天,[PL]待接入 原条件=fishing_legendary_count:1
+ach_fishing_007,灵钓大赛冠军,收集,稀有,获得灵钓大赛冠军,placeholder,1,,称号,ling_diao_da_sai_guan_jun,1,0,0,0,30,灵钓大赛，一举夺魁,[PL]待接入 原条件=fishing_contest_champion:1
+ach_fishing_008,万鱼朝宗,收集,传说,累计钓到1000条灵鱼,placeholder,1000,,传说称号,wan_yu_chao_zong,1,0,0,0,100,万鱼朝宗，钓道大成,[PL]待接入 原条件=fishing_total_count:1000
+ach_fishing_009,凡鱼集齐,收集,普通,集齐所有凡阶灵鱼,placeholder,1,凡阶,道具,ling_er,5,0,0,0,10,凡鱼集齐，初窥钓道,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_010,灵鱼集齐,收集,稀有,集齐所有灵阶灵鱼,placeholder,1,灵阶,道具,ju_qi_dan,5,0,0,0,30,灵鱼集齐，钓道小成,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_011,宝鱼集齐,收集,稀有,集齐所有宝阶灵鱼,placeholder,1,宝阶,永久增益,xiulian_sudu,2,0,0,0,30,宝鱼集齐，钓道大成,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_012,王鱼集齐,收集,传说,集齐所有王阶灵鱼,placeholder,1,王阶,传说称号,wang_yu_ji_qi,1,0,0,0,100,王鱼集齐，钓道圆满,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_013,圣鱼集齐,收集,传说,集齐所有圣阶灵鱼,placeholder,1,圣阶,传说称号,sheng_yu_ji_qi,1,0,0,0,100,圣鱼集齐，钓道通玄,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_014,仙鱼集齐,收集,传说,集齐所有仙阶灵鱼,placeholder,1,仙阶,传说称号,xian_yu_ji_qi,1,0,0,0,100,仙鱼集齐，钓道入圣,[PL]待接入 原条件=fishing_grade_complete:1
+ach_fishing_015,首钓龙鲤,收集,稀有,首次钓到龙鲤,placeholder,1,龙鲤,道具,long_li_scale,1,0,0,0,30,首钓龙鲤，龙气加身,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_016,首钓蛟龙,收集,稀有,首次钓到蛟龙幼崽,placeholder,1,蛟龙幼崽,道具,jiao_long_scale,1,0,0,0,30,首钓蛟龙，龙血沸腾,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_017,首钓鲲鹏,收集,传说,首次钓到鲲鹏幼崽,placeholder,1,鲲鹏幼崽,传说称号,kun_peng_diao_zhe,1,0,0,0,100,首钓鲲鹏，扶摇九天,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_018,首钓真龙,收集,传说,首次钓到真龙幼崽,placeholder,1,真龙幼崽,传说称号,zhen_long_diao_zhe,1,0,0,0,100,首钓真龙，万灵朝拜,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_019,首钓天龙,收集,传说,首次钓到天龙,placeholder,1,天龙,传说称号,tian_long_diao_zhe,1,0,0,0,100,首钓天龙，仙界降临,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_020,首钓鲛人,收集,稀有,首次钓到鲛人,placeholder,1,鲛人,道具,jiao_ren_lei,1,0,0,0,30,首钓鲛人，泣泪成珠,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_021,钓获千鱼,收集,稀有,累计钓到1000条灵鱼,placeholder,1000,,灵石,ling_shi,2000,0,0,0,30,钓获千鱼，熟能生巧,[PL]待接入 原条件=fishing_total_count:1000
+ach_fishing_022,钓获万鱼,收集,传说,累计钓到10000条灵鱼,placeholder,10000,,传说称号,diao_huo_wan_yu,1,0,0,0,100,钓获万鱼，钓道宗师,[PL]待接入 原条件=fishing_total_count:10000
+ach_fishing_023,首开秘匣,收集,普通,首次开启灵渊秘匣,placeholder,1,,道具,cang_bao_tu,1,0,0,0,10,首开秘匣，机缘将至,[PL]待接入 原条件=fishing_mystery_box:1
+ach_fishing_024,秘匣收藏家,收集,稀有,累计开启10个灵渊秘匣,placeholder,10,,道具,shang_gu_can_juan,1,0,0,0,30,秘匣收藏家，机缘不断,[PL]待接入 原条件=fishing_mystery_box:10
+ach_fishing_025,首得夜明珠,收集,稀有,首次获得夜明珠,placeholder,1,夜明珠,道具,ye_ming_zhu,1,0,0,0,30,首得夜明珠，光华夺目,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_026,首得龙涎香,收集,传说,首次获得龙涎香,placeholder,1,龙涎香,传说称号,long_xiang_diao_zhe,1,0,0,0,100,首得龙涎香，奇香绝世,[PL]待接入 原条件=fishing_specific:1
+ach_fishing_027,初入灵渊,收集,普通,首次在灵渊中层钓鱼,placeholder,1,灵渊中层,道具,ling_er,3,0,0,0,10,初入灵渊，水深鱼肥,[PL]待接入 原条件=fishing_water:1
+ach_fishing_028,深入灵渊,收集,稀有,首次在灵渊深处钓鱼,placeholder,1,灵渊深处,道具,ju_qi_dan,3,0,0,0,30,深入灵渊，险境寻珍,[PL]待接入 原条件=fishing_water:1
+ach_fishing_029,虚空垂钓,收集,传说,首次在虚空灵渊钓鱼,placeholder,1,虚空灵渊,传说称号,xu_kong_chui_diao,1,0,0,0,100,虚空垂钓，钓道通玄,[PL]待接入 原条件=fishing_water:1
+ach_fishing_030,连续七日垂钓,收集,普通,连续7天每天钓鱼,placeholder,7,,道具,ling_er,5,0,0,0,10,连续七日，持之以恒,[PL]待接入 原条件=fishing_consecutive:7
+ach_fishing_031,连续三十日垂钓,收集,稀有,连续30天每天钓鱼,placeholder,30,,永久增益,xiulian_sudu,1,0,0,0,30,连续三十日，道心坚定,[PL]待接入 原条件=fishing_consecutive:30
+ach_fishing_032,连续百日垂钓,收集,传说,连续100天每天钓鱼,placeholder,100,,传说称号,lian_xu_bai_ri,1,0,0,0,100,连续百日，钓道入魔,[PL]待接入 原条件=fishing_consecutive:100

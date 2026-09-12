@@ -23,7 +23,7 @@ var _选中索引: int = -1
 var _丹方列表: Array = []
 var _商店列表: Array = []
 
-var _bg: TextureRect
+var _bg: ColorRect
 var _标题标签: Label
 var _返回按钮: Button
 var _已解锁标签按钮: Button
@@ -53,7 +53,7 @@ func _build() -> void:
 	_built = true
 	
 	# 背景
-	_bg = TextureRect.new()
+	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.color = C_BG_TOP
 	add_child(_bg)
@@ -199,7 +199,8 @@ func _切换标签(标签: String) -> void:
 	refresh()
 
 func refresh() -> void:
-	_列表.clear()
+	for _c in _列表.get_children():
+		_c.queue_free()
 	
 	if _当前标签 == "已解锁":
 		_丹方列表 = Game.获取已解锁丹方列表()

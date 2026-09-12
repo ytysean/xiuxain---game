@@ -19,7 +19,7 @@ const 秘境路径 := "res://config/stage_main.csv"
 const 怪物路径 := "res://config/monster_main.csv"
 const 掉落路径 := "res://config/drop_pool.csv"
 # 怪物境界战斗倍率（与 disciple.境界战斗倍率 对称；怪物实战四维随境界放大，消除后期碾压）
-const 怪物境界倍率: Dictionary = {"练气":1.0, "筑基":2.0, "金丹":4.0, "元婴":8.0, "化神":15.0, "仙阶":25.0, "道阶":40.0}
+const 怪物境界倍率: Dictionary = {"练气":1.0, "筑基":2.0, "金丹":4.0, "元婴":8.0, "化神":15.0, "炼虚":17.0, "合体":19.0, "大乘":21.0, "渡劫":23.0, "仙阶":25.0, "道阶":40.0}  # 与 Disciple.境界战斗倍率 对称（2026-09-02 补炼虚~渡劫）
 # 秘境难度系数（推荐战力 = 怪物队伍战力度量 × 难度系数）
 const 难度系数表: Dictionary = {"normal":0.85, "elite":1.0, "boss":1.2, "treasure":0.0}
 
@@ -127,6 +127,7 @@ static func _monster_to_unit(m: Dictionary) -> Dictionary:
 		"灵根": {"主": m.get("element", "金"), "纯度": "单"},
 		"暴击率": float(m.get("base_crit", 0.0)),
 		"闪避率": float(m.get("base_dodge", 0.0)),
+		"种族": m.get("race", ""),
 		"名称": m.get("monster_name", "妖兽"),
 	}
 

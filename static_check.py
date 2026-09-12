@@ -256,7 +256,7 @@ def scan_file(path):
 
         # 字面量/表达式延续行：跳过一切语义检查（GDScript 的 {}[]() 仅用于字面量）
         if prev_depth > 0:
-            prev_code = raw
+            prev_code = no_cmt
             continue
 
         ftok = first_token(code)
@@ -345,7 +345,7 @@ def scan_file(path):
                     # 故不纳入扫描，交由 Godot 编译器在 F5 时兜底。
                     continue
 
-        prev_code = raw
+        prev_code = no_cmt
 
     return blocking
 
@@ -360,7 +360,7 @@ def main():
     else:
         file_list = []
         for root, dirs, files in os.walk(ROOT):
-            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("backup", "backups")]
             for fn in files:
                 if fn.endswith(".gd"):
                     file_list.append(os.path.join(root, fn))

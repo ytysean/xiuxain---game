@@ -15,7 +15,7 @@ const 品阶缩写 := {
 	"凡阶": "凡", "灵阶": "灵", "宝阶": "宝", "王阶": "王",
 	"圣阶": "圣", "仙阶": "仙", "道阶": "道"
 }
-const 分类列表: Array = ["全部", "装备", "丹药", "材料", "功法", "灵兽", "碎片", "宝箱"]
+const 分类列表: Array = ["全部", "装备", "丹药", "材料", "基础材料", "碎片", "宝箱"]
 const 容量上限: int = 80
 const 每行列数: int = 6
 const 格尺寸: int = 64
@@ -465,12 +465,40 @@ func _库房() -> Array:
 							"描述": str(宝箱信息.get("描述", "宝箱物品")),
 							"宝箱ID": 宝箱ID
 						})
+		# 添加基础材料（虚拟物品，用于显示，实际数量在Game.基础资源变量中）
+		var 基础材料列表: Array = [
+			{"名称": "精铁", "类别": "基础材料", "品阶": "灵品", "数量": int(Game.精铁), "描述": "灵品炼器矿物，矿脉4级+产出"},
+			{"名称": "玄铁", "类别": "基础材料", "品阶": "宝品", "数量": int(Game.玄铁), "描述": "宝品炼器矿物，矿脉6级+产出"},
+			{"名称": "庚金", "类别": "基础材料", "品阶": "宝品", "数量": int(Game.庚金), "描述": "宝品炼器矿物，矿脉7级+产出"},
+			{"名称": "紫晶", "类别": "基础材料", "品阶": "王品", "数量": int(Game.紫晶), "描述": "王品炼器矿物，矿脉8级+产出"},
+			{"名称": "星辰铁", "类别": "基础材料", "品阶": "圣品", "数量": int(Game.星辰铁), "描述": "圣品炼器矿物，矿脉9级+产出"},
+			{"名称": "太阳精金", "类别": "基础材料", "品阶": "仙品", "数量": int(Game.太阳精金), "描述": "仙品炼器矿物，秘境产出"},
+			{"名称": "灵品灵草", "类别": "基础材料", "品阶": "灵品", "数量": int(Game.灵品灵草), "描述": "灵品炼丹灵草，灵田3级+产出"},
+			{"名称": "宝品灵草", "类别": "基础材料", "品阶": "宝品", "数量": int(Game.宝品灵草), "描述": "宝品炼丹灵草，灵田5级+产出"},
+			{"名称": "王品灵草", "类别": "基础材料", "品阶": "王品", "数量": int(Game.王品灵草), "描述": "王品炼丹灵草，灵田7级+秘境产出"},
+			{"名称": "圣品灵草", "类别": "基础材料", "品阶": "圣品", "数量": int(Game.圣品灵草), "描述": "圣品炼丹灵草，秘境/奇遇产出"},
+			{"名称": "仙品灵草", "类别": "基础材料", "品阶": "仙品", "数量": int(Game.仙品灵草), "描述": "仙品炼丹灵草，秘境/奇遇产出（可遇不可求）"},
+		]
+		# 妖兽内丹/精血（按等阶，只显示数量>0的）
+		for 等阶 in ["一阶", "二阶", "三阶", "四阶", "五阶", "六阶", "七阶", "八阶", "九阶"]:
+			var 内丹数: int = Game.获取妖兽内丹(等阶)
+			var 精血数: int = Game.获取妖兽精血(等阶)
+			if 内丹数 > 0:
+				基础材料列表.append({"名称": "%s妖兽内丹" % 等阶, "类别": "基础材料", "品阶": 等阶, "数量": 内丹数, "描述": "%s妖兽内丹，对应境界妖兽掉落" % 等阶})
+			if 精血数 > 0:
+				基础材料列表.append({"名称": "%s妖兽精血" % 等阶, "类别": "基础材料", "品阶": 等阶, "数量": 精血数, "描述": "%s妖兽精血，高阶炼丹/炼器辅料" % 等阶})
+		for mat in 基础材料列表:
+			if int(mat["数量"]) > 0:
+				库房.append(mat)
 	return 库房
 
 func _populate(items_override: Array = []) -> void:
 	var all: Array = items_override if not items_override.is_empty() else _库房()
 	if _容量标签 != null:
-		_容量标签.text = "%d / %d" % [all.size(), 容量上限]
+		if all.size() > 容量上限:
+			_容量标签.text = "%d / %d 库满为患" % [all.size(), 容量上限]
+		else:
+			_容量标签.text = "%d / %d" % [all.size(), 容量上限]
 	if _网格 == null:
 		return
 	for child in _网格.get_children():
@@ -479,7 +507,8 @@ func _populate(items_override: Array = []) -> void:
 	_格子列表.clear()
 
 	var items: Array = _筛选项(_当前分类, all)
-	_槽位数 = mini(容量上限, maxi(可见基础槽数, items.size() + (每行列数 - items.size() % 每行列数) % 每行列数))
+	# 不截断：网格在 ScrollContainer 内且纵向滚动开启，超容量亦可滚动查看（原 mini(容量上限,…) 会让第 81 件起彻底不可达）
+	_槽位数 = maxi(可见基础槽数, items.size() + (每行列数 - items.size() % 每行列数) % 每行列数)
 
 	var idx: int = 0
 	for it in items:
@@ -519,8 +548,9 @@ func _筛选项(cat: String, all: Array) -> Array:
 			"材料":
 				if 类别 == "灵材":
 					res.append(it)
-			"功法", "灵兽":
-				pass
+			"基础材料":
+				if 类别 == "基础材料":
+					res.append(it)
 			"碎片":
 				if 类别 == "碎片":
 					res.append(it)
@@ -678,7 +708,7 @@ func _刷新操作按钮(cat: String) -> void:
 			_装备按钮.visible = true
 			_出售按钮.visible = true
 			_合成按钮.visible = false
-			_装备按钮.text = "披挂"
+			_装备按钮.text = "强化"
 			_出售按钮.text = "售卖"
 			_出售按钮.disabled = true
 		"丹药":
@@ -725,7 +755,8 @@ func _on_action_pressed(kind: String) -> void:
 		类别 = str(it.get("类别", ""))
 	match _当前分类:
 		"装备":
-			print("[库藏] %s：装备系统 S1 红线门控（玩法系统接入后开放）" % kind)
+			if kind == "装备":
+				_强化选中装备()
 		"丹药":
 			if kind == "使用":
 				print("[库藏] 丹药使用系统接入后开放")
@@ -742,6 +773,36 @@ func _on_action_pressed(kind: String) -> void:
 				_打开宝箱(it)
 		_:
 			print("[库藏] 未知分类操作：%s / %s" % [_当前分类, kind])
+
+# 强化选中装备
+func _强化选中装备() -> void:
+	if _选中索引 < 0 or _选中索引 >= _格子列表.size():
+		return
+	var it: Variant = _格子列表[_选中索引].it
+	if it == null:
+		return
+	# 获取强化消耗
+	var 消耗: Dictionary = Game.获取装备强化消耗(_选中索引)
+	if 消耗.is_empty():
+		print("[库藏] 该装备无法强化")
+		return
+	var 当前等级: int = int(消耗.get("当前等级", 1))
+	var 最大等级: int = int(消耗.get("最大等级", 10))
+	var 消耗灵石: int = int(消耗.get("消耗灵石", 0))
+	if 当前等级 >= 最大等级:
+		print("[库藏] 装备已达最高强化等级")
+		return
+	if Game.灵石 < 消耗灵石:
+		print("[库藏] 灵石不足（需%d灵石）" % 消耗灵石)
+		return
+	# 执行强化
+	var 结果: Dictionary = Game.强化装备(_选中索引)
+	if bool(结果.get("成功", false)):
+		print("[库藏] 强化成功！装备提升到+%d级" % int(结果.get("新等级", 当前等级 + 1)))
+	else:
+		print("[库藏] 强化失败：%s" % str(结果.get("原因", "未知错误")))
+	refresh()
+
 
 # 合成碎片
 func _合成碎片(it: Dictionary) -> void:
@@ -896,6 +957,21 @@ func _刷新详情() -> void:
 			lines.append(s)
 		if 极品标记:
 			lines.append("★ 极品特异")
+		# S43 装备词条（锻造产出具名特效：战力/修炼/突破）
+		var 装备词条列表 = it.get("装备词条") if (it is Object) else null
+		if 装备词条列表 is Array and 装备词条列表.size() > 0:
+			var s2: String = "装备词条："
+			for t in 装备词条列表:
+				var 类型名2: String = {"战力":"战力", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
+				var 值文本2: String = ""
+				if t.get("类型") == "战力":
+					值文本2 = "+%d" % int(t.get("数值", 0))
+				elif t.get("类型") == "修炼":
+					值文本2 = "+%.0f%%" % (float(t.get("数值", 0)) * 100)
+				else:
+					值文本2 = "+%.0f%%" % (float(t.get("数值", 0)) * 100)
+				s2 += "%s·%s%s  " % [类型名2, t.get("中文名", ""), 值文本2]
+			lines.append(s2)
 	elif _当前分类 == "碎片":
 		# 碎片 Tab 显示数量和合成提示
 		lines.append("持有数量：%d" % 数量)
@@ -907,6 +983,19 @@ func _刷新详情() -> void:
 	else:
 		# 丹药/材料 Tab 显示购买参考价（按品阶折算灵石），给出售决策给个锚点
 		lines.append("出售参考价：%d 灵石" % _品阶售价_本地(it))
+		# S40 灵材年份档：带年份的灵材显示其年份与档名（驱动炼丹「料」因子与售价倍率）
+		if 类别 == "灵材":
+			var 年: int = int(it.get("年份")) if (it is Object and "年份" in it) else 0
+			if 年 > 0 and Game != null and Game.has_method("灵植年份档"):
+				var 档: Dictionary = Game.灵植年份档(年)
+				lines.append("年份：%d年（%s）" % [年, str(档.get("档名", "凡草"))])
+			# S41 丹药详情显词条
+			if 类别 == "丹药" and it is Object and it.get("丹词条", []).size() > 0:
+				var _丹词文本: String = "丹词条："
+				for _t in it.get("丹词条"):
+					var _类型名: String = {"药效":"药效", "减毒":"减毒", "心境":"心境", "售价":"售价"}.get(_t["类型"], str(_t["类型"]))
+					_丹词文本 += "%s·%s " % [_类型名, _t["中文名"]]
+				lines.append(_丹词文本)
 	_详情属性.text = "    ".join(lines)
 
 # ───────── 物品字段安全读取（RefCounted 守卫）─────────

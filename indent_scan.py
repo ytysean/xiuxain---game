@@ -105,7 +105,8 @@ def main():
             file_list.append(fp)
     else:
         for root, dirs, files in os.walk(ROOT):
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            # S47 体检：排除 backup/.git/.godot/.workbuddy/.scratch_backup/addons（仅缩进扫描）
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ('backup', '.scratch_backup', 'addons')]
             for fn in files:
                 if not fn.endswith('.gd'):
                     continue
@@ -125,9 +126,10 @@ def main():
             fixed = raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
             with open(fp, 'wb') as f:
                 f.write(fixed)
-        print("  → 已自动转为 LF")
-        print("缩进结构扫描完成：扫描 %d 个 .gd 文件，共发现 %d 处可疑结构。" % (len(file_list), len(crlf_bad)))
-        return 1
+        print("  → 已自动转为 LF（不计入缩进结构问题，继续扫描）")
+        # S-P0：原实现在此 return 1 并把 len(crlf_bad) 当作「可疑结构」数打印，
+        # 导致 pre_f5 把"CRLF 已自动修复"误报成"缩进结构错误"，且无文件归属。
+        # CRLF 已就地修正，应继续跑真正的缩进扫描，只统计真实缩进问题。
 
     # ---- 缩进结构扫描 ----
     for fp in file_list:

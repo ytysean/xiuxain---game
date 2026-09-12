@@ -41,7 +41,7 @@ func _生成图纸描述(图纸: Dictionary) -> String:
 	var 基础描述 = 品阶描述.get(品阶, "珍贵图纸，工艺精湛。")
 	return "《%s》\n\n%s\n\n所需材料：%s\n锻造效果：%s\n\n解锁图纸后，可在器堂按照图纸锻造装备。品阶越高的图纸，所需材料越珍贵，锻造出的装备也越强。" % [名称, 基础描述, 材料, 效果]
 
-var _bg: TextureRect
+var _bg: ColorRect
 var _标题标签: Label
 var _返回按钮: Button
 var _已解锁标签按钮: Button
@@ -71,7 +71,7 @@ func _build() -> void:
 	_built = true
 	
 	# 背景
-	_bg = TextureRect.new()
+	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.color = C_BG_TOP
 	add_child(_bg)
@@ -217,7 +217,8 @@ func _切换标签(标签: String) -> void:
 	refresh()
 
 func refresh() -> void:
-	_列表.clear()
+	for _c in _列表.get_children():
+		_c.queue_free()
 	
 	if _当前标签 == "已解锁":
 		_图纸列表 = Game.获取已解锁装备图纸列表()

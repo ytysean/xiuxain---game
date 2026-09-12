@@ -6,6 +6,9 @@ class_name ZongmenBattle
 ## 核心原则：全自动放置推演、队伍编制、车轮战、护山大阵耐久、战报结算
 ## 零战斗触碰铁律：玩家不直接操作战斗，仅做战前策略配置
 
+# P2接入：战斗场景适配器需要BattleManager
+const BattleManager = preload("res://BattleManager.gd")
+
 # ============ 宗门战类型（§11.4.1 四类差异化玩法）============
 const BATTLE_TYPES: Dictionary = {
 	"宗门攻防战": {"描述": "宗门之间的攻防战，攻方需攻破护山大阵", "回合上限": 20, "大阵耐久": true},
@@ -39,6 +42,10 @@ const PRE_BATTLE_BUFFS: Dictionary = {
 	"战鼓激励": {"攻击加成": 0.15, "消耗灵石": 300, "持续回合": 3},
 	"护盾结界": {"防御加成": 0.20, "消耗灵石": 400, "持续回合": 4},
 	"丹药补给": {"生命加成": 0.15, "消耗丹药": 5, "持续回合": 99},
+	# S32 战功道具增益：以战功兑换的道具驱动（消耗战功道具=battle_merit_shop.csv 的 id）
+	"赤焰战鼓": {"攻击加成": 0.25, "消耗战功道具": "bm_drum", "持续回合": 5},
+	"玄龟护盾": {"防御加成": 0.25, "消耗战功道具": "bm_shield", "持续回合": 6},
+	"九转还魂丹": {"生命加成": 0.30, "消耗战功道具": "bm_hp", "持续回合": 99},
 }
 
 # ============ 妖兽援军（§11.4.6 v2.8修订）============
@@ -49,6 +56,78 @@ const BEAST_BUFF: Dictionary = {
 	"持续回合": 3,
 	"触发条件": "血量低于50%时触发",
 }
+
+# ============ S33-4：非对称阵营克制（正魔大战 P0）============
+# 设计依据：PROP_23 §4.1 —— 正→魔 1.12（除魔叙事优势）/ 魔→正 1.08（爽感但抑制无脑魔道）
+#   / 中立↔任意 1.03（微量，避免中立完全无感）/ 同阵营 1.00（无克制）。
+# 红线归属：克制系数属「战斗机制层」（等同 §9.6 五行克制），不占通用增益乘区额度，
+#   不与 §4.1 的 25% 软上限竞争；仅在本文件内结算，不触碰 BattleCalculator / BattleManager。
+# 标签真源：config/faction_base.csv 的 faction_tag 列（代码镜像见 FactionSystem.FACTION_TAG）。
+const FACTION_COUNTER: Dictionary = {
+	"正道": {"正道": 1.00, "魔道": 1.12, "中立": 1.03},
+	"魔道": {"正道": 1.08, "魔道": 1.00, "中立": 1.03},
+	"中立": {"正道": 1.03, "魔道": 1.03, "中立": 1.00},
+}
+
+# 四类宗门战的「守方阵营标签」默认值（S33-5 的 faction_conflict.csv 可显式覆盖）  [可调]
+#   ""         = 敌方无阵营属性 / 未知 → 无克制（保持 S32 及以前的原始数值）
+#   "中立"     = faction_base.csv 中 fz_yaozu（上古妖兽）的 faction_tag 即「中立」
+#   OPPOSITE_TAG_TOKEN = 取攻方立场的对立面（正↔魔；攻方中立时退化为「中立」）
+const OPPOSITE_TAG_TOKEN: String = "__对立__"
+const DEFAULT_DEFENDER_TAG: Dictionary = {
+	"宗门攻防战": "",
+	"秘境争夺战": "",
+	"妖兽围剿战": "中立",
+	"阵营围剿战": OPPOSITE_TAG_TOKEN,
+}
+
+## 归一为阵营标签：接受「标签」（正道/魔道/中立）或「阵营中文名」（正道宗门/魔道邪宗/…）。
+## 空串 / 未知 → 空串（= 无克制，系数 1.00），保证存量调用零影响。
+static func normalize_faction_tag(faction_or_tag: String) -> String:
+	if faction_or_tag == "":
+		return ""
+	if FACTION_COUNTER.has(faction_or_tag):
+		return faction_or_tag
+	if FactionSystem.FACTION_TAG.has(faction_or_tag):
+		return str(FactionSystem.FACTION_TAG[faction_or_tag])
+	return ""
+
+## 查克制系数；任一方标签为空 → 1.00（无克制）
+static func get_faction_counter(attacker_tag: String, defender_tag: String) -> float:
+	if attacker_tag == "" or defender_tag == "":
+		return 1.0
+	var row: Dictionary = FACTION_COUNTER.get(attacker_tag, {})
+	return float(row.get(defender_tag, 1.0))
+
+## 解析守方阵营标签：把 OPPOSITE_TAG_TOKEN 占位符按攻方立场展开
+static func resolve_defender_tag(battle_type: String, attacker_tag: String) -> String:
+	var raw: String = str(DEFAULT_DEFENDER_TAG.get(battle_type, ""))
+	if raw != OPPOSITE_TAG_TOKEN:
+		return normalize_faction_tag(raw)
+	if attacker_tag == "正道":
+		return "魔道"
+	if attacker_tag == "魔道":
+		return "正道"
+	return "中立"
+
+## 取本次攻击的克制乘区（按 attacker_side 自动定位攻守双方标签）
+static func _get_counter_multiplier(battle_state: Dictionary, attacker_side: String) -> float:
+	var a_tag: String = str(battle_state.get(attacker_side + "阵营标签", ""))
+	var d_side: String = "守方" if attacker_side == "攻方" else "攻方"
+	var d_tag: String = str(battle_state.get(d_side + "阵营标签", ""))
+	return get_faction_counter(a_tag, d_tag)
+
+## 开战时记录一次阵营态势（不在每次攻击刷日志，避免战报噪音）
+static func _log_faction_counter(battle_state: Dictionary) -> void:
+	var a_tag: String = str(battle_state.get("攻方阵营标签", ""))
+	var d_tag: String = str(battle_state.get("守方阵营标签", ""))
+	if a_tag == "" or d_tag == "":
+		return
+	var m_atk: float = get_faction_counter(a_tag, d_tag)
+	var m_def: float = get_faction_counter(d_tag, a_tag)
+	if abs(m_atk - 1.0) < 0.0001 and abs(m_def - 1.0) < 0.0001:
+		return
+	battle_state["战斗日志"].append("阵营态势：%s攻%s×%.2f，%s反击×%.2f" % [a_tag, d_tag, m_atk, d_tag, m_def])
 
 # ============ 战斗结果枚举 ============
 enum BattleResult {
@@ -64,7 +143,7 @@ enum BattleResult {
 #   固定 1000 的耐久与战力规模脱钩 —— 低战力时打不破（全程吃 30% 减伤），
 #   高战力时首回合即破（数值形同虚设）。调用方应按守方总战力量级传入，
 #   建议值 = 守方总战力 × 0.2（约 4 回合破阵）。不传则退回 1000 的旧常量。
-static func create_battle_state(battle_type: String, attacker_teams: Array, defender_teams: Array, defender_array_level: int = 1, 大阵耐久基准: int = 0) -> Dictionary:
+static func create_battle_state(battle_type: String, attacker_teams: Array, defender_teams: Array, defender_array_level: int = 1, 大阵耐久基准: int = 0, 攻方阵营: String = "", 守方阵营: String = "") -> Dictionary:
 	var type_config: Dictionary = BATTLE_TYPES.get(battle_type, BATTLE_TYPES["宗门攻防战"])
 	var 耐久: int = 0
 	if type_config.get("大阵耐久", false):
@@ -85,6 +164,9 @@ static func create_battle_state(battle_type: String, attacker_teams: Array, defe
 		"战斗日志": [],
 		"战斗结果": BattleResult.ONGOING,
 		"妖兽援军已触发": false,
+		# S33-4：阵营标签（运行时字段，battle_state 不入存档 → 不涉 SAVE_VERSION）
+		"攻方阵营标签": normalize_faction_tag(攻方阵营),
+		"守方阵营标签": normalize_faction_tag(守方阵营),
 	}
 
 # ============ 队伍数据结构 ============
@@ -100,6 +182,10 @@ static func create_team(team_name: String, members: Array) -> Dictionary:
 ## 推演整场宗门战，返回战斗结果和战报
 static func simulate_battle(battle_state: Dictionary) -> Dictionary:
 	var max_rounds: int = int(battle_state.get("回合上限", 20))
+	# S32 修复：生命加成 原先定义却从未被读取（丹药补给耗 5 丹药零效果）→ 开战前一次性抬血上限
+	_apply_hp_buffs(battle_state)
+	# S33-4：开战记录一次阵营克制态势（供战报与仿真验证可见）
+	_log_faction_counter(battle_state)
 	# 逐回合推演
 	for round in range(1, max_rounds + 1):
 		battle_state["当前回合"] = round
@@ -116,6 +202,21 @@ static func simulate_battle(battle_state: Dictionary) -> Dictionary:
 	if battle_state["战斗结果"] == BattleResult.ONGOING:
 		_resolve_timeout(battle_state)
 	return battle_state
+
+# ============ 开战前一次性应用生命加成（S32 修复假 buff）============
+static func _apply_hp_buffs(battle_state: Dictionary) -> void:
+	for side in ["攻方", "守方"]:
+		var bonus: float = 0.0
+		for buff in (battle_state.get(side + "增益", []) as Array):
+			bonus += buff.get("生命加成", 0.0)
+		if bonus <= 0.0:
+			continue
+		for team in (battle_state.get(side + "队伍", []) as Array):
+			for member in (team.get("队员", []) as Array):
+				var mx: int = int(member.get("最大生命", 100))
+				var add: int = int(round(float(mx) * bonus))
+				member["最大生命"] = mx + add
+				member["当前生命"] = int(member.get("当前生命", mx)) + add
 
 # ============ 单回合战斗推演 ============
 static func _simulate_round(battle_state: Dictionary) -> void:
@@ -201,13 +302,24 @@ static func _execute_attack(battle_state: Dictionary, attacker: Dictionary, targ
 				battle_state["妖兽援军已触发"] = true
 				battle_state["守方增益"].append(BEAST_BUFF.duplicate())
 				battle_state["战斗日志"].append("妖兽援军触发！守方获得3回合属性加成")
-	# 应用增益
+	# 应用增益：攻方增益抬伤害
 	var side_buffs: Array = battle_state.get(attacker_side + "增益", [])
 	var buff_atk_multiplier: float = 1.0
 	for buff in side_buffs:
 		buff_atk_multiplier += buff.get("攻击加成", 0.0)
+	# S32 修复：防御加成 原先在 PRE_BATTLE_BUFFS 里定义却从未被任何代码读取，
+	#   导致「护盾结界」（400 灵石）与妖兽援军的防御加成完全无效。此处按被攻击方增益抬减伤。
+	var defender_side: String = "守方" if attacker_side == "攻方" else "攻方"
+	var def_buffs: Array = battle_state.get(defender_side + "增益", [])
+	var buff_def_bonus: float = 0.0
+	for buff in def_buffs:
+		buff_def_bonus += buff.get("防御加成", 0.0)
+	if buff_def_bonus > 0.0:
+		reduction_rate = min(0.85, reduction_rate + buff_def_bonus)
 	# 最终伤害
-	var final_damage: int = int(base_damage * crit_multiplier * buff_atk_multiplier * (1.0 - reduction_rate))
+	# S33-4：非对称阵营克制乘区（战斗机制层，详见 FACTION_COUNTER 注释）
+	var counter_mult: float = _get_counter_multiplier(battle_state, attacker_side)
+	var final_damage: int = int(base_damage * crit_multiplier * buff_atk_multiplier * counter_mult * (1.0 - reduction_rate))
 	final_damage = max(1, final_damage)
 	# 扣血
 	target["当前生命"] = max(0, int(target.get("当前生命", 100)) - final_damage)
@@ -339,6 +451,8 @@ static func generate_battle_report(battle_state: Dictionary) -> Dictionary:
 		"攻方剩余战力": _calculate_remaining_power(battle_state, "攻方"),
 		"守方剩余战力": _calculate_remaining_power(battle_state, "守方"),
 		"战斗日志": battle_state.get("战斗日志", []),
+		"攻方阵营标签": battle_state.get("攻方阵营标签", ""),
+		"守方阵营标签": battle_state.get("守方阵营标签", ""),
 	}
 
 # ============ 统计剩余队伍数 ============
@@ -372,3 +486,38 @@ static func create_team_from_disciple_list(team_name: String, disciple_list: Arr
 		if disciple != null:
 			members.append(create_member_from_disciple(disciple))
 	return create_team(team_name, members)
+
+# ============ P2接入：宗门战战斗场景适配器 ============
+# 从宗门战battle_state中提取第一场战斗的双方快照，供战斗场景播放
+# 返回：{"攻方快照": Array, "守方快照": Array, "战报": Dictionary}
+static func 生成战斗场景数据(battle_state: Dictionary) -> Dictionary:
+	var 结果: Dictionary = {"攻方快照": [], "守方快照": [], "战报": {}}
+
+	# 提取攻方第一队的前3名队员
+	var 攻方队伍: Array = battle_state.get("攻方队伍", [])
+	if 攻方队伍.size() > 0:
+		var 第一队: Dictionary = 攻方队伍[0]
+		var 队员: Array = 第一队.get("队员", [])
+		for i in range(min(3, 队员.size())):
+			var 成员: Dictionary = 队员[i]
+			if 成员.has("战斗属性"):
+				结果["攻方快照"].append(成员["战斗属性"])
+
+	# 提取守方第一队的前3名队员
+	var 守方队伍: Array = battle_state.get("守方队伍", [])
+	if 守方队伍.size() > 0:
+		var 第一队: Dictionary = 守方队伍[0]
+		var 队员: Array = 第一队.get("队员", [])
+		for i in range(min(3, 队员.size())):
+			var 成员: Dictionary = 队员[i]
+			if 成员.has("战斗属性"):
+				结果["守方快照"].append(成员["战斗属性"])
+
+	# 如果双方都有快照，用BattleManager重新计算一场表演性战斗
+	if 结果["攻方快照"].size() > 0 and 结果["守方快照"].size() > 0:
+		if 结果["攻方快照"].size() == 1 and 结果["守方快照"].size() == 1:
+			结果["战报"] = BattleManager.发起1v1(结果["攻方快照"][0], 结果["守方快照"][0], "full", false)
+		else:
+			结果["战报"] = BattleManager.发起3v3(结果["攻方快照"], 结果["守方快照"], "full", false)
+
+	return 结果

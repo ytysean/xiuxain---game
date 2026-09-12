@@ -130,7 +130,7 @@ static func calc_defense_power(base_power: int, defense: int = 0, evasion_rate: 
 ## 返回：境界压制效果字典 {has_suppress: bool, penetration: float, damage_multiplier: float}
 static func realm_suppress(attacker_realm: String, defender_realm: String, realm_order: Array = []) -> Dictionary:
 	if realm_order.is_empty():
-		realm_order = ["练气", "筑基", "金丹", "元婴", "化神", "仙阶", "道阶"]
+		realm_order = Disciple.境界序   # 唯一真源（2026-09-02）：原 7 阶缺炼虚~渡劫，高阶境界差算不出来
 	var attacker_idx: int = realm_order.find(attacker_realm)
 	var defender_idx: int = realm_order.find(defender_realm)
 	if attacker_idx < 0 or defender_idx < 0:

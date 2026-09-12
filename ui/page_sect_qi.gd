@@ -233,7 +233,7 @@ func _计算气运值() -> int:
 	if Game.has_method("获取气运值"):
 		return Game.获取气运值()
 	# 回退计算（与core保持一致：产出速率+存量模型，归一化到0-100）
-	var 香火速率: float = float(_读取资源值("香火月产预估")) * 2.0
+	var 香火速率: float = float(_读取资源值("香火日产预估")) * 2.0
 	var 愿力存量: float = float(_读取资源值("愿力")) * 0.1
 	var 功德存量: float = float(_读取资源值("功德")) * 0.5
 	var 业力存量: float = float(_读取资源值("业力")) * 0.5

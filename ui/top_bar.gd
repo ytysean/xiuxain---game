@@ -5,6 +5,7 @@ const AVATAR_MASK_SHADER: Shader = preload("res://ui/avatar_circle_mask.gdshader
 
 # 点击「宗门名 + Lv」区域 → 唤起宗主详情页（全屏二级页）；纯 UI 入口，零玩法/战斗触碰。
 signal 宗主详情请求
+signal 消息中心请求
 
 # 顶部资源栏（01 屏画布 v5 1:1 复刻 · Ardot 2:55/2:181，1080×1920 实机基准）。
 # 坐标唯一数据源 = compose_v5_framed.py 中 1080p 实测值，本文件按 UI_SCALE=2.25 反推为逻辑单位。
@@ -84,6 +85,8 @@ var _calendar2_lbl: Label = null
 var _detail_popup: Control = null    # 资源详情弹窗（懒加载）
 var _avatar_icon: TextureRect = null   # 顶部宗徽图（创建宗门后由 refresh_avatar 替换为玩家选定的宗主头像）
 var _popup_instance: Control = null    # 头像选择弹窗（预热常驻实例，零加载延迟）
+var _消息按钮: Button = null          # S56 消息中心入口按钮
+var _消息未读标签: Label = null       # S56 消息未读数标签
 
 func _ready() -> void:
 	# 顶栏容器：占屏幕顶部 189px 可视区（含 22px 上边距）
@@ -110,6 +113,7 @@ func _build() -> void:
 	_build_avatar()
 	_build_calendar()
 	_build_resources()
+	_build_message_button()
 
 func _build_panel() -> void:
 	var bg := Panel.new()
@@ -303,6 +307,62 @@ func _build_resources() -> void:
 		val_lbl.clip_text = false
 		_res_values[nm] = val_lbl
 
+# S56：消息中心入口按钮
+func _build_message_button() -> void:
+	# 消息按钮位置：资源栏右侧
+	var btn_x: float = 440.0
+	var btn_y: float = 10.0
+	var btn_w: float = 36.0
+	var btn_h: float = 50.0
+
+	_消息按钮 = Button.new()
+	_消息按钮.name = "MessageBtn"
+	_消息按钮.flat = true
+	_消息按钮.text = "📜"
+	_消息按钮.add_theme_font_size_override("font_size", int(round(20.0 * UITheme.UI_SCALE)))
+	_place(_消息按钮, btn_x, btn_y, btn_w, btn_h)
+	_消息按钮.mouse_filter = Control.MOUSE_FILTER_STOP
+	var 空样式 := StyleBoxEmpty.new()
+	_消息按钮.add_theme_stylebox_override("normal", 空样式)
+	_消息按钮.add_theme_stylebox_override("pressed", 空样式)
+	_消息按钮.add_theme_stylebox_override("hover", 空样式)
+	_消息按钮.add_theme_stylebox_override("focus", 空样式)
+	_消息按钮.pressed.connect(_on_message_pressed)
+	add_child(_消息按钮)
+
+	# 未读消息数红点
+	_消息未读标签 = Label.new()
+	_消息未读标签.name = "MsgUnread"
+	_消息未读标签.text = ""
+	_消息未读标签.add_theme_font_size_override("font_size", int(round(10.0 * UITheme.UI_SCALE)))
+	_消息未读标签.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+	_消息未读标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_消息未读标签.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_place(_消息未读标签, btn_x + btn_w - 12, btn_y - 2, 16.0, 16.0)
+	_消息未读标签.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_消息未读标签)
+
+	# 刷新未读数
+	_refresh_message_unread()
+
+# 刷新消息未读数
+func _refresh_message_unread() -> void:
+	if _消息未读标签 == null:
+		return
+	if not is_instance_valid(Game):
+		_消息未读标签.text = ""
+		return
+	var 未读数: int = Game.消息系统.获取总未读数()
+	if 未读数 > 0:
+		_消息未读标签.text = str(min(未读数, 99))
+		# 红色背景
+	else:
+		_消息未读标签.text = ""
+
+# 点击消息按钮
+func _on_message_pressed() -> void:
+	消息中心请求.emit()
+
 # ───────── helper ─────────
 func _place(c: Control, x: float, y: float, w: float, h: float) -> void:
 	var s: float = UITheme.UI_SCALE
@@ -345,6 +405,7 @@ func refresh() -> void:
 	_refresh_identity()
 	_refresh_calendar()
 	refresh_avatar()  # 创立宗门后/读档后，玩家头像纹理即刻同步到顶栏徽记
+	_refresh_message_unread()  # S56 刷新消息未读数
 
 # 顶栏头像刷新：按 Game.宗主头像 取玩家选定头像纹理；缺省回落宗门徽记默认金边图标。
 # 仅展示，零玩法/战斗触碰——玩家档案更换头像时由 game_ui._refresh_all_pages 批量触发。

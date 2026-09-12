@@ -7,6 +7,7 @@ extends Control
 # 未选中 = 108px 图标 α0.5 + 暗青底；标签统一 25px 白粗体置底。
 
 signal tab_selected(tab_id: String)
+signal tab_blocked(tab_id: String)   # 点了「未开启」的置灰 Tab（由宿主页给条件提示）
 
 const TABS: Array = ["宗门", "弟子", "殿阁", "历练", "纪事"]
 
@@ -44,6 +45,7 @@ var _tab_icons: Dictionary = {}        # id -> TextureRect
 var _tab_rings: Dictionary = {}        # id -> Panel（选中金环）
 var _tab_inds: Dictionary = {}         # id -> ColorRect（底部金指示线）
 var _tab_labels: Dictionary = {}       # id -> Label
+var _tab_disabled: Dictionary = {}     # id -> true（P0-1 洋葱解锁：未开启置灰）
 
 func _ready() -> void:
 	var tab_h: float = UITheme.TAB_H
@@ -178,24 +180,47 @@ func select(tab_id: String) -> void:
 func get_selected() -> String:
 	return _selected
 
+## 设置某 Tab 的可用性（P0-1 洋葱解锁：未开启的 Tab **置灰保留、不留洞**）。
+## 置灰项点击不发 tab_selected，改发 tab_blocked（宿主页据此给出可读条件）。
+## gating 判定不在本组件内做——由 game_ui 调 SystemUnlock 单一来源后回灌。
+func 设置Tab可用(tab_id: String, 可用: bool) -> void:
+	if not (tab_id in TABS):
+		return
+	_tab_disabled[tab_id] = not 可用
+	_apply_state(tab_id, tab_id == _selected)
+
+func 是否可用(tab_id: String) -> bool:
+	return not bool(_tab_disabled.get(tab_id, false))
+
 func _apply_state(id: String, active: bool) -> void:
+	var 可用: bool = 是否可用(id)
+	var 选中: bool = active and 可用
+
 	var ring: Panel = _tab_rings.get(id, null)
 	if ring != null:
-		ring.visible = active
+		ring.visible = 选中
 
 	var icon: TextureRect = _tab_icons.get(id, null)
 	if icon != null:
-		icon.modulate = Color(1, 1, 1, 1.0 if active else 0.5)
+		var 透明: float = 1.0 if active else 0.5
+		if not 可用:
+			透明 = 0.25   # 置灰：降透明度但保留位置
+		icon.modulate = Color(1, 1, 1, 透明)
 
 	var ind: ColorRect = _tab_inds.get(id, null)
 	if ind != null:
-		ind.visible = active
+		ind.visible = 选中
 
 	var lbl: Label = _tab_labels.get(id, null)
 	if lbl != null:
-		_apply_label_style(lbl, active)
+		_apply_label_style(lbl, 选中)
+		if not 可用:
+			lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
 
 func _on_tab_pressed(tab_id: String) -> void:
+	if not 是否可用(tab_id):
+		tab_blocked.emit(tab_id)
+		return
 	select(tab_id)
 
 func _place(c: Control, x: float, y: float, w: float, h: float) -> void:

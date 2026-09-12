@@ -13,6 +13,8 @@ var _activity_list_vbox: VBoxContainer = null
 var _activity_detail_panel: PanelContainer = null
 var _activity_detail_vbox: VBoxContainer = null
 var _selected_activity: Dictionary = {}
+var _daily_msg: String = ""             # 最近一次打理结果（页内反馈，X15 必有反馈）
+var _daily_msg_lbl: Label = null
 
 # 活动分类配置
 const ACTIVITY_TABS: Array = [
@@ -48,6 +50,16 @@ func _build() -> void:
 	content.add_child(vbox)
 
 	_build_header(vbox)
+	# P2联动：显示当前活动名称（修真化描述）
+	if Game != null and Game.has_method("获取当前活动名称"):
+		var 当前活动: String = Game.获取当前活动名称()
+		if 当前活动 != "平日（无加成）":
+			var activity_lbl := Label.new()
+			activity_lbl.text = "【时令盛典】%s" % 当前活动
+			UITheme.apply_aux_font_sized(activity_lbl, 14)
+			activity_lbl.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
+			activity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			vbox.add_child(activity_lbl)
 	_build_tabs(vbox)
 	_build_main_area(vbox)
 
@@ -212,9 +224,195 @@ func _refresh_activity_list() -> void:
 		_add_empty_label("该分类尚无活动")
 		return
 
+	# 顶部操作区域：一键参与 + 积分兑换
+	_add_activity_action_bar()
+
 	for activity in filtered_activities:
 		var activity_card = _make_activity_card(activity)
 		_activity_list_vbox.add_child(activity_card)
+
+# 活动操作栏：一键参与日常 + 积分兑换
+func _add_activity_action_bar() -> void:
+	var bar := PanelContainer.new()
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = UITheme.C01_PANEL_B
+	bar_style.set_corner_radius_all(int(round(8.0 * UITheme.UI_SCALE)))
+	bar_style.set_border_width_all(1)
+	bar_style.border_color = UITheme.C01_GOLD_LINE
+	bar_style.set_content_margin_all(UITheme.PAD_PANEL)
+	bar.add_theme_stylebox_override("panel", bar_style)
+	_activity_list_vbox.add_child(bar)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", UITheme.GRID)
+	bar.add_child(vb)
+
+	# 第一行：一键参与 + 积分显示
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", UITheme.GRID)
+	vb.add_child(hb)
+
+	# §2.0 唯一合法「一键」形态：一键执行**已定方针**，绝不替宗主做决策。
+	# 宗主在此定日常方针（养士/充库/扬名），门下弟子照此打理日常诸事。
+	var policy_btn := Button.new()
+	policy_btn.text = "日常方针：%s" % _当前日常方针()
+	policy_btn.tooltip_text = "点击切换方针 · " + _日常方针说明(_当前日常方针())
+	policy_btn.custom_minimum_size = Vector2(160, 40)
+	policy_btn.pressed.connect(_on_切换日常方针)
+	hb.add_child(policy_btn)
+
+	# 当前积分显示
+	var 积分: int = int(Game.活动积分) if Game != null and "活动积分" in Game else 0
+	var points_lbl := Label.new()
+	points_lbl.text = "活动积分：%d" % 积分
+	points_lbl.add_theme_font_size_override("font_size", 14)
+	points_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	points_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(points_lbl)
+
+	# 积分兑换按钮
+	var exchange_btn := Button.new()
+	exchange_btn.text = "积分兑换"
+	exchange_btn.custom_minimum_size = Vector2(120, 40)
+	exchange_btn.pressed.connect(_on_open_exchange)
+	hb.add_child(exchange_btn)
+
+	# 第二行：连续参与天数 + 催办（劳作由弟子完成，宗主只需下令）
+	var hb2 := HBoxContainer.new()
+	hb2.add_theme_constant_override("separation", UITheme.GRID)
+	vb.add_child(hb2)
+
+	var 连续天数: int = int(Game.连续参与天数) if Game != null and "连续参与天数" in Game else 0
+	var streak_lbl := Label.new()
+	streak_lbl.text = "连续参与：%d天（加成%.1f倍）" % [连续天数, Game.获取连续参与加成() if Game != null else 1.0]
+	streak_lbl.add_theme_font_size_override("font_size", 12)
+	streak_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	streak_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb2.add_child(streak_lbl)
+
+	var 催办按钮 := Button.new()
+	催办按钮.text = "催办一次"
+	催办按钮.custom_minimum_size = Vector2(120, 36)
+	催办按钮.pressed.connect(_on_one_key_daily)
+	hb2.add_child(催办按钮)
+
+	# 反馈行：最近一次打理结果（X15 点击必有反馈）
+	_daily_msg_lbl = Label.new()
+	_daily_msg_lbl.text = _daily_msg
+	_daily_msg_lbl.add_theme_font_size_override("font_size", 12)
+	_daily_msg_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_daily_msg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(_daily_msg_lbl)
+
+# 催办：门下弟子按已定方针打理日常诸事（不是「一键收菜」，决策仍归宗主）
+func _on_one_key_daily() -> void:
+	if Game == null or not Game.has_method("一键参与日常活动"):
+		return
+	var 结果: Dictionary = Game.一键参与日常活动()
+	_daily_msg = str(结果.get("消息", "已完成日常打理"))
+	refresh()
+
+
+# 切换日常方针（养士 → 充库 → 扬名 → 养士…）——决策留给宗主
+func _on_切换日常方针() -> void:
+	if Game == null or not Game.has_method("获取日常方针列表"):
+		return
+	var 列表: Array = Game.获取日常方针列表()
+	if 列表.is_empty():
+		return
+	var i: int = int(列表.find(_当前日常方针()))
+	var 下一: String = String(列表[(i + 1) % 列表.size()])
+	var 结果: Dictionary = Game.设置日常方针(下一)
+	if bool(结果.get("成功", false)):
+		_daily_msg = str(结果.get("消息", "方针已设定"))
+	else:
+		_daily_msg = str(结果.get("原因", "设置失败"))
+	refresh()
+
+
+func _当前日常方针() -> String:
+	if Game != null and "日常方针" in Game:
+		return String(Game.日常方针)
+	return "充库"
+
+
+func _日常方针说明(方针: String) -> String:
+	if Game != null and Game.has_method("获取日常方针说明"):
+		return String(Game.获取日常方针说明(方针))
+	return ""
+
+# 打开积分兑换面板
+func _on_open_exchange() -> void:
+	if Game == null or not Game.has_method("获取活动积分兑换列表"):
+		return
+	var 兑换列表: Array = Game.获取活动积分兑换列表()
+	if 兑换列表.is_empty():
+		return
+	# 在详情面板显示兑换列表
+	_show_exchange_panel(兑换列表)
+
+# 显示积分兑换面板
+func _show_exchange_panel(兑换列表: Array) -> void:
+	if _activity_detail_panel == null:
+		return
+	_activity_detail_panel.visible = true
+	for child in _activity_detail_vbox.get_children():
+		_activity_detail_vbox.remove_child(child)
+		child.queue_free()
+
+	var title := Label.new()
+	title.text = "积分兑换阁"
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_activity_detail_vbox.add_child(title)
+
+	var 积分: int = int(Game.活动积分) if Game != null and "活动积分" in Game else 0
+	var points_lbl := Label.new()
+	points_lbl.text = "当前积分：%d" % 积分
+	points_lbl.add_theme_font_size_override("font_size", 14)
+	points_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_activity_detail_vbox.add_child(points_lbl)
+
+	for item in 兑换列表:
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", UITheme.GRID)
+
+		var name_lbl := Label.new()
+		name_lbl.text = str(item.get("名称", ""))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_activity_detail_vbox.add_child(name_lbl)
+
+		var cost_lbl := Label.new()
+		cost_lbl.text = "%d积分" % int(item.get("积分", 0))
+		cost_lbl.custom_minimum_size = Vector2(80, 0)
+		hb.add_child(cost_lbl)
+
+		var btn := Button.new()
+		btn.text = "兑换"
+		btn.custom_minimum_size = Vector2(80, 32)
+		var item_type = str(item.get("类型", ""))
+		var item_rank = str(item.get("品阶", ""))
+		btn.pressed.connect(func(): _on_exchange_item(item_type, item_rank))
+		hb.add_child(btn)
+
+		_activity_detail_vbox.add_child(hb)
+
+	var close_btn := Button.new()
+	close_btn.text = "关闭"
+	close_btn.pressed.connect(_hide_activity_detail)
+	_activity_detail_vbox.add_child(close_btn)
+
+# 兑换物品
+func _on_exchange_item(物品类型: String, 品阶: String) -> void:
+	if Game == null or not Game.has_method("活动积分兑换"):
+		return
+	var 结果: Dictionary = Game.活动积分兑换(物品类型, 品阶)
+	if bool(结果.get("成功", false)):
+		refresh()
+		# 刷新兑换面板
+		_on_open_exchange()
+	else:
+		refresh()
 
 func _make_activity_card(activity: Dictionary) -> Control:
 	var card := PanelContainer.new()

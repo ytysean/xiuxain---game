@@ -13,6 +13,7 @@ var _current_tab: String = "daily"
 var _selected_stage: String = ""
 var _selected_disciples: Array = []
 var _current_preset: String = ""  # 当前选择的队伍预设名
+var _selected_route: String = "稳妥"  # 当前选择的历练路线（稳妥/冒险/神秘）
 var _preset_option: OptionButton = null  # 队伍预设下拉选择
 var _stage_list_vbox: VBoxContainer = null
 var _detail_content: VBoxContainer = null
@@ -55,6 +56,17 @@ func _build_header(parent: Control) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hb.add_child(title)
 
+	# P0修复：显示今日机缘
+	var 机缘label := Label.new()
+	机缘label.name = "JiyuanLabel"
+	if is_instance_valid(Game):
+		var 检查: Dictionary = Game.检查机缘("探秘境缘")
+		var VIP等级: int = Game.当前VIP等级()
+		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+	UITheme.apply_aux_font(机缘label)
+	机缘label.custom_minimum_size = Vector2(200, 0)
+	hb.add_child(机缘label)
+
 	# S1-4 付费：仙玉购买历练额外次数
 	var 历练btn := Button.new()
 	历练btn.name = "PayExpeditionBtn"
@@ -76,6 +88,7 @@ func _build_tabs(parent: Control) -> void:
 		{"key": "secret", "name": "秘境探索"},
 		{"key": "challenge", "name": "秘境挑战"},
 		{"key": "investigate", "name": "调查任务"},
+		{"key": "history", "name": "历练史册"},
 	]
 	for t in tabs:
 		var btn := Button.new()
@@ -92,7 +105,8 @@ func _switch_tab(tab: String) -> void:
 	_selected_stage = ""
 	_selected_disciples.clear()
 	_refresh_tab_highlight()
-	_refresh_stage_list()
+	if tab != "history":
+		_refresh_stage_list()
 	_refresh_detail()
 
 func _refresh_tab_highlight() -> void:
@@ -209,8 +223,7 @@ func _refresh_stage_list() -> void:
 		_stage_list_vbox.add_child(btn)
 
 func _境界序(境界: String) -> int:
-	var 序 = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "道阶"]
-	return 序.find(境界)
+	return Disciple.境界索引(境界)   # 唯一真源（2026-09-02）
 
 func _select_stage(stage_id: String) -> void:
 	_selected_stage = stage_id
@@ -325,6 +338,11 @@ func _refresh_detail() -> void:
 		return
 	for child in _detail_content.get_children():
 		child.queue_free()
+
+	# 历练史册标签页
+	if _current_tab == "history":
+		_刷新历练史册()
+		return
 
 	if _selected_stage == "":
 		var hint := Label.new()
@@ -482,8 +500,53 @@ func _refresh_detail() -> void:
 	preview.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
 	_detail_content.add_child(preview)
 
+	# ===== 历练路线选择（P0-1新增）=====
+	var route_sep := HSeparator.new()
+	_detail_content.add_child(route_sep)
+
+	var route_title := Label.new()
+	route_title.text = "选择历练路线"
+	route_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	route_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(route_title)
+
+	var 可用路线: Array = ExpeditionSystem.获取关卡可用路线(_selected_stage)
+	var route_hbox := HBoxContainer.new()
+	route_hbox.add_theme_constant_override("separation", UITheme.GRID / 2)
+	_detail_content.add_child(route_hbox)
+
+	for route_key in 可用路线:
+		var 路线配置: Dictionary = ExpeditionSystem.历练路线配置.get(route_key, {})
+		var route_btn := Button.new()
+		var 成功率加成: float = float(路线配置.get("成功率加成", 0))
+		var 奖励倍率: float = float(路线配置.get("奖励倍率", 1.0))
+		var 奇遇概率: float = float(路线配置.get("奇遇概率", 0.05))
+		route_btn.text = "%s\n成功率%+.0f%% | 奖励%.1fx | 奇遇%.0f%%" % [
+			str(路线配置.get("名称", route_key)),
+			成功率加成 * 100, 奖励倍率, 奇遇概率 * 100
+		]
+		route_btn.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
+		route_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		route_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		if _selected_route == route_key:
+			route_btn.modulate = UITheme.C01_TEXT_JADE
+		var rk = route_key
+		route_btn.pressed.connect(func():
+			_selected_route = rk
+			_refresh_detail()
+		)
+		route_hbox.add_child(route_btn)
+
+	var route_desc := Label.new()
+	var 当前路线配置: Dictionary = ExpeditionSystem.历练路线配置.get(_selected_route, {})
+	route_desc.text = str(当前路线配置.get("描述", ""))
+	route_desc.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	route_desc.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	route_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(route_desc)
+
 	var dispatch_btn := Button.new()
-	dispatch_btn.text = "开始历练"
+	dispatch_btn.text = "开始历练（%s）" % str(当前路线配置.get("名称", _selected_route))
 	dispatch_btn.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
 	dispatch_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dispatch_btn.disabled = _selected_disciples.is_empty() or _selected_disciples.size() > 3
@@ -502,16 +565,132 @@ func _refresh_detail() -> void:
 		for 实例ID in 进行中.keys():
 			var 实例 = 进行中[实例ID]
 			var 关卡2 = ExpeditionSystem.获取关卡(实例["关卡ID"])
-			var 当前日 = 0
-			if Game != null:
-				var vd = Game.get("累计游戏日")
-				当前日 = int(vd) if vd != null else 0
-			var 剩余 = int(实例["预计结束游戏日"]) - 当前日
-			var lbl := Label.new()
-			lbl.text = "%s | 剩余%d日" % [关卡2.get("名称", ""), max(0, 剩余)]
-			lbl.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-			lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-			_detail_content.add_child(lbl)
+			# P0-1: 使用获取历练进度获取完整信息
+			var 进度信息: Dictionary = ExpeditionSystem.获取历练进度(实例ID)
+			var 进度: float = float(进度信息.get("进度", 0.0))
+			var 路线: String = str(进度信息.get("路线", "稳妥"))
+			var 路线名称: String = str(进度信息.get("路线名称", 路线))
+			var 剩余: int = int(进度信息.get("剩余天数", 0))
+			var 可决策: bool = bool(进度信息.get("可决策", false))
+			var 奇遇记录: Array = 进度信息.get("奇遇记录", [])
+
+			# 历练卡片
+			var card_panel := PanelContainer.new()
+			UITheme.apply_panel_style(card_panel)
+			_detail_content.add_child(card_panel)
+			var card_vb := VBoxContainer.new()
+			card_vb.add_theme_constant_override("margin", UITheme.GRID)
+			card_vb.add_theme_constant_override("separation", UITheme.GRID / 2)
+			card_panel.add_child(card_vb)
+
+			# 关卡名 + 路线
+			var name_row := HBoxContainer.new()
+			name_row.add_theme_constant_override("separation", UITheme.GRID)
+			card_vb.add_child(name_row)
+			var ongoing_name_lbl := Label.new()
+			ongoing_name_lbl.text = "%s" % 关卡2.get("名称", "")
+			ongoing_name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			ongoing_name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			ongoing_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			name_row.add_child(ongoing_name_lbl)
+			var route_lbl := Label.new()
+			route_lbl.text = "【%s】" % 路线名称
+			route_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+			route_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+			name_row.add_child(route_lbl)
+
+			# 进度条
+			var progress_bar := ProgressBar.new()
+			progress_bar.max_value = 100
+			progress_bar.value = 进度 * 100
+			progress_bar.show_percentage = true
+			progress_bar.custom_minimum_size = Vector2(0, UITheme.GRID * 1.5)
+			progress_bar.tint_progress = UITheme.C01_TEXT_JADE
+			card_vb.add_child(progress_bar)
+
+			# 进度信息
+			var info_lbl := Label.new()
+			info_lbl.text = "进度：%.0f%% | 剩余%d日 | 奇遇%d次" % [进度 * 100, max(0, 剩余), 奇遇记录.size()]
+			info_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+			info_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+			card_vb.add_child(info_lbl)
+
+			# 待处理奇遇提示
+			var 待处理奇遇: Array = ExpeditionSystem.获取待处理奇遇(实例ID)
+			if 待处理奇遇.size() > 0:
+				var 待处理_btn := Button.new()
+				var 待处理奇遇名: String = str(待处理奇遇[0].get("奇遇", {}).get("名称", "奇遇"))
+				待处理_btn.text = "✦ 待处理奇遇：%s（点击处理）✦" % 待处理奇遇名
+				待处理_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+				待处理_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				待处理_btn.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+				待处理_btn.modulate = UITheme.C01_TEXT_GOLD
+				var iid3 = 实例ID
+				待处理_btn.pressed.connect(func():
+					_弹出奇遇弹窗(iid3, 0)
+				)
+				card_vb.add_child(待处理_btn)
+
+			# 奇遇记录展示
+			if 奇遇记录.size() > 0:
+				var 奇遇_title := Label.new()
+				奇遇_title.text = "  奇遇记录："
+				奇遇_title.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				奇遇_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+				card_vb.add_child(奇遇_title)
+				for 奇遇 in 奇遇记录:
+					var 奇遇_lbl := Label.new()
+					奇遇_lbl.text = "    · %s" % str(奇遇.get("纪事", ""))
+					奇遇_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+					奇遇_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+					奇遇_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+					card_vb.add_child(奇遇_lbl)
+
+			# 风险决策按钮（进度30%-100%时可选择）
+			if 可决策 and not bool(实例.get("提前结束", false)) and not bool(实例.get("继续深入", false)):
+				var decision_row := HBoxContainer.new()
+				decision_row.add_theme_constant_override("separation", UITheme.GRID / 2)
+				card_vb.add_child(decision_row)
+				var 收功_btn := Button.new()
+				收功_btn.text = "见好就收"
+				收功_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+				收功_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				收功_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				var iid1 = 实例ID
+				收功_btn.pressed.connect(func():
+					var 结果 = ExpeditionSystem.历练风险决策(iid1, "见好就收")
+					if UIHint != null and UIHint.has_method("show_hint"):
+						UIHint.show_hint(null, "历练决策", str(结果.get("说明", "")))
+					_refresh_detail()
+				)
+				decision_row.add_child(收功_btn)
+				var 深入_btn := Button.new()
+				深入_btn.text = "继续深入"
+				深入_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+				深入_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				深入_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				var iid2 = 实例ID
+				深入_btn.pressed.connect(func():
+					var 结果 = ExpeditionSystem.历练风险决策(iid2, "继续深入")
+					if UIHint != null and UIHint.has_method("show_hint"):
+						UIHint.show_hint(null, "历练决策", str(结果.get("说明", "")))
+					_refresh_detail()
+				)
+				decision_row.add_child(深入_btn)
+
+			# 已决策状态显示
+			if bool(实例.get("提前结束", false)):
+				var 决策_lbl := Label.new()
+				决策_lbl.text = "  已决策：见好就收（奖励倍率%.0f%%）" % (float(实例.get("提前结束倍率", 0.5)) * 100)
+				决策_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				决策_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_JADE)
+				card_vb.add_child(决策_lbl)
+			elif bool(实例.get("继续深入", false)):
+				var 决策_lbl := Label.new()
+				决策_lbl.text = "  已决策：继续深入（风险增加%.0f%%）" % (float(实例.get("风险增加", 0.1)) * 100)
+				决策_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				决策_lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
+				card_vb.add_child(决策_lbl)
 
 func _toggle_disciple(did: int) -> void:
 	if _selected_disciples.has(did):
@@ -566,7 +745,8 @@ func _get_disciple(did: int):
 func _on_dispatch_pressed() -> void:
 	if _selected_stage == "" or _selected_disciples.is_empty():
 		return
-	var 结果 = ExpeditionSystem.开始历练(_selected_stage, _selected_disciples)
+	# P0-1: 使用增强版开始历练，带路线选择
+	var 结果 = ExpeditionSystem.开始历练增强(_selected_stage, _selected_disciples, _selected_route)
 	if 结果.get("成功", false):
 		if UIHint != null and UIHint.has_method("show_hint"):
 			var 当前游戏日 = 0
@@ -588,6 +768,14 @@ func refresh() -> void:
 	_refresh_tab_highlight()
 	_refresh_stage_list()
 	_refresh_detail()
+	# P0修复：更新机缘显示
+	var 机缘label = get_node_or_null("VBoxContainer/HBoxContainer/JiyuanLabel")
+	if 机缘label != null and is_instance_valid(Game):
+		var 检查: Dictionary = Game.检查机缘("探秘境缘")
+		var VIP等级: int = Game.当前VIP等级()
+		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+	# P0-1: 检查并弹出待处理奇遇
+	检查并弹出奇遇()
 
 ## ========== 队伍预设功能 ==========
 func _on_preset_selected(index: int) -> void:
@@ -668,6 +856,210 @@ func _刷新秘境挑战列表() -> void:
 			var stage_id: String = sid
 			btn.pressed.connect(func(): _select_stage(stage_id))
 		_stage_list_vbox.add_child(btn)
+	# P2 高级秘境区域
+	var 高级秘境列表: Array = Game.获取所有高级秘境列表()
+	if 高级秘境列表.size() > 0:
+		_stage_list_vbox.add_child(HSeparator.new())
+		var 高级标题: Label = Label.new()
+		高级标题.text = "◆ 高级秘境（多层挑战·专属掉落）"
+		高级标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		高级标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		_stage_list_vbox.add_child(高级标题)
+		for 秘境 in 高级秘境列表:
+			var 秘境ID: String = str(秘境.get("secret_id", ""))
+			var 名称: String = str(秘境.get("名称", ""))
+			var 层数: int = int(秘境.get("层数", 3))
+			var BOSS: String = str(秘境.get("BOSS", ""))
+			var 体力耗: int = int(秘境.get("体力消耗", 20))
+			var 已解锁: bool = bool(秘境.get("已解锁", false))
+			var 已通关: bool = bool(秘境.get("已通关", false))
+			var 解锁提示: String = str(秘境.get("解锁提示", ""))
+			var sbtn := Button.new()
+			sbtn.text = "%s\n%d层秘境 | BOSS：%s | 气力%d%s" % [
+				名称, 层数, BOSS, 体力耗,
+				("（已通关）" if 已通关 else "")
+			]
+			sbtn.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
+			sbtn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sbtn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			sbtn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			sbtn.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
+			if not 已解锁:
+				sbtn.disabled = true
+				sbtn.text += "\n（未解锁：%s）" % 解锁提示
+			else:
+				var sid2: String = 秘境ID
+				sbtn.pressed.connect(func(): _显示高级秘境详情(sid2))
+			_stage_list_vbox.add_child(sbtn)
+
+## 显示高级秘境详情
+func _显示高级秘境详情(秘境ID: String) -> void:
+	if _detail_content == null or Game == null:
+		return
+	for child in _detail_content.get_children():
+		child.queue_free()
+	_selected_stage = ""  # 清除普通秘境选中状态
+	var 列表: Array = Game.获取所有高级秘境列表()
+	var 配置: Dictionary = {}
+	for item in 列表:
+		if str(item.get("secret_id", "")) == 秘境ID:
+			配置 = item
+			break
+	if 配置.is_empty():
+		return
+	var name_lbl := Label.new()
+	name_lbl.text = "◆ %s" % str(配置.get("名称", ""))
+	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(name_lbl)
+	var info := Label.new()
+	info.text = "层数：%d层 | 主属性：%s | 气力消耗：%d\n解锁条件：%s\nBOSS：%s" % [
+		int(配置.get("层数", 3)), str(配置.get("主属性", "")),
+		int(配置.get("体力消耗", 20)), str(配置.get("解锁条件", "")),
+		str(配置.get("BOSS", ""))
+	]
+	info.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	info.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(info)
+	_detail_content.add_child(HSeparator.new())
+	var 掉落标题: Label = Label.new()
+	掉落标题.text = "核心掉落"
+	掉落标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	掉落标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(掉落标题)
+	var 掉落: Label = Label.new()
+	掉落.text = str(配置.get("核心掉落", ""))
+	掉落.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	掉落.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	掉落.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(掉落)
+	var 事件标题: Label = Label.new()
+	事件标题.text = "专属事件"
+	事件标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	事件标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(事件标题)
+	var 事件: Label = Label.new()
+	事件.text = str(配置.get("专属事件", ""))
+	事件.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	事件.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	事件.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(事件)
+	var 奖励标题: Label = Label.new()
+	奖励标题.text = "通关保底奖励"
+	奖励标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	奖励标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(奖励标题)
+	var 奖励: Label = Label.new()
+	奖励.text = str(配置.get("通关奖励", ""))
+	奖励.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	奖励.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	奖励.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(奖励)
+	_detail_content.add_child(HSeparator.new())
+	# P2 高级秘境多层战斗：出战弟子选择
+	var 出战标题: Label = Label.new()
+	出战标题.text = "⚔️ 选择出战弟子（最多3人）"
+	出战标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	出战标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(出战标题)
+	# 出战弟子列表
+	var 出战弟子列表: Array = Game.弟子列表 if Game != null else []
+	var 已选弟子: Array = []
+	var 弟子选择容器: VBoxContainer = VBoxContainer.new()
+	弟子选择容器.add_theme_constant_override("separation", 4)
+	_detail_content.add_child(弟子选择容器)
+	# 显示前10个弟子（避免列表过长）
+	var 显示数量: int = min(出战弟子列表.size(), 10)
+	for i in range(显示数量):
+		var d = 出战弟子列表[i]
+		if d == null:
+			continue
+		var 弟子行: HBoxContainer = HBoxContainer.new()
+		弟子行.add_theme_constant_override("separation", 8)
+		弟子选择容器.add_child(弟子行)
+		var 勾选: CheckBox = CheckBox.new()
+		勾选.text = "%s（%s·战力%d）" % [str(d.get("姓名", "")), str(d.get("境界", "")), int(d.get("战力", 0))]
+		勾选.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		勾选.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		弟子行.add_child(勾选)
+		# 限制最多选3人
+		勾选.toggled.connect(func(选中: bool):
+			if 选中:
+				if 已选弟子.size() >= 3:
+					勾选.button_pressed = false
+					UIHint.show_hint(null, "提示", "最多选择3名出战弟子")
+					return
+				已选弟子.append(d)
+			else:
+				已选弟子.erase(d)
+		)
+	# 开始挑战按钮
+	var 挑战按钮: Button = Button.new()
+	挑战按钮.text = "⚔️ 开始挑战（消耗气力%d）" % int(配置.get("体力消耗", 20))
+	挑战按钮.custom_minimum_size = Vector2(0, UITheme.BTN_H_PRIMARY)
+	挑战按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_primary_button_style(挑战按钮)
+	挑战按钮.pressed.connect(func():
+		if 已选弟子.is_empty():
+			UIHint.show_hint(null, "提示", "请至少选择1名出战弟子")
+			return
+		# 检查气力
+		if Game.体力 < int(配置.get("体力消耗", 20)):
+			UIHint.show_hint(null, "提示", "气力不足")
+			return
+		# 开始挑战
+		var 结果: Dictionary = Game.挑战高级秘境(秘境ID, 已选弟子)
+		# 显示战斗结果
+		for child in _detail_content.get_children():
+			child.queue_free()
+		var 结果标题: Label = Label.new()
+		if bool(结果.get("通关", false)):
+			结果标题.text = "🎉 挑战成功！通关%s" % str(配置.get("名称", ""))
+			结果标题.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+		else:
+			结果标题.text = "⚔️ 挑战结束，到达第%d/%d层" % [int(结果.get("到达层数", 0)), int(结果.get("总层数", 0))]
+			结果标题.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
+		结果标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		_detail_content.add_child(结果标题)
+		_detail_content.add_child(HSeparator.new())
+		# 奖励信息
+		var 奖励信息: Label = Label.new()
+		奖励信息.text = "获得奖励：\n💰 灵石：%d\n📖 悟道点：%d" % [int(结果.get("灵石奖励", 0)), int(结果.get("悟道点奖励", 0))]
+		var 掉落列表: Array = 结果.get("掉落", [])
+		if 掉落列表.size() > 0:
+			奖励信息.text += "\n🎁 材料：" + ", ".join(掉落列表)
+		奖励信息.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		奖励信息.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		奖励信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_detail_content.add_child(奖励信息)
+		_detail_content.add_child(HSeparator.new())
+		# 战斗日志
+		var 日志标题: Label = Label.new()
+		日志标题.text = "📜 战斗日志"
+		日志标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		日志标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		_detail_content.add_child(日志标题)
+		var 战报: Array = 结果.get("战报", [])
+		for 日志 in 战报:
+			var 日志行: Label = Label.new()
+			日志行.text = str(日志)
+			日志行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			日志行.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+			日志行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_detail_content.add_child(日志行)
+		# 返回按钮
+		_detail_content.add_child(HSeparator.new())
+		var 返回按钮: Button = Button.new()
+		返回按钮.text = "返回秘境列表"
+		返回按钮.custom_minimum_size = Vector2(0, UITheme.BTN_H_PRIMARY)
+		返回按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		返回按钮.pressed.connect(func():
+			_刷新秘境挑战列表()
+		)
+		_detail_content.add_child(返回按钮)
+	)
+	_detail_content.add_child(挑战按钮)
 
 func _刷新秘境挑战详情() -> void:
 	if _detail_content == null or Game == null:
@@ -779,12 +1171,40 @@ func _on_challenge_pressed() -> void:
 			出战.append(d)
 	if 出战.is_empty():
 		return
+
+	# P2接入：组装攻方快照（用于战斗场景立绘显示）
+	var 攻方快照: Array = []
+	for d in 出战:
+		if d is Disciple:
+			攻方快照.append(d.get_final_combat_attr())
+
+	# P2接入：组装守方快照（怪物，用于战斗场景立绘显示）
+	var 守方快照: Array = []
+	守方快照 = StageDataLoader.build_monster_units(_selected_stage)
+
+	# 先计算战报（保持原有逻辑）
 	var 战报: Dictionary = Game.挑战秘境(_selected_stage, 出战)
 	if 战报.get("error", "") != "":
 		if UIHint != null and UIHint.has_method("show_hint"):
 			UIHint.show_hint(null, "挑战未开始", 战报["error"])
 		return
-	_展示战报(战报)
+
+	# P2接入：显示战斗场景播放动画
+	if Game.主UI != null and Game.主UI.has_method("播放战报") and not 攻方快照.is_empty() and not 守方快照.is_empty():
+		# 连接战斗结束信号（一次性）
+		var 战斗结束信号 = Game.主UI._battle_scene.战斗结束 if Game.主UI._battle_scene != null else null
+		if 战斗结束信号 != null:
+			# 先显示战斗场景
+			Game.主UI.播放战报(战报, 攻方快照, 守方快照, "秘境挑战")
+			# 等待战斗结束
+			await 战斗结束信号
+			# 战斗结束后显示结算面板
+			_展示战报(战报)
+		else:
+			_展示战报(战报)
+	else:
+		_展示战报(战报)
+
 	_refresh_stage_list()
 	_refresh_detail()
 
@@ -899,9 +1319,9 @@ func _展示战报(战报: Dictionary) -> void:
 	内容.add_child(滚)
 	var 日志 := VBoxContainer.new()
 	滚.add_child(日志)
+	var 确 := Button.new()
 	_播放战报(战报, 日志, 攻血条, 守血条, 攻满, 守满, 确)
 
-	var 确 := Button.new()
 	确.text = "可"
 	确.pressed.connect(func(): 遮.queue_free())
 	内容.add_child(确)
@@ -919,3 +1339,405 @@ func _on_付费_历练() -> void:
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
 	refresh()
+
+
+# ============ 奇遇事件弹窗UI（P0-1新增）============
+# 展示奇遇描述和选项，玩家选择后显示结果
+
+var _奇遇弹窗遮罩: ColorRect = null
+var _当前奇遇实例ID: String = ""
+var _当前奇遇索引: int = 0
+
+# 检查并弹出待处理奇遇（页面刷新时调用）
+func 检查并弹出奇遇() -> void:
+	if ExpeditionSystem == null:
+		return
+	var 进行中 = ExpeditionSystem.获取进行中历练()
+	for 实例ID in 进行中.keys():
+		var 待处理 = ExpeditionSystem.获取待处理奇遇(实例ID)
+		if 待处理.size() > 0:
+			_弹出奇遇弹窗(实例ID, 0)
+			return
+
+# 弹出奇遇弹窗
+func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
+	_当前奇遇实例ID = 实例ID
+	_当前奇遇索引 = 奇遇索引
+	var 待处理 = ExpeditionSystem.获取待处理奇遇(实例ID)
+	if 奇遇索引 < 0 or 奇遇索引 >= 待处理.size():
+		return
+	var item = 待处理[奇遇索引]
+	var 奇遇: Dictionary = item.get("奇遇", {})
+	if 奇遇.is_empty():
+		return
+
+	# 遮罩层
+	_奇遇弹窗遮罩 = ColorRect.new()
+	_奇遇弹窗遮罩.color = Color(0, 0, 0, 0.85)
+	_奇遇弹窗遮罩.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_奇遇弹窗遮罩.mouse_filter = Control.MOUSE_FILTER_STOP
+	_奇遇弹窗遮罩.name = "奇遇弹窗遮罩"
+	add_child(_奇遇弹窗遮罩)
+
+	# 主面板
+	var 大面板 := PanelContainer.new()
+	大面板.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	大面板.offset_left = 24
+	大面板.offset_right = -24
+	大面板.offset_top = 80
+	大面板.offset_bottom = -80
+	UITheme.apply_panel_style(大面板)
+	_奇遇弹窗遮罩.add_child(大面板)
+
+	var 内容 := VBoxContainer.new()
+	内容.add_theme_constant_override("margin", UITheme.GRID * 2)
+	内容.add_theme_constant_override("separation", UITheme.GRID)
+	大面板.add_child(内容)
+
+	# 标题
+	var 标题 := Label.new()
+	标题.text = "✦ 历练奇遇 ✦"
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	内容.add_child(标题)
+
+	# 分隔线
+	内容.add_child(HSeparator.new())
+
+	# 奇遇名称
+	var 奇遇名 := Label.new()
+	奇遇名.text = str(奇遇.get("名称", "奇遇"))
+	奇遇名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	奇遇名.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	奇遇名.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	内容.add_child(奇遇名)
+
+	# 奇遇描述
+	var 奇遇描述 := Label.new()
+	奇遇描述.text = str(奇遇.get("描述", ""))
+	奇遇描述.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	奇遇描述.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	奇遇描述.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内容.add_child(奇遇描述)
+
+	# 分隔线
+	内容.add_child(HSeparator.new())
+
+	# 选项标题
+	var 选项标题 := Label.new()
+	选项标题.text = "—— 请做出选择 ——"
+	选项标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	选项标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	选项标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	内容.add_child(选项标题)
+
+	# 选项按钮
+	var 选项列表: Array = 奇遇.get("选项", [])
+	for i in range(选项列表.size()):
+		var 选项: Dictionary = 选项列表[i]
+		var 选项按钮 := Button.new()
+		var 成功率: float = float(选项.get("成功率", 0.5))
+		选项按钮.text = "%s\n%s\n（成功率%.0f%%）" % [
+			str(选项.get("名称", "")),
+			str(选项.get("描述", "")),
+			成功率 * 100
+		]
+		选项按钮.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
+		选项按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		选项按钮.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		选项按钮.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var idx = i
+		选项按钮.pressed.connect(func(): _on_奇遇选项选择(idx))
+		内容.add_child(选项按钮)
+
+	# 提示
+	var 提示 := Label.new()
+	提示.text = "选择将影响历练结果，请谨慎决策"
+	提示.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	提示.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	提示.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	内容.add_child(提示)
+
+# 奇遇选项选择
+func _on_奇遇选项选择(选项索引: int) -> void:
+	if ExpeditionSystem == null or _当前奇遇实例ID == "":
+		return
+	var 结果: Dictionary = ExpeditionSystem.处理待处理奇遇(_当前奇遇实例ID, _当前奇遇索引, 选项索引)
+	_显示奇遇结果(结果)
+
+# 显示奇遇结果
+func _显示奇遇结果(结果: Dictionary) -> void:
+	if _奇遇弹窗遮罩 == null:
+		return
+	# 清空弹窗内容，显示结果
+	for child in _奇遇弹窗遮罩.get_children():
+		child.queue_free()
+
+	var 大面板 := PanelContainer.new()
+	大面板.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	大面板.offset_left = 24
+	大面板.offset_right = -24
+	大面板.offset_top = 120
+	大面板.offset_bottom = -120
+	UITheme.apply_panel_style(大面板)
+	_奇遇弹窗遮罩.add_child(大面板)
+
+	var 内容 := VBoxContainer.new()
+	内容.add_theme_constant_override("margin", UITheme.GRID * 2)
+	内容.add_theme_constant_override("separation", UITheme.GRID)
+	大面板.add_child(内容)
+
+	# 结果标题
+	var 成功: bool = bool(结果.get("选择成功", false))
+	var 标题 := Label.new()
+	标题.text = "✦ 奇遇结果 ✦"
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 成功 else UITheme.C01_TEXT_SECONDARY)
+	标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	内容.add_child(标题)
+
+	内容.add_child(HSeparator.new())
+
+	# 奇遇名称和选项
+	var 信息 := Label.new()
+	信息.text = "奇遇：%s\n选择：%s\n结果：%s" % [
+		str(结果.get("奇遇名称", "")),
+		str(结果.get("选项名称", "")),
+		"成功" if 成功 else "未能如愿"
+	]
+	信息.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	信息.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内容.add_child(信息)
+
+	内容.add_child(HSeparator.new())
+
+	# 纪事
+	var 纪事 := Label.new()
+	纪事.text = str(结果.get("纪事", ""))
+	纪事.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	纪事.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 成功 else UITheme.C01_TEXT_SECONDARY)
+	纪事.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	内容.add_child(纪事)
+
+	# 效果展示
+	var 效果: Dictionary = 结果.get("效果", {})
+	if not 效果.is_empty():
+		内容.add_child(HSeparator.new())
+		var 效果标题 := Label.new()
+		效果标题.text = "—— 获得效果 ——"
+		效果标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		效果标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		效果标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		内容.add_child(效果标题)
+		for key in 效果.keys():
+			var 效果_lbl := Label.new()
+			效果_lbl.text = "· %s：%s" % [str(key), str(效果[key])]
+			效果_lbl.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			效果_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			内容.add_child(效果_lbl)
+
+	# 确认按钮
+	var 确 := Button.new()
+	确.text = "继续历练"
+	确.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
+	确.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	确.pressed.connect(_关闭奇遇弹窗)
+	内容.add_child(确)
+
+# 关闭奇遇弹窗
+func _关闭奇遇弹窗() -> void:
+	if _奇遇弹窗遮罩 != null:
+		_奇遇弹窗遮罩.queue_free()
+		_奇遇弹窗遮罩 = null
+	_当前奇遇实例ID = ""
+	_当前奇遇索引 = 0
+	_refresh_detail()
+	# 检查是否还有其他待处理奇遇
+	检查并弹出奇遇()
+
+# ===== 历练史册（P0-1 UI集成：展示历练历史记录和统计）=====
+func _刷新历练史册() -> void:
+	if _detail_content == null:
+		return
+
+	# 标题
+	var title := Label.new()
+	title.text = "历练史册"
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(title)
+
+	# 统计信息
+	var 统计: Dictionary = ExpeditionSystem.获取历练统计() if ExpeditionSystem != null else {}
+	var 总次数: int = int(统计.get("总次数", 0))
+	var 成功次数: int = int(统计.get("成功次数", 0))
+	var 失败次数: int = int(统计.get("失败次数", 0))
+	var 成功率: float = float(统计.get("成功率", 0.0))
+	var 完美次数: int = int(统计.get("完美次数", 0))
+	var 大捷次数: int = int(统计.get("大捷次数", 0))
+	var 奇遇总次数: int = int(统计.get("奇遇总次数", 0))
+
+	var stat_label := Label.new()
+	stat_label.text = "总历练：%d次 | 成功：%d次 | 失败：%d次 | 成功率：%.0f%%\n完美结局：%d次 | 大捷：%d次 | 奇遇总触发：%d次" % [
+		总次数, 成功次数, 失败次数, 成功率 * 100, 完美次数, 大捷次数, 奇遇总次数
+	]
+	stat_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	stat_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	stat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_content.add_child(stat_label)
+
+	var sep := HSeparator.new()
+	_detail_content.add_child(sep)
+
+	# 历史记录列表
+	var history: Array = ExpeditionSystem.获取历练历史(0, 20) if ExpeditionSystem != null else []
+	if history.is_empty():
+		var hint := Label.new()
+		hint.text = "暂无历练记录，派遣弟子外出历练后将在此记录"
+		hint.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		hint.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_detail_content.add_child(hint)
+		return
+
+	var list_title := Label.new()
+	list_title.text = "最近历练记录（显示最近20条）"
+	list_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	list_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_detail_content.add_child(list_title)
+
+	# 滚动容器
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_content.add_child(scroll)
+
+	var scroll_vb := VBoxContainer.new()
+	scroll_vb.add_theme_constant_override("separation", UITheme.GRID / 2)
+	scroll.add_child(scroll_vb)
+
+	# 每条记录
+	for 记录 in history:
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(true))
+		scroll_vb.add_child(panel)
+
+		var vb := VBoxContainer.new()
+		vb.add_theme_constant_override("separation", UITheme.GRID / 4)
+		panel.add_child(vb)
+
+		# 第一行：弟子名 + 关卡名 + 结局
+		var row1 := HBoxContainer.new()
+		row1.add_theme_constant_override("separation", UITheme.GRID)
+		vb.add_child(row1)
+
+		var 弟子ID列表: Array = 记录.get("弟子ID列表", [])
+		var 关卡名: String = str(记录.get("关卡名称", "未知"))
+		var 结局: String = str(记录.get("结局类型", "普通"))
+		var 评级: String = str(记录.get("评级", "C"))
+
+		# 从弟子ID列表获取弟子名（Disciple对象有弟子ID和姓名属性）
+		var 弟子名: String = "未知"
+		if 弟子ID列表.size() > 0 and Game != null:
+			var did: int = int(弟子ID列表[0])
+			for d in Game.弟子列表:
+				if d.弟子ID == did:
+					弟子名 = d.姓名
+					break
+		if 弟子ID列表.size() > 1:
+			弟子名 += "等%d人" % 弟子ID列表.size()
+
+		var name_label := Label.new()
+		name_label.text = "%s · %s" % [弟子名, 关卡名]
+		name_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		name_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row1.add_child(name_label)
+
+		var 结局颜色: Color = UITheme.C01_TEXT_TERTIARY
+		match 结局:
+			"完美": 结局颜色 = UITheme.C01_TEXT_GOLD
+			"大捷": 结局颜色 = Color(1, 0.84, 0)
+			"深入": 结局颜色 = Color(0.6, 0.8, 1)
+			"稳妥": 结局颜色 = Color(0.6, 1, 0.6)
+			"普通": 结局颜色 = UITheme.C01_TEXT_PRIMARY
+			"险归": 结局颜色 = Color(1, 0.6, 0.4)
+			"失败": 结局颜色 = Color(1, 0.4, 0.4)
+
+		var result_label := Label.new()
+		result_label.text = "[%s] 评级：%s" % [结局, 评级]
+		result_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		result_label.add_theme_color_override("font_color", 结局颜色)
+		row1.add_child(result_label)
+
+		# 第二行：时间 + 奇遇次数
+		var row2 := HBoxContainer.new()
+		row2.add_theme_constant_override("separation", UITheme.GRID)
+		vb.add_child(row2)
+
+		var 时间: int = int(记录.get("结束日", 0))
+		var 奇遇次数: int = int(记录.get("奇遇次数", 0))
+
+		var time_label := Label.new()
+		time_label.text = "第%d游戏日" % 时间
+		time_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		time_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row2.add_child(time_label)
+
+		if 奇遇次数 > 0:
+			var adventure_label := Label.new()
+			adventure_label.text = "触发奇遇：%d次" % 奇遇次数
+			adventure_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			adventure_label.add_theme_color_override("font_color", Color(0.8, 0.6, 1))
+			row2.add_child(adventure_label)
+
+		# 第三行：路线和奖励（如果有）
+		var 路线: String = str(记录.get("路线", "稳妥"))
+		var 奖励: Dictionary = 记录.get("奖励", {})
+		var 奖励文本: String = ""
+		if not 奖励.is_empty():
+			var 奖励列表: Array = []
+			for key in 奖励.keys():
+				奖励列表.append("%s+%s" % [key, str(奖励[key])])
+			奖励文本 = "，奖励：" + "、".join(奖励列表)
+		var desc_label := Label.new()
+		desc_label.text = "路线：%s%s" % [路线, 奖励文本]
+		desc_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vb.add_child(desc_label)
+
+		# P0-3 战斗快播：可回放的记录提供「观战」入口。
+		#   设计意图：历练是异步结算（派出→数日后归来），玩家原本只看到一行文字战绩，
+		#   对「词条/丹纹/装备/境界」这些战力投资的感知为零。补一个回放入口，
+		#   让战力成长在结算时刻被"看见"，而不是只体现在数字上。
+		#   存档侧仅最近 20 条保留 battle_log + 快照（见 expedition.gd 归档裁剪），
+		#   更早的记录降级为纯文字战绩，此处给出明确文案而非静默隐藏按钮。
+		var 原始战报: Dictionary = 记录.get("原始战报", {})
+		var 攻方快照: Array = 记录.get("攻方快照", [])
+		var 守方快照: Array = 记录.get("守方快照", [])
+		if not 原始战报.is_empty() and not 攻方快照.is_empty() and not 守方快照.is_empty():
+			var 观战btn := Button.new()
+			观战btn.text = "观战回放"
+			观战btn.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
+			观战btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+			观战btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			var 回放战报: Dictionary = 原始战报
+			var 回放攻方: Array = 攻方快照
+			var 回放守方: Array = 守方快照
+			var 回放标题: String = 关卡名
+			观战btn.pressed.connect(func():
+				if Game != null and Game.主UI != null and Game.主UI.has_method("播放战报"):
+					Game.主UI.播放战报(回放战报, 回放攻方, 回放守方, 回放标题)
+			)
+			vb.add_child(观战btn)
+		else:
+			var 归档label := Label.new()
+			归档label.text = "（此战已归档，仅存战绩）"
+			归档label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+			归档label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+			vb.add_child(归档label)

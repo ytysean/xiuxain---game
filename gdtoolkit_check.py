@@ -29,14 +29,17 @@ def main():
         parts = os.path.relpath(p, ROOT).split(os.sep)
         if any(d.startswith(".") for d in parts):  # 跳过 .godot/.workbuddy 等缓存
             continue
+        if "backup" in parts:  # 备份目录是历史快照，不参与闸门（可能由外部工具写入带 BOM）
+            continue
         files.append(p)
     files.sort()
 
     errs = []
     for fp in files:
         rel = os.path.relpath(fp, ROOT)
+        # utf-8-sig：容忍外部工具（编辑器/其他 agent）回写的 BOM，避免闸门误报
         try:
-            with open(fp, "r", encoding="utf-8") as f:
+            with open(fp, "r", encoding="utf-8-sig") as f:
                 src = f.read()
         except Exception as e:
             errs.append("%s | 读取失败: %s" % (rel, e))

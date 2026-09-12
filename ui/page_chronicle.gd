@@ -10,7 +10,7 @@ signal 纪事条目详情(索引: int)
 
 const RedDotBadge := preload("res://ui/red_dot_badge.gd")
 
-const 分类列表: Array = ["大事件", "岁纪", "庶务", "异闻"]
+const 分类列表: Array = ["大事件", "岁纪", "庶务", "异闻", "宗门典籍"]
 
 var _built: bool = false
 var _list_vbox: VBoxContainer
@@ -136,6 +136,10 @@ func _classify(entry: Dictionary) -> String:
 	var 稀有度 = str(entry.get("稀有度", ""))
 	var category = str(entry.get("category", ""))
 	var 名称 = str(entry.get("名称", ""))
+	var 分类 = str(entry.get("分类", ""))
+	# 宗门典籍分类（新增）
+	if 分类 == "宗门典籍" or category == "宗门典籍":
+		return "宗门典籍"
 	if 稀有度 == "异闻" or category == "异闻":
 		return "异闻"
 	if 稀有度 == "天品" or 稀有度 == "宗门" or category == "传承":

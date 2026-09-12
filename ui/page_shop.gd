@@ -1,8 +1,9 @@
 extends Control
 
-# 仙玉商店页（GameUI 二级页）：对齐 Ardot 06 屏「商店：坊市」。
+# 坊市页（GameUI 二级页）：宗门交易市场（对齐 Ardot 06 屏「商店：坊市」）。
+# 页内按语义分两区：「仙缘阁」= 仙玉商城（XianyuShop 分类）；「坊市」= 灵石交易市场（出售/收购/回购）。
 # 分类 Tab / 限时特惠 / 商品卡片 / 底部充值入口；全部字体走 UITheme 角色 helper。
-# 购物流程仅调用 Game.购买仙玉商品，不改数据层既有字段。
+# 购物流程仅调用 Game.购买仙玉商品 / 购买坊市物品，不改数据层既有字段。
 signal 坊市购买完成
 signal 返回主页
 signal 仙衣阁请求
@@ -87,7 +88,7 @@ func _build_header(parent: Control) -> void:
 	title.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.gui_input.connect(func(e):
 		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "坊市", "使用灵石、仙玉购买丹药、法器、材料等物资。\n\n· 灵石：宗门基础货币，由弟子供奉与贸易产出\n· 仙玉：稀有货币，可购买专属皮肤与珍贵道具\n· 仙衣阁：弟子与宗主专属皮肤商店"))
+			UIHint.show_hint(title, "坊市", "宗门交易市场：以灵石买卖物资；仙玉珍品另设「仙缘阁」。\n\n· 坊市：灵石交易市场，出售 / 收购 / 回购丹药、法器、材料等物资\n· 仙缘阁：仙玉商城，以仙玉购置灵宝、功法、灵兽、外观等珍稀之物\n· 仙衣阁：弟子与宗主专属皮肤商店"))
 	UITheme.apply_page_title(title)
 	bar.add_child(title)
 
@@ -162,12 +163,30 @@ func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContain
 	hb.add_child(out_label)
 	return capsule
 
+# 分类栏分区（X12 一义一名一页）：
+#   「仙缘阁」= 仙玉商城（XianyuShop 分类：推荐/灵宝/功法/灵兽/护道/机缘/VIP/符箓/外观）
+#   「坊市」  = 灵石交易市场（出售 / 收购 / 回购）
+# 二者同页不同语义，分区标注以防「坊市」被误读为仙玉充值商店。
 func _build_tabs(parent: Control) -> void:
+	_build_tab_group(parent, "仙缘阁", XianyuShop.分类列表)
+	_build_tab_group(parent, "坊市", ["出售", "收购", "回购"])
+	_update_tab_styles()
+
+func _build_tab_group(parent: Control, 区名: String, 分类: Array) -> void:
+	var 组 := VBoxContainer.new()
+	组.name = "TabGroup_" + 区名
+	组.add_theme_constant_override("separation", 2)
+	var 区标 := Label.new()
+	区标.name = "GroupLabel_" + 区名
+	区标.text = 区名
+	区标.add_theme_font_size_override("font_size", 12)
+	区标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+	组.add_child(区标)
 	var bar := HBoxContainer.new()
-	bar.name = "CategoryTabs"
+	bar.name = "CategoryTabs_" + 区名
 	bar.add_theme_constant_override("separation", UITheme.GRID)
 	bar.alignment = BoxContainer.ALIGNMENT_BEGIN
-	for cat: String in XianyuShop.分类列表:
+	for cat: String in 分类:
 		var btn := Button.new()
 		btn.name = "Tab_" + cat
 		btn.text = cat
@@ -176,17 +195,8 @@ func _build_tabs(parent: Control) -> void:
 		btn.pressed.connect(_on_tab_pressed.bind(cat))
 		_tab_buttons[cat] = btn
 		bar.add_child(btn)
-	for cat: String in ["出售", "收购", "回购"]:
-		var btn := Button.new()
-		btn.name = "Tab_" + cat
-		btn.text = cat
-		btn.flat = true
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.pressed.connect(_on_tab_pressed.bind(cat))
-		_tab_buttons[cat] = btn
-		bar.add_child(btn)
-	parent.add_child(bar)
-	_update_tab_styles()
+	组.add_child(bar)
+	parent.add_child(组)
 
 func _update_tab_styles() -> void:
 	for cat in _tab_buttons.keys():
@@ -738,7 +748,7 @@ func _on_buy_pressed(商品: Dictionary, btn: Button) -> void:
 
 func _on_recharge_pressed() -> void:
 	if is_instance_valid(Game) and Game.has_method("toast"):
-		Game.toast("充值入口筹备中")
+		Game.添加提示("充值入口筹备中")
 
 func _toast(文本: String) -> void:
 	if _状态标签 != null:
@@ -758,6 +768,45 @@ func _populate_收购() -> void:
 	UITheme.apply_aux_text(提示)
 	提示.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	_scroll_vbox.add_child(提示)
+
+	# 灵种购买（S1：灵田产出消耗灵种）
+	var 灵种栏: HBoxContainer = HBoxContainer.new()
+	灵种栏.add_theme_constant_override("separation", 10)
+	_scroll_vbox.add_child(灵种栏)
+
+	var 灵种信息: Label = Label.new()
+	灵种信息.text = "灵种库存：%d份（灵田产出必需）" % int(Game.灵种)
+	灵种信息.custom_minimum_size = Vector2(200, 32)
+	灵种栏.add_child(灵种信息)
+
+	var 买灵种按钮: Button = Button.new()
+	买灵种按钮.text = "购买灵种×10（100灵石）"
+	买灵种按钮.custom_minimum_size = Vector2(180, 32)
+	买灵种按钮.pressed.connect(_on购买灵种)
+	灵种栏.add_child(买灵种按钮)
+
+	# 灵草/灵米售卖（S1：坊市售卖宗门产出）
+	var 售卖栏: HBoxContainer = HBoxContainer.new()
+	售卖栏.add_theme_constant_override("separation", 10)
+	_scroll_vbox.add_child(售卖栏)
+
+	var 售卖信息: Label = Label.new()
+	售卖信息.text = "灵草：%d | 灵米：%d" % [int(Game.灵草), int(Game.灵米)]
+	售卖信息.custom_minimum_size = Vector2(200, 32)
+	售卖栏.add_child(售卖信息)
+
+	var 卖灵草按钮: Button = Button.new()
+	卖灵草按钮.text = "售卖灵草×10（20灵石）"
+	卖灵草按钮.custom_minimum_size = Vector2(160, 32)
+	卖灵草按钮.pressed.connect(_on售卖灵草)
+	售卖栏.add_child(卖灵草按钮)
+
+	var 卖灵米按钮: Button = Button.new()
+	卖灵米按钮.text = "售卖灵米×10（30灵石）"
+	卖灵米按钮.custom_minimum_size = Vector2(160, 32)
+	卖灵米按钮.pressed.connect(_on售卖灵米)
+	售卖栏.add_child(卖灵米按钮)
+
 	# 每日特惠（game_state 坊市特惠卡，走 购买坊市物品）
 	_populate_特惠()
 	# 常规上架集（坊市上架集 → 灵石商品卡）
@@ -1070,4 +1119,37 @@ func _on_付费_刷新坊市() -> void:
 		UIHint.show_hint(self, "坊市已刷新", "本周上架已重新生成")
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
+	refresh()
+
+
+func _on购买灵种() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果: Dictionary = Game.购买灵种(10)
+	if bool(结果.get("成功", false)):
+		UIHint.show_hint(self, "购买成功", "灵种+10")
+	else:
+		UIHint.show_hint(self, "购买失败", str(结果.get("原因", "")))
+	refresh()
+
+
+func _on售卖灵草() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果: Dictionary = Game.售卖灵草(10)
+	if bool(结果.get("成功", false)):
+		UIHint.show_hint(self, "售卖成功", "灵石+%d" % int(结果.get("灵石", 0)))
+	else:
+		UIHint.show_hint(self, "售卖失败", str(结果.get("原因", "")))
+	refresh()
+
+
+func _on售卖灵米() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 结果: Dictionary = Game.售卖灵米(10)
+	if bool(结果.get("成功", false)):
+		UIHint.show_hint(self, "售卖成功", "灵石+%d" % int(结果.get("灵石", 0)))
+	else:
+		UIHint.show_hint(self, "售卖失败", str(结果.get("原因", "")))
 	refresh()

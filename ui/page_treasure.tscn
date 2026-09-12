@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/page_treasure.gd" id="1_st"]
+
+[node name="PageTreasure" type="Control"]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 480.0
+offset_bottom = 854.0
+mouse_filter = 2
+script = ExtResource("1_st")

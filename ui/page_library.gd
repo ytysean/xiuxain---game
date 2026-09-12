@@ -17,10 +17,12 @@ const C_GOLD_DIM: Color = Color(0.839, 0.694, 0.416, 0.60)
 const C_GREEN: Color = Color(0.4, 0.8, 0.4)
 
 var _built: bool = false
-var _当前标签: String = "已入阁"  # "已入阁" 或 "典籍类型"
+var _当前标签: String = "已入阁"  # "已入阁" 或 "典籍类型" 或 "技能"
 var _选中索引: int = -1
 var _典籍列表: Array = []
 var _类型列表: Array = []
+var _技能列表: Array = []
+var _技能标签按钮: Button = null
 
 # 根据典籍类型和品阶生成描述
 func _生成典籍描述(典籍: Dictionary) -> String:
@@ -47,7 +49,7 @@ func _生成典籍描述(典籍: Dictionary) -> String:
 	var 专业描述 = 类型描述.get(类型, "此书记载修真杂学，开卷有益。")
 	return "《%s》\n\n%s\n\n%s\n\n阅读可获得悟道点，并临时提升对应领域能力。每日限读一次，温故而知新。" % [名称, 基础描述, 专业描述]
 
-var _bg: TextureRect
+var _bg: ColorRect
 var _标题标签: Label
 var _返回按钮: Button
 var _已入阁标签按钮: Button
@@ -64,6 +66,9 @@ var _详情描述: Label
 var _阅读按钮: Button
 var _注释按钮: Button
 var _收录类型按钮: Button
+var _指派容器: HBoxContainer
+var _指派说明: Label
+var _当前技能ID: String = ""
 
 func _ready() -> void:
 	_build()
@@ -79,7 +84,7 @@ func _build() -> void:
 	_built = true
 	
 	# 背景
-	_bg = TextureRect.new()
+	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.color = C_BG_TOP
 	add_child(_bg)
@@ -139,6 +144,14 @@ func _build() -> void:
 	_类型标签按钮.size = Vector2(120, 30)
 	_类型标签按钮.pressed.connect(func(): _切换标签("典籍类型"))
 	标签栏.add_child(_类型标签按钮)
+
+	# 技能学习标签按钮
+	_技能标签按钮 = Button.new()
+	_技能标签按钮.text = "技能学习"
+	_技能标签按钮.position = Vector2(300, 5)
+	_技能标签按钮.size = Vector2(120, 30)
+	_技能标签按钮.pressed.connect(func(): _切换标签("技能"))
+	标签栏.add_child(_技能标签按钮)
 	
 	# 列表区域
 	var 列表区域 = ScrollContainer.new()
@@ -210,6 +223,37 @@ func _build() -> void:
 	_收录类型按钮.pressed.connect(_on收录类型)
 	按钮区域.add_child(_收录类型按钮)
 
+	# 修习说明：弟子按自身目标/境界 AI 自动消耗宗门贡献前往藏经阁兑换，宗主无需手动指派
+	_指派容器 = HBoxContainer.new()
+	_指派容器.add_theme_constant_override("separation", 8)
+	详情内容.add_child(_指派容器)
+
+	_指派说明 = Label.new()
+	_指派说明.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_指派说明.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_指派说明.text = "本门弟子会依自身目标与境界，自行前往藏经阁兑换功法（消耗宗门贡献）。"
+	UITheme.apply_body_text(_指派说明)
+	_指派容器.add_child(_指派说明)
+	_指派容器.visible = false
+
+## 填充「可修习此技能的弟子」下拉；无人可学时给出原因
+## 刷新修习说明：展示当前技能的可修习弟子数与自动兑换规则（宗主无需手动指派）
+func _填充指派弟子() -> void:
+	if _指派容器 == null or _指派说明 == null or _当前技能ID == "":
+		if _指派容器 != null:
+			_指派容器.visible = false
+		return
+	var 可学数: int = 0
+	for d in Game.弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		for sk in Game.获取弟子可学技能(int(d.弟子ID)):
+			if str(sk.get("skill_id", "")) == _当前技能ID:
+				可学数 += 1
+				break
+	_指派说明.text = "本门弟子会依自身目标与境界，自行前往藏经阁兑换功法（消耗宗门贡献）。当前可修习此技者 %d 人。" % 可学数
+	_指派容器.visible = true
+
 func create_label(text: String, size: int = 14, color: Color = Color.WHITE) -> Label:
 	var 标签 = Label.new()
 	标签.text = text
@@ -228,17 +272,19 @@ func create_stylebox(bg_color: Color, border_color: Color = Color.TRANSPARENT) -
 func _切换标签(标签: String) -> void:
 	_当前标签 = 标签
 	_选中索引 = -1
+	if _指派容器 != null:
+		_指派容器.visible = false
+	_当前技能ID = ""
 	# 更新标签按钮样式
-	if 标签 == "已入阁":
-		_已入阁标签按钮.add_theme_stylebox_override("normal", create_stylebox(C_TAB_ACTIVE))
-		_类型标签按钮.add_theme_stylebox_override("normal", create_stylebox(Color.TRANSPARENT))
-	else:
-		_已入阁标签按钮.add_theme_stylebox_override("normal", create_stylebox(Color.TRANSPARENT))
-		_类型标签按钮.add_theme_stylebox_override("normal", create_stylebox(C_TAB_ACTIVE))
+	_已入阁标签按钮.add_theme_stylebox_override("normal", create_stylebox(C_TAB_ACTIVE if 标签 == "已入阁" else Color.TRANSPARENT))
+	_类型标签按钮.add_theme_stylebox_override("normal", create_stylebox(C_TAB_ACTIVE if 标签 == "典籍类型" else Color.TRANSPARENT))
+	if _技能标签按钮:
+		_技能标签按钮.add_theme_stylebox_override("normal", create_stylebox(C_TAB_ACTIVE if 标签 == "技能" else Color.TRANSPARENT))
 	refresh()
 
 func refresh() -> void:
-	_列表.clear()
+	for _c in _列表.get_children():
+		_c.queue_free()
 	
 	if _当前标签 == "已入阁":
 		_典籍列表 = Game.获取藏书阁列表()
@@ -274,6 +320,22 @@ func refresh() -> void:
 			var 索引 = i
 			行.pressed.connect(func(): _on选中类型(索引))
 			_列表.add_child(行)
+
+	if _当前标签 == "技能":
+		_技能列表 = Game.获取所有技能()
+		if _技能列表.is_empty():
+			var 空标签 = create_label("暂无技能配置", 14, Color.GRAY)
+			_列表.add_child(空标签)
+		else:
+			for i in _技能列表.size():
+				var 技能 = _技能列表[i]
+				var 行 = Button.new()
+				行.text = "%s（%s）- %s - 消耗%d贡献" % [技能.get("skill_name", ""), 技能.get("grade", ""), 技能.get("skill_type", ""), int(技能.get("learn_cost", 0))]
+				行.custom_minimum_size = Vector2(0, 45)
+				行.add_theme_font_size_override("font_size", 13)
+				var 索引 = i
+				行.pressed.connect(func(): _on学习技能(索引))
+				_列表.add_child(行)
 	
 	_更新详情()
 
@@ -335,7 +397,7 @@ func _on选中类型(索引: int) -> void:
 	refresh()
 
 func _on入阁() -> void:
-	var 结果 = Game.入阁("修炼类", "灵品", "随机典籍")
+	var 结果 = Game.收录典籍("随机典籍", "灵品", "修炼类")
 	if 结果.get("成功", false):
 		refresh()
 
@@ -343,7 +405,7 @@ func _on收录类型() -> void:
 	if _选中索引 < 0 or _选中索引 >= _类型列表.size():
 		return
 	var 类型 = _类型列表[_选中索引]
-	var 结果 = Game.入阁(类型.get("类型", "修炼类"), "灵品", "随机典籍")
+	var 结果 = Game.收录典籍("随机典籍", "灵品", 类型.get("类型", "修炼类"))
 	if 结果.get("成功", false):
 		_切换标签("已入阁")
 
@@ -351,7 +413,7 @@ func _on研读() -> void:
 	if _选中索引 < 0 or _选中索引 >= _典籍列表.size():
 		return
 	var 典籍 = _典籍列表[_选中索引]
-	var 结果 = Game.研读(典籍.get("典籍ID", 0))
+	var 结果 = Game.阅读典籍(典籍.get("ID", 0))
 	if 结果.get("成功", false):
 		refresh()
 
@@ -359,9 +421,40 @@ func _on批注() -> void:
 	if _选中索引 < 0 or _选中索引 >= _典籍列表.size():
 		return
 	var 典籍 = _典籍列表[_选中索引]
-	var 结果 = Game.添加典籍注释(典籍.get("典籍ID", 0), "这是一条注释")
+	var 结果 = Game.添加典籍注释(典籍.get("ID", 0), "这是一条注释")
 	if 结果.get("成功", false):
 		refresh()
+
+
+func _on学习技能(索引: int) -> void:
+	if 索引 < 0 or 索引 >= _技能列表.size():
+		return
+	var 技能 = _技能列表[索引]
+	# 信息展示：功法详情 + 已学会弟子（弟子AI自动兑换，玩家不手动操作）
+	_详情名.text = "【%s】%s" % [str(技能.get("grade", "")), str(技能.get("skill_name", ""))]
+	_详情品阶.text = "类型：%s | 效果：%s | 兑换消耗：%d贡献" % [str(技能.get("skill_type", "")), str(技能.get("effect_value", "")), int(技能.get("learn_cost", 0))]
+	_详情类型.text = "解锁境界：%s" % str(技能.get("unlock_realm", ""))
+	_详情注释.text = "说明：弟子平日依自身目标与境界自行前往藏经阁兑换功法，宗主无需手动指派"
+	_详情效果.text = ""
+	_当前技能ID = str(技能.get("skill_id", ""))
+	_填充指派弟子()
+
+	# 显示已学会该技能的弟子
+	var 已学会: String = ""
+	var 计数: int = 0
+	for d in Game.弟子列表:
+		if d == null:
+			continue
+		var 弟子技能: Array = Game.获取弟子技能(int(d.弟子ID))
+		for sk in 弟子技能:
+			if str(sk.get("skill_id", "")) == str(技能.get("skill_id", "")):
+				已学会 += "%s(Lv.%d/%s) " % [str(d.姓名), int(sk.get("level", 1)), str(sk.get("来源", ""))]
+				计数 += 1
+				break
+	if 计数 > 0:
+		_详情描述.text = "已习得弟子（%d人）：%s" % [计数, 已学会]
+	else:
+		_详情描述.text = "尚无弟子习得此功法"
 
 
 

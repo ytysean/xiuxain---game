@@ -310,6 +310,7 @@ func _ready():
 		状态栏 = Label.new()
 		状态栏.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		状态栏.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 让点击穿透到状态面板，供入门指引步骤①Hook
+		状态栏.bbcode_enabled = true  # 启用富文本，支持宗主称号品质颜色
 		var 状态面板: PanelContainer = 新面板("")
 		状态面板.get_child(0).add_child(状态栏)
 		状态面板.add_theme_stylebox_override("panel", _暗墨面板())
@@ -405,7 +406,9 @@ func _初始化红点系统() -> void:
 		Game.战报更新.connect(_刷新红点, CONNECT_DEFERRED)
 		Game.邮件变动.connect(_刷新红点, CONNECT_DEFERRED)
 
-func _刷新红点() -> void:
+func _刷新红点(_ignored: Variant = null) -> void:
+	# 同时连接无参信号（弟子变动/新手目标更新/邮件变动）与带1参信号（战报更新(文本)），
+	# 用可选参数吸收战报文本，避免 CONNECT_DEFERRED 下参数数量不符报错。
 	if _红点系统 != null and is_instance_valid(_红点系统):
 		_红点系统.刷新所有红点()
 
@@ -480,7 +483,8 @@ func _建_宗门页():
 	网格.add_theme_constant_override("v_separation", 8)
 	内容.add_child(网格)
 	_宗门网格入口.clear()
-	var 入口: Array = ["洞府", "修炼", "殿阁", "坊市", "差事", "库藏", "宗主管理"]
+	# S34 凡人王朝：第 8 个入口，3 列布局恰好铺满 3 行（不新增一级导航按钮）
+	var 入口: Array = ["洞府", "修炼", "殿阁", "坊市", "差事", "库藏", "宗主管理", "凡人王朝", "拍卖行", "传送阵", "家族", "法宝", "科技", "灵兽", "灵钓", "探遗迹", "饲灵育兽", "卜算星盘", "商道"]
 	for 名 in 入口:
 		var 钮 := Button.new()
 		钮.text = 名
@@ -499,7 +503,9 @@ func _宗门全景卡() -> PanelContainer:
 	卡.add_theme_stylebox_override("panel", _暗墨面板())
 	var 文: VBoxContainer = 卡.get_child(0)
 	var 行 := Label.new()
-	行.text = "门派 Lv%d · 声望 %d · 繁荣 %d" % [Game.门派等级, Game.声望, Game.繁荣]
+	var 等级称呼: String = Game.获取宗门等级称呼()
+	var 详细称呼: String = Game.获取宗门详细称呼()
+	行.text = "%s · Lv%d · 声望 %d · 繁荣 %d" % [详细称呼, Game.门派等级, Game.声望, Game.繁荣]
 	行.add_theme_color_override("font_color", 暗金)
 	文.add_child(行)
 	var 行二 := Label.new()
@@ -515,7 +521,37 @@ func _宗门全景卡() -> PanelContainer:
 	行四.text = "日产出 +%d 灵石｜在岗弟子 %d 人" % [Game.预估月产出(), _在岗弟子数()]
 	行四.add_theme_color_override("font_color", 玉石绿)
 	文.add_child(行四)
+	# P1：晋升大典入口（达到门槛时显示）
+	if Game.可晋升等级 > 0:
+		var 晋升行 := HBoxContainer.new()
+		晋升行.add_theme_constant_override("separation", 10)
+		var 晋升提示 := Label.new()
+		晋升提示.text = "✦ 宗门底蕴已足，可晋升至%d级！" % Game.可晋升等级
+		晋升提示.add_theme_color_override("font_color", 暗金)
+		晋升行.add_child(晋升提示)
+		var 晋升按钮 := Button.new()
+		晋升按钮.text = "举办晋升大典"
+		晋升按钮.custom_minimum_size = Vector2(140, 36)
+		晋升按钮.pressed.connect(_举办晋升大典)
+		晋升行.add_child(晋升按钮)
+		文.add_child(晋升行)
+		# 瓶颈提示
+		var 瓶颈信息: Dictionary = Game.距下一级信息()
+		if 瓶颈信息.get("瓶颈", "") != "":
+			var 瓶颈行 := Label.new()
+			瓶颈行.text = "⚠ %s" % 瓶颈信息["瓶颈"]
+			瓶颈行.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
+			文.add_child(瓶颈行)
 	return 卡
+
+# P1：举办晋升大典回调
+func _举办晋升大典() -> void:
+	var 结果: Dictionary = Game.举办晋升大典()
+	if 结果.get("成功", false):
+		刷新()
+		_toast("晋升大典圆满成功！宗门晋升至%d级，位列%s之林。" % [结果["新等级"], 结果["等级称呼"]])
+	else:
+		_toast(结果.get("原因", "晋升失败"))
 
 # === S1 批5-A：宗门页香火面板（纯展示 · 数值 [PLACEHOLDER] 待真机校准）===
 func _宗门香火面板() -> PanelContainer:
@@ -528,7 +564,7 @@ func _宗门香火面板() -> PanelContainer:
 	行一.add_theme_font_size_override("font_size", FONT_BODY)
 	文.add_child(行一)
 	var 行二 := Label.new()
-	行二.text = "凡世城镇 %d 座 ｜ 日产预估 +%d" % [Game.凡人城镇.size(), Game.香火月产预估]
+	行二.text = "凡世城镇 %d 座 ｜ 日产预估 +%d" % [Game.王朝系统.凡人城镇.size(), Game.香火日产预估]
 	行二.add_theme_color_override("font_color", 次墨)
 	行二.add_theme_font_size_override("font_size", FONT_BODY)
 	文.add_child(行二)
@@ -893,6 +929,22 @@ func _建_二级页(名: String):
 		"图录": _填_图录页(内容)       # WAVE-D #6
 		"史册": _填_史册页(内容)       # WAVE-D #8
 		"宗主管理": _填_宗主管理页(内容)
+		"凡人王朝": _填_凡人王朝页(内容)      # S34 批次 2（含批次 1 欠的差事榜 UI）
+		"拍卖行": _填_拍卖行页(内容)      # S34b 通用拍卖会（常驻场 + 季度大拍）
+		"传送阵": _填_传送阵页(内容)      # S34c 传送阵（建造/升级 + 传送调度）
+		"家族": _填_家族页(内容)      # 家族系统（总览/成员/宝库/功法/秘宝/排行）
+		"法宝": _填_法宝页(内容)      # 法宝阁（总览/普通法宝/本命法宝）
+		"科技": _填_科技页(内容)      # 宗门科技
+		"灵兽": _填_灵兽页(内容)      # 灵兽/坐骑管理（总览/灵兽库/出战绑定/引育计划/坐骑）技院（总览/科技树）
+		"灵钓": _填_灵钓页(内容)      # 灵钓（休闲 S46 钓鱼闭环：垂钓/钓道境界/图录）
+		"探遗迹": _填_探遗迹页(内容)      # 探遗迹（休闲 S47 探秘闭环：参悟阵法/图录）
+		"饲灵育兽": _填_饲灵育兽页(内容)      # 饲灵育兽（休闲 S48 饲灵闭环：饲灵/灵兽志）
+		"卜算星盘": _填_卜算星盘页(内容)      # 卜算星盘（休闲 S49 卜算闭环：卜算/天机录）
+		"药圃经营": _填_药圃页(内容)      # 药圃经营（休闲 S50 种植闭环：种植/灵植志）
+		"论道棋弈": _填_论道棋弈页(内容)      # 论道棋弈（休闲 S51 论道闭环：论道/棋谱录）
+		"入山采撷": _填_入山采撷页(内容)      # 入山采撷（休闲 S52 采集闭环：狩猎/采药/采矿）
+		"闲情雅趣": _填_闲情雅趣页(内容)      # 闲情雅趣（休闲 S53 雅趣总入口：灵钓/论道/棋弈）
+		"商道": _填_商道页(内容)      # 商道（S8 经商深化：总览/商铺/行情/商道录）
 	当前页名 = "宗门"   # 主导航仍高亮宗门
 	当前页持久节点 = []
 
@@ -1356,12 +1408,18 @@ func _构建离山内容(数据: Dictionary):
 		var 评级卡 := VBoxContainer.new()
 		评级卡.add_theme_constant_override("separation", 3)
 		var 标题 := Label.new()
-		标题.text = "🏆 太玄宗·岁末考评：%s（第 %d 周期 · %d 分）" % [卡["评级"], 卡["周期"], 卡["总分"]]
+		var 修真评级名: String = Game.获取评级修真名(str(卡["评级"]))
+		标题.text = "🏆 太玄宗·岁末考评：%s（%s）· 第 %d 周期 · %d 分" % [修真评级名, 卡["评级"], 卡["周期"], 卡["总分"]]
 		标题.add_theme_font_size_override("font_size", FONT_SUB)
 		标题.add_theme_color_override("font_color", _评级色(卡["评级"]))
 		评级卡.add_child(标题)
+		var 评级描述 := Label.new()
+		评级描述.text = Game.获取评级修真描述(str(卡["评级"]))
+		评级描述.add_theme_font_size_override("font_size", FONT_AUX)
+		评级描述.add_theme_color_override("font_color", 次墨)
+		评级卡.add_child(评级描述)
 		var 维 := Label.new()
-		维.text = "经营 %d ｜ 收益 %d ｜ 弟子 %d" % [卡["分维度"]["经营"], 卡["分维度"]["收益"], 卡["分维度"]["弟子"]]
+		维.text = "经营 %d ｜ 收益 %d ｜ 弟子 %d ｜ 宗主 %d ｜ 技艺 %d ｜ 洞府 %d" % [卡["分维度"]["经营"], 卡["分维度"]["收益"], 卡["分维度"]["弟子"], 卡["分维度"].get("宗主", 0), 卡["分维度"].get("技艺", 0), 卡["分维度"].get("洞府", 0)]
 		维.add_theme_font_size_override("font_size", FONT_AUX)
 		维.add_theme_color_override("font_color", 次墨)
 		评级卡.add_child(维)
@@ -1380,13 +1438,21 @@ func _构建离山内容(数据: Dictionary):
 		var 距岁末: int = max(0, (Game.上次结算年 + 365) - Game.累计游戏日)
 		var 倒文: String = "距岁末考评 %d 日" % 距岁末
 		if Game._校准开("双周期评级启用", true):
-			var 距七载: int = max(0, (Game.上次七载日 + Game._校准整("七载周期年", 7) * 365) - Game.累计游戏日)
+			var 距七载: int = max(0, (Game.上次七载日 + Game._校准("七载周期年", 7) * 365) - Game.累计游戏日)
 			倒文 += " ｜ 距七载大考 %d 日" % 距七载
 		var 倒 := Label.new()
 		倒.text = 倒文
 		倒.add_theme_font_size_override("font_size", FONT_AUX)
 		倒.add_theme_color_override("font_color", 次墨)
 		评级卡.add_child(倒)
+		# 当前年度预估评级
+		var 预估: Dictionary = Game.获取当前预估评级()
+		var 预估文: String = "本年度预估：%s（%s）· 年度进度 %d%%" % [预估.get("修真名", ""), 预估.get("评级", ""), int(预估.get("年度进度", 0))]
+		var 预估标 := Label.new()
+		预估标.text = 预估文
+		预估标.add_theme_font_size_override("font_size", FONT_AUX)
+		预估标.add_theme_color_override("font_color", _评级色(str(预估.get("评级", "D"))))
+		评级卡.add_child(预估标)
 		
 		# WAVE-A #5：当年风物（按 触发周期=年度 过滤展示，纯氛围，零数值）
 		var 当年风物: Array = Quest._取周期事件("年度")
@@ -2114,8 +2180,18 @@ func 刷新():
 		_升级提示 = "（已达当前上限）"
 	else:
 		_升级提示 = "（距 Lv%d 还差声望 %d）" % [_升级["下一级"], _升级["声望缺口"]]
-	状态栏.text = ("时间：%s\n宗门 Lv%d · 声望 %d · 繁荣 %d ｜ 灵石 %d · 灵草 %d · 矿石 %d · 灵气 %d · 贡献 %d ｜ 弟子 %d%s" %
-	[Game.时间文本(), Game.门派等级, Game.声望, Game.繁荣, Game.灵石, Game.灵草, Game.矿石, Game.灵气, Game.贡献点, Game.弟子列表.size(), _升级提示])
+	# 宗主称号显示（带品质颜色+帝品特效）
+	var 宗主称号文本: String = Game.获取宗主称号显示() if Game != null else ""
+	var 宗主显示: String = ""
+	if 宗主称号文本 != "":
+		var 称号详情: Dictionary = Game.获取称号详情(Game.宗主当前称号) if Game != null else {}
+		var 品质: String = str(称号详情.get("quality", "凡品"))
+		var 品质色: Color = Game.获取称号品质颜色(品质) if Game != null else Color(0.8, 0.8, 0.8)
+		var 色码: String = "#%02x%02x%02x" % [int(品质色.r * 255), int(品质色.g * 255), int(品质色.b * 255)]
+		var 帝品特效: String = "✦" if 品质 == "帝品" else ""
+		宗主显示 = "[color=%s]%s【%s】[/color]%s · " % [色码, 帝品特效, 宗主称号文本, 帝品特效]
+	状态栏.text = ("%s时间：%s\n宗门 Lv%d · 声望 %d · 繁荣 %d ｜ 灵石 %d · 灵草 %d · 矿石 %d · 灵气 %d · 贡献 %d ｜ 弟子 %d%s" %
+	[宗主显示, Game.时间文本(), Game.门派等级, Game.声望, Game.繁荣, Game.灵石, Game.灵草, Game.矿石, Game.灵气, Game.贡献点, Game.弟子列表.size(), _升级提示])
 	for c in 列表.get_children():
 		c.queue_free()
 	# P0：按当前排序维度排序（不影响 弟子列表 原始招募序）
@@ -2274,7 +2350,8 @@ func _弟子卡(d: Disciple) -> Control:
 	avatar_tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	avatar_tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	avatar_tr.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var 头像路径 = "res://art/characters/disciples/头像/%s.png" % d.姓名
+	var 头像索引 = d.弟子ID % 12
+	var 头像路径 = "res://art/characters/disciples/头像/avatar_%d.png" % 头像索引
 	var 头像纹理 = load(头像路径)
 	if 头像纹理 != null:
 		avatar_tr.texture = 头像纹理
@@ -3871,6 +3948,7 @@ func _进入主界面():
 		g.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(g)
 		新UI = g
+		Game.注册主UI(g)
 		新UI.refresh_all()
 		# 账号系统 v1：设置页「退出登录」→ 回到登录/选择面板
 		if g.has_signal("登出请求"):
@@ -4609,6 +4687,166 @@ func _弹_先贤纪事(姓名: String, 纪: Array):
 		行.add_theme_color_override("font_color", 次墨)
 		行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		内容.add_child(行)
+
+# S34 凡人王朝：二级页（天下 / 差事 / 朝堂 / 册封 四合一）
+# 批次 1 落地时王朝无任何 UI，玩家完全摸不到；本页一并补齐差事榜与朝堂、册封。
+func _填_凡人王朝页(内容: Control):
+	var 页脚本 = preload("res://ui/page_dynasty.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_拍卖行页(内容: Control):
+	var 页脚本 = preload("res://ui/page_auction.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	页.打开全服拍卖.connect(func(): _填全服拍卖页(内容))
+	内容.add_child(页)
+
+# S54：全服玩家拍卖大典页面
+func _填全服拍卖页(内容: Control):
+	for c in 内容.get_children():
+		c.queue_free()
+	var 页脚本 = preload("res://ui/page_global_auction.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_传送阵页(内容: Control):
+	var 页脚本 = preload("res://ui/page_teleport.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_家族页(内容: Control):
+	var 页脚本 = preload("res://ui/page_family.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+
+func _填_法宝页(内容: Control):
+	var 页脚本 = preload("res://ui/page_treasure.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_科技页(内容: Control):
+	var 页脚本 = preload("res://ui/page_tech.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+
+func _填_灵兽页(内容: Control):
+	var 页脚本 = preload("res://ui/page_beast.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+func _填_灵钓页(内容: Control):
+	var 页脚本 = preload("res://ui/page_fishing.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_入山采撷页(内容: Control):
+	var 页脚本 = preload("res://ui/page_hunt.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_闲情雅趣页(内容: Control):
+	var 页脚本 = preload("res://ui/page_leisure.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_探遗迹页(内容: Control):
+	var 页脚本 = preload("res://ui/page_relic.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_饲灵育兽页(内容: Control):
+	var 页脚本 = preload("res://ui/page_beast_raise.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_卜算星盘页(内容: Control):
+	var 页脚本 = preload("res://ui/page_divine.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_药圃页(内容: Control):
+	var 页脚本 = preload("res://ui/page_herb.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_论道棋弈页(内容: Control):
+	var 页脚本 = preload("res://ui/page_chess.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
+
+func _填_商道页(内容: Control):
+	var 页脚本 = preload("res://ui/page_merchant.gd")
+	var 页 = Control.new()
+	页.set_script(页脚本)
+	页.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	页.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	页.返回主页.connect(_返回宗门)
+	内容.add_child(页)
 
 func _填_坊市页(内容: Control):
 	# WAVE-C #7：集市状态一致性——若当前窗口状态与已上架标记不符，强制刷新（仅刷新规则，零经济）

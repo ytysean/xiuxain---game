@@ -1,8 +1,8 @@
 extends Control
 
-# 收藏图录（GameUI 二级页）：按类别分段展示图录收藏状态，稀有藏品可供奉藏宝阁换声望。
+# 宗门典藏（GameUI 二级页）：按五大类展示宗门典藏，稀有度颜色区分，收集进度可视化。
 # 数据只读 Game.图录配置 / 收藏图录_已收集 / 捐赠记录；写操作仅调 Game.捐赠图录(图录ID)。
-# 严守数据层不可动。
+# 修真世界观：万宝录、万兽谱、功法录、遗迹志、奇闻录
 
 signal 返回主页
 
@@ -12,6 +12,36 @@ var _类别列表: Array = []
 var _分段行: HBoxContainer
 var _列表: VBoxContainer
 var _状态标签: Label
+var _进度标签: Label
+var _奖励标签: Label
+
+# 五大类分类映射（旧分类→新分类）
+# 先贤事迹、天机已移出典藏，归入宗门典籍/观星系统
+const 分类映射: Dictionary = {
+	"阵法图谱": "功法录",
+	"天材地宝": "万宝录",
+	"灵草图录": "万宝录",
+	"妖兽图录": "万兽谱",
+	"功法残卷": "功法录",
+	"灵钓": "奇闻录",
+	"遗迹": "遗迹志",
+	"灵兽": "万兽谱",
+	"灵植": "万宝录",
+	"棋谱录": "功法录",
+	"商道": "奇闻录",
+}
+
+# 五大类显示顺序
+const 大类顺序: Array = ["万宝录", "万兽谱", "功法录", "遗迹志", "奇闻录"]
+
+# 稀有度颜色
+const 稀有度颜色: Dictionary = {
+	"凡品": Color(0.6, 0.6, 0.6),
+	"良品": Color(0.4, 0.8, 0.4),
+	"上品": Color(0.4, 0.6, 0.9),
+	"极品": Color(0.8, 0.4, 0.9),
+	"仙品": Color(0.95, 0.75, 0.2),
+}
 
 func _ready() -> void:
 	_build()
@@ -34,6 +64,8 @@ func _build() -> void:
 	content.add_child(vbox)
 
 	_build_header(vbox)
+	_build_progress(vbox)
+	_build_atmosphere(vbox)
 	_build_segments(vbox)
 
 	var scroll := ScrollContainer.new()
@@ -50,7 +82,7 @@ func _build() -> void:
 
 	var 说明 := Label.new()
 	说明.name = "Note"
-	说明.text = "稀有藏品可供奉藏宝阁，换取宗门声望；普通藏品仅收录不捐。"
+	说明.text = "宗门典藏，收录天下奇珍。仙品异物可供奉藏宝阁，换取宗门声望。"
 	说明.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_text(说明)
 	说明.add_theme_color_override("font_color", UITheme.color_text_body_dim())
@@ -68,20 +100,90 @@ func _build_header(parent: Control) -> void:
 	bar.add_child(back)
 	var title := Label.new()
 	title.name = "Title"
-	title.text = "收藏图录  ⓘ"
+	title.text = "宗门典藏  ⓘ"
 	title.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.gui_input.connect(func(e):
 		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "收藏图录", "收录宗门 encountered 的法器、灵兽、功法等图鉴。\n收集更多条目可获得成就奖励。"))
+			UIHint.show_hint(title, "宗门典藏", "宗门典藏阁，收录天下奇珍异宝、灵兽功法、遗迹秘闻。\n收集更多典藏可获宗门气运加持。"))
 	UITheme.apply_page_title(title)
 	bar.add_child(title)
 	_状态标签 = Label.new()
 	_状态标签.name = "Status"
-	_状态标签.text = "已捐 0"
+	_状态标签.text = "供奉 0"
 	UITheme.apply_value_font(_状态标签, false)
 	_状态标签.add_theme_color_override("font_color", UITheme.color_text_title1())
 	bar.add_child(_状态标签)
 	parent.add_child(bar)
+
+func _build_progress(parent: Control) -> void:
+	var panel := PanelContainer.new()
+	panel.name = "ProgressPanel"
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.050, 0.110, 0.140)
+	sb.set_corner_radius_all(8)
+	panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("margin_left", 12)
+	vb.add_theme_constant_override("margin_right", 12)
+	vb.add_theme_constant_override("margin_top", 8)
+	vb.add_theme_constant_override("margin_bottom", 8)
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	_进度标签 = Label.new()
+	_进度标签.name = "Progress"
+	_进度标签.text = "总典藏进度：0/0"
+	UITheme.apply_aux_text(_进度标签)
+	_进度标签.add_theme_color_override("font_color", UITheme.color_text_title1())
+	vb.add_child(_进度标签)
+	var bar := ProgressBar.new()
+	bar.name = "ProgressBar"
+	bar.min_value = 0
+	bar.max_value = 100
+	bar.value = 0
+	bar.custom_minimum_size = Vector2(0, 10)
+	vb.add_child(bar)
+	# 集齐奖励展示
+	_奖励标签 = Label.new()
+	_奖励标签.name = "Reward"
+	_奖励标签.text = ""
+	_奖励标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(_奖励标签)
+	_奖励标签.add_theme_color_override("font_color", Color(0.95, 0.75, 0.2))
+	vb.add_child(_奖励标签)
+	parent.add_child(panel)
+
+func _build_atmosphere(parent: Control) -> void:
+	# 典藏阁氛围描述，增加沉浸感
+	var panel := PanelContainer.new()
+	panel.name = "AtmospherePanel"
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.060, 0.130, 0.100)
+	sb.set_corner_radius_all(8)
+	sb.border_width_left = 1
+	sb.border_width_right = 1
+	sb.border_width_top = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(0.784, 0.659, 0.416, 0.3)
+	panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("margin_left", 12)
+	vb.add_theme_constant_override("margin_right", 12)
+	vb.add_theme_constant_override("margin_top", 8)
+	vb.add_theme_constant_override("margin_bottom", 8)
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+	var 标题 := Label.new()
+	标题.text = "✦ 典藏阁序 ✦"
+	UITheme.apply_body_text(标题)
+	标题.add_theme_color_override("font_color", Color(0.95, 0.75, 0.2))
+	vb.add_child(标题)
+	var 描述 := Label.new()
+	描述.text = "太玄宗门典藏阁，藏天下奇珍异宝、灵兽功法、遗迹秘闻。凡入阁之物，皆录于册，以供后世弟子观瞻。仙品异物，可供奉藏宝阁，受宗门香火。"
+	描述.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(描述)
+	描述.add_theme_color_override("font_color", UITheme.color_text_body_dim())
+	vb.add_child(描述)
+	parent.add_child(panel)
 
 func _build_segments(parent: Control) -> void:
 	_类别列表 = _取类别列表()
@@ -125,6 +227,48 @@ func refresh() -> void:
 	if not _built:
 		_build()
 	_populate()
+	_update_progress()
+
+func _update_progress() -> void:
+	if _进度标签 == null:
+		return
+	var 配置: Array = []
+	var 已收: Dictionary = {}
+	if is_instance_valid(Game):
+		配置 = Game.图录配置
+		已收 = Game.收藏图录_已收集
+	var 总数: int = 0
+	var 已收数: int = 0
+	var 增益值: float = 0.0
+	for r in 配置:
+		var 旧类别: String = str(r.get("类别", ""))
+		# 先贤事迹、天机已移出典藏，不显示
+		if not 分类映射.has(旧类别):
+			continue
+		var 新类别: String = 分类映射.get(旧类别, "奇闻录")
+		if _当前类别 != "全部" and 新类别 != _当前类别:
+			continue
+		总数 += 1
+		var 匹配名: String = str(r.get("匹配名", ""))
+		var 已收列表: Array = 已收.get(旧类别, [])
+		if 已收列表.has(匹配名):
+			已收数 += 1
+		if 增益值 <= 0.0:
+			增益值 = float(r.get("增益值", 0.0))
+	_进度标签.text = "%s进度：%d/%d" % [_当前类别, 已收数, 总数]
+	var 进度条: ProgressBar = _进度标签.get_parent().get_node("ProgressBar")
+	if 进度条 != null and 总数 > 0:
+		进度条.value = float(已收数) / float(总数) * 100.0
+	# 集齐奖励展示
+	if _奖励标签 != null:
+		if _当前类别 == "全部":
+			_奖励标签.text = "集齐各类典藏可获宗门气运加持，产出最高+30%。"
+		elif 已收数 >= 总数 and 总数 > 0:
+			_奖励标签.text = "✦ 已圆满集齐！宗门产出+%d%%气运加持。" % int(增益值 * 100)
+		elif 增益值 > 0:
+			_奖励标签.text = "集齐奖励：宗门产出+%d%%（还差%d件）" % [int(增益值 * 100), 总数 - 已收数]
+		else:
+			_奖励标签.text = ""
 
 func _populate() -> void:
 	if _列表 == null:
@@ -144,27 +288,51 @@ func _populate() -> void:
 		if bool(已捐.get(id, false)):
 			捐赠数 += 1
 	if _状态标签 != null:
-		_状态标签.text = "已捐 %d" % 捐赠数
+		_状态标签.text = "供奉 %d" % 捐赠数
 	for r in 配置:
-		if str(r.get("类别", "")) != _当前类别:
+		var 旧类别: String = str(r.get("类别", ""))
+		# 先贤事迹、天机已移出典藏，不显示
+		if not 分类映射.has(旧类别):
 			continue
-		_列表.add_child(_建卡(r, 已收, 已捐))
+		var 新类别: String = 分类映射.get(旧类别, "奇闻录")
+		if _当前类别 != "全部" and 新类别 != _当前类别:
+			continue
+		_列表.add_child(_建卡(r, 已收, 已捐, 新类别))
 
-func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary) -> Control:
+func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: String) -> Control:
 	var 图录ID: String = str(r.get("图录ID", ""))
 	var 名称: String = str(r.get("名称", ""))
-	var 类别: String = str(r.get("类别", ""))
+	var 旧类别: String = str(r.get("类别", ""))
 	var 是否稀有: bool = str(r.get("是否稀有", "否")) == "是"
 	var 匹配名: String = str(r.get("匹配名", ""))
-	var 已收列表: Array = 已收.get(类别, [])
+	var 描述: String = str(r.get("描述", ""))
+	var 已收列表: Array = 已收.get(旧类别, [])
 	var 已收录: bool = 已收列表.has(匹配名)
 	var 已捐赠: bool = bool(已捐.get(图录ID, false))
+
+	# 稀有度判定
+	var 稀有度: String = "凡品"
+	if 是否稀有:
+		稀有度 = "仙品"
+	elif "极品" in 名称 or "上古" in 名称 or "太古" in 名称:
+		稀有度 = "极品"
+	elif "上品" in 名称 or "三百年" in 名称 or "五百年" in 名称:
+		稀有度 = "上品"
+	elif "良品" in 名称 or "百年" in 名称:
+		稀有度 = "良品"
 
 	var card := PanelContainer.new()
 	card.name = "Card_" + 图录ID
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
 	sb.bg_color = Color(0.050, 0.110, 0.140)
 	sb.set_corner_radius_all(8)
+	# 仙品边框高亮
+	if 稀有度 == "仙品":
+		sb.border_width_left = 2
+		sb.border_width_right = 2
+		sb.border_width_top = 2
+		sb.border_width_bottom = 2
+		sb.border_color = Color(0.95, 0.75, 0.2, 0.6)
 	card.add_theme_stylebox_override("panel", sb)
 
 	var vbox := VBoxContainer.new()
@@ -175,60 +343,86 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary) -> Control:
 	vbox.add_theme_constant_override("separation", 6)
 	card.add_child(vbox)
 
+	# 名称行（名称+稀有度标签）
+	var 名行 := HBoxContainer.new()
+	名行.add_theme_constant_override("separation", 8)
+	vbox.add_child(名行)
+
 	var 名 := Label.new()
-	名.text = 名称
+	名.text = 名称 if 已收录 else "？？？"
 	UITheme.apply_body_text(名)
 	名.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
-	vbox.add_child(名)
+	名行.add_child(名)
 
+	var 稀有标签 := Label.new()
+	稀有标签.text = "【%s】" % 稀有度
+	UITheme.apply_aux_text(稀有标签)
+	稀有标签.add_theme_color_override("font_color", 稀有度颜色.get(稀有度, Color(0.6, 0.6, 0.6)))
+	名行.add_child(稀有标签)
+
+	# 描述
+	if 已收录 and 描述 != "":
+		var 描述标签 := Label.new()
+		描述标签.text = 描述
+		描述标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_aux_text(描述标签)
+		描述标签.add_theme_color_override("font_color", UITheme.color_text_body_dim())
+		vbox.add_child(描述标签)
+
+	# 元信息
 	var 元 := Label.new()
-	元.text = "%s · %s藏品" % [类别, "稀有" if 是否稀有 else "普通"]
+	元.text = "%s · %s" % [新类别, 稀有度]
 	UITheme.apply_aux_text(元)
 	元.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	vbox.add_child(元)
 
+	# 状态
 	var 状态 := Label.new()
 	if 已捐赠:
 		状态.text = "已供奉"
 	elif 已收录:
-		状态.text = "已收录"
+		状态.text = "在册"
 	else:
-		状态.text = "未收录"
+		状态.text = "未见"
 	UITheme.apply_aux_text(状态)
 	if 已捐赠:
 		状态.add_theme_color_override("font_color", UITheme.color_text_title1())
+	elif 已收录:
+		状态.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
 	else:
 		状态.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	vbox.add_child(状态)
 
-	if 是否稀有 and not 已捐赠:
+	# 供奉按钮（仅仙品且已收录且未供奉）
+	if 稀有度 == "仙品" and 已收录 and not 已捐赠:
 		var btn := Button.new()
 		btn.name = "Donate"
-		btn.text = "供奉"
+		btn.text = "供奉藏宝阁"
 		btn.custom_minimum_size = Vector2(0, 32)
 		btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 		UITheme.apply_button_label(btn, true)
 		btn.pressed.connect(_on_捐赠.bind(图录ID, btn))
 		vbox.add_child(btn)
-	else:
+	elif 已捐赠:
 		var btn := Button.new()
-		btn.name = "Disabled"
-		btn.text = "已录"
+		btn.name = "Donated"
+		btn.text = "已供奉"
 		btn.custom_minimum_size = Vector2(0, 32)
 		btn.disabled = true
 		UITheme.apply_button_label(btn, false)
 		btn.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 		vbox.add_child(btn)
+
 	return card
 
 func _on_捐赠(图录ID: String, btn: Button) -> void:
 	if btn != null:
 		UITween.button_press(btn)
 	if not is_instance_valid(Game) or not Game.has_method("捐赠图录"):
-		_toast("图录功法未就绪")
+		_toast("典藏功法未就绪")
 		return
 	var res: Dictionary = Game.捐赠图录(图录ID)
-	_toast(str(res.get("msg", "捐赠完成")))
+	_toast(str(res.get("msg", "供奉完成")))
 	refresh()
 
 func _on_图录更新() -> void:
@@ -236,17 +430,13 @@ func _on_图录更新() -> void:
 
 func _toast(t: String) -> void:
 	if is_instance_valid(Game) and Game.has_method("toast"):
-		Game.toast(t)
+		Game.添加提示(t)
 
 func _取类别列表() -> Array:
-	var 列表: Array = []
-	if is_instance_valid(Game):
-		for r in Game.图录配置:
-			var c: String = str(r.get("类别", ""))
-			if c != "" and not 列表.has(c):
-				列表.append(c)
+	# 返回五大类（按顺序）
+	var 列表: Array = ["全部"]
+	列表.append_array(大类顺序)
 	return 列表
 
 func _on_back_pressed() -> void:
 	返回主页.emit()
-

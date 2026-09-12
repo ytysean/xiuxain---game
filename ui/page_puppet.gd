@@ -49,7 +49,7 @@ func _生成傀儡描述(傀儡: Dictionary) -> String:
 		装备信息 = "\n\n当前装备：%s，装备可进一步提升傀儡性能。" % 傀儡.get("装备名称", "无")
 	return "%s（%s Lv.%d）\n\n%s\n\n%s%s\n\n傀儡需定期维护，消耗灵晶修复耐久。等级越高，性能越强，可装备的部件也越多。" % [名称, 品阶, 等级, 基础描述, 专业描述, 装备信息]
 
-var _bg: TextureRect
+var _bg: ColorRect
 var _标题标签: Label
 var _返回按钮: Button
 var _已炼制标签按钮: Button
@@ -83,7 +83,7 @@ func _build() -> void:
 	_built = true
 	
 	# 背景
-	_bg = TextureRect.new()
+	_bg = ColorRect.new()
 	_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_bg.color = C_BG_TOP
 	add_child(_bg)
@@ -250,7 +250,8 @@ func _切换标签(标签: String) -> void:
 	refresh()
 
 func refresh() -> void:
-	_列表.clear()
+	for _c in _列表.get_children():
+		_c.queue_free()
 	
 	if _当前标签 == "已炼制":
 		_傀儡列表 = Game.获取傀儡列表()
@@ -355,23 +356,27 @@ func _on选中类型(索引: int) -> void:
 	refresh()
 
 func _on炼制() -> void:
-	var 结果 = Game.炼制("全能型傀儡", "凡品", "全能型", 500)
+	var 结果 = Game.宗主制作傀儡("全能型傀儡", "凡品", "全能型")
 	if 结果.get("成功", false):
 		refresh()
+	else:
+		UIHint.show_hint(self, "炼制失败", str(结果.get("原因", "")))
 
 func _on制作类型() -> void:
 	if _选中索引 < 0 or _选中索引 >= _类型列表.size():
 		return
 	var 类型 = _类型列表[_选中索引]
-	var 结果 = Game.炼制(类型.get("类型", "全能型") + "傀儡", "凡品", 类型.get("类型", "全能型"), 500)
+	var 结果 = Game.宗主制作傀儡(类型.get("类型", "全能型") + "傀儡", "凡品", 类型.get("类型", "全能型"))
 	if 结果.get("成功", false):
 		_切换标签("已炼制")
+	else:
+		UIHint.show_hint(self, "炼制失败", str(结果.get("原因", "")))
 
 func _on升级() -> void:
 	if _选中索引 < 0 or _选中索引 >= _傀儡列表.size():
 		return
 	var 傀儡 = _傀儡列表[_选中索引]
-	var 结果 = Game.升级(傀儡.get("傀儡ID", 0), 200)
+	var 结果 = Game.升级傀儡(傀儡.get("ID", 0), 200)
 	if 结果.get("成功", false):
 		refresh()
 
@@ -379,7 +384,7 @@ func _on装备() -> void:
 	if _选中索引 < 0 or _选中索引 >= _傀儡列表.size():
 		return
 	var 傀儡 = _傀儡列表[_选中索引]
-	var 结果 = Game.傀儡装备(傀儡.get("傀儡ID", 0), "随机装备")
+	var 结果 = Game.傀儡装备(傀儡.get("ID", 0), "随机装备")
 	if 结果.get("成功", false):
 		refresh()
 
@@ -387,6 +392,6 @@ func _on卸下() -> void:
 	if _选中索引 < 0 or _选中索引 >= _傀儡列表.size():
 		return
 	var 傀儡 = _傀儡列表[_选中索引]
-	var 结果 = Game.傀儡卸下(傀儡.get("傀儡ID", 0))
+	var 结果 = Game.傀儡卸下装备(傀儡.get("ID", 0))
 	if 结果.get("成功", false):
 		refresh()

@@ -53,7 +53,7 @@ const 干预选项 := [
 ]
 
 # 境界序（用于过滤匹配）
-const _境界序 := ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体"]
+const _境界序: Array = Disciple.境界序   # 唯一真源（2026-09-02）：原仅 7 阶，大乘/渡劫/仙阶/道阶 事件永不可解锁
 
 # ============ CSV 事件池（懒加载）============
 static var _csv事件池: Array = []          # 从 config/event_quest.csv 加载
@@ -236,6 +236,7 @@ static func 抽取(d: Disciple, scene: String = "") -> Dictionary:
 				"稀有度": evt["rarity"],
 				"需干预": 是否需干预(evt["rarity"]),
 				"赏赐": null,
+				"event_id": evt["event_id"],
 				"event_name": evt["event_name"],
 				"event_type": evt["event_type"],
 				"trigger_scene": evt["trigger_scene"],

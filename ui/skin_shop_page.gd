@@ -563,9 +563,9 @@ func _on_buy_skin(皮肤ID: String) -> void:
 	refresh()
 
 func _on_equip_skin(皮肤ID: String) -> void:
-	if Game == null or not Game.has_method("装备皮肤"):
+	if Game == null or not Game.has_method("装备宗主皮肤"):
 		return
-	Game.装备皮肤(皮肤ID)
+	Game.装备宗主皮肤(皮肤ID)
 	_状态标签.text = "装备成功"
 	refresh()
 

@@ -128,7 +128,74 @@ static func 封顶暴击率(率: float) -> float:
 static func 封顶闪避率(率: float) -> float:
 	return clamp(率, 0.0, 闪避率上限)
 
-# ============ 纯函数：单段伤害（ADR-003 D4）============
+# ============ 修真味·境界压制桥接（复用 BattleUtil.realm_suppress 既有引擎）============
+# 设计依据：§9.4.7 境界压制独立处理（高境界对低境界穿透+伤害加成）
+# 安全性：快照无 "境界" 键 / 同境界 → realm_suppress 返回 {1.0, 0.0} → 原数学完全不变（72 断言安全）
+static func _境界压制(atk: Dictionary, def: Dictionary) -> Dictionary:
+	var a_r: String = str(atk.get("境界", ""))
+	var d_r: String = str(def.get("境界", ""))
+	var r: Dictionary = BattleUtil.realm_suppress(a_r, d_r)
+	# 修真味补充：既有引擎仅规定「高打低」加成，未约束「低打高」——
+	# 修真小说里以弱击强应是徒劳（练气弟子砍元婴长老，伤不了分毫）。
+	# 低境界攻高境界：每差 1 阶 伤害 -15%（下限 0.25，即差 5 阶起 -75%）
+	if a_r != "" and d_r != "" and a_r != d_r:
+		var order: Array = Disciple.境界序
+		var ai: int = order.find(a_r)
+		var di: int = order.find(d_r)
+		if ai >= 0 and di >= 0 and di > ai:
+			var 境界差: int = di - ai
+			# 越级战斗机制（修真小说设定）：
+			# 超过2阶直接判定为境界碾压，无法撼动（练气打元婴=0伤害）
+			if 境界差 > 2:
+				r["damage_multiplier"] = 0.01
+				r["low_to_high"] = true
+				r["realm_crush"] = true
+				return r
+			# 基础低打高减伤：每阶-15%
+			var 基础减伤: float = float(境界差) * 0.15
+			# 越级系数：抵消部分减伤
+			var 越级抵消: float = 0.0
+			# 1. 道心≥80：道心通明，越级减伤减半
+			var 攻方道心: int = int(atk.get("道心", 40))
+			if 攻方道心 >= 80:
+				越级抵消 += 基础减伤 * 0.5
+			# 2. 单灵根纯度≥90：五行极致，法术威力倍增，越级减伤-20%
+			var 灵根纯度: String = str(atk.get("灵根", {}).get("纯度", "单"))
+			if 灵根纯度 == "单" or 灵根纯度 == "纯":
+				越级抵消 += 0.20 * float(境界差)
+			# 3. 极品法宝（仙阶+）：法宝之威，不可以境界论，穿透境界压制10%
+			var 极品特效: Array = atk.get("极品特效", [])
+			for 特效 in 极品特效:
+				var 特效名: String = str(特效)
+				if "仙" in 特效名 or "道" in 特效名 or "神" in 特效名:
+					越级抵消 += 0.10
+					break
+			# P1优化：装备品阶越阶加成（高品质装备可弥补境界差距）
+			# 装备总品阶≥30（平均宝阶以上）：越级减伤-10%
+			# 装备总品阶≥40（平均王阶以上）：越级减伤-20%
+			var 装备品阶: int = int(atk.get("装备品阶", 0))
+			if 装备品阶 >= 40:
+				越级抵消 += 0.20 * float(境界差)
+			elif 装备品阶 >= 30:
+				越级抵消 += 0.10 * float(境界差)
+			# 4. 特殊命格/血脉：天生神圣，越级减伤-30%（通过技能/被动检测）
+			var 技能列表: Array = atk.get("技能", [])
+			for sk in 技能列表:
+				if typeof(sk) == TYPE_DICTIONARY:
+					var sk_type: String = str(sk.get("skill_type", ""))
+					if sk_type == "被动天赋":
+						var sk_name: String = str(sk.get("name", ""))
+						if "圣体" in sk_name or "神体" in sk_name or "混沌" in sk_name or "荒古" in sk_name:
+							越级抵消 += 0.30 * float(境界差)
+							break
+			# 计算最终伤害倍率
+			var 最终减伤: float = max(0.0, 基础减伤 - 越级抵消)
+			r["damage_multiplier"] = clamp(1.0 - 最终减伤, 0.10, 1.0)
+			r["low_to_high"] = true
+			r["realm_diff"] = 境界差
+			r["越级抵消"] = 越级抵消
+	return r
+
 # 公式：攻击 × 职业倍率 ×(1+通用增益)×(1+道心) × wuxing ×(1-防御减伤率) × 暴击系数 × 浮动
 # 参数显式传入，便于单测与「完整/速算」双模式共用：
 #   float_factor : 浮动系数（完整∈[0.9,1.1]，速算=1.0）
@@ -136,7 +203,7 @@ static func 封顶闪避率(率: float) -> float:
 #   dodge_mult   : 闪避系数（完整随机取 0/1，速算取期望值 1-闪避率）
 #   is_true      : 真实/固定伤害（wuxing 恒 1.0）
 # 边界（AC7①）：攻击=0 不出负伤（返回 0）；防御极高时伤害下限夹 1。
-static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: float, crit_mult: float, dodge_mult: float, is_true: bool = false, 穿透率: float = 0.0) -> int:
+static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: float, crit_mult: float, dodge_mult: float, is_true: bool = false, 穿透率: float = 0.0, 境界压制倍率: float = 1.0, 境界穿透率: float = 0.0) -> int:
 	if dodge_mult <= 0.0:
 		return 0
 	var 攻击: float = float(atk.get("属性", {}).get("攻", 0))
@@ -146,6 +213,8 @@ static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: floa
 	var 减伤率: float = clamp(防御 / (防御 + 防御减伤基准), 0.0, 防御减伤上限)
 	# S2 套装·穿透：按攻方穿透率无视部分减伤（默认 0.0 → 原数学不变，72 断言不破）
 	减伤率 = clamp(减伤率 * (1.0 - clamp(穿透率, 0.0, 1.0)), 0.0, 防御减伤上限)
+	# 修真味·境界压制：高境界穿透低境界部分防御（默认 0.0 → 原数学不变，72 断言安全）
+	减伤率 = clamp(减伤率 * (1.0 - clamp(境界穿透率, 0.0, 1.0)), 0.0, 防御减伤上限)
 	# S2 套装·额外减伤：守方自身减伤率无视部分减伤（默认 0.0 → 原数学不变）
 	var 守方减伤: float = clamp(float(def.get("减伤率", 0.0)), 0.0, 0.9)
 	减伤率 = clamp(减伤率 * (1.0 - 守方减伤), 0.0, 防御减伤上限)
@@ -160,7 +229,7 @@ static func calc_hit_damage(atk: Dictionary, def: Dictionary, float_factor: floa
 	var 通用增益: float = 1.0 + float(atk.get("通用增益", 0.0))
 	var 道心增益: float = 1.0 + float(atk.get("道心增益", 0.0))
 	var 防御系数: float = 1.0 - 减伤率
-	var dmg: float = 攻击 * 职业倍率 * 功法倍率 * 通用增益 * 道心增益 * wux * 防御系数 * crit_mult
+	var dmg: float = 攻击 * 职业倍率 * 功法倍率 * 通用增益 * 道心增益 * wux * 防御系数 * crit_mult * 境界压制倍率
 	dmg *= float_factor
 	return int(max(伤害下限, round(dmg)))
 
@@ -193,8 +262,9 @@ static func _build_unit_state(snap: Dictionary) -> Dictionary:
 		"cur属性": cur,
 		"active_buffs": [],
 		"cooldowns": {},
-		"mp": 灵力初始,
-		"mp_max": 灵力上限,
+		"mp": float(snap.get("灵力上限", 灵力初始)),   # 灵力系统：从弟子属性读取灵力上限，旧档回落常量
+		"mp_max": float(snap.get("灵力上限", 灵力上限)),   # 灵力系统：从弟子属性读取灵力上限
+		"mp_regen": float(snap.get("灵力回复", 灵力回复)),   # 灵力系统：从弟子属性读取灵力回复
 		"base闪避": 封顶闪避率(float(snap.get("闪避率", 0.0))),
 		"base暴击": 封顶暴击率(float(snap.get("暴击率", 0.0))),
 		"cur闪避": 封顶闪避率(float(snap.get("闪避率", 0.0))),
@@ -285,7 +355,7 @@ static func _tick_buffs(st: Dictionary, other_st: Dictionary, side_is_atk: bool,
 	# ③ 增益/减益 → 重算 cur属性（含 速，触发 闪避/暴击重算）
 	_recompute_attr(st)
 	# ④ 灵力回复
-	st["mp"] = min(float(st["mp_max"]), float(st["mp"]) + 灵力回复)
+	st["mp"] = min(float(st["mp_max"]), float(st["mp"]) + float(st.get("mp_regen", 灵力回复)))
 	# ⑤ 消散：剩余回合 -=1，<=0 移除并写 buff_expire
 	var keep: Array = []
 	for b in st["active_buffs"]:
@@ -477,7 +547,8 @@ static func _cast_skill(actor_st: Dictionary, target_st: Dictionary, skill: Dict
 	var crit_mult: float = 暴击系数 if randf() < float(actor_st["cur暴击"]) else 1.0
 	var dodge_mult: float = 0.0 if randf() < float(target_st["cur闪避"]) else 1.0
 	var 穿透率: float = float(actor_st["snapshot"].get("穿透率", 0.0))
-	var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false, 穿透率)
+	var 压制: Dictionary = _境界压制(actor_view, target_view)
+	var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false, 穿透率, float(压制.get("damage_multiplier", 1.0)), float(压制.get("penetration", 0.0)))
 	target_st["cur属性"]["血"] = float(target_st["cur属性"]["血"]) - 伤害
 	# S2 套装·反伤：受击方按攻方反伤率反弹部分伤害（不递归触发）
 	var 反弹率: float = float(actor_st["snapshot"].get("反伤率", 0.0))
@@ -570,7 +641,9 @@ static func _结算_1v1_原版(atk: Dictionary, def: Dictionary, mode: String = 
 				crit_mult = 暴击系数 if randf() < actor_crit else 1.0
 				dodge_mult = 0.0 if randf() < target_dodge else 1.0
 			var 穿透率: float = float(actor.get("穿透率", 0.0))
-			var 伤害: int = calc_hit_damage(actor, target, float_factor, crit_mult, dodge_mult, false, 穿透率)
+			# 修真味·境界压制：高境界对低境界穿透+伤害加成（快照无"境界"键 → 1.0/0.0，原数学不变）
+			var 压制: Dictionary = _境界压制(actor, target)
+			var 伤害: int = calc_hit_damage(actor, target, float_factor, crit_mult, dodge_mult, false, 穿透率, float(压制.get("damage_multiplier", 1.0)), float(压制.get("penetration", 0.0)))
 			if target == def:
 				d_hp -= 伤害
 			else:
@@ -684,7 +757,8 @@ static func _结算_1v1_增强(atk: Dictionary, def: Dictionary, mode: String = 
 				float_factor = randf_range(浮动下限, 浮动上限)
 				crit_mult = 暴击系数 if randf() < actor_crit else 1.0
 				dodge_mult = 0.0 if randf() < target_dodge else 1.0
-			var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false)
+			var 压制2: Dictionary = _境界压制(actor_view, target_view)
+			var 伤害: int = calc_hit_damage(actor_view, target_view, float_factor, crit_mult, dodge_mult, false, 0.0, float(压制2.get("damage_multiplier", 1.0)), float(压制2.get("penetration", 0.0)))
 			if is_atk:
 				d_state["cur属性"]["血"] = float(d_state["cur属性"]["血"]) - 伤害
 			else:

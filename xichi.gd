@@ -4,16 +4,7 @@ extends Node
 ## 命格重铸、性格重铸、道心提升、灵泉沐浴
 
 ## 命格品质定义
-const 命格列表: Array = ["凡品", "良品", "上品", "极品", "天品", "仙品", "神品"]
-const 命格加成: Dictionary = {
-	"凡品": {"修炼": 0.0, "战力": 0, "悟性": 0.0},
-	"良品": {"修炼": 0.05, "战力": 10, "悟性": 0.02},
-	"上品": {"修炼": 0.10, "战力": 30, "悟性": 0.05},
-	"极品": {"修炼": 0.15, "战力": 60, "悟性": 0.08},
-	"天品": {"修炼": 0.25, "战力": 120, "悟性": 0.12},
-	"仙品": {"修炼": 0.40, "战力": 250, "悟性": 0.18},
-	"神品": {"修炼": 0.60, "战力": 500, "悟性": 0.25},
-}
+# 命格概率权重表见下方 命格概率；洗池等级→档 由 _命格概率档() 解析
 const 命格概率: Dictionary = {
 	1: {"凡品": 0.4, "良品": 0.3, "上品": 0.2, "极品": 0.08, "天品": 0.02, "仙品": 0.0, "神品": 0.0},
 	3: {"凡品": 0.25, "良品": 0.3, "上品": 0.25, "极品": 0.15, "天品": 0.04, "仙品": 0.01, "神品": 0.0},
@@ -57,59 +48,94 @@ static func 重铸消耗(洗池等级: int) -> int:
 static func 重铸成功率(洗池等级: int) -> float:
 	return min(0.9, 0.6 + float(max(0, 洗池等级 - 1)) * 0.05)
 
-## 随机命格品质（按洗池等级）
-static func 随机命格(洗池等级: int, 当前命格: String = "") -> String:
-	var 概率表 = 命格概率.get(1, 命格概率[1])
-	if 洗池等级 >= 10:
-		概率表 = 命格概率[10]
-	elif 洗池等级 >= 8:
-		概率表 = 命格概率[8]
-	elif 洗池等级 >= 5:
-		概率表 = 命格概率[5]
-	elif 洗池等级 >= 3:
-		概率表 = 命格概率[3]
-	# 洗池等级额外加成
-	var 等级加成 = float(max(0, 洗池等级 - 1)) * 0.005
-	# 随机命格
-	var 随机值 = randf()
-	var 累计概率 = 0.0
-	for 命格 in 命格列表:
-		累计概率 += float(概率表.get(命格, 0)) + 等级加成
-		if 随机值 <= 累计概率 and 命格 != 当前命格:
-			return 命格
-	# 如果随机到当前命格，重新随机一次
-	for 命格 in 命格列表:
-		if 命格 != 当前命格:
-			return 命格
-	return "良品"
+## 命格概率档（洗池等级 → 命格概率表 key：取 ≤等级 的最大档）
+static func _命格概率档(等级: int) -> int:
+	var 档: Array = [1, 3, 5, 8, 10]
+	var 选: int = 1
+	for k in 档:
+		if 等级 >= k:
+			选 = k
+	return 选
 
-## 执行命格重铸（带保底机制）
+## 执行命格重铸（S44：改命系统修复——重roll 真源 destiny_id）
 static func 重铸命格(弟子, 洗池等级: int) -> Dictionary:
 	if 弟子 == null:
 		return {"成功": false, "新命格": "", "原因": "弟子不存在"}
 	var 成功率 = 重铸成功率(洗池等级)
-	# 保底机制：连续失败3次后，下次必定成功
-	if not 弟子.has("命格重铸失败次数"):
-		弟子["命格重铸失败次数"] = 0
-	if int(弟子.get("命格重铸失败次数", 0)) >= 3:
-		成功率 = 1.0
+	# 保底机制：连续失败3次后下次必成功
+	if 弟子.命格重铸失败次数 >= 3:
 		弟子.命格重铸失败次数 = 0
+		return _抽新命格(弟子, 洗池等级, true)
 	if randf() > 成功率:
-		弟子.命格重铸失败次数 = int(弟子.get("命格重铸失败次数", 0)) + 1
-		return {"成功": false, "新命格": "", "原因": "重铸失败（成功率%.0f%%），已连续失败%d次" % [成功率*100, 弟子.命格重铸失败次数]}
-	# 成功，随机新命格
-	var 当前命格 = str(弟子.get("命格品质", "凡品"))
-	var 新命格 = 随机命格(洗池等级, 当前命格)
-	# 应用新命格
-	if 弟子.has("命格品质"):
-		弟子.命格品质 = 新命格
-	# 重置失败次数
+		弟子.命格重铸失败次数 += 1
+		return {"成功": false, "新命格": "", "原因": "重铸失败（成功率%.0f%%），已连续失败%d次" % [成功率 * 100, 弟子.命格重铸失败次数]}
+	return _抽新命格(弟子, 洗池等级, false)
+
+## 抽取新 destiny_id 并应用（S44 内部）
+static func _抽新命格(弟子, 洗池等级: int, 保底: bool) -> Dictionary:
+	var 当前id: String = str(弟子.destiny_id)
+	var 当前品级: String = DestinyDataLoader.get_destiny(当前id).get("品级", "凡品")
+	var 当前idx: int = DestinyDataLoader.品级枚举.find(当前品级)
+	if 当前idx < 0:
+		当前idx = 0
+	# 洗池等级→品级权重（命格概率表）
+	var 等级key: int = _命格概率档(洗池等级)
+	var 概率表: Dictionary = 命格概率.get(等级key, 命格概率[1])
+	# 候选池：非奇遇、品级>=当前（不会比现在差）、排除自身
+	var 候选: Array = []
+	for d in DestinyDataLoader.get_all():
+		if d.get("类型", "") == "奇遇":
+			continue
+		var g: String = d.get("品级", "")
+		if DestinyDataLoader.品级枚举.find(g) < 当前idx:
+			continue
+		if str(d.get("destiny_id", "")) == 当前id:
+			continue
+		候选.append({"id": str(d.get("destiny_id", "")), "w": float(概率表.get(g, 0.0))})
+	# 过滤权重>0 并归一
+	var 有效: Array = []
+	var 总权: float = 0.0
+	for c in 候选:
+		if c["w"] > 0.0:
+			有效.append(c)
+			总权 += c["w"]
+	if 有效.is_empty():
+		# 兜底：其他非奇遇 destiny 等权
+		for d in DestinyDataLoader.get_all():
+			if d.get("类型", "") == "奇遇":
+				continue
+			if str(d.get("destiny_id", "")) == 当前id:
+				continue
+			有效.append({"id": str(d.get("destiny_id", "")), "w": 1.0})
+			总权 += 1.0
+	if 有效.is_empty():
+		return {"成功": false, "新命格": "", "原因": "命格池为空，无法重铸"}
+	var r: float = randf() * 总权
+	var 新id: String = 有效[有效.size() - 1]["id"]
+	for c in 有效:
+		r -= c["w"]
+		if r <= 0:
+			新id = c["id"]
+			break
+	# 应用真源
+	弟子.destiny_id = 新id
 	弟子.命格重铸失败次数 = 0
-	# 应用命格加成
-	var 加成 = 命格加成.get(新命格, 命格加成["凡品"])
-	if 弟子.has("修炼速度"):
-		弟子.修炼速度 = float(弟子.get("修炼速度", 1.0)) * (1.0 + float(加成.get("修炼", 0)))
-	return {"成功": true, "新命格": 新命格, "原因": "重铸成功！命格变为%s，修炼速度+%.0f%%，战力+%d" % [新命格, float(加成.get("修炼", 0))*100, int(加成.get("战力", 0))]}
+	# 重算属性（修炼速度 + 战力）并广播
+	if 弟子.has_method("_应用命格养成加成"):
+		弟子._应用命格养成加成()
+	if 弟子.has_method("计算战力"):
+		弟子.战力 = 弟子.计算战力()
+	if is_instance_valid(Game) and Game.has_method("弟子变动"):
+		Game.弟子变动.emit()
+	# 真实效果文案
+	var 数据: Dictionary = DestinyDataLoader.get_destiny(新id)
+	var 类型 = 数据.get("类型", "")
+	var 维度 = 数据.get("维度", "")
+	var 数值 = int(数据.get("数值", 0))
+	var 维度名: String = {"修炼": "修炼速度", "产出": "产出", "攻": "攻击", "防": "防御", "血": "气血", "速": "速度", "奇遇": "奇遇"}.get(维度, 维度)
+	var 效果串: String = ("%s%s %+d%%" % [类型, 维度名, 数值]) if 维度 != "" else 类型
+	var 前缀: String = "保底触发！" if 保底 else ""
+	return {"成功": true, "新命格": 新id, "原因": "%s重铸成功！命格变为【%s·%s】，%s。" % [前缀, 数据.get("名称", 新id), 数据.get("品级", ""), 效果串]}
 
 ## 执行性格重铸
 static func 重铸性格(弟子, 洗池等级: int) -> Dictionary:
@@ -133,7 +159,7 @@ static func 提升道心(弟子, 洗池等级: int) -> Dictionary:
 	if 弟子 == null:
 		return {"成功": false, "原因": "弟子不存在"}
 	# 检查道心值
-	if not 弟子.has("道心值"):
+	if not "道心值" in 弟子:
 		弟子["道心值"] = 0
 	var 当前道心 = int(弟子.get("道心值", 0))
 	# 提升消耗
@@ -160,7 +186,7 @@ static func 灵泉沐浴(弟子, 洗池等级: int) -> Dictionary:
 	if 弟子 == null:
 		return {"成功": false, "原因": "弟子不存在"}
 	# 检查冷却
-	if not 弟子.has("灵泉沐浴冷却"):
+	if not "灵泉沐浴冷却" in 弟子:
 		弟子["灵泉沐浴冷却"] = 0
 	if Game != null and Game.累计游戏日 < int(弟子.get("灵泉沐浴冷却", 0)):
 		return {"成功": false, "原因": "灵泉沐浴冷却中，还需%d天" % (int(弟子.get("灵泉沐浴冷却", 0)) - Game.累计游戏日)}
@@ -174,13 +200,9 @@ static func 灵泉沐浴(弟子, 洗池等级: int) -> Dictionary:
 	if Game != null:
 		弟子.灵泉沐浴冷却 = Game.累计游戏日 + 增益天数
 	# 应用增益
-	if 弟子.has("修炼速度"):
+	if "修炼速度" in 弟子:
 		弟子.修炼速度 = float(弟子.get("修炼速度", 1.0)) * 1.2
 	return {"成功": true, "原因": "灵泉沐浴成功！修炼速度+20%%，持续%d天" % 增益天数}
-
-## 获取命格加成
-static func 获取命格加成(命格: String) -> Dictionary:
-	return 命格加成.get(命格, 命格加成["凡品"])
 
 ## 获取性格效果
 static func 获取性格效果(性格: String) -> Dictionary:

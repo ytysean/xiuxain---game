@@ -141,12 +141,27 @@ _WHITELIST_CORE = {
 WHITELIST = set(_WHITELIST_CORE)
 
 
+# ---------- 目录排除（铁律：所有闸门脚本必须排除 backup/ 等历史快照目录）----------
+# 备份是历史快照，参与闸门会：① 报 BOM/裸语句假 FAIL；② 死表检测被备份"救活"成假绿。
+SKIP_DIRS = {
+    ".godot", ".git", ".scratch_backup", ".scratch", "__pycache__", ".venv",
+    "backup", "backup_scripts", ".workbuddy", "addons", "production", "tools",
+    "node_modules",
+}
+
+
+def _in_skip_dir(dirpath):
+    # 注意：不能用 lstrip('./')，会把 ".scratch_backup" 的点吃掉（历史坑）
+    parts = [p for p in dirpath.replace("\\", "/").split("/") if p not in ("", ".", "..")]
+    return any(p in SKIP_DIRS for p in parts)
+
+
 # ---------- 提取工具 ----------
 def collect_custom_types(root):
     """从 class_name X 收集项目自定义类型。"""
     types = set()
     for dirpath, _, filenames in os.walk(root):
-        if ".godot" in dirpath or ".scratch_backup" in dirpath or ".scratch" in dirpath:
+        if _in_skip_dir(dirpath):
             continue
         for fn in filenames:
             if fn.endswith(".gd") and not fn.startswith("test_"):
@@ -348,7 +363,7 @@ def main():
     custom = collect_custom_types(root)
     gd_files = []
     for dirpath, _, filenames in os.walk(root):
-        if ".godot" in dirpath or ".scratch_backup" in dirpath or ".scratch" in dirpath:
+        if _in_skip_dir(dirpath):
             continue
         for fn in filenames:
             if fn.endswith(".gd") and not fn.startswith("test_"):

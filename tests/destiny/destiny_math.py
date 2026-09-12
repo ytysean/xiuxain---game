@@ -9,7 +9,7 @@ CSV_PATH = os.path.join(ROOT, "config", "destiny_main.csv")
 
 def load_destiny():
     rows = []
-    with open(CSV_PATH, encoding="utf-8") as f:
+    with open(CSV_PATH, encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
             ep = r.get("效果参数", "")
             if ":" in ep:
@@ -56,7 +56,7 @@ def manage_coef(member_ids, rows):
 
 def test():
     rows = load_destiny()
-    assert len(rows) == 20, "expected 20 destiny rows, got " + str(len(rows))
+    assert len(rows) == 45, "expected 45 destiny rows, got " + str(len(rows))
 
     # 断言1：战斗型命格使属性快照加成正确（攻 +9%）
     snap = snapshot({"攻": 100, "防": 100, "血": 100, "速": 100}, "D_ZHANWANG", rows)

@@ -57,9 +57,9 @@ static func 记录违纪(弟子, 类型: String, 执法堂等级: int) -> Dictio
 	var 惩罚灵石 = int(float(违纪信息.get("惩罚灵石", 10)) * 等级系数)
 	var 禁闭天数 = int(违纪信息.get("禁闭天数", 0))
 	# 记录违纪次数
-	if not 弟子.has("违纪记录"):
+	if not "违纪记录" in 弟子:
 		弟子["违纪记录"] = []
-	if not 弟子.has("违纪次数"):
+	if not "违纪次数" in 弟子:
 		弟子["违纪次数"] = {}
 	var 等级 = str(违纪信息.get("等级", "轻微"))
 	弟子.违纪次数[等级] = int(弟子.违纪次数.get(等级, 0)) + 1
@@ -93,11 +93,9 @@ static func 记录违纪(弟子, 类型: String, 执法堂等级: int) -> Dictio
 		if 禁闭天数 > 0:
 			弟子["禁闭到期日"] = Game.累计游戏日 + 禁闭天数
 		# 记录到弟子履历
-		if 弟子.has("履历") and 弟子.履历 != null:
+		if "履历" in 弟子 and 弟子.履历 != null:
 			弟子.履历.append({"日": Game.累计游戏日, "事件": "违纪：%s" % 类型, "详情": "%s，扣除贡献%d、灵石%d、禁闭%d天" % [str(违纪信息.get("描述", "")), 惩罚贡献, 惩罚灵石, 禁闭天数]})
 		# 记录到执法堂日志
-		if not Game.has("执法日志"):
-			Game["执法日志"] = []
 		Game.执法日志.insert(0, {"日": Game.累计游戏日, "弟子": str(弟子.姓名), "类型": 类型, "等级": 等级, "惩罚贡献": 惩罚贡献, "惩罚灵石": 惩罚灵石, "禁闭天数": 禁闭天数})
 		if Game.执法日志.size() > 100:
 			Game.执法日志.resize(100)
@@ -110,17 +108,17 @@ static func 记录违纪(弟子, 类型: String, 执法堂等级: int) -> Dictio
 static func 申诉(弟子, 违纪索引: int, 申诉理由: String) -> Dictionary:
 	if 弟子 == null:
 		return {"成功": false, "原因": "弟子不存在"}
-	if not 弟子.has("违纪记录") or 违纪索引 < 0 or 违纪索引 >= 弟子.违纪记录.size():
+	if not "违纪记录" in 弟子 or 违纪索引 < 0 or 违纪索引 >= 弟子.违纪记录.size():
 		return {"成功": false, "原因": "违纪记录不存在"}
 	# 记录申诉
-	if not 弟子.has("申诉记录"):
+	if not "申诉记录" in 弟子:
 		弟子["申诉记录"] = []
 	弟子.申诉记录.append({"日": Game.累计游戏日 if Game != null else 0, "违纪索引": 违纪索引, "理由": 申诉理由, "状态": "待审核"})
 	return {"成功": true, "原因": "申诉已提交，等待执法堂审核"}
 
 ## 审核申诉
 static func 审核申诉(弟子, 申诉索引: int, 通过: bool) -> Dictionary:
-	if 弟子 == null or not 弟子.has("申诉记录") or 申诉索引 < 0 or 申诉索引 >= 弟子.申诉记录.size():
+	if 弟子 == null or not "申诉记录" in 弟子 or 申诉索引 < 0 or 申诉索引 >= 弟子.申诉记录.size():
 		return {"成功": false, "原因": "申诉记录不存在"}
 	var 申诉 = 弟子.申诉记录[申诉索引]
 	if 通过:
@@ -136,7 +134,7 @@ static func 审核申诉(弟子, 申诉索引: int, 通过: bool) -> Dictionary:
 
 ## 月度执法报告
 static func 月度执法报告(执法堂等级: int) -> Dictionary:
-	if Game == null or not Game.has("执法日志"):
+	if Game == null or not "执法日志" in Game:
 		return {"总违纪数": 0, "轻微": 0, "一般": 0, "严重": 0, "重大": 0, "报告": "本月无违纪记录"}
 	var 日志 = Game.执法日志
 	var 总违纪数 = 日志.size()
@@ -159,7 +157,7 @@ static func 月度执法报告(执法堂等级: int) -> Dictionary:
 
 ## 获取弟子违纪统计
 static func 获取违纪统计(弟子) -> Dictionary:
-	if 弟子 == null or not 弟子.has("违纪次数"):
+	if 弟子 == null or not "违纪次数" in 弟子:
 		return {"总次数": 0, "轻微": 0, "一般": 0, "严重": 0, "重大": 0}
 	var 次数 = 弟子.违纪次数
 	var 总次数 = 0
@@ -169,7 +167,7 @@ static func 获取违纪统计(弟子) -> Dictionary:
 
 ## 检查弟子是否在禁闭中
 static func 检查禁闭(弟子) -> Dictionary:
-	if 弟子 == null or not 弟子.has("禁闭到期日") or Game == null:
+	if 弟子 == null or not "禁闭到期日" in 弟子 or Game == null:
 		return {"禁闭中": false, "剩余天数": 0}
 	var 到期日 = int(弟子.get("禁闭到期日", 0))
 	if Game.累计游戏日 < 到期日:
