@@ -77,7 +77,7 @@ func _build_header(parent: Control) -> void:
 	title.mouse_filter = Control.MOUSE_FILTER_STOP
 	title.gui_input.connect(func(e):
 		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "玄榜", "天下宗门实力排行榜。\n排名根据宗门总战力、弟子数量、资源储备综合评定。"))
+			UIHint.show_hint(title, "玄榜", "天下宗门实力排行榜。\n含个人修士榜与宗门势力榜；宗门榜涵盖探索进度、天下财富、功勋、商道、名望诸维。\n排名根据宗门总战力、弟子数量、资源储备综合评定。"))
 	UITheme.apply_page_title(title)
 	bar.add_child(title)
 	parent.add_child(bar)
@@ -96,7 +96,8 @@ func _rebuild_metric_chips() -> void:
 		c.queue_free()
 	_指标chips.clear()
 	# 个人榜仅弟子真实可排维度（战力/境界）；宗门榜含虚拟对手的累计指标
-	var 集合: Array = ["战力", "境界"] if _榜单类型 == "个人" else ["战力", "功勋", "探索", "商道", "名望"]
+	# P2-3.2：宗门榜补「探索 / 财富」两维 → 对应任务书「探索进度榜 / 大地图财富榜」
+	var 集合: Array = ["战力", "境界"] if _榜单类型 == "个人" else ["战力", "探索", "财富", "功勋", "商道", "名望"]
 	if not 集合.has(_指标):
 		_指标 = "战力"
 	for m in 集合:

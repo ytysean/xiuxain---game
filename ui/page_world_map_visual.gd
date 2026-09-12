@@ -542,12 +542,26 @@ func _建宗门战操作(vbox: VBoxContainer, x: float, y: float, 名称: String
 			目标["战力"] = int(宗门.get("战力", 1000))
 			目标["区域"] = str(宗门.get("区域", 世界.宗门区域))
 			break
+	# P2-3.1 社交联动：外交关系全貌 + 传音问候 / 缔结盟约 / 下战书（真源：宗门外交关系表）
+	if 世界.has_method("获取遭遇宗门外交"):
+		var 交: Dictionary = 世界.获取遭遇宗门外交(名称)
+		if bool(交.get("成功", false)):
+			_添加说明行(vbox, "宗门关系", "%s · 好感 %d / 100" % [str(交.get("关系", "中立")), int(交.get("好感度", 50))])
+			if int(交.get("问候次数", 0)) > 0:
+				_添加说明行(vbox, "往来", "已遣使 %d 次" % int(交.get("问候次数", 0)))
+			var 协防: Dictionary = 世界.获取同盟协防(str(交.get("区域", "")))
+			if int(协防.get("同盟数", 0)) > 0:
+				_添加说明行(vbox, "同盟协防", "%d 宗守望 · 危险 -%d%%" % [
+					int(协防.get("同盟数", 0)), int(float(协防.get("危险削减", 0.0)) * 100.0)])
 	var 出征: Dictionary = 世界.计算宗门战出征详情(目标)
 	if bool(出征.get("成功", false)):
 		_添加说明行(vbox, "我方战力", str(出征.get("我方战力", 0)))
 		_添加说明行(vbox, "敌方战力", str(出征.get("敌方战力", 0)))
 		_添加说明行(vbox, "行军", "%d日 · 耗灵石%d" % [int(出征.get("行军时间", 0)), int(出征.get("行军消耗", 0))])
 		_添加说明行(vbox, "预估胜率", "%d%%" % int(float(出征.get("预估胜率", 0.0)) * 100.0))
+	_添加操作按钮(vbox, "传音问候", func(): _on_问候宗门(名称))
+	_添加操作按钮(vbox, "缔结盟约", func(): _on_结盟宗门(名称))
+	_添加操作按钮(vbox, "下战书", func(): _on_宣战宗门(名称))
 	_添加操作按钮(vbox, "宣战讨伐", func(): _派遣队伍(x, y, "讨伐", 名称))
 
 func _建资源操作(vbox: VBoxContainer, 资源点ID: String, 名称: String, 类型: String, x: float, y: float) -> void:
@@ -1137,6 +1151,31 @@ func _刷新天下总览() -> void:
 	_添加说明行(列, "累计采集", "%d 次" % int(统.get("累计采集次数", 0)))
 	_添加说明行(列, "降服灵兽", "%d 头" % int(统.get("降服灵兽数", 0)))
 
+	# 九、宗门交游（P2-3.1：附近频道 + 同盟协防，真源：宗门外交关系表）
+	_总览标题(列, "宗门交游")
+	var 盟统: Dictionary = 世界.获取同盟协防(世界.宗门区域)
+	_添加说明行(列, "本域同盟", "%d 宗 · 探索危险 -%d%%" % [
+		int(盟统.get("同盟数", 0)), int(float(盟统.get("危险削减", 0.0)) * 100.0)])
+	var 友数: int = 0
+	var 敌数: int = 0
+	var 临宗: int = 0
+	for 宗 in 世界.其他宗门列表:
+		if str(宗.get("区域", "")) != str(世界.宗门区域):
+			continue
+		临宗 += 1
+		var 宗名: String = str(宗.get("名称", ""))
+		if not Game.宗门关系.has(宗名):
+			continue
+		var 关系串: String = str(Game.宗门关系[宗名].get("关系", "中立"))
+		if 关系串 == "友好":
+			友数 += 1
+		elif 关系串 == "敌对":
+			敌数 += 1
+	_添加说明行(列, "邻近宗门", "%d 宗（盟好 %d · 敌雠 %d）" % [临宗, 友数, 敌数])
+	_添加说明行(列, "附近频道", "同域宗门传音")
+	for 语 in 世界.获取附近频道(4):
+		_添加说明行(列, "　", str(语))
+
 	_添加说明行(列, "说明", "商队运时与风险、宗门战行军与胜率，皆由大地图距离与区域特性推得")
 
 # ===== 操作回调 =====
@@ -1194,6 +1233,41 @@ func _on_垂钓(钓点ID: String) -> void:
 			名录.append(str(f.get("名称", "?")))
 	var 文: String = "、".join(名录) if not 名录.is_empty() else "钓道尚浅，未明此渊鱼性"
 	_触发事件("灵渊垂钓", "此渊可钓 %d 种灵物：%s" % [鱼获.size(), 文], [{"text": "确定", "result": "ok"}])
+# ===== P2-3.1 社交联动回调（传音问候 / 缔结盟约 / 下战书）=====
+func _on_问候宗门(名称: String) -> void:
+	var 世界 = Game.世界地图系统
+	if not 世界.has_method("与其他宗门问候"):
+		return
+	var 果: Dictionary = 世界.与其他宗门问候(名称)
+	if bool(果.get("成功", false)):
+		UIHint.show_hint(self, "传音问候", "%s 回礼，好感 %+d，今为 %d" % [
+			名称, int(果.get("好感变化", 0)), int(果.get("好感度", 0))])
+	else:
+		UIHint.show_hint(self, "传音问候", "%s：%s" % [名称, str(果.get("原因", "未能通传"))])
+	_刷新天下总览()
+
+func _on_结盟宗门(名称: String) -> void:
+	var 世界 = Game.世界地图系统
+	if not 世界.has_method("与其他宗门结盟"):
+		return
+	var 果: Dictionary = 世界.与其他宗门结盟(名称)
+	if bool(果.get("成功", false)):
+		UIHint.show_hint(self, "缔结盟约", str(果.get("效果", "结盟已成")))
+	else:
+		UIHint.show_hint(self, "缔结盟约", "%s：%s" % [名称, str(果.get("原因", "结盟未成"))])
+	_刷新天下总览()
+
+func _on_宣战宗门(名称: String) -> void:
+	var 世界 = Game.世界地图系统
+	if not 世界.has_method("与其他宗门宣战"):
+		return
+	var 果: Dictionary = 世界.与其他宗门宣战(名称)
+	if bool(果.get("成功", false)):
+		UIHint.show_hint(self, "下战书", str(果.get("效果", "已宣战")))
+	else:
+		UIHint.show_hint(self, "下战书", "%s：%s" % [名称, str(果.get("原因", "宣战未成"))])
+	_刷新天下总览()
+
 # ===== P1 联动回调（天下 → 化身 / 风水）=====
 func _on_派遣化身(化身ID: int, 区域: String) -> void:
 	var 世界 = Game.世界地图系统

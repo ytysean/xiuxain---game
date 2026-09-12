@@ -272,6 +272,8 @@ func to_dict() -> Dictionary:
 		"化身游历足迹": 化身游历足迹,
 		"已探索区域": 已探索区域,
 		"累计采集次数": 累计采集次数,
+		"宗门结交记录": 宗门结交记录,
+		"附近频道记录": 附近频道记录,
 	}
 
 func from_dict(data: Dictionary) -> void:
@@ -292,6 +294,8 @@ func from_dict(data: Dictionary) -> void:
 	化身游历足迹 = data.get("化身游历足迹", {})
 	已探索区域 = data.get("已探索区域", [])
 	累计采集次数 = int(data.get("累计采集次数", 0))
+	宗门结交记录 = data.get("宗门结交记录", {})
+	附近频道记录 = data.get("附近频道记录", [])
 	# 如果没有位置，随机分配
 	if 宗门坐标X == 0.0 and 宗门坐标Y == 0.0 and 其他宗门列表.is_empty():
 		随机分配宗门位置()
@@ -767,8 +771,11 @@ func 弟子探索返回结算(弟子ID: String) -> Dictionary:
 	var 境界序: Array = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]
 	var 境位: int = maxi(0, 境界序.find(str(弟子.境界)))
 	var 倍: float = 1.0 + 0.25 * float(境位)
-	var 灵石收获: int = int(randi_range(100, 500) * 倍)
-	var 声望收获: int = int(randi_range(5, 30) * 倍)
+	# P2-3.1：同盟协防 → 同域盟宗越多，行路越安、收获随之增益（「组队探索」的机制落点）
+	var 协防: Dictionary = 获取同盟协防(宗门区域)
+	var 协防倍: float = 1.0 + float(协防.get("危险削减", 0.0)) * 0.5
+	var 灵石收获: int = int(randi_range(100, 500) * 倍 * 协防倍)
+	var 声望收获: int = int(randi_range(5, 30) * 倍 * 协防倍)
 	Game.灵石 += 灵石收获
 	Game.声望 += 声望收获
 	# 归来途中 30% 概率撞见大地图事件
@@ -787,7 +794,7 @@ func 弟子探索返回结算(弟子ID: String) -> Dictionary:
 		附言 = "，并探明了%s" % "、".join(发现)
 	探索中弟子.erase(str(弟子.弟子ID))
 	Game.添加纪事("探索", "探索归来", "%s游历归来，得灵石%d、声望%d%s。" % [str(弟子.姓名), 灵石收获, 声望收获, 附言], 1)
-	return {"成功": true, "弟子": str(弟子.姓名), "收获": {"灵石": 灵石收获, "声望": 声望收获}, "发现资源点": 发现, "触发事件": 触发事件, "事件结果": 事件结果}
+	return {"成功": true, "弟子": str(弟子.姓名), "收获": {"灵石": 灵石收获, "声望": 声望收获}, "发现资源点": 发现, "触发事件": 触发事件, "事件结果": 事件结果, "同盟协防": 协防}
 
 ## 收口（2026-09-12）：原为 Python 生成器表达式 sum(1 for ... if ...)，GDScript 不支持
 ## → 门1 PARSE ERROR + 连带门3 全文件函数误报为「新增死函数」。
@@ -1392,3 +1399,155 @@ func 风水寻宝(弟子ID: int) -> Dictionary:
 				Game.灵石 += 数量 * 10
 	Game.添加纪事("探索", "堪舆寻宝", "%s 循地脉而行，于%s觅得%s×%d。" % [str(弟子.姓名), 宗门区域, 类, 数量], 1)
 	return {"成功": true, "得宝": true, "品类": 类, "数量": 数量, "区域": 宗门区域}
+
+# ============ P2-3.1 社交联动：大地图其他宗门 ↔ 宗门外交 ============
+# 打通「其他宗门列表」（大地图上遇见的玩家宗门）与 Game.宗门关系（外交真源），
+# 使大地图宗门可「传音问候 / 缔结盟约 / 下战书」，并让同域盟宗为探索提供协防。
+var 宗门结交记录: Dictionary = {}   # 宗门名 → {上次问候日: int, 问候次数: int}
+var 附近频道记录: Array = []        # 附近频道闲谈（滚动保留最近 N 条）
+
+const 附近频道_上限: int = 24
+
+## 登记某宗门进外交关系表（幂等；实力越强者越倨傲，初始好感越低）
+func _登记宗门外交(宗门名: String) -> void:
+	if Game == null or 宗门名.is_empty():
+		return
+	if not Game.has_method("登记宗门关系"):
+		return
+	var 战力: int = 0
+	for 宗 in 其他宗门列表:
+		if str(宗.get("名称", "")) == 宗门名:
+			战力 = int(宗.get("战力", 0))
+			break
+	Game.登记宗门关系(宗门名, clampi(58 - int(float(战力) / 500.0), 30, 60))
+
+## 查询大地图某宗门的外交全貌（供地点详情面板）
+func 获取遭遇宗门外交(宗门名: String) -> Dictionary:
+	_登记宗门外交(宗门名)
+	var 信息: Dictionary = {}
+	for 宗 in 其他宗门列表:
+		if str(宗.get("名称", "")) == 宗门名:
+			信息 = 宗
+			break
+	if 信息.is_empty():
+		return {"成功": false, "原因": "此地并无此宗门"}
+	var 关系: String = "中立"
+	var 好感: int = 50
+	if Game != null and Game.宗门关系.has(宗门名):
+		var 关: Dictionary = Game.宗门关系[宗门名]
+		关系 = str(关.get("关系", "中立"))
+		好感 = int(关.get("好感度", 50))
+	var 记: Dictionary = 宗门结交记录.get(宗门名, {})
+	return {
+		"成功": true,
+		"名称": 宗门名,
+		"区域": str(信息.get("区域", "")),
+		"战力": int(信息.get("战力", 0)),
+		"距离": float(信息.get("距离", 0.0)),
+		"关系": 关系,
+		"好感度": 好感,
+		"问候次数": int(记.get("问候次数", 0)),
+		"今日已问候": int(记.get("上次问候日", -1)) == Game.累计游戏日,
+		"可结盟": 好感 >= 70 and 关系 != "敌对",
+	}
+
+## 传音问候（每日每宗门一次；宗门声望越高越有礼数，敌对宗门反生嫌隙）
+func 与其他宗门问候(宗门名: String) -> Dictionary:
+	if Game == null:
+		return {"成功": false, "原因": "天地未开"}
+	_登记宗门外交(宗门名)
+	if not Game.宗门关系.has(宗门名):
+		return {"成功": false, "原因": "未知宗门"}
+	var 记: Dictionary = 宗门结交记录.get(宗门名, {"上次问候日": -1, "问候次数": 0})
+	if int(记.get("上次问候日", -1)) == Game.累计游戏日:
+		return {"成功": false, "原因": "今日已遣使问候，宜待来日"}
+	var 增益: int = clampi(4 + int(float(Game.声望) / 5000.0), 4, 8)
+	var 关: Dictionary = Game.宗门关系[宗门名]
+	if str(关.get("关系", "")) == "敌对":
+		增益 = -增益
+	关["好感度"] = clampi(int(关.get("好感度", 50)) + 增益, 0, 100)
+	Game.宗门关系[宗门名] = 关
+	记["上次问候日"] = Game.累计游戏日
+	记["问候次数"] = int(记.get("问候次数", 0)) + 1
+	宗门结交记录[宗门名] = 记
+	_记附近频道("%s：太玄宗遣使传音，礼数周全。" % 宗门名)
+	return {"成功": true, "宗门": 宗门名, "好感变化": 增益, "好感度": int(关.get("好感度", 50))}
+
+## 缔结盟约（转发宗门外交真源：好感>=70 且耗灵石；先登记确保大地图宗门可结盟）
+func 与其他宗门结盟(宗门名: String) -> Dictionary:
+	if Game == null or not Game.has_method("与宗门结盟"):
+		return {"成功": false, "原因": "天地未开"}
+	_登记宗门外交(宗门名)
+	var 结: Dictionary = Game.与宗门结盟(宗门名)
+	if bool(结.get("成功", false)):
+		_记附近频道("%s：太玄宗与我宗缔结盟约，守望相助。" % 宗门名)
+	return 结
+
+## 递下战书（转发宗门外交真源：设敌对、好感-30）
+func 与其他宗门宣战(宗门名: String) -> Dictionary:
+	if Game == null or not Game.has_method("与宗门宣战"):
+		return {"成功": false, "原因": "天地未开"}
+	_登记宗门外交(宗门名)
+	var 结: Dictionary = Game.与宗门宣战(宗门名)
+	if bool(结.get("成功", false)):
+		_记附近频道("%s：太玄宗下战书，势不两立！" % 宗门名)
+	return 结
+
+## 记录一条附近频道闲谈（滚动保留最近 N 条）
+func _记附近频道(文本: String) -> void:
+	if 文本.is_empty():
+		return
+	var 日: int = int(Game.累计游戏日) if Game != null else 0
+	附近频道记录.append({"日": 日, "文本": 文本})
+	while 附近频道记录.size() > 附近频道_上限:
+		附近频道记录.pop_front()
+
+## 附近频道：先取近日外交动态，再由同区域宗门补足「附近」闲谈（依外交关系着前缀，非纯造词）
+func 获取附近频道(数量: int = 6) -> Array:
+	var 结果: Array = []
+	var 今: int = int(Game.累计游戏日) if Game != null else 0
+	for 条 in 附近频道记录:
+		if 今 - int(条.get("日", 0)) > 3:
+			continue
+		结果.append(str(条.get("文本", "")))
+	var 话头: Array = [
+		"听闻%s灵脉近来涌动，道友可曾察觉？",
+		"我宗弟子于%s采得几味灵草，成色颇佳。",
+		"%s地界妖兽出没，孤身而行恐有不测。",
+		"近来%s坊市物价腾贵，倒是个行商的好时机。",
+	]
+	var i: int = 0
+	for 宗 in 其他宗门列表:
+		if 结果.size() >= 数量:
+			break
+		if str(宗.get("区域", "")) != 宗门区域:
+			continue
+		var 名: String = str(宗.get("名称", ""))
+		var 关系: String = "中立"
+		if Game != null and Game.宗门关系.has(名):
+			关系 = str(Game.宗门关系[名].get("关系", "中立"))
+		var 前缀: String = ""
+		if 关系 == "友好":
+			前缀 = "【盟好】"
+		elif 关系 == "敌对":
+			前缀 = "【敌雠】"
+		结果.append("%s%s：%s" % [前缀, 名, str(话头[i % 话头.size()]) % 宗门区域])
+		i += 1
+	if 结果.is_empty():
+		结果.append("%s地界清静，附近暂无宗门传音。" % 宗门区域)
+	return 结果.slice(0, 数量)
+
+## 同盟协防：同域「友好」宗门为探索提供护持（每盟宗削危 10%，至多 30%）
+func 获取同盟协防(区域: String = "") -> Dictionary:
+	if 区域.is_empty():
+		区域 = 宗门区域
+	var 盟数: int = 0
+	var 盟名: Array = []
+	for 宗 in 其他宗门列表:
+		if str(宗.get("区域", "")) != 区域:
+			continue
+		var 名: String = str(宗.get("名称", ""))
+		if Game != null and Game.宗门关系.has(名) and str(Game.宗门关系[名].get("关系", "")) == "友好":
+			盟数 += 1
+			盟名.append(名)
+	return {"同盟数": 盟数, "同盟": 盟名, "危险削减": minf(0.30, 0.10 * float(盟数))}
