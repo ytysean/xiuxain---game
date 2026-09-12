@@ -31,3 +31,14 @@ validate_report.txt
 # 图标管线本地派生/备份（_bases 可由 tier_system.py 重生成；cohesion_backup 为本地还原快照，均禁进库）
 icon/_bases/
 icon/_validation/cohesion_backup/
+
+# 全量 UI 实机验收产物（本地验证截图 + 总览页，非源码，不进库）
+# 说明：tests/ui_full_accept.tscn 是防线本体（要进库）；它跑出来的 PNG 是本地产物（不进库）
+accept_shots/
+accept_shots_full/
+accept_shots_p2/
+accept_shots_p2b/
+accept_report.html
+
+# 备份文件的时间戳/标签后缀变体（上面的 *.bak 只覆盖了后缀恰好为 .bak 的）
+*.bak_*

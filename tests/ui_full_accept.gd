@@ -7,11 +7,29 @@ extends Node
 ##       → 首页入口路由完备性（静态，查「有入口无落点」）。
 ##
 ## 每页：① 标记 PAGE_BEGIN/END（便于把 SCRIPT ERROR 归属到页）
-##       ② 递归扫描 Control 树，自动检出「塌陷 Label」（宽 <12px 却开了 autowrap）
-##       ③ 截图（0.5 缩放到 540×960）
+##       ② 递归扫描 Control 树（`_walk`），跑 3 条自动断言 + 截图（0.5 缩放 → 540×960）
+##
+## 三条自动断言（均只查 Control，且都排除了滚动容器内的正常溢出）：
+##   BADSCROLL  ScrollContainer 且 size.x<60 或 size.y<60
+##              → 根 Control + 直接 add_child 的老写法下，ScrollContainer 最小尺寸为 0
+##                会被压成 0×0，clip_contents=true 把正文整块裁掉。**不报错、肉眼像空白页**。
+##   OVERFLOW   Control 且 size.y>2800，且祖先链上无 ScrollContainer → 无滚动宿主的超高节点。
+##   OFFSCREEN  可见且有尺寸（>4px）、却**纵向**出视口，且祖先链上无 ScrollContainer。
+##              两个必须知道的收窄（否则误报）：
+##                ① 排除 SubViewport 内节点（ov.get_viewport() != get_viewport()）——
+##                   子视口坐标系与主视口矩形不可比，否则天下舆图页误报 28 条；
+##                ② 只判纵向 —— 横向越界在本项目多为设计使然（可平移的地图画布、
+##                   屏外待滑入的详情浮层），判横向噪声过大。
 ##
 ## 用法：<godot> --path <proj> --scene res://tests/ui_full_accept.tscn   ← 不要 --headless
-## 判据：出现 >>>ACCEPT_ALL_DONE，且 SCRIPT ERROR=0、COLLAPSE=0。
+##       （--headless 是 dummy 渲染器，本 harness 会失去意义）
+## 判据：出现 >>>ACCEPT_ALL_DONE，且 SCRIPT_ERROR=0、PARSE_ERROR=0、
+##       COLLAPSE=0、BADSCROLL=0、OVERFLOW=0、OFFSCREEN=0、PAGE_FAIL=0。
+## 产物：res://accept_shots_full/*.png（64 张）+ 逐页 >>>SCAN 行。
+##
+## 历史：2026-09-12 首次运行即抓出 26 个页面的布局缺陷，分 4 批修复
+##       （20 页内容区整块空白 / 5 页详情面板出屏 / 1 页 UIHint 悬空引用 /
+##        1 页输入栏出屏）。全部缺陷在 `gate_all.py` **全绿**时依然存在。
 
 const OUT_DIR := "res://accept_shots_full/"
 const SHOT_SCALE := 0.5
