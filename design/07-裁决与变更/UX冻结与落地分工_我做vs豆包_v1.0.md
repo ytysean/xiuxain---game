@@ -1,7 +1,7 @@
 ---
 doc_id: UX冻结与落地分工
 doc_title: 《太玄宗门录》UX 冻结公告与落地分工（AI 工程线 vs 豆包美术线）
-doc_version: v1.9
+doc_version: v1.10
 update_date: 2026-09-12
 doc_type: 项目执行计划 / 分工单
 game_formal_name: 太玄宗门录
@@ -154,6 +154,7 @@ status: 生效
 
 ## 5. 变更记录
 
+- **v1.10（2026-09-12 · 实机验收 + 提交）**：按老大指令做**真实渲染实机验收**（非 headless），**抓出并修复 2 处 headless 五大 harness + 门禁全部放过的布局 bug** —— 天下总览值列宽塌成 1px、正文一字一行（根因：HBox 主轴缺 `SIZE_EXPAND_FILL` × autowrap Label 最小宽度 1px × `ScrollContainer` 默认 AUTO 不拉伸子节点，**三条叠加、只改一条无效**）。并**外科式提交** `3b414fe`（12 文件 / +3812 −14，3 个系统文件首次入库），pre-commit 钩子跑 pre_f5 全绿。**方法论沉淀为技能 `godot-ui-render-accept`**（含容器分类学 + dump 诊断 + Read 缓存坑）。另纠正旧记忆：**本机 git 可用**（PortableGit 2.55.0）。详见 §12.6 / §12.7。
 - **v1.9（2026-09-12 · 第 2 波续 · 任务#004 P1 UI 联动）**：续 P0，四个 P1 子任务全落，**全部适配既有真源、零自建** —— ① **身外化身联动**（`化身游历桥接` 唯一映射表打通大地图五域 ↔ 化身游历六地；`派遣化身赴大地图` / `记录化身归来` 双向链路；**并补上一处死链** `获取探索进度()`）；② **拍卖行/坊市联动**（`city_config`×`goods_config` 推出商情/城价：特产 ×0.8 买、缺货 ×1.25 卖、好感折让；`获取跑商路线推荐` 含差价/运费/保本量；珍品=特产 `tier≥3` **只在特定城镇**）；③ **成就/图录联动**（`achievement_config.csv` +4：踏遍五洲/资源猎手/奇遇收藏家/钓圣；图录新增「天下舆图」分类 TX01–TX09）；④ **风水堪舆联动**（`区域风水` 评级 + `评估迁址` / `迁址至风水地`（包装既有 `迁移宗门`）/ `风水寻宝`）。UI 复用既有 helper，零新增硬编码色/自定义图标。详见 §12。
 - **v1.8（2026-09-12 · 第 2 波续 · 任务#004 P0 天下全系统联动）**：接管道任务 #004，P0 四子任务全落 —— ① **灵钓联动**（转发 `Game.灵钓系统`，零自造鱼类）；② **灵兽联动**（名录取自 `Beast.灵兽种类` 39 种真源 + 区域品阶分档 + `Game.灵兽库存` 入库）；③ **生产联动**（`采集资源入库存` 让产出**真正入账**）；④ **凡人王朝联动**（**适配 `Game.王朝系统.郡县状态` 唯一真源，不自建好感度表**）。**并修通 3 处死链**（`Game.获取弟子信息` / `设置弟子状态` / `获取宗门总战力` **三者根本不存在** → 联动恒 early-return）与 **§10.5 遗留的 12 个未接线函数**（UI `page_world_map_visual` 由假壳改真接线，死函数 395→392）。详见 §11。
 - **v1.7（2026-09-12 · 第 2 波续 · C3 宗主干预三接口）**：§4.14「宗主三只手」左二落下 —— ① **护法批复**（推翻 `disciple.gd` 自动 +15%，改发「宗门请示·护法」传讯：亲临 +20%/500灵石、遣长老 +10%/200灵石、令其自行 0%）；② **洞府批复**（新建 `AI申请洞府` + 传讯：赐府 `洞府等级+1`／`300+现级×200` 灵石／受容量硬约束，或令其再候）；③ **突破方针**（宗门级风险取向 `稳中求进 / 顺其自然 / 搏一线天机`，整体平移弟子 AI 冲关阈值 ±0.10，`ui/page_disciple.gd` 可切）。**关键复用**：护法/洞府批复的 UI **零新增** —— 直接走 B7「宗门气象」抽屉的通用传讯卡片。**附裁定 Y1**（方针命名口径）+ **偏差记录**（§4.14 所称 `_弟子主动申请洞府()` 代码中不存在，C3② 系新建）。详见 §10。
@@ -509,3 +510,56 @@ func 获取探索进度() -> int:
 - **门2 白名单是「两处同源」，漏一处即 FAIL**：`validate_all.py` 的 `ACHIEVEMENT_CONDITION_TYPES` **从 `csv_validator.gd` 的 const 解析**；新增 condition_type 必须**同时**改 `csv_validator.gd` const **和** `achievement_system.gd` 实际分支。只改后者 → 门2 报 `condition_type='world_regions' enum非法`。**误导点**：错误消息是**截断提示**（「应为 sect_level/disciple_count/...之一」），不是完整白名单，易误读成「白名单只有 4 项」。
 - **`bool()` 不是合法 GDScript 构造函数**：探针第 77 行 `bool(线[0].get("买入城",""))` → `SCRIPT ERROR: Nonexistent 'bool' constructor.` → `_fin()` 未执行 → **进程挂死 10 分钟**。对策：① 改用 `str(...) != ""`；② 探针必带 90 秒 `Timer` 兜底 `quit()`。
 - **既有风格「文件末尾少 1 tab」会骗过锚点**：`to_dict` 末两行为 **1 tab**（P0 补丁遗留），非 2 tab；同文件其他多处 `continue` 后行同样少 1 tab。补丁锚点必须**先用 repr 验证真实缩进**，不能凭「应该 2 tab」写。
+
+### 12.6 实机验收（真实渲染器）· 抓出并修复 2 处布局 bug（2026-09-12）
+
+**为什么必须做这一步**：`--headless` 是 **dummy 渲染器** → 5 个 headless harness + `gate_all` **全绿也验不出「布局塌陷 / 贴图缺失 / 主题崩」**。本轮按老大「实机验收」指令，用**非 headless** 真实渲染（Vulkan / Intel Arc B580）截图验收，**立刻抓出一个 P0 就埋下、被所有门禁放过**的 bug。
+
+**症状**：天下总览的值列宽度塌成 **1px** → 正文**一字一行**（「中 州 （ x - 1 1 6 , y - 3 0 ）」竖排），每行高 305px，整个面板高 6522px。
+
+**根因链（4 条，全部实证）**
+
+| # | 事实 | 出处 |
+| --- | --- | --- |
+| 1 | BoxContainer 只在**交叉轴**拉伸子节点（VBox 给满宽 / HBox 给满高） | `列`/`行` dump 尺寸 |
+| 2 | **主轴**方向，无 `SIZE_EXPAND_FILL` 的子节点只拿 `get_combined_minimum_size()` | 值 Label `size=(1.0, 304.5)` |
+| 3 | **`autowrap_mode != OFF` 的 Label 最小宽度 ≈ 1px** | `b.autowrap_mode = AUTOWRAP_WORD_SMART` |
+| 4 | **`ScrollContainer` 默认 `horizontal_scroll_mode=AUTO` 不拉伸子节点** | `滚` 未设 → `列` 只拿 min 宽度（230） |
+
+> **关键**：**只改第 4 条肉眼无变化** —— 因为第 2/3 条还在。必须先 dump 拿到数据，才能知道要改两处。
+
+**修复（2 处）**
+
+```gdscript
+# ① ScrollContainer：关闭横向滚动，交由容器拉伸子节点
+滚.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+
+# ② HBox 主轴：值 Label 必须显式 EXPAND_FILL
+b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+b.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # ← 缺此则 1px
+```
+
+**结果**：值 Label `(1.0, 304.5)` → **`(978.0, 17.5)`**，总览面板高 6522 → 1546，四段全部正常渲染。
+
+**方法论铁律（已沉淀为技能 `godot-ui-render-accept`）**
+- **从数据看，不从像素猜**：harness 逐层 dump `size` + `get_combined_minimum_size()`；`size.x==1.0` 且 `size.y` 很大 = 宽度塌陷签名。
+- **Read 工具对同一路径可能给缓存图** → 重跑后若图「看着没变」，先 PIL 另存**新文件名**再读，别急着下结论（本轮因此白跑 1 轮）。
+- 真实渲染验收**不进 headless 链**（需显示器），作为 UI 提交前的按需第 6 道防线；跑完务必删掉临时 harness 再跑门禁。
+
+**验收截图（真实渲染，720×1280）**：首页 / 天下舆图 / 天下总览（P1 四段全可见）/ 风水堪舆页。
+
+### 12.7 提交（2026-09-12 · 外科式，非 `git add -A`）
+
+`[main 3b414fe] 天下 P0+P1 联动收口 + 天下总览布局修复 + 文档同步` —— **12 文件 / +3812 −14**：
+
+| 类型 | 文件 |
+| --- | --- |
+| **首次入库** | `world_map_system.gd`、`achievement_system.gd`、`ui/page_world_map_visual.gd` |
+| 共享文件 | `game_state.gd`(+150)、`csv_validator.gd`(+1)、`disciple.gd`(+28/−)、`ui/page_disciple.gd`(+33)（后二者为 C3 交付） |
+| 配置表 | `config/achievement_config.csv`(+4)、`config/收藏图录分类.csv`(+9) |
+| 文档/管道 | `TASK_PIPELINE.md`、UX 总纲(+31/−)、本文件(+200/−) |
+
+**pre-commit 钩子自动跑 `pre_f5_check.py`（35 门 / 25 道红线）并放行**；提交后剩余已跟踪改动 = **0**。
+**只本地 commit，未 push**（remote 指向旧弃用仓 `xiuxain---game.git`）。
+
+> ⚠ **仓库卫生遗留（未处理）**：仓库仍有 **736 个未跟踪文件**，其中**大量是游戏本体**（`fishing_system.gd` / `dynasty_system.gd` / `auction_system.gd` / `caravan_system.gd` / `talisman_system.gd` / `friend_system.gd` / `ui/page_*.gd` 等）**从未入库**，另有 428 张美术图与 ~60 个 `.bak_*` 垃圾。建议单开任务处理，**不要**一把 `git add -A`。

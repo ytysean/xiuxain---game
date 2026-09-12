@@ -651,3 +651,22 @@ ui_compile exit=0 117.2s / ui_decouple exit=0 106.4s / smoke exit=0 41.5s / gate
 1. **门2 成就条件白名单是「两处同源」**：`validate_all.py` 的 `ACHIEVEMENT_CONDITION_TYPES` **从 `csv_validator.gd` const 解析** → 新增 condition_type **必须两处同步**。只改 `achievement_system.gd` → 门2 报 `condition_type='world_regions' enum非法`。**误导点**：报错消息是**截断提示**（「应为 sect_level/disciple_count/...之一」）不是完整白名单。
 2. **`bool()` 不是合法 GDScript 构造函数**：探针里写 `bool(x.get(...))` → `SCRIPT ERROR: Nonexistent 'bool' constructor.` → 退出钩子未执行 → **进程挂死 10 分钟**。对策：改 `str(x) != ""` + 探针带 90 秒 `Timer` 兜底 `quit()`。
 3. **既有「文件末尾少 1 tab」会骗过锚点**：`to_dict` 末两行为 **1 tab**（P0 补丁遗留），非 2 tab；多处 `continue` 后行同样少 1 tab。锚点必须**先用 repr 验证真实缩进**。
+
+#### 六、实机验收（真实渲染器）+ 提交（2026-09-12 晚 · 老大指令）
+
+**实机验收＝真实渲染（非 headless）**，因为 headless 是 dummy 渲染器，5 个 headless harness + gate_all **全绿也验不出「布局塌陷 / 贴图缺失 / 主题崩」**。
+
+> ⚠ **抓出并修复 2 处真实布局 bug（P0 就埋下、被全部门禁放过）**：天下总览**值列宽塌成 1px → 正文一字一行**（每行高 305px、面板高 6522px）。
+>
+> **根因三条叠加，只改一条肉眼无效**：① BoxContainer 只在**交叉轴**拉伸子节点；② **主轴**方向无 `SIZE_EXPAND_FILL` 的子节点只拿最小宽度；③ `autowrap_mode != OFF` 的 Label 最小宽度 ≈ **1px**；④ `ScrollContainer` 默认 `horizontal_scroll_mode=AUTO` 也不拉伸子节点。
+>
+> **修复**：`滚.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED` + `b.size_flags_horizontal = Control.SIZE_EXPAND_FILL`。
+> **结果**：值 Label `(1.0, 304.5)` → **`(978.0, 17.5)`**，面板高 6522 → 1546，P1 四段全部正常。
+
+**方法**：临时 harness（已删，沉淀为技能 `godot-ui-render-accept`）实例化 `main.tscn` → 真登录 → 逐页截图 + **逐层 dump 每个 Control 的 `size` / `get_combined_minimum_size()`**。**从数据看，不从像素猜**。
+
+**验收截图**：首页 / 天下舆图 / 天下总览（化身游历·风水选址·跑商路线·天下见闻 四段全可见 + 弟子派遣「堪舆」按钮）/ 风水堪舆页。
+
+**提交**：`[main 3b414fe] 天下 P0+P1 联动收口 + 天下总览布局修复 + 文档同步` —— **12 文件 / +3812 −14**，其中 **3 个首次入库**（`world_map_system.gd` / `achievement_system.gd` / `ui/page_world_map_visual.gd`）。**pre-commit 钩子跑 pre_f5_check.py（35 门）放行**。提交后剩余已跟踪改动 = 0。**只本地 commit，未 push**（remote 指向旧弃用仓）。
+
+> ⚠ **仓库卫生遗留（未处理）**：仍有 **736 个未跟踪文件**，含**大量游戏本体 .gd 从未入库**（`fishing_system.gd` / `dynasty_system.gd` / `auction_system.gd` / `caravan_system.gd` / `talisman_system.gd` / `friend_system.gd` / `ui/page_*.gd` 等）+ 428 张美术图 + ~60 个 `.bak_*` 垃圾。建议单开任务，**勿 `git add -A`**。
