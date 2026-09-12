@@ -57,12 +57,64 @@ const C01_TAB_ICON_BG_SEL: Color = Color(0.055, 0.165, 0.188, 0.80) # 2:117 选�
 const C01_TAB_ICON_BG_IDLE: Color = Color(0.047, 0.118, 0.133, 0.60) # 2:119 未选中图标底 #0C1E22@0.6
 const C01_CLOUD: Color = Color(0.620, 0.800, 0.860, 0.14)        # 2:203 云海（画布 fills 实测 α0.14）
 const C01_SCENE_BASE: Color = Color(0.043, 0.078, 0.094)         # 2:55 底色 / 35:2 渐变终点
+
+# ───────── H项：复兴进度→色彩饱和/明度派生（太玄复兴三衡同源）─────────
+# 设计理念：主色相（青黛+暗金）保持不变，只调饱和/明度
+#   开局灰暗破败（低饱和+低明度）→ 中期金饰渐显 → 后期辉煌（高饱和+高明度）
+# 复兴进度 0.0=破败（1品宗门）→ 1.0=辉煌（7品宗门）
+# 零新增色值、零返工，纯工程可做
+var 复兴进度: float = 0.0  # 运行时由Game.门派等级驱动，UI初始化时设置
+
+## 设置复兴进度（由门派等级1-7映射到0.0-1.0）
+func 设置复兴进度(门派等级: int) -> void:
+	复兴进度 = clamp(float(门派等级 - 1) / 6.0, 0.0, 1.0)
+
+## 根据复兴进度调整颜色（饱和度+0~20%，明度+0~15%）
+## 主色相加亮，背景色微调（避免过亮刺眼）
+func 复兴调整色(原色: Color, 是背景: bool = false) -> Color:
+	var h: float = 原色.h
+	var s: float = 原色.s
+	var v: float = 原色.v
+	var a: float = 原色.a
+	# 饱和度提升：背景+0~10%，前景+0~20%
+	var s提升: float = 复兴进度 * (0.10 if 是背景 else 0.20)
+	s = clamp(s + s提升, 0.0, 1.0)
+	# 明度提升：背景+0~8%，前景+0~15%
+	var v提升: float = 复兴进度 * (0.08 if 是背景 else 0.15)
+	v = clamp(v + v提升, 0.0, 1.0)
+	return Color.from_hsv(h, s, v, a)
+
+## 便捷函数：获取复兴调整后的关键颜色
+func 获取背景色() -> Color:
+	return 复兴调整色(COLOR_BG_BASE, true)
+func 获取面板色() -> Color:
+	return 复兴调整色(COLOR_PANEL_BG, true)
+func 获取金色描边() -> Color:
+	return 复兴调整色(COLOR_BORDER_GOLD, false)
+func 获取金色文字() -> Color:
+	return 复兴调整色(COLOR_TEXT_GOLD, false)
+func 获取暗金正文() -> Color:
+	return 复兴调整色(COLOR_TEXT_BODY_GOLD, false)
+
+## 获取复兴阶段描述（用于UI展示）
+func 获取复兴阶段名() -> String:
+	if 复兴进度 < 0.2:
+		return "破败初立"
+	elif 复兴进度 < 0.4:
+		return "渐有起色"
+	elif 复兴进度 < 0.6:
+		return "薪火相传"
+	elif 复兴进度 < 0.8:
+		return "声名鹊起"
+	else:
+		return "辉煌鼎盛"
 const C01_EYE_BG: Color = Color(0.043, 0.078, 0.094, 0.55)       # 35:5 隐藏UI开关底
 const C01_EYE_BORDER: Color = Color(0.173, 0.290, 0.337, 0.80)   # 35:5 描边
 const C01_EYE_ICON: Color = Color(0.788, 0.698, 0.494)           # 35:7 眼睛线条
 # v5 稿新增/修正 token（compose_v5_framed.py 1080p 实测）
 const C01_PANEL_A: Color = Color(0.047, 0.094, 0.086, 0.784)      # 2:181 顶部资源栏底（带 α）
 const C01_PANEL_LIGHT: Color = Color(0.098, 0.176, 0.165, 0.706)  # 50:1 时间匾额底
+const C01_PANEL_B: Color = Color(0.094, 0.173, 0.216, 0.45)        # 次级面板/进度条底（与 C01_ENTRY_BG 同调）
 const C01_TEXT_JADE: Color = Color(0.420, 0.769, 0.714)          # Lv.等级 青绿字
 const C01_LINE_GOLD: Color = Color(0.839, 0.694, 0.416, 0.471)   # 顶部栏 2px 描边（带 α）
 # 山水背景文字兜底 1px 深青灰投影（记忆铁律：浮在山水上的文字加此阴影，肉眼几乎无特效感）
@@ -73,6 +125,7 @@ const C01_SHADOW: Color = Color(0.039, 0.090, 0.122, 0.55)
 # 此处仅补齐 05 屏独有且 C01 未覆盖的颜色（进度青填充 / 奖励蓝 / 图标紫 / 金渐变按钮 / 按钮深色字）。
 const C05_PROG_TRACK: Color = Color(0.055, 0.114, 0.141)        # 2:437 进度轨道（实心；C01_PROG_TRACK 带 α 故单列）
 const C05_PROG_FILL_CYAN: Color = Color(0.310, 0.765, 0.690)    # 2:456 任务卡进度填充 青
+const C05_PROG_FILL: Color = C05_PROG_FILL_CYAN   # 别名：进度填充统一青色
 const C05_REWARD_BLUE: Color = Color(0.290, 0.620, 0.878)       # 2:458 奖励·灵气 蓝
 const C05_ICON_PURPLE: Color = Color(0.710, 0.482, 0.910)       # 2:450 宗门类图标圆底内字 紫
 const C05_BTN_GRAD: Color = Color(0.910, 0.770, 0.450)          # 2:487 金渐变按钮基色（渐变近似为实色金）
@@ -90,6 +143,7 @@ const C05_FRIEND_CYAN: Color = Color(0.494, 0.839, 0.647)     # 2:560 好友头�
 # 保证几何像素级 1:1 复刻且文字/线稿锐利。改分辨率须同步动本常量 + 下方派生渲染系常量（GRID/MARGIN/SIZE_*/FONT_* 等，已固化，须同步 ×1.5）。
 const UI_SCALE: float = 2.25
 const GRID: int = 12
+const GRID_SM: int = 6     # 紧凑栅格：卡片内间距/行距（GRID 的一半）
 const MARGIN: int = 24
 const PAD_PANEL: int = 24
 const SIZE_SM: int = 72
@@ -250,9 +304,6 @@ const RADIUS_BUTTON: int = 6
 const BORDER_W: int = 1
 
 # ───────── 色彩 getter ─────────
-func color_bg_base() -> Color: return COLOR_BG_BASE
-func color_panel_bg() -> Color: return COLOR_PANEL_BG
-func color_statusbar_bg() -> Color: return COLOR_STATUSBAR_BG
 func color_border_gold() -> Color: return COLOR_BORDER_GOLD
 func color_text_gold() -> Color: return COLOR_TEXT_GOLD
 func color_text_body() -> Color: return COLOR_TEXT_BODY
@@ -261,13 +312,12 @@ func color_text_aux() -> Color: return COLOR_TEXT_AUX
 func color_value(abnormal: bool) -> Color: return COLOR_TEXT_RED if abnormal else COLOR_TEXT_BODY_GOLD
 
 # ── 令牌色 getter（对齐 UI设计令牌v1.0，供组件按需取色）──
-func color_bg_content() -> Color: return COLOR_BG_CONTENT
 func color_text_title1() -> Color: return COLOR_TEXT_TITLE1
 func color_text_title2() -> Color: return COLOR_TEXT_TITLE2
 func color_text_body_dim() -> Color: return COLOR_TEXT_BODY_DIM
-func color_text_disabled() -> Color: return COLOR_TEXT_DISABLED
 func color_status_success() -> Color: return COLOR_STATUS_SUCCESS
 func color_status_danger() -> Color: return COLOR_TEXT_RED
+func color_accent() -> Color: return COLOR_TEXT_GOLD
 
 # ───────── 字体 helper ─────────
 # 优先取 FONT_TITLE_PATH / FONT_BODY_PATH 已落盘的字体文件，落盘缺失时退回字号+颜色 override（不阻断运行）。
@@ -348,6 +398,14 @@ func apply_aux_font(control: Control) -> void:
 	if _font_body_res != null:
 		control.add_theme_font_override("font", _font_body_res)
 
+# 可控字号辅助文字：与 apply_title_font_sized / apply_body_font_sized 对称（补齐 FONT_AUX 家族缺口）。
+func apply_aux_font_sized(control: Control, size: int) -> void:
+	_ensure_fonts()
+	control.add_theme_font_size_override("font_size", size)
+	control.add_theme_color_override("font_color", COLOR_TEXT_BODY_GOLD)
+	if _font_body_res != null:
+		control.add_theme_font_override("font", _font_body_res)
+
 # ───────── 统一字体角色（字号+字重+颜色 一次性收口）─────────
 # 业务 UI 按语义角色调用，禁止再散写 add_theme_font_size_override + font_color。
 # 角色层级：Display > PageTitle > SectionTitle > Body/Value/Button > Aux
@@ -378,6 +436,13 @@ func apply_button_label(control: Control, dark: bool = false) -> void:
 	# 按钮文字：27px Bold；dark=true 金底按钮用深色字，false 用金色字
 	apply_title_font_sized(control, FONT_BODY)
 	control.add_theme_color_override("font_color", COLOR_BTN_PRESSED if dark else COLOR_TEXT_GOLD)
+
+# 语义别名：页面按「标题文本 / 按钮皮肤」通用语义调用（补齐主题 API 缺口）。
+func apply_title_text(control: Control) -> void:
+	apply_section_title(control)
+
+func apply_button_style(btn: BaseButton) -> void:
+	apply_primary_button_style(btn)
 
 # 落盘探测：返回是否两套字体均就位（用于启动日志 / 降级提示，不阻断）。
 func apply_fonts() -> bool:
@@ -585,7 +650,7 @@ func load_icon(label: String) -> Texture2D:
 # - entry_* -> icons/entry/
 # - res_* -> icons/resource/
 # - 其他 -> icons/hd/
-# 例：load_hd_icon("entry_shanmen_36") / load_hd_icon("res_lingshi_36") / load_hd_icon("tab_zongmen_36")。
+# 例：load_hd_icon("entry_tianxia_36") / load_hd_icon("res_lingshi_36") / load_hd_icon("tab_zongmen_36")。
 # 图标已按目标像素整数落盘，使用时务必以原生尺寸摆放（TextureRect 用 STRETCH_KEEP_ASPECT_CENTERED），
 # 二次缩放会破坏 USM 锐化边缘、导致画布上的清晰度在实机丢失。
 func load_hd_icon(stem: String) -> Texture2D:
@@ -605,7 +670,9 @@ func load_hd_icon(stem: String) -> Texture2D:
 		dir = "res://art/icons/building/"
 	elif stem.begins_with("entry_"):
 		dir = "res://art/icons/entry/"
-	elif stem.begins_with("res_"):
+	elif stem.begins_with("auction_"):
+		dir = "res://art/icons/auction/"
+	elif stem.begins_with("res_") or stem.begins_with("pill_") or stem.begins_with("talisman_") or stem.begins_with("item_") or stem.begins_with("buff_") or stem.begins_with("herb_") or stem.begins_with("material_"):
 		dir = "res://art/icons/resource/"
 	var path: String = dir + stem + ".png"
 	if not ResourceLoader.exists(path):
@@ -631,6 +698,12 @@ func load_icon_sized(label: String, size: int) -> Texture2D:
 	var img: Image = tex.get_image()
 	if img == null:
 		return tex
+	# VRAM 压缩纹理（compress/mode=2）的 Image 为压缩格式，无法直接 resize；
+	# 先解压为可操作格式再缩放（仅在压缩时解压，普通图走原路径，零资源改动）。
+	if img.is_compressed():
+		var err := img.decompress()
+		if err != OK:
+			return tex
 	img.resize(size, size, Image.INTERPOLATE_LANCZOS)
 	return ImageTexture.create_from_image(img)
 
