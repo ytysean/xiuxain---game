@@ -1,5 +1,5 @@
 [gd_scene load_steps=7 format=3]
-[ext_resource type="Texture2D" path="res://_selftest/test_sheet.png" id="1"]
+[ext_resource type="Texture2D" path="res://tools/auto_ui/_selftest/test_sheet.png" id="1"]
 [sub_resource type="AnimatedTexture" id="AnimatedTexture_1"]
 fps = 8.0
 frames = 4

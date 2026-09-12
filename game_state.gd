@@ -11,6 +11,44 @@ const BattleManager = preload("res://BattleManager.gd")   # ADR-003 D1/D6：战�
 const StageDataLoader = preload("res://StageDataLoader.gd")   # Day 2 秘境数据层（纯数据，无 Game 依赖）
 const DestinyDataLoader = preload("res://DestinyDataLoader.gd")   # 命格数据层（纯数据，无 Game 依赖）
 const PeriodSettlementScript = preload("res://period_settlement.gd")   # P1：周期结算评分模块
+const SectBounty = preload("res://sect_bounty.gd")
+const ContributionShop = preload("res://contribution_shop.gd")   # S27 宗门任务榜数据层（弟子自主接取/请命）
+const CaravanSystem = preload("res://caravan_system.gd")
+const AuctionSystem = preload("res://auction_system.gd")
+const GlobalAuctionSystem = preload("res://global_auction_system.gd")  # 全服玩家拍卖会
+const FactionSystem = preload("res://faction_system.gd")
+const FamilySystem = preload("res://family_system.gd")
+const RaceSystem = preload("res://race_system.gd")
+const DynastySystem = preload("res://dynasty_system.gd")
+const MarriageSystem = preload("res://marriage_system.gd")
+const FriendSystem = preload("res://friend_system.gd")
+const HerbGardenSystem = preload("res://herb_garden_system.gd")
+const DanMarkSystem = preload("res://dan_mark_system.gd")
+const TalismanMarkSystem = preload("res://talisman_mark_system.gd")
+const FactionReputationSystem = preload("res://faction_reputation_system.gd")   # 商队系统（从game_state.gd拆分）
+const FishingSystem = preload("res://fishing_system.gd")   # 灵钓系统（休闲玩法 S46）
+const RelicSystem = preload("res://relic_system.gd")   # 探遗迹系统（休闲玩法 S47）
+const BeastRaiseSystem = preload("res://beast_raise_system.gd")   # 饲灵育兽系统（休闲玩法 S48）
+const DivineSystem = preload("res://divine_system.gd")   # 卜算星盘系统（休闲玩法 S49）
+const HerbSystem = preload("res://herb_system.gd")   # 药圃经营系统（休闲玩法 S50）
+const ChessSystem = preload("res://chess_system.gd")   # 论道棋弈系统（休闲玩法 S51）
+const PuppetSystem = preload("res://puppet_system.gd")   # 傀儡系统（从game_state.gd拆分）
+const LibrarySystem = preload("res://library_system.gd")   # 藏书阁系统（从game_state.gd拆分）
+const FormationSystem = preload("res://formation_system.gd")   # 阵法管理系统（从game_state.gd拆分）
+const MountSystem = preload("res://mount_system.gd")   # 坐骑系统（从game_state.gd拆分）
+const FragmentChestSystem = preload("res://fragment_chest_system.gd")   # 碎片宝箱系统（从game_state.gd拆分）
+const MailSystem = preload("res://mail_system.gd")   # 邮件系统（从game_state.gd拆分）
+const SectTechSystem = preload("res://sect_tech_system.gd")   # 宗门科技系统（从game_state.gd拆分）
+const XuanRankSystem = preload("res://xuan_rank_system.gd")   # 玄榜系统（从game_state.gd拆分）
+const AlchemyForgeSystem = preload("res://alchemy_forge_system.gd")   # 炼丹炼器封装系统（从game_state.gd拆分）
+const TalismanManagementSystem = preload("res://talisman_system.gd")   # 符箓系统封装（从game_state.gd拆分）
+const GongFaManagementSystem = preload("res://gongfa_management_system.gd")   # 功法管理系统（从game_state.gd拆分）
+const BeastManagementSystem = preload("res://beast_management_system.gd")   # 灵兽管理系统（从game_state.gd拆分）
+const BreakthroughSystem = preload("res://breakthrough_system.gd")   # 弟子突破系统（从game_state.gd拆分）
+const AchievementSystem = preload("res://achievement_system.gd")   # 成就系统（从game_state.gd拆分）
+const MessageSystem = preload("res://message_system.gd")   # S56 修真世界消息系统
+const WorldMapSystem = preload("res://world_map_system.gd")   # S58 世界地图系统
+const OfflineManager = preload("res://offline_manager.gd")   # S59 闭关嘱托系统（离线代理）
 # 时间流速：240 现实秒 = 1 游戏日；按 360 日/游戏年折算，1 现实天 ≈ 1 游戏年
 # === S1 端口：时辰历法换算层 ===
 # 调用位置：所有周期玩法（刷新/结算/突破冷却）读取「游戏日」处，应在读取前经此层换算为「时辰→日→月→年」。
@@ -23,18 +61,74 @@ const SAVE_VERSION := 4   # 存档结构版本号：损坏检测与跨版本兼�
 var 当前账号id: String = ""
 const 账号注册表路径: String = "user://profiles/index.json"
 var 灵石 := 1000
-var 灵草 := 0
+var 灵草 := 0  # 基础灵草（凡品，<100年）
+var 灵草_百年 := 0  # 百年灵草（100-999年），炼丹成功率+10%，品质+1
+var 灵草_千年 := 0  # 千年灵草（1000-9999年），炼丹成功率+25%，品质+2，可替代高1品阶
+var 灵草_万年 := 0  # 万年灵草（10000+年），炼丹成功率+50%，品质+3，可替代高2品阶，有概率出极品丹
+var 灵米: int = 0  # S1：灵米，弟子日常消耗，灵田副产
+var 灵种: int = 20  # S1：灵种，灵田种植消耗，初始20份
+var 灵种购买价格: int = 10  # S1：坊市购买灵种单价（灵石）
 var 矿石 := 0
+# ===== 修真原材料体系（按品阶/来源）=====
+# 炼器矿物（按品阶）
+var 精铁 := 0       # 灵品矿物，矿脉4级+产出
+var 玄铁 := 0       # 宝品矿物，矿脉6级+产出
+var 庚金 := 0       # 宝品矿物，矿脉7级+产出
+var 紫晶 := 0       # 王品矿物，矿脉8级+产出
+var 星辰铁 := 0     # 圣品矿物，矿脉9级+产出
+var 太阳精金 := 0   # 仙品矿物，矿脉10级+秘境产出
+# 炼丹灵草（按品阶）
+var 灵品灵草 := 0   # 灵品灵草，灵田3级+产出
+var 宝品灵草 := 0   # 宝品灵草，灵田5级+产出
+var 王品灵草 := 0   # 王品灵草，灵田7级+秘境产出
+var 圣品灵草 := 0   # 圣品灵草，秘境/奇遇产出
+var 仙品灵草 := 0   # 仙品灵草，秘境/奇遇产出（可遇不可求）
+# 自创功法系统（6.17.1）
+var 自创功法列表: Array = []  # 宗门自创功法列表，每个元素：{"id","名称","品阶","类型","效果","创始人ID","创始人名","创建日","道韵":bool}
+var 自创功法总数: int = 0
+# 妖兽材料（按妖兽境界分等阶：练气=一阶，筑基=二阶，金丹=三阶，元婴=四阶，化神=五阶，炼虚=六阶，合体=七阶，大乘=八阶，渡劫=九阶）
+var 妖兽内丹: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽精血: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽骨: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽皮: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽筋: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽爪: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+var 妖兽毛: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+# 特殊炼器材料（修真世界观：各有独特来源）
+var 灵木 := 0       # 灵木，灵田/宗门林场种植，炼器琴/扇/拂尘柄
+var 灵蚕丝 := 0     # 灵蚕丝，灵兽园养蚕，炼器衣/袍/带/索
+var 灵禽羽 := 0     # 灵禽羽，灵兽园饲养灵禽，炼器扇面
+var 灵马尾 := 0     # 灵马尾，灵兽园饲养灵马，炼器拂尘
+var 玉石 := 0       # 玉石，矿脉开采/秘境采集，炼器印/镜/佩/戒/链/镯
+# 境界→等阶映射
+const 妖兽境界等阶: Dictionary = {"练气": "一阶", "筑基": "二阶", "金丹": "三阶", "元婴": "四阶", "化神": "五阶", "炼虚": "六阶", "合体": "七阶", "大乘": "八阶", "渡劫": "九阶"}
+# 矿脉等级=殿阁等级（司职列表kuangmai等级），升级矿脉=升级殿阁（现有功能）
 var 灵气 := 0
-var 仓库: Array = []  # 宗门公共物品仓库（丹药/灵材/装备等Item对象）
-var 炼器经验值: int = 0  # 炼器系统经验值，用于提升炼器等级（不升SAVE_VERSION，旧档默认0）
+var 灵脉等级: int = 1  # S1：灵脉等级1-10，影响灵气产出和宗门承载力
+var 灵脉升级消耗灵石: int = 500  # S1：灵脉升级基础消耗（每级×1.5）
+var 洞府数量: int = 10  # S1：宗门洞府数量，决定能舒适供养的弟子数
+var 洞府扩建消耗灵石: int = 300  # S1：洞府扩建基础消耗（每次×1.3）
+# [S25 储物层收敛] 原 `仓库` 已并入 `宗门库房`（唯一真源，存档键 "kucun"）
+# 历史背景：`仓库` 从未被持久化（save 仅写 kucun=宗门库房），秘境神器/建筑产出/功勋兑换物读档即丢失。
+# 收敛后：上述来源统一入 宗门库房，随存档持久化；_扣灵材 亦可扣到坊市购入的灵材。
+var 已领悟配方: Dictionary = {}       # S46 炼器领悟：配方ID -> 领悟时间（0=未领悟）
+var 配方领悟进度: Dictionary = {}     # S46 炼器领悟：配方ID -> 累计锻造次数（用于反推领悟）
+var 配置表配方: Dictionary = {}       # S46 P1：从forge_recipe_config.csv读取的完整配方库
 var 灵田地块: Array = []  # 灵田种植数据
 var 矿脉矿点: Array = []  # 矿脉开采数据
 var 悟道点: int = 0  # 藏经阁产出，用于学习功法
 var 招募冷却剩余: int = 0  # 接引殿招募冷却（游戏日）
-var 阵法等级: Dictionary = {}  # 阵法堂：阵法ID→等级
-var 阵法耐久度: Dictionary = {}  # 阵法堂：阵法ID→当前耐久度（旧档缺键→默认满耐久）
-var 阵法驻守弟子: Dictionary = {}  # 阵法堂：阵法ID→驻守弟子ID列表
+var 渡劫准备配置: Dictionary = {"道具": [], "用护阵": false, "用护法": false}  # 天劫渡劫外力预设（§11.16）
+# === S46 大能渡劫观礼系统（不升 SAVE_VERSION，旧档缺键→默认） ===
+var 当前观礼名单: Array = []        # 运行时：当前大能渡劫的观礼弟子ID列表（不存档）
+var 当前观礼外宾: Array = []        # 运行时：外部观礼者（友好/同盟/其他玩家），仅产外交增益（不存档）
+var 宗主观礼配置: Dictionary = {"本宗人员": true, "道友道侣": true, "友好阵营": true, "同盟阵营": true, "手动名单": [], "其他玩家": []}
+var 宗门阵营: String = "正道宗门"   # 用于查 友好/同盟 阵营（默认正道宗门，不改阵营归属）
+
+# === 决策#3 异闻按境界分区播报（宗门大了后；不升 SAVE_VERSION，运行时不存档）===
+var 异闻分区阈值: int = 30         # [PLACEHOLDER] 未经 playtest：启用分境多条播报的弟子数阈值
+var 异闻分区月上限: int = 6         # [PLACEHOLDER] 未经 playtest：每月至多播报条数（防刷屏）
+var 异闻分区已播: Dictionary = {}   # 运行时不存档：本月已播 (境界|弟子ID) 去重键
 const _方针默认: Dictionary = {
 	"修炼": {"风格": "均衡"},
 	"历练": {"风险偏好": 0.5, "目标掉落表": [], "自动派遣": false},
@@ -49,14 +143,40 @@ var 待决奏折: Array = []
 var 贡献点 := 0
 # === 灵讯（邮件）系统：全新域，纯新增不改动既有数据层逻辑 ===
 # 邮件列表：Array[Dictionary]，元素键：发件人/标题/内容/时间/附件(Dict 资源：/未读/已领
-var 邮件列表: Array = []
-var 玄榜虚拟宗门: Array = []   # 玄榜（排行榜）：种子化虚拟对手宗门，单机填榜（不升SAVE_VERSION）
+var 宗门领地: Array = []   # S31 宣战/领地战：占领的持久领地（灵脉/矿脉/城池/秘境），按月产出（不升SAVE_VERSION，旧档缺键→默认[]）
+# === S32 宣战周期化 / 战场功勋（战功）：玩家层锚定现实时间，世界层月产仍走游戏月 ===
+var 战功: int = 0                      # 战场功勋：独立货币（宣战/领地/周结算/赛季获取，不升SAVE_VERSION）
+var 赛季序号: int = 1                  # 当前赛季序号（现实 4 周一季）
+var 宣战周已用: int = 0                # 本现实周已用宣战次数
+var 本周宣战胜场: int = 0              # 本现实周宣战胜场（周结算阶梯用）
+var 赛季累计战功: int = 0              # 本赛季累计获得战功（名次判定用）
+var 上次宣战周真实秒: int = 0          # 宣战周期锚点（现实 unix 秒，复用周常真实秒范式）
+var 上次赛季真实秒: int = 0            # 赛季周期锚点（现实 unix 秒）
+var 战功道具库存: Dictionary = {}      # 战功兑换的战斗道具：道具id → 数量（不进宗门库房，避免污染坊市回收）
+var _战功商店缓存: Array = []          # config/battle_merit_shop.csv 行缓存（懒加载）
+# === S33-5 阵营战役（正魔大战 P0-3）：走已有宗门战引擎 + 复用 S32 加战功()，零新货币 ===
+var 阵营战役周已用: int = 0            # 本现实周已出征阵营战役次数（与宣战配额分账，_周结算_S32 清零）
+var 阵营战役战绩: Dictionary = {}      # 战役id → 累计告捷次数（首胜双倍声望判定 + 纪事）
+var _阵营战役缓存: Array = []          # config/faction_conflict.csv 行缓存（懒加载，不入存档）
+# === S34 凡人王朝：王朝周期引擎（不升SAVE_VERSION，旧档缺键→_新王朝()兜底） ===
+# 王朝已移至 dynasty_system.gd
+# 凡间差事榜已移至 dynasty_system.gd
+# 凡间差事进行中已移至 dynasty_system.gd
+# ===================== S34b 通用拍卖会（常驻场 + 季度大拍）=====================
+# 货币复用宗门灵石（不新建货币，守 S32/S35 铁律）；拍品物品以 dict 存（Item.to_dict），授予时 Item.from_dict 重建
+# 拍卖会状态变量已移至 auction_system.gd
+# _拍卖配置缓存已移至 auction_system.gd
+# _拍卖AI缓存已移至 auction_system.gd
+const 拍卖品阶基准价 := {"凡阶":60,"灵阶":240,"宝阶":900,"王阶":3500,"圣阶":12000,"仙阶":35000,"道阶":90000}  # 拍卖内部估值启发（无外部真源，纯定价启发）
+# _王朝配置缓存已移至 dynasty_system.gd
+# _王朝阶段缓存已移至 dynasty_system.gd
+# _差事模板缓存已移至 dynasty_system.gd
+var _委托模板缓存: Array = []            # config/dynasty_commission_config.csv 行缓存（懒加载）            # config/dynasty_decree_config.csv 行缓存（懒加载）
+# 郡县状态已移至 dynasty_system.gd
 # 战斗模式设置："full"完整结算 / "quick"速算（加速战斗，使用期望值计算，不影响最终结果分布）
 var 战斗模式: String = "full"   # 默认完整结算，玩家可在设置中切换为速算
 # 碎片合成系统：碎片库存（碎片ID → 数量）
-var 碎片库存: Dictionary = {}   # 旧档缺键→默认空Dict，零回归（不升SAVE_VERSION）
 # 宝箱系统：宝箱库存（宝箱ID → 数量）
-var 宝箱库存: Dictionary = {}   # 旧档缺键→默认空Dict，零回归（不升SAVE_VERSION）
 # === S1 ：：阶位轴试炼经济参数（全：[PLACEHOLDER]，待数：GDD/CSV 校准，不影响 F5：==
 const 试炼成本: int = 50          # 发起单次试炼行政成本（贡献点：
 const 试炼失败扣减: int = 50      # 失败额外扣减（叠加行政成本，单次失败：-1000
@@ -85,14 +205,68 @@ const 命格重塑仙玉价格: int = 200  # 洗池重铸命格消耗（仙玉�
 var 弟子列表: Array[Disciple] = []   # 强类型数组（需 disciple.gd 已注册class_name：
 # 御兽堂：孵化中的灵兽：+ 已孵化待绑定的灵兽库：
 var 灵兽蛋列表: Array[Beast] = []
-var 灵兽库存: Array[Beast] = []
-var 灵兽兑换队列: Array[Dictionary] = []   # T03：引育计划队列（{偏好,cost,启用}），周期结算执行
+# ===== 多种族修炼体系 P2：契约灵兽系统（不占弟子名额）=====
+var 契约灵兽列表: Array = []        # 已契约的灵兽列表（不占弟子名额，{灵兽ID,名称,境界,跟随弟子ID,契约时间}）
+var 契约灵兽上限: int = 4            # 契约灵兽数量上限（宗门等级×2，初始4）
+# ===== 多种族修炼体系 P3：种族关系与政策 =====
+# 种族关系表已移至 race_system.gd
+# 宗门种族政策已移至 faction_system.gd
+# 种族政策效果已移至 faction_system.gd
+# 种族冲突事件记录已移至 race_system.gd
+# 种族通婚记录已移至 race_system.gd
+# ===== 通婚与子嗣系统 =====
+# 子嗣列表已移至 marriage_system.gd
+# 通婚记录详细已移至 marriage_system.gd
+# 生育冷却记录已移至 marriage_system.gd
+# 子嗣ID计数已移至 marriage_system.gd
 # === 创建宗门页（开宗捏脸）数据：===
 # 玩家自定义：宗门：/ 宗主名/ 宗主性别 / 宗主头像（头像选择系统，替代旧三层捏脸 idx：
 # 说明：此前铁律「数据层只读不可动」，本次经用户授权为闭合开宗链路补写底层字段（2026-08-14）：
 const 宗主性别预设: Array = ["男", "女"]            # 性别枚举（对应sect_master 资源 male/female 文件夹）
 var 宗门名: String = "太玄宗"                       # 与top_bar FALLBACK_宗门名一致；旧档缺键→默认回退
 var 宗主名: String = "太虚道君"
+var 宗主: Disciple = null  # S2：宗主独立角色实体（复用Disciple类）
+var 宗主精力: int = 100  # S2：宗主每日精力，亲办奏折/修炼/生产消耗
+var 宗主威望: int = 0  # S2：宗主威望，影响政令效果/弟子忠诚/外交
+var 宗主精力上限: int = 100  # S2：宗主精力上限
+var 宗主闭关中: bool = false  # S3：宗主是否在闭关
+var 宗主闭关开始日: int = 0  # S3：宗主闭关开始的游戏日
+var 宗主闭关累计天: int = 0  # S3：宗主闭关累计天数
+var 最后在线时间戳: float = 0.0  # S3：最后在线的Unix时间戳（用于离线结算）
+var 离线结算倍率: float = 1.0  # S3：离线资源结算倍率（VIP/月卡加成）
+var 宗主剩余寿元: int = 500  # E：宗主剩余寿元（年），初始金丹500年
+var 宗主传承触发中: bool = false  # E：宗主寿元耗尽，等待玩家选择传承方式
+var 宗主转世次数: int = 0  # E：宗主转世重修次数
+# 称号系统：宗主称号
+var 宗主当前称号: String = ""  # 宗主当前装备的称号ID
+var 宗主已获得称号: Array = []  # 宗主已获得的称号ID列表
+var 副宗主弟子ID: int = -1  # F：副宗主弟子ID（-1表示未任命）
+var 代管权能: Dictionary = {  # F：闭关代管权能范围（true=副宗主可处理，false=需宗主）
+	"日常资源": true,      # 灵田/矿脉/灵脉等日常产出
+	"弟子修炼": true,      # 弟子修炼推进/突破
+	"自动招徒": true,      # 自动招收弟子
+	"方针执行": true,      # 历练派遣/丹药炼制等方针
+	"殿阁升级": false,     # 殿阁升级（消耗资源，需宗主）
+	"弟子任命": false,     # 任命/解除负责人
+	"重大事件": false,     # 特殊事件/奇遇
+	"外交事务": false,     # 王朝/其他宗门外交
+	"拍卖代拍": false,     # S53：闭关期间副宗主代拍（月卡/VIP功能）
+}
+var 代管待处理事件: Array = []  # F：闭关期间副宗主无法处理、需宗主上线处理的事件
+# ===== S53 代拍方略系统 =====
+var 代拍方略: Dictionary = {
+	"启用": false,           # 是否启用代拍
+	"可代拍品类": ["法宝", "丹药", "符箓", "灵材"],  # 可代拍品类
+	"最低品阶": "宝阶",      # 只代拍此品阶及以上
+	"单件出价上限": 5000,    # 单件物品最高出价
+	"总预算上限": 20000,     # 本次代拍总预算
+	"已花费": 0,             # 已花费灵石
+	"优先策略": "品阶优先",  # 品阶优先/价格优先/品类优先
+	"代拍记录": [],          # 代拍结果记录
+}
+var 天骄弟子ID: Array = []  # 修真味：天骄/俊杰弟子ID列表（修炼+20%，突破+10%）
+var 特殊投奔冷却: int = 0  # 特殊人才投奔冷却（游戏日）
+var 弟子技能字典: Dictionary = {}  # 技能系统：弟子ID -> 已学技能列表（[{skill_id,skill_name,grade,skill_type,effect_value,level}]）
 var 宗主性别: String = "男"
 var 宗主头像: String = ""          # 创建宗门·选中头像 id（头像选择系统，替代旧三层捏脸：
 var 当前宗主皮肤: String = ""       # 当前装备的宗主皮肤ID："=无皮肤，使用基础立绘：
@@ -150,10 +324,275 @@ const 宗主头像目录: Array = [
 var 待抉择: Array[Dictionary] = []
 # 奇遇待抉择队列（ADR-002 D4）：： 奇遇需掌门干预；结：{弟子, 奇遇： 选项}；会话瞬时，load 时清空
 var 奇遇待抉择: Array[Dictionary] = []
+
+# ============ S27 宗门任务榜（§4.0 弟子自主层）============
+# 双轨：玩家挂榜 → 弟子自主接取；弟子请命 → 玩家批准/驳回。
+# 报酬走「库房拨付」：完成任务后从 宗门库房 拨一件该品阶之物进弟子 背包（不新建货币）。
+var 宗门任务榜: Dictionary = {}          # 任务ID -> {任务ID, 模板ID, 任务名, 类型, 难度, 报酬品阶, 要求数量, 接取弟子ID, 发布日, 状态}
+var 宗门任务进行中: Dictionary = {}      # 实例ID -> {实例ID, 任务ID, 弟子ID, 开始游戏日, 预计结束游戏日, 模板ID, 报酬品阶}
+var 弟子请命列表: Array[Dictionary] = [] # [{弟子ID, 弟子名, 模板ID, 任务名, 类型, 难度, 意愿, 理由, 发布日}]
+var 宗门任务计数器: int = 0
+# ============ S28 宗门悬赏榜（玩家自由发布悬赏，弟子接单完成）============
+var 宗门悬赏榜: Dictionary = {}          # 悬赏ID -> {悬赏ID, 目标物类别, 目标物名称, 需求数量, 已收集, 奖励类型, 奖励数量, 接取弟子ID, 发布日, 有效期, 状态}
+var 宗门悬赏计数器: int = 0
 # 宗门纪事（完善版）：分类记录宗门大事，持久化存储
 # 分类：大事件（宗门里程碑）、岁纪（年度总结）、庶务（日常运营）、异闻（稀有奇遇）
 var 宗门纪事: Array = []
-const 纪事分类 = ["大事件", "岁纪", "庶务", "异闻"]
+const 纪事分类 = ["大事件", "岁纪", "庶务", "异闻", "宗门典籍"]
+
+# ============ 宗门典籍系统（修真世界观：记载宗门千年兴衰）============
+# 基于现有纪事系统扩展，自动整理记录，零玩法影响，纯沉浸感
+# 典籍分类：历代宗主录、宗门大事记、功法传承录、名人堂
+
+## 获取宗门典籍（按分类整理纪事）
+func 获取宗门典籍(典籍类型: String = "全部", 数量: int = 50) -> Array:
+	var 结果: Array = []
+	match 典籍类型:
+		"历代宗主录":
+			# 从纪事中筛选宗主相关记录
+			for 纪事 in 宗门纪事:
+				var 标题: String = str(纪事.get("标题", ""))
+				var 内容: String = str(纪事.get("内容", ""))
+				if "宗主" in 标题 or "宗主" in 内容 or "继位" in 标题 or "退位" in 标题:
+					结果.append(纪事)
+					if 结果.size() >= 数量:
+						break
+		"宗门大事记":
+			# 重要度>=2的纪事
+			for 纪事 in 宗门纪事:
+				if int(纪事.get("重要度", 1)) >= 2:
+					结果.append(纪事)
+					if 结果.size() >= 数量:
+						break
+		"功法传承录":
+			# 功法相关纪事
+			for 纪事 in 宗门纪事:
+				var 标题: String = str(纪事.get("标题", ""))
+				var 内容: String = str(纪事.get("内容", ""))
+				if "功法" in 标题 or "功法" in 内容 or "传承" in 标题 or "自创" in 标题 or "藏经阁" in 标题:
+					结果.append(纪事)
+					if 结果.size() >= 数量:
+						break
+		"名人堂":
+			# 弟子飞升、杰出弟子相关纪事
+			for 纪事 in 宗门纪事:
+				var 标题: String = str(纪事.get("标题", ""))
+				var 内容: String = str(纪事.get("内容", ""))
+				if "飞升" in 标题 or "飞升" in 内容 or "杰出" in 标题 or "天骄" in 标题 or "名人" in 标题:
+					结果.append(纪事)
+					if 结果.size() >= 数量:
+						break
+		_:
+			结果 = 获取纪事("宗门典籍", 数量)
+	return 结果
+
+## 获取典籍统计信息
+func 获取典籍统计() -> Dictionary:
+	var 统计: Dictionary = {
+		"历代宗主": 0,
+		"宗门大事": 0,
+		"功法传承": 0,
+		"名人堂": 0,
+		"开宗日": 0,
+		"宗门年龄": 0
+	}
+	for 纪事 in 宗门纪事:
+		var 标题: String = str(纪事.get("标题", ""))
+		var 内容: String = str(纪事.get("内容", ""))
+		if "宗主" in 标题 or "宗主" in 内容 or "继位" in 标题:
+			统计["历代宗主"] += 1
+		if int(纪事.get("重要度", 1)) >= 2:
+			统计["宗门大事"] += 1
+		if "功法" in 标题 or "功法" in 内容 or "传承" in 标题:
+			统计["功法传承"] += 1
+		if "飞升" in 标题 or "飞升" in 内容 or "杰出" in 标题:
+			统计["名人堂"] += 1
+	统计["开宗日"] = 0   # 开宗日（游戏日0）
+	统计["宗门年龄"] = 累计游戏日   # 宗门年龄（游戏日）
+	return 统计
+
+## 添加宗门典籍记录
+func 添加宗门典籍(典籍类型: String, 标题: String, 内容: String = "", 重要度: int = 2) -> void:
+	添加纪事("宗门典籍", 标题, 内容, 重要度)
+
+# ============ 宗门庆典系统（修真世界观：祭祖/收徒/论道大会）============
+# 基于现有大典系统扩展，增加3种庆典，效果小，主要沉浸感
+
+## 祭祖大典（每年清明自动举办，游戏日第90天）
+func 举办祭祖大典() -> Dictionary:
+	# 消耗
+	var 消耗灵石: int = 500 * max(1, 门派等级)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，举办祭祖大典需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 效果：弟子忠诚+2，气运+2
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			d.忠诚 = min(100, int(d.忠诚) + 2)
+	# 气运加成（临时，持续30游戏日）
+	设置气运buff(0.02, 0.01, 30)
+	# 纪事和推演
+	添加宗门典籍("宗门大事记", "祭祖大典", "太玄宗举办祭祖大典，供奉历代祖师，缅怀先贤。全宗弟子齐聚祖师堂，焚香叩拜，感念祖师恩德。大典之后，弟子忠诚精进，宗门气运提升。", 2)
+	_加推演条目("【祭祖大典】太玄宗祭祖大典圆满成功。全宗弟子齐聚祖师堂，缅怀历代祖师。弟子忠诚+2，宗门气运提升。", ET_SECT, PRIO_NORMAL, {})
+	return {"成功": true, "消耗灵石": 消耗灵石, "效果": "弟子忠诚+2，气运+2%（30日）"}
+
+## 收徒大典（大规模收徒后可主动举办）
+func 举办收徒大典() -> Dictionary:
+	# 消耗
+	var 消耗灵石: int = 300 * max(1, 门派等级)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，举办收徒大典需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 效果：在宗弟子忠诚+3，宗门声望+10
+	var 新弟子数: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			d.忠诚 = min(100, int(d.忠诚) + 3)
+			新弟子数 += 1
+	声望 += 10
+	# 纪事和推演
+	添加宗门典籍("宗门大事记", "收徒大典", "太玄宗举办收徒大典，接引新弟子入门。大典之上，新弟子跪拜祖师，聆听门规，正式成为太玄宗弟子。共有%d名新弟子参加大典。" % 新弟子数, 2)
+	_加推演条目("【收徒大典】太玄宗收徒大典圆满成功。%d名新弟子正式入门，忠诚+5。宗门声望+10。" % 新弟子数, ET_SECT, PRIO_NORMAL, {})
+	return {"成功": true, "消耗灵石": 消耗灵石, "新弟子数": 新弟子数, "效果": "新弟子忠诚+5，声望+10"}
+
+## 论道大会（每3年可主动举办一次）
+var 论道大会冷却: int = 0   # 距离下次可举办论道大会的游戏日
+var _祭祖大典年份标记: int = -1   # 祭祖大典已举办年份标记（避免重复举办）
+
+func _祭祖大典已举办今年() -> bool:
+	var 当前年份: int = int(累计游戏日 / 360)
+	return _祭祖大典年份标记 == 当前年份
+
+func _标记祭祖大典已举办() -> void:
+	_祭祖大典年份标记 = int(累计游戏日 / 360)
+
+# ============ 气运可视化系统（修真世界观：气运影响宗门兴衰）============
+# 基于现有气运系统扩展，增加事件提示和UI展示
+# 气运等级：气运昌隆(80+)/气运旺盛(60+)/气运平稳(40+)/气运低迷(20+)/气运衰败(0+)
+
+## 气运事件月度触发（根据气运等级概率触发机缘/灾厄事件）
+## 注意：此函数只在月度结算时调用（推演一月中）
+func _气运事件月度触发() -> void:
+	var 气运值: int = 获取气运值()
+	var 气运等级: String = 获取气运等级()
+	var 触发概率: float = 0.0
+	var 是机缘: bool = false
+	match 气运等级:
+		"气运昌隆":
+			触发概率 = 0.05   # 5%概率触发机缘
+			是机缘 = true
+		"气运旺盛":
+			触发概率 = 0.03   # 3%概率触发机缘
+			是机缘 = true
+		"气运平稳":
+			触发概率 = 0.0    # 平稳无特殊事件
+		"气运低迷":
+			触发概率 = 0.03   # 3%概率触发灾厄
+			是机缘 = false
+		"气运衰败":
+			触发概率 = 0.05   # 5%概率触发灾厄
+			是机缘 = false
+	if randf() >= 触发概率:
+		return
+	# 触发事件
+	if 是机缘:
+		_触发气运机缘事件()
+	else:
+		_触发气运灾厄事件()
+
+## 气运机缘事件（气运昌隆/旺盛时触发）
+func _触发气运机缘事件() -> void:
+	var 事件类型: int = randi() % 3
+	match 事件类型:
+		0:
+			# 弟子顿悟
+			var 在宗弟子: Array = []
+			for d in 弟子列表:
+				if d != null and d is Disciple and d.状态 == "在宗":
+					在宗弟子.append(d)
+			if 在宗弟子.size() > 0:
+				var 幸运弟子: Disciple = 在宗弟子[randi() % 在宗弟子.size()]
+				幸运弟子.修炼进度 = min(1.0, float(幸运弟子.修炼进度) + 0.15)
+				添加纪事("修炼", "气运机缘", "%s受宗门气运庇佑，修炼中豁然开朗，进度+15%%" % 幸运弟子.姓名, 2)
+				_加推演条目("【气运机缘】%s受宗门气运庇佑，修炼中豁然开朗，修为大进。" % 幸运弟子.姓名, ET_SECT, PRIO_NORMAL, {})
+		1:
+			# 发现宝物
+			var 灵石奖励: int = 500 * max(1, 门派等级)
+			灵石 += 灵石奖励
+			添加纪事("庶务", "气运机缘", "宗门气运昌隆，弟子于后山发现前人遗留洞府，获灵石%d枚。" % 灵石奖励, 2)
+			_加推演条目("【气运机缘】宗门气运昌隆，弟子于后山发现前人遗留洞府，获灵石%d枚。" % 灵石奖励, ET_SECT, PRIO_NORMAL, {})
+		2:
+			# 灵脉异动，灵气充沛
+			设置气运buff(0.05, 0.05, 30)
+			添加纪事("庶务", "气运机缘", "宗门气运昌隆，灵脉异动，灵气愈发充沛，修炼产出临时提升。", 2)
+			_加推演条目("【气运机缘】宗门气运昌隆，灵脉异动，灵气愈发充沛，修炼与产出临时提升。", ET_SECT, PRIO_NORMAL, {})
+
+## 气运灾厄事件（气运低迷/衰败时触发）
+func _触发气运灾厄事件() -> void:
+	var 事件类型: int = randi() % 3
+	match 事件类型:
+		0:
+			# 弟子走火入魔
+			var 在宗弟子: Array = []
+			for d in 弟子列表:
+				if d != null and d is Disciple and d.状态 == "在宗":
+					在宗弟子.append(d)
+			if 在宗弟子.size() > 0:
+				var 不幸弟子: Disciple = 在宗弟子[randi() % 在宗弟子.size()]
+				不幸弟子.修炼进度 = max(0.0, float(不幸弟子.修炼进度) - 0.1)
+				不幸弟子.心魔值 = min(100, int(不幸弟子.心魔值) + 10)
+				添加纪事("修炼", "气运灾厄", "%s受宗门气运低迷影响，修炼中走火入魔，进度-10%%，心魔+10" % 不幸弟子.姓名, 2)
+				_加推演条目("【气运灾厄】%s受宗门气运低迷影响，修炼中走火入魔，修为倒退，心魔滋生。" % 不幸弟子.姓名, ET_SECT, PRIO_NORMAL, {})
+		1:
+			# 资源损失
+			var 灵石损失: int = min(int(灵石 * 0.05), 1000 * max(1, 门派等级))
+			灵石 = max(0, 灵石 - 灵石损失)
+			添加纪事("庶务", "气运灾厄", "宗门气运衰败，库房不慎走水，损失灵石%d枚。" % 灵石损失, 2)
+			_加推演条目("【气运灾厄】宗门气运衰败，库房不慎走水，损失灵石%d枚。" % 灵石损失, ET_SECT, PRIO_NORMAL, {})
+		2:
+			# 弟子叛逃
+			var 在宗弟子: Array = []
+			for d in 弟子列表:
+				if d != null and d is Disciple and d.状态 == "在宗" and int(d.忠诚) < 50:
+					在宗弟子.append(d)
+			if 在宗弟子.size() > 0:
+				var 叛逃弟子: Disciple = 在宗弟子[randi() % 在宗弟子.size()]
+				叛逃弟子.状态 = "叛逃"
+				添加纪事("庶务", "气运灾厄", "宗门气运衰败，%s心生不满，叛逃下山。" % 叛逃弟子.姓名, 2)
+				_加推演条目("【气运灾厄】宗门气运衰败，%s心生不满，叛逃下山。" % 叛逃弟子.姓名, ET_SECT, PRIO_HIGH, {})
+
+## 获取气运详细信息（用于UI展示）
+## 注意：已有获取气运详情函数，此处不重复定义
+
+func 可举办论道大会() -> bool:
+	return 累计游戏日 >= 论道大会冷却
+
+func 举办论道大会() -> Dictionary:
+	if not 可举办论道大会():
+		return {"成功": false, "原因": "论道大会每3年举办一次，下次可举办时间：第%d日" % 论道大会冷却}
+	# 消耗
+	var 消耗灵石: int = 1000 * max(1, 门派等级)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，举办论道大会需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 设置冷却（3年=1080游戏日）
+	论道大会冷却 = 累计游戏日 + 1080
+	# 效果：参与弟子悟道点+30，有概率顿悟
+	var 参与弟子数: int = 0
+	var 顿悟弟子数: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			参与弟子数 += 1
+			悟道点 += 30
+			# 10%概率顿悟
+			if randf() < 0.1:
+				d.修炼进度 = min(1.0, float(d.修炼进度) + 0.1)
+				顿悟弟子数 += 1
+				添加纪事("修炼", "论道顿悟", "%s于论道大会中豁然开朗，修炼进度+10%%" % d.姓名, 2)
+	# 纪事和推演
+	添加宗门典籍("宗门大事记", "论道大会", "太玄宗举办论道大会，全宗弟子齐聚论道堂，交流修行心得。大会之上，百家争鸣，道意盎然。共有%d名弟子参与大会，其中%d名弟子于论道中顿悟。" % [参与弟子数, 顿悟弟子数], 2)
+	_加推演条目("【论道大会】太玄宗论道大会圆满成功。%d名弟子参与论道，悟道点+30。%d名弟子于论道中顿悟，修为大进。" % [参与弟子数, 顿悟弟子数], ET_SECT, PRIO_HIGH, {})
+	return {"成功": true, "消耗灵石": 消耗灵石, "参与弟子数": 参与弟子数, "顿悟弟子数": 顿悟弟子数, "效果": "参与弟子悟道点+30，10%概率顿悟"}
 var 最后查看纪事时间: float = 0.0  # 最后查看纪事的时间戳，用于判断未读纪事
 ## 判断是否有未读纪事
 func 有未读纪事() -> bool:
@@ -194,8 +633,48 @@ func 获取纪事(分类: String = "全部", 数量: int = 50) -> Array:
 			if 结果.size() >= 数量:
 				break
 	return 结果
-# WAVE-C #3：先贤祠（坐化弟子静态档案，持久化于存档；纯展示，零数值，传承+5% deferred；不持有 Disciple 引用，防悬空：
+
+# ============ §6.16 家族AI托管策略系统（P4优化实现）============
+# 修真世界设定：玩家制定家族策略，AI根据策略自动执行日常管理
+# 玩家只做重大决策，减少繁琐手动操作
+
+# 家族策略配置
+
+# ===== 家族策略函数（已拆分到family_system.gd，此处为转发函数）=====
+func 设置家族策略(家族ID: String, 策略类型: String, 策略值: String, 操作者: Disciple):
+	return 家族系统.设置家族策略(家族ID, 策略类型, 策略值, 操作者)
+func 获取家族策略(家族ID: String):
+	return 家族系统.获取家族策略(家族ID)
+func 家族AI托管执行(家族ID: String):
+	return 家族系统.家族AI托管执行(家族ID)
+func 月度家族结算():
+	return 家族系统.月度家族结算()
+
 var 先贤堂: Array = []
+# ============ 飞升系统（祖师堂·飞升弟子轻量存储·持续回馈）============
+# 祖师堂：飞升弟子的轻量档案（不持有Disciple引用，防悬空）
+# 每个飞升弟子：弟子ID/姓名/境界/飞升日/飞升路线/留下传承/气运加成
+var 祖师堂: Array = []
+# 飞升前兆队列：即将飞升的弟子（提前30游戏日预警）
+var 飞升前兆队列: Array = []
+# 飞升气运加成：每个飞升弟子全宗修炼+1%（运行时计算，不持久化单独字段）
+
+# ===== P1联动：先贤堂等级 → 全宗修炼加成 =====
+# 先贤堂等级：根据入册弟子数量和境界计算
+func 获取先贤堂等级() -> int:
+	if 先贤堂.is_empty():
+		return 1
+	var 总境界值: int = 0
+	for 先贤 in 先贤堂:
+		var 境界: String = str(先贤.get("境界", "练气"))
+		总境界值 += Disciple.境界序.find(境界) + 1
+	# 每100境界值升1级，上限10级
+	return min(10, 1 + 总境界值 / 100)
+
+# 先贤堂修炼加成：每级+2%全宗修炼速度，上限20%
+func 获取先贤堂修炼加成() -> float:
+	var 等级: int = 获取先贤堂等级()
+	return float(等级) * 0.02  # 每级+2%
 # WAVE-D #6 宗门收藏图录 + #8 宗门里程：传承：
 # 红线约束：6 裁决 §：/ pre_f5 ：闸）：增益只走「产出池轴」或「声望轴」，严禁写入永久全局 buff：
 # 产出池轴全宗累加 ：0%（运行时 clamp 兜底）。零经济改动（不新增 灵石/产出/消：节点）：
@@ -206,7 +685,6 @@ var 里程碑配置: Array = []
 var 里程碑_已达成: Array = []          # 已达成里程碑ID（持久化：
 # S1 ：：成就系统（核心骨架+安全子集；CSV 驱动：9 条接线+ 145 ：placeholder 容错跳过；不升SAVE_VERSION）
 var 成就配置: Array = []
-var 成就_已达成: Array= []            # 已达成成就ID（持久化；旧档缺键→load ：.get 默认空数组，零回归）
 var 捐赠记录: Dictionary = {}          # 图录ID -> true（稀有藏品已捐藏宝库：
 var 传承史册: Array = []               # 持久化史册（图录集齐 + 里程碑，复用 #2 纪事结构；独立于会话瞬时 宗门纪事：
 # ============ 彩蛋系统（第一批·真零成本子：+ 轻量底座：===========
@@ -228,35 +706,116 @@ const 彩蛋永久总上限: float = 0.03
 const 增益单条上限: float = 5.0       # 任意类型单条buff：%（彩：付费/活动/殿阁，永久限时统一：
 const 增益永久全局上限: float = 3.0  # 永久类全局总增益≤3%（与彩蛋永久红线对齐：
 const 增益限时全局上限: float = 8.0  # 限时类全局总增益≤8%（全局总和上限，非单条：
+# ===== 统一增益管理系统（P0-2：经济增益上限红线接入）=====
+# 区分永久/限时增益，接入4个上限常量
+# 设计原则：基础增益（藏经阁/血脉/家族等）不受此限，仅针对付费/活动/殿阁/彩蛋类增益
+
+# 限时增益统计（彩蛋临时+藏书阁临时+气运），用于全局上限检查
+func 统计限时增益() -> Dictionary:
+	var 结果: Dictionary = {"总加成": 0.0, "明细": {}}
+	# 彩蛋临时增益（修炼+产出）
+	var 彩蛋修炼: float = 彩蛋修炼加成()
+	var 彩蛋产出: float = 彩蛋产出加成()
+	结果["明细"]["彩蛋修炼"] = 彩蛋修炼
+	结果["明细"]["彩蛋产出"] = 彩蛋产出
+	结果["总加成"] += 彩蛋修炼 + 彩蛋产出
+	# 藏书阁临时加成
+	结果["明细"]["藏书阁临时"] = 藏书阁系统.藏书阁临时加成
+	结果["总加成"] += 藏书阁系统.藏书阁临时加成
+	# 气运加成
+	结果["明细"]["气运修炼"] = 气运修炼加成
+	结果["明细"]["气运产出"] = 气运产出加成
+	结果["总加成"] += 气运修炼加成 + 气运产出加成
+	return 结果
+
+# 限时增益全局上限检查（返回被限制后的实际值）
+func 应用限时增益上限(原始值: float) -> float:
+	var 上限: float = 增益限时全局上限 / 100.0  # 转换为小数（8.0 -> 0.08）
+	return min(原始值, 上限)
+
+# 单条增益上限检查（返回被限制后的实际值）
+func 应用单条增益上限(原始值: float) -> float:
+	var 上限: float = 增益单条上限 / 100.0  # 转换为小数（5.0 -> 0.05）
+	return min(原始值, 上限)
+
+# 彩蛋永久增益上限检查
+func 应用彩蛋永久上限(原始值: float) -> float:
+	return min(原始值, 彩蛋永久总上限)  # 已经是小数（0.03）
+
+# ============ P0-2：永久增益全局上限接入（增益永久全局上限=3%）============
+# 永久增益统计（彩蛋永久+血脉+道友结义+王朝奇观+付费永久等），用于全局上限检查
+# 设计原则：基础增益（藏经阁/血脉/家族等）不受此限，仅针对付费/活动/殿阁/彩蛋类永久增益
+func 统计永久增益() -> Dictionary:
+	var 结果: Dictionary = {"总加成": 0.0, "明细": {}}
+	# 彩蛋永久增益（当前简化为0，后续接入彩蛋永久系统时统计）
+	结果["明细"]["彩蛋永久"] = 0.0
+	# 付费永久增益（付费增益值，战斗通用增益）
+	结果["明细"]["付费永久"] = 付费增益值 / 100.0  # 转换为小数
+	结果["总加成"] += 付费增益值 / 100.0
+	# 道友结义永久加成（修炼速度+1%，最多5%，当前简化为0）
+	结果["明细"]["道友结义"] = 0.0
+	# 王朝奇观永久加成（当前简化为0，后续接入奇观系统时统计）
+	结果["明细"]["王朝奇观"] = 0.0
+	return 结果
+
+# 永久增益全局上限检查（返回被限制后的实际值）
+# 规则：永久类全局总增益≤3%（与彩蛋永久红线对齐）
+func 应用永久增益上限(原始值: float) -> float:
+	var 上限: float = 增益永久全局上限 / 100.0  # 转换为小数（3.0 -> 0.03）
+	return min(原始值, 上限)
+
+# 检查永久增益是否还有剩余额度（用于添加新永久增益时的前置检查）
+func 获取永久增益剩余额度() -> float:
+	var 当前永久总加成: float = 统计永久增益().get("总加成", 0.0)
+	var 上限: float = 增益永久全局上限 / 100.0
+	return max(0.0, 上限 - 当前永久总加成)
+
+# 增益统计快照（用于UI显示和调试）
+func 增益统计快照() -> Dictionary:
+	var 限时: Dictionary = 统计限时增益()
+	var 永久: Dictionary = 统计永久增益()
+	return {
+		"限时增益": 限时,
+		"限时增益上限": 增益限时全局上限,
+		"永久增益": 永久,
+		"永久增益上限": 增益永久全局上限,
+		"单条增益上限": 增益单条上限,
+		"彩蛋永久上限": 彩蛋永久总上限,
+		"付费增益值": 付费增益值,
+		"彩蛋临时增益数": 彩蛋临时增益.size(),
+	}
 # 通用增益(战斗)：5%/：0% ：disciple.gd _clamp_soft(...,0.25,0.30,0.2)，付费buff并入同池共享封顶
 # ===== 付费预留接入点（S0 stub：全部置灰，当前不生效，S1 接真实支：广告后端：====
 const 付费单价: Dictionary = {
-	"修炼加速": 20,   # 全体弟子推进7游戏日修炼
+	"修炼加速": 50,   # P1优化：全体弟子推进7游戏日修炼（原20性价比过高）
 	"灵兽孵化": 30,   # 立即完成所有孵化中灵兽
 	"坊市刷新": 5,    # 手动刷新坊市上架
 	"历练额外": 15,   # +1次历练（突破今日/本周限制）
 	"殿阁产出": 25,   # 立即发放预估月产出(灵石)
 	"全局增益": 50,   # +5%战斗通用增益(共享封顶)
 }
+
 # 统一前缀 _pay_reserved_，全局可检索；每个对应一个未来付费功能入口：
 func _pay_reserved_修炼加成() -> Dictionary:
 
-	# S1 付费：消耗仙玉立即完成N天修炼进度（全体弟子）
-	var 价: int = 付费单价.get("修炼加速", 20)
+	# 付费：消耗灵玉布设聚灵阵，辅助全体弟子修炼7日
+	var 价: int = 付费单价.get("修炼加速", 50)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
+		return {"成功": false, "原因": "灵玉不足"}
 	var 天数: float = 7.0
 	for d in 弟子列表:
 		if d != null and d.has_method("推进修炼"):
 			d.推进修炼(天数)
 	记任务进度("pay_accelerate_cultivate")
+	_加推演条目("【宗门】宗主耗灵玉布设聚灵阵，辅助全宗弟子苦修七日。", ET_SECT, PRIO_NORMAL, {})
+	添加纪事("付费", "布设聚灵阵", "宗主耗灵玉布设聚灵阵，全宗弟子苦修七日，修为大进", 2)
 	return {"成功": true, "天数": 天数, "弟子数": 弟子列表.size()}
 func _pay_reserved_灵兽加成() -> Dictionary:
 
-	# S1 付费：消耗仙玉立即完成孵化中灵兽（兼容 Beast 实例与字典两种形态）
+	# 付费：消耗灵玉以妖兽精血催化，加速灵兽孵化
 	var 价: int = 付费单价.get("灵兽孵化", 30)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
+		return {"成功": false, "原因": "灵玉不足"}
 	var 完成数: int = 0
 	for 兽 in 灵兽蛋列表:
 		if 兽 == null:
@@ -276,43 +835,62 @@ func _pay_reserved_灵兽加成() -> Dictionary:
 			兽对象["剩余天数"] = 0
 		完成数 += 1
 	记任务进度("pay_hatch_beast")
+	if 完成数 > 0:
+		_加推演条目("【御兽峰】宗主以灵玉购妖兽精血，催化%d枚灵兽蛋即刻破壳。" % 完成数, ET_SECT, PRIO_NORMAL, {})
+		添加纪事("付费", "催化灵兽", "宗主以灵玉购妖兽精血，催化%d枚灵兽蛋即刻破壳" % 完成数, 2)
 	return {"成功": true, "完成数": 完成数}
 func _pay_reserved_坊市购买() -> Dictionary:
 
-	# S1 付费：仙玉手动刷新坊市上架
+	# 付费：消耗灵玉邀请四方商旅，刷新坊市上架
 	var 价: int = 付费单价.get("坊市刷新", 5)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
+		return {"成功": false, "原因": "灵玉不足"}
 	刷新坊市上架()
 	记任务进度("pay_refresh_market")
+	_加推演条目("【坊市】宗主耗灵玉邀请四方商旅，坊市货品焕然一新。", ET_SECT, PRIO_NORMAL, {})
+	添加纪事("付费", "刷新坊市", "宗主耗灵玉邀请四方商旅，坊市货品焕然一新", 1)
 	return {"成功": true}
 func _pay_reserved_历练购买() -> Dictionary:
 
-	# S1 付费：仙玉购买历练额外次数（突破今日/本周已完成限制）
+	# 付费：消耗灵玉颁发宗门令牌，增加弟子历练名额
 	var 价: int = 付费单价.get("历练额外", 15)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
+		return {"成功": false, "原因": "灵玉不足"}
 	历练额外次数 += 1
 	记任务进度("pay_expedition_extra")
+	_加推演条目("【宗门】宗主耗灵玉颁发宗门令牌，新增一次历练名额。", ET_SECT, PRIO_NORMAL, {})
+	添加纪事("付费", "颁发令牌", "宗主耗灵玉颁发宗门令牌，新增一次历练名额", 1)
 	return {"成功": true, "剩余额外": 历练额外次数}
 func _pay_reserved_殿阁加成() -> Dictionary:
 
-	# S1 付费：仙玉立即领取殿阁产出（发放预估月产出灵石，不与月底月度结算重复）
+	# 付费：消耗灵玉提前收取殿阁产出（不与月底月度结算重复）
 	var 价: int = 付费单价.get("殿阁产出", 25)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
+		return {"成功": false, "原因": "灵玉不足"}
 	var 额: int = 预估月产出()
 	灵石 += 额
 	记任务进度("pay_collect_hall")
+	_加推演条目("【殿阁】宗主耗灵玉提前支取殿阁产出，得灵石%d枚。" % 额, ET_SECT, PRIO_NORMAL, {})
+	添加纪事("付费", "支取产出", "宗主耗灵玉提前支取殿阁产出，得灵石%d枚" % 额, 1)
 	return {"成功": true, "额": 额}
 func _pay_reserved_全局增益() -> Dictionary:
 
-	# S1 付费：付费buff统一入口，累加战斗通用增益(%)；并入 disciple.聚合通用增益() 共享25/30%封顶
+	# 付费：消耗灵玉请宗门长老加持，获得战斗增益（并入 disciple.聚合通用增益() 共享25/30%封顶）
 	var 价: int = 付费单价.get("全局增益", 50)
 	if not 消耗仙玉_付费(价):
-		return {"成功": false, "原因": "仙玉不足"}
-	付费增益值 += 0.05   # +5%
+		return {"成功": false, "原因": "灵玉不足"}
+	# P0-2：接入单条增益上限检查（每次+5%，单条上限5%，符合上限）
+	var 新增增益: float = 0.05
+	新增增益 = 应用单条增益上限(新增增益)
+	# P0-2：接入永久增益全局上限检查（付费永久增益≤3%）
+	var 永久剩余额度: float = 获取永久增益剩余额度()
+	新增增益 = min(新增增益, 永久剩余额度 * 100.0)  # 转换为百分比
+	if 新增增益 <= 0:
+		return {"成功": false, "原因": "永久增益已达上限（3%）", "当前增益": 付费增益值}
+	付费增益值 += 新增增益   # +5%（受单条上限和永久全局上限双重约束）
 	记任务进度("pay_global_buff")
+	_加推演条目("【宗门】宗主耗灵玉请长老加持，全宗战力+%.1f%%。" % 新增增益, ET_SECT, PRIO_NORMAL, {})
+	添加纪事("付费", "长老加持", "宗主耗灵玉请长老加持，全宗战力+%.1f%%" % 新增增益, 2)
 	return {"成功": true, "当前增益": 付费增益值}
 # 引育纪事配置读取（S1：按 品阶×类型 匹配差异化纪事文案，：：道标异闻；纯配置驱动，零数值）
 func _引育纪事表() -> Array:
@@ -353,1865 +931,515 @@ var 坊市回购列表: Array = []              # 坊市误售找回池（{名�
 var 坊市每日特惠: Array = []              # 每日特惠：[{shop_id, 倍率}]：-9折），按累计游戏日轮换
 var 坊市特惠卡: int = -1                  # 每日特惠最后刷新日（按累计游戏日，跨日自动轮换：
 var 宗门集市配置缓存: Dictionary = {}     # 懒加：config/宗门集市配置.csv；缺失→常量回退（No-op 安全：
-# ===== 商队派遣系统 =====
-var 商队列表: Array = []  # 正在派遣的商队列：[{id, 地区, 出发日 预计返回日 货物, 弟子ID, 状态}]
-var 商队历史: Array = []  # 商队历史记录
-var 商队岗位表: Dictionary = {}  # S2 商路贸易：岗位配置（caravan_post_config.csv，表格驱动零硬编码）
-var 商队载具表: Dictionary = {}  # S2 商路贸易：载具配置（caravan_vehicle_config.csv，表格驱动零硬编码）
-var 商队地区: Array = []        # §11.15 数据驱动：运行时从 city_config.csv 装载派生（删除内联常量）
-var 商队城市表: Dictionary = {}  # §11.15 数据驱动：city_id(String)→城市配置(dict)
-var 商队商路表: Dictionary = {}  # §11.15 数据驱动：route_id(String)→商路配置(dict)
-var 商队商品表: Dictionary = {}  # §11.15 数据驱动：goods_id(String)→商品配置(dict)
-var 商队事件库: Array = []       # §11.15 数据驱动：trade_event_config 事件列表(Array[dict])
-var 商队ID计数器: int= 0
-# §11.15 优化：现实时间贸易模型（不升SAVE_VERSION，旧档缺键→默认零回归）
-#   单次贸易 = 现实 6 小时（21600 秒）后结算；每日配额按现实日重置；月卡/季卡/永久卡 +1 次/日
-var 商队每日已派: int = 0
-var 上次配额日真实秒: int = 0
-# §11.20 修复：行情刷新按现实日节流（原每次推演一月都刷新 → 1真实天≈360次，供需系数+0.02/次瞬间回满，压价机制失效）
-var 上次行情日真实秒: int = 0
-const 商队单次贸易现实秒: int = 21600   # 6 小时
-# §11.15 优化：贸易现实时间加速体系——多途径缩短单次贸易现实耗时
-const 贸易最短时间系数: float = 0.2       # 现实耗时封顶：最快≈72分钟（不破坏长途贸易感）
-const 神行符_ID: String = "g048"
-const 神行符名: String = "神行符"
-const 神行符加速: float = 0.3             # 使用1张神行符：-30%时间（系数÷1.3）
-const 仙玉即时完成费: int = 30            # 仙玉即时完成本次贸易的仙玉消耗（游戏内货币，不破经济红线）
-const 阵法堂航速每级: float = 0.02        # 阵法堂司职每级 +2% 航速（满10级 +20%）
-const 声望航速每500: float = 0.03         # 商队总声望每 500 +3% 航速
-const 声望航速上限: float = 0.20          # 声望航速被动封顶 +20%
-# §11.15 阶段三（黑市/灵舟/NPC商队竞争）：灵舟坞/黑市禁闭/竞争状态（不升SAVE_VERSION，旧档缺键→默认零回归）
-var 灵舟坞等级: int = 0            # 0=未建；≥1 即 has_ship 为真（解锁跨域城 7/8）
-var 灵舟坞表: Dictionary = {}      # ship_dock_config.csv（sd01-06 飞舟坞，按等级解锁）
-var 宗门灵舟表: Dictionary = {}    # sect_ship_config.csv（ss01-04 灵舟）
-var 灵舟库存: Array = []          # 已建成灵舟：{ship_id,名称,tier,ship_type,durability,max_durability,speed_bonus,risk_reduce}
-var 灵舟坞建造中: Dictionary = {}  # {目标档:int, 完成日:int}（非空中表示坞在建造/升级）
-var 灵舟建造队列: Array = []      # 灵舟炼制队列：[{ship_id, 完成日}]
-var 灵材名称表: Dictionary = {}    # goods_config 桥接：goods_id→中文名（扣材时按名遍历仓库）
-var 灵舟阵法表: Dictionary = {}    # 灵舟阵法配置：formation_id→{name,category,tier,effect_dim,effect_val,cost_lingstone,cost_material,required_array_tier}
-var 虚空大阵冷却日: int = 0        # 破虚神舰·虚空大阵 瞬移冷却（累计游戏日；>0 表示冷却中）
-const 灵核品阶物品: Dictionary = {1:"g021", 2:"g022", 3:"g023", 4:"g024", 5:"g025"}  # 灵舟所需能量核心品阶→goods_id
-var 黑市禁闭日: int = 0            # 黑市查缉命中后禁闭计时（天），>0 时不可黑市交易
-var 商路竞争状态: Dictionary = {}  # 黄金商路 NPC 竞争：city_id→{强度, 压价率, 策略}
-var 跨域风险事件: Array = [        # 跨域商路顶级风险（轻量 const；设计 §11.15 L4366）
-	{"名": "跨海妖兽袭击", "损失min": 0.4, "损失max": 0.7, "额外扣": 0},
-	{"名": "飓风暴浪", "损失min": 0.3, "损失max": 0.6, "额外扣": 0},
-	{"名": "海盗截掠", "损失min": 0.5, "损失max": 0.8, "额外扣": 300},
-	{"名": "灵舟灵能故障", "损失min": 0.2, "损失max": 0.5, "额外扣": 0},
-]
-# §11.20：trade_event_config.csv 未提供独立声望数值列，reputation 类事件按 比例×20 折算商路声望（0.5~1.0 → 10~20）
-const 事件声望折算: float = 20.0
-# §11.15 策略深度（声望/行情）：商路声望(city_id→int，影响价差) 与 全局行情事件队列(独立，不污染 EventManager)
-var 商路声望: Dictionary = {}
-var 行情事件列表: Array = []
+# ===== 商队系统（已拆分到caravan_system.gd，此处保留兼容）=====
+var 商队系统: CaravanSystem = CaravanSystem.new()
+var 灵钓系统: FishingSystem = FishingSystem.new()   # 灵钓系统（S46 钓鱼闭环）
+var 系统解锁: SystemUnlock = SystemUnlock.new()     # P0-1 洋葱式系统解锁引擎（表驱动 config/unlock_order.csv）
+var 探秘系统: RelicSystem = RelicSystem.new()   # 探遗迹系统（S47 探秘闭环）
+var 饲灵系统: BeastRaiseSystem = BeastRaiseSystem.new()   # 饲灵育兽系统（S48 饲灵闭环）
+var 卜算系统: DivineSystem = DivineSystem.new()   # 卜算星盘系统（S49 卜算闭环）
+var 药圃系统: HerbSystem = HerbSystem.new()   # 药圃经营系统（S50 种植闭环）
+var 拍卖行系统: AuctionSystem = AuctionSystem.new()
+var 全服拍卖系统: GlobalAuctionSystem = GlobalAuctionSystem.new()  # 全服玩家拍卖会
+var 消息系统: MessageSystem = MessageSystem.new()  # S56 修真世界消息系统
+var 世界地图系统: WorldMapSystem = WorldMapSystem.new()  # S58 世界地图系统
+# 道友系统：提供 获取道友拜访修炼加成() 等。
+#   原缺声明（月度修炼处直接调用 好友系统.xxx），导致 GDScript 编译期未声明标识符。
+var 好友系统: FriendSystem = FriendSystem.new()
+var 闭关嘱托: OfflineManager = OfflineManager.new()  # S59 闭关嘱托系统（离线代理）
+var 派系系统: FactionSystem = FactionSystem.new()
+var 家族系统: FamilySystem = FamilySystem.new()
+var 种族系统: RaceSystem = RaceSystem.new()
+var 王朝系统: DynastySystem = DynastySystem.new()
+var 通婚子嗣系统: MarriageSystem = MarriageSystem.new()
+var 道友系统: FriendSystem = FriendSystem.new()
+var 论道系统: ChessSystem = ChessSystem.new()  # 论道棋弈系统实例
+var 药园系统: HerbGardenSystem = HerbGardenSystem.new()
+var 丹纹系统: DanMarkSystem = DanMarkSystem.new()
+var 符纹系统: TalismanMarkSystem = TalismanMarkSystem.new()
+var 阵营声望系统: FactionReputationSystem = FactionReputationSystem.new()   # 阵营声望系统实例
+var 傀儡系统: PuppetSystem = PuppetSystem.new()   # 傀儡系统实例
+var 藏书阁系统: LibrarySystem = LibrarySystem.new()   # 藏书阁系统实例
+var 阵法管理系统: FormationSystem = FormationSystem.new()   # 阵法管理系统实例
+var 坐骑系统: MountSystem = MountSystem.new()   # 坐骑系统实例
+var 碎片宝箱系统: FragmentChestSystem = FragmentChestSystem.new()   # 碎片宝箱系统实例
+var 邮件系统: MailSystem = MailSystem.new()   # 邮件系统实例
 
-# S2 商路贸易：加载 caravan 配置表（岗位/载具），表格驱动零硬编码
-func 加载商队配置() -> void:
-	商队岗位表 = _读商队岗位表()
-	商队载具表 = _读商队载具表()
-	# §11.15 数据驱动：装载 city/goods/route/event 四表
-	商队商品表 = _读商品表()
-	商队城市表 = _读城市表()
-	商队商路表 = _读商路表()
-	商队事件库 = _读商路事件表()
-	# §11.15 阶段三：装载灵舟坞 / 宗门灵舟 两表（数据已备，原未装载）
-	灵舟坞表 = _读灵舟坞表()
-	宗门灵舟表 = _读宗门灵舟表()
-	灵材名称表 = _读灵材名称表()   # goods_id→中文名 桥接（灵舟炼制按名扣仓库灵材）
-	灵舟阵法表 = _读灵舟阵法表()   # §11.15 阶段三·灵舟：装载灵舟可刻录阵法配置
-	_构建商队地区()
+# ============ 实时传讯系统（修真风格通讯）============
+var 待处理传讯: Array = []   # 待玩家回复的实时传讯（[{传讯ID,发件人,类型,内容,选项,触发数据,时间}]）
+var 传讯历史: Array = []   # 已处理的传讯记录（存档上限100条）
+var 传讯通知信号: bool = false   # 通知标记（UI轮询，有新传讯时true）
+const 传讯历史上限: int = 100   # 传讯历史存档上限
+signal 新传讯到达(传讯数据)   # 新传讯到达信号
 
-func _读商队岗位表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/caravan_post_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("caravan_post_config.csv 缺失，商队岗位表为空")
-		return 表
-	f.get_csv_line()  # 跳过表头
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 11:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"post_id": id,
-			"post_name": p[1].strip_edges(),
-			"min_realm": int(p[2]),
-			"max_count": int(p[3]),
-			"main_attr": p[4].strip_edges(),
-			"price_bonus_per_attr": float(p[5]),
-			"carry_capacity": int(p[6]),
-			"speed_bonus": float(p[7]),
-			"risk_reduce": float(p[8]),
-			"extra_salary_rate": float(p[9]),
-			"loyalty_cost": float(p[10]),
-		}
-	f.close()
-	return 表
-
-func _读商队载具表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/caravan_vehicle_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("caravan_vehicle_config.csv 缺失，商队载具表为空")
-		return 表
-	f.get_csv_line()  # 跳过表头
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 10:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"vehicle_id": id,
-			"vehicle_name": p[1].strip_edges(),
-			"vehicle_type": p[2].strip_edges(),
-			"unlock_condition": p[3].strip_edges(),
-			"base_carry": int(p[4]),
-			"speed_bonus": float(p[5]),
-			"loss_reduce": float(p[6]),
-			"buy_cost": int(p[7]),
-			"monthly_maintain": int(p[8]),
-			"max_stack": int(p[9]),
-		}
-	f.close()
-	return 表
-
-# ===== §11.15 数据驱动：city/goods/route/event 四表读取 + 运行时商队地区构建 =====
-func _读商品表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/goods_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("goods_config.csv 缺失，商品表为空")
-		return 表
-	f.get_csv_line()  # 跳过表头
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 7:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"goods_id": id,
-			"goods_name": p[1].strip_edges(),
-			"goods_type": p[2].strip_edges(),
-			"base_price": int(p[3]),
-			"weight": int(p[4]),
-			"is_illegal": int(p[5]),
-			"tier": int(p[6]),
-		}
-	f.close()
-	return 表
-
-func _读城市表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/city_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("city_config.csv 缺失，城市表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 8:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"city_id": id,
-			"city_name": p[1].strip_edges(),
-			"city_level": int(p[2]),
-			"unlock_condition": p[3].strip_edges(),
-			"base_price_rate": float(p[4]),
-			"special_goods": p[5].strip_edges(),
-			"lack_goods": p[6].strip_edges(),
-			"reputation_level": int(p[7]),
-		}
-	f.close()
-	return 表
-
-func _读商路表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/trade_route_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("trade_route_config.csv 缺失，商路表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 6:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"route_id": id,
-			"start_city": p[1].strip_edges(),
-			"end_city": p[2].strip_edges(),
-			"travel_day": float(p[3]),
-			"base_risk_rate": float(p[4]),
-			"unlock_need": p[5].strip_edges(),
-		}
-	f.close()
-	return 表
-
-func _读商路事件表() -> Array:
-	var 表: Array = []
-	var f = FileAccess.open("res://config/trade_event_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("trade_event_config.csv 缺失，商路事件库为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 15:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表.append({
-			"event_id": id,
-			"event_name": p[1].strip_edges(),
-			"event_level": int(p[2]),
-			"base_chance": float(p[3]),
-			"risk_mult": float(p[4]),
-			"effect_type": p[5].strip_edges(),
-			"effect_value_min": float(p[6]),
-			"effect_value_max": float(p[7]),
-			"option1_text": p[8].strip_edges(),
-			"option1_cost": p[9].strip_edges(),
-			"option1_result": float(p[10]),
-			"option2_text": p[11].strip_edges(),
-			"option2_cost": p[12].strip_edges(),
-			"option2_result": float(p[13]),
-			"cooldown_day": int(p[14]),
-		})
-	f.close()
-	return 表
-
-func _读灵舟坞表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/ship_dock_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("ship_dock_config.csv 缺失，灵舟坞表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 13:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"dock_id": id,
-			"dock_name": p[1].strip_edges(),
-			"level": int(p[2]),
-			"unlock_sect_level": int(p[3]),
-			"max_ship_count": int(p[4]),
-			"build_speed_bonus": float(p[5]),
-			"repair_speed_bonus": float(p[6]),
-			"daily_maintain_cost": int(p[7]),
-			"upgrade_lingstone": int(p[8]),
-			"upgrade_material": p[9].strip_edges(),
-			"upgrade_days": int(p[10]),
-			"unlock_ship_tier": int(p[11]),
-			"can_build_war_ship": int(p[12]),
-		}
-	f.close()
-	return 表
-
-func _读宗门灵舟表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/sect_ship_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("sect_ship_config.csv 缺失，宗门灵舟表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 17:
-			continue
-		var id = p[0].strip_edges()
-		if id.is_empty():
-			continue
-		表[id] = {
-			"ship_id": id,
-			"ship_name": p[1].strip_edges(),
-			"ship_type": p[2].strip_edges(),
-			"tier": int(p[3]) if p.size() > 3 else int(id.replace("ss", "")),
-			"unlock_condition": p[4].strip_edges(),
-			"base_carry": int(p[5]),
-			"speed_bonus": float(p[6]),
-			"risk_reduce": float(p[7]),
-			"max_durability": int(p[8]),
-			"per_trip_durability": int(p[9]),
-			"max_passenger": int(p[10]),
-			"war_power": int(p[11]),
-			"build_cost": int(p[12]),
-			"monthly_maintain": int(p[13]),
-			"max_stack": int(p[14]),
-			"build_material": p[15].strip_edges(),
-			"build_days": int(p[16]),
-			"required_forge_tier": int(p[17]) if p.size() > 17 else 1,
-			"required_core_tier": int(p[18]) if p.size() > 18 else 1,
-			"formation_slots": int(p[19]) if p.size() > 19 else 0,
-			"features": p[20].strip_edges() if p.size() > 20 else "",
-		}
-	f.close()
-	return 表
-
-# 灵舟炼制桥接：goods_config 的 goods_id → 中文名（仓库灵材按中文名存，扣材需按名遍历）
-func _读灵材名称表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/goods_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("goods_config.csv 缺失，灵材名称表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 7:
-			continue
-		var gid = p[0].strip_edges()
-		var gname = p[1].strip_edges()
-		if gid.is_empty() or gname.is_empty():
-			continue
-		表[gid] = gname
-	f.close()
-	return 表
-
-# §11.15 阶段三·灵舟：装载灵舟可刻录阵法配置（ship_formation_config.csv）
-func _读灵舟阵法表() -> Dictionary:
-	var 表: Dictionary = {}
-	var f = FileAccess.open("res://config/ship_formation_config.csv", FileAccess.READ)
-	if f == null:
-		push_warning("ship_formation_config.csv 缺失，灵舟阵法表为空")
-		return 表
-	f.get_csv_line()
-	while not f.eof_reached():
-		var p = f.get_csv_line()
-		if p.size() < 9:
-			continue
-		var fid = p[0].strip_edges()
-		if fid.is_empty():
-			continue
-		表[fid] = {
-			"formation_id": fid,
-			"name": p[1].strip_edges(),
-			"category": p[2].strip_edges(),
-			"tier": int(p[3]),
-			"effect_dim": p[4].strip_edges(),
-			"effect_val": float(p[5]),
-			"cost_lingstone": int(p[6]),
-			"cost_material": p[7].strip_edges(),
-			"required_array_tier": int(p[8]),
-		}
-	f.close()
-	return 表
-
-# §11.15 数据驱动：从 城市表/商路表/商品表 构建运行时 商队地区（保留旧字段名供 UI/结算消费）
-func _构建商队地区() -> void:
-	商队地区 = []
-	for cid in 商队城市表.keys():
-		var 城 = 商队城市表[cid]
-		var 距离 = 1.0
-		var 风险 = 0.05
-		var 最优距离 = 99999.0
-		var 最优风险 = 99999.0
-		for rid in 商队商路表.keys():
-			var r = 商队商路表[rid]
-			if str(r.get("end_city", "")) == cid:
-				if float(r.get("travel_day", 999.0)) < 最优距离:
-					最优距离 = float(r.get("travel_day", 999.0))
-				if float(r.get("base_risk_rate", 1.0)) < 最优风险:
-					最优风险 = float(r.get("base_risk_rate", 1.0))
-		if 最优距离 < 99999.0:
-			距离 = 最优距离
-		if 最优风险 < 99999.0:
-			风险 = 最优风险
-		var 偏好: Array = []
-		for gid in str(城.get("special_goods", "")).split("|"):
-			gid = gid.strip_edges()
-			if gid != "" and 商队商品表.has(gid):
-				var t = str(商队商品表[gid].get("goods_type", ""))
-				if t != "" and not 偏好.has(t):
-					偏好.append(t)
-		var 层级 = int(城.get("city_level", 1))
-		var 溢价倍率 = 1.0 + float(层级 - 1) * 0.1
-		var 物价 = float(城.get("base_price_rate", 1.0))
-		商队地区.append({
-			"id": cid,
-			"名称": str(城.get("city_name", cid)),
-			"距离": 距离,
-			"特产": str(城.get("special_goods", "")).split("|"),
-			"收购价": 物价,
-			"风险": 风险,
-			"偏好类别": 偏好,
-			"溢价倍率": 溢价倍率,
-			"当前收购价": 物价,
-			"供需系数": 1.0,
-			"city_level": 层级,
-			"unlock_condition": str(城.get("unlock_condition", "")),
-			"reputation_level": int(城.get("reputation_level", 0)),
-		})
-
-# §11.15 数据驱动：按 实际风险 从 商队事件库 抽取商路事件（替硬编码四分支）
-func _抽取商路事件(实际风险: float) -> Dictionary:
-	if 商队事件库.is_empty():
-		return {}
-	var 候选: Array = []
-	var 总权: float = 0.0
-	for e in 商队事件库:
-		var 权 = float(e.get("base_chance", 0.0)) * float(e.get("risk_mult", 1.0))
-		if 权 <= 0.0:
-			continue
-		候选.append({"e": e, "权": 权})
-		总权 += 权
-	if 候选.is_empty() or 总权 <= 0.0:
-		return {}
-	var r = randf_range(0.0, 总权)
-	for c in 候选:
-		r -= c["权"]
-		if r <= 0.0:
-			var e = c["e"]
-			return {
-				"事件名": str(e.get("event_name", "商路事件")),
-				"effect_type": str(e.get("effect_type", "")),
-				"effect_value_min": float(e.get("effect_value_min", 0.0)),
-				"effect_value_max": float(e.get("effect_value_max", 0.0)),
-				"option1_result": float(e.get("option1_result", 1.0)),
-			}
-	return {}
-
-# 派遣商队
-# S2 商路贸易：派遣商队（运力/智谋价差/战力抗风险/载具 三要素）
-#   人员列表: Array[Dictionary{"弟子ID":int, "post_id":String}]；载具ID: 商队载具表 key（可空）
-func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载具ID: String = "", 人员列表: Array = [], 灵舟索引: int = -1, 使用神行符: bool = false) -> Dictionary:
-
-	var 地区 = null
-	for d in 商队地区:
-		if d["id"] == 地区ID:
-			地区 = d
-			break
-	if 地区 == null:
-		return {"成功": false, "消息": "未知地区"}
-	# 校验货物
-	var 货物总价值 = 0
-	for 货物 in 货物列表:
-		货物总价值 += int(货物.get("价", 0))
-	if 货物总价值 <= 0:
-		return {"成功": false, "消息": "货物为空"}
-	# 运力校验：人员岗位运力 + 载具运力（纯配置固定值，不依赖弟子属性）
-	var 运力 = 0
-	for 人 in 人员列表:
-		var pid = str(人.get("post_id", ""))
-		if 商队岗位表.has(pid):
-			运力 += int(商队岗位表[pid].get("carry_capacity", 0))
-	if 载具ID != "" and 商队载具表.has(载具ID):
-		运力 += int(商队载具表[载具ID].get("base_carry", 0))
-	if 运力 <= 0:
-		return {"成功": false, "消息": "未配置运力（需至少1名脚夫或1辆载具）"}
-	if 货物总价值 > 运力:
-		return {"成功": false, "消息": "运力不足（需%d，当前%d）" % [货物总价值, 运力]}
-	# §11.15 优化：商队槽位 / 每日配额（现实时间模型）
-	刷新商队配额()
-	if 商队列表.size() >= 商队槽位数():
-		return {"成功": false, "消息": "出征槽位已满（%d/%d），请等待商队返回" % [商队列表.size(), 商队槽位数()]}
-	if 商队每日已派 >= 商队每日配额():
-		return {"成功": false, "消息": "今日派遣配额已用尽（%d/%d），明日可再派遣" % [商队每日已派, 商队每日配额()]}
-	# 启动资金（货值10%）
-	var 启动资金 = int(货物总价值 * 0.1)
-	if 灵石 < 启动资金:
-		return {"成功": false, "消息": "灵石不足，需要启动资金%d" % 启动资金}
-	# §11.20 修复：装载货物须真实出库（原实现只扣启动资金、不扣货物 → 货物白嫖，空手套白狼无限套利）
-	var 货主 = _取弟子(弟子ID)
-	if 货主 == null and 弟子列表.size() > 0:
-		货主 = 弟子列表[0]   # 货物固定取自宗主背包；缺省宗主ID 时回退列表首位
-	if 货主 != null:
-		var 校验结果: Dictionary = _校验货物库存(货主, 货物列表)
-		if not bool(校验结果.get("充足", false)):
-			return {"成功": false, "消息": str(校验结果.get("消息", "货物不足"))}
-	灵石 -= 启动资金
-	if 货主 != null:
-		_出库货物(货主, 货物列表)
-	# 汇总 掌柜智谋价差加成（道心代理）/ 风险减免 / 速度加成
-	var 价差加成 = 0.0
-	var 风险减免 = 0.0
-	var 速度加成 = 0.0
-	for 人 in 人员列表:
-		var pid = str(人.get("post_id", ""))
-		if not 商队岗位表.has(pid):
-			continue
-		var 岗 = 商队岗位表[pid]
-		var 弟子 = _取弟子(int(人.get("弟子ID", -1)))
-		if 弟子 == null:
-			continue
-		if str(岗.get("main_attr", "")) == "wisdom":
-			价差加成 += float(岗.get("price_bonus_per_attr", 0)) * float(弟子.道心)
-		风险减免 += float(岗.get("risk_reduce", 0))
-		速度加成 += float(岗.get("speed_bonus", 0))
-	if 载具ID != "" and 商队载具表.has(载具ID):
-		var 载 = 商队载具表[载具ID]
-		风险减免 += float(载.get("loss_reduce", 0))
-		速度加成 += float(载.get("speed_bonus", 0))
-	# §11.15 阶段三·灵舟：指派某艘灵舟出使（套用其有效属性；枯竭不可驱使；含虚空瞬移）
-	var 灵舟指派索引 = -1
-	var 虚空瞬移 = false
-	if 灵舟索引 >= 0 and 灵舟索引 < 灵舟库存.size():
-		var 舟 = 灵舟库存[灵舟索引]
-		if str(舟.get("核心状态", "正常")) == "枯竭":
-			return {"成功": false, "消息": "灵舟能量核心枯竭，无法驱使，请先补充核心"}
-		var 舟定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
-		var eff = 灵舟有效属性(舟)
-		风险减免 += eff["risk_reduce"]
-		速度加成 += eff["speed_bonus"]
-		灵舟指派索引 = 灵舟索引
-		# 虚空大阵·破碎虚空：跨域（city_level≥4）且冷却就绪 → 瞬移（即时+风险归零），耗仙品核心+灵石，冷却30日
-		if "sf07" in 舟.get("阵法", []) and int(地区.get("city_level", 1)) >= 4 and 虚空大阵冷却日 <= 0:
-			var 仙核名 = 灵舟核心物品名(5)
-			if _仓库灵材数量(仙核名) >= 1 and 灵石 >= 50000:
-				灵石 -= 50000
-				_扣灵材([{"id": 灵核品阶物品.get(5, "g025"), "名": 仙核名, "需": 1, "有": 1}])
-				虚空大阵冷却日 = 累计游戏日 + 30
-				虚空瞬移 = true
-				添加纪事("神异", "破碎虚空", "【%s】催动虚空大阵，破碎虚空瞬抵%s！" % [str(舟.get("名称", "")), 地区["名称"]], 3)
-			else:
-				添加纪事("庶务", "灵舟刻阵", "【%s】虚空大阵就绪，然仙品核心或灵石不足，未能瞬移" % str(舟.get("名称", "")), 1)
-	风险减免 = clamp(风险减免, 0.0, 0.8)   # 风险减免硬上限 0.8
-	var 速度 = 1.0 + 速度加成
-	var 行程 = max(1, int(round(float(地区["距离"]) / 速度)))
-	# §11.15 优化：现实时间加速——聚合多途径航速加成，换算现实耗时（封顶 贸易最短时间系数）
-	var 航速被动 = _阵法堂航速被动() + _声望航速被动()
-	var 符箓加成 = 0.0
-	if 使用神行符:
-		if _仓库灵材数量(神行符名) >= 1:
-			符箓加成 = 神行符加速
-			_扣灵材([{"id": 神行符_ID, "名": 神行符名, "需": 1, "有": 1}])
-		else:
-			return {"成功": false, "消息": "背包无神行符，无法使用（坊市可购置）"}
-	var 总速度加成 = 速度加成 + 航速被动 + 符箓加成
-	var 贸易耗时秒 = _计算贸易现实秒(总速度加成)
-	灵石 -= 启动资金
-	商队ID计数器 += 1
-	var 商队 = {
-		"id": 商队ID计数器,
-		"地区": 地区ID,
-		"地区名": 地区["名称"],
-		"出发日": 累计游戏日,
-		"预计返回日": 累计游戏日 + int(ceil(float(贸易耗时秒) / 现实秒每游戏日)),   # 仅展示用（≈现实耗时折算游戏日）
-		"预计完成真实秒": int(Time.get_unix_time_from_system()) + 贸易耗时秒,
-		"货物": 货物列表,
-		"货物价值": 货物总价值,
-		"弟子ID": 弟子ID,
-		"载具ID": 载具ID,
-		"人员": 人员列表,
-		"灵舟索引": 灵舟指派索引,
-		"虚空瞬移": 虚空瞬移,
-		"价差加成": 价差加成,
-		"风险减免": 风险减免,
-		"速度": 速度,
-		"状态": "派遣中",
+## 触发实时传讯（通用入口）
+func 触发传讯(发件人: String, 类型: String, 内容: String, 选项: Array, 触发数据: Dictionary = {}) -> Dictionary:
+	var 传讯ID: int = randi()
+	var 传讯: Dictionary = {
+		"传讯ID": 传讯ID,
+		"发件人": 发件人,
+		"类型": 类型,   # 弟子求援/机缘报喜/宗门邀约/敌对威胁/紧急军情
+		"内容": 内容,
+		"选项": 选项,   # [{文本,动作,参数}]
+		"触发数据": 触发数据,
+		"时间": 累计游戏日,
+		"已读": false
 	}
-	商队列表.append(商队)
-	商队每日已派 += 1
-	var 加速说明 = ""
-	if 符箓加成 > 0:
-		加速说明 = "【神行符加速】"
-	添加纪事("庶务", "商队出发", "商队前往%s贸易，货物价值%d灵石，运力%d，预计%d分钟后返回%s" % [地区["名称"], 货物总价值, 运力, int(贸易耗时秒 / 60), 加速说明], 1)
-	return {"成功": true, "消息": "商队已出发，预计%d分钟后返回%s" % [int(贸易耗时秒 / 60), 加速说明], "商队ID": 商队ID计数器}
-
-# S2 商路贸易：按 ID 取弟子对象（商队编组用）
-func _取弟子(目标ID: int) -> Object:
-	for d in 弟子列表:
-		if d.弟子ID == 目标ID:
-			return d
-	return null
-
-# §11.20 修复：派遣前全量校验背包货物（先校验再出库，避免部分扣货后失败留下残缺库存）
-func _校验货物库存(货主: Variant, 货物列表: Array) -> Dictionary:
-	if 货主 == null:
-		return {"充足": true, "消息": ""}
-	var 需求: Dictionary = {}
-	for 货物 in 货物列表:
-		var 名 = str(货物.get("名称", ""))
-		var 数 = int(货物.get("数量", 0))
-		if 名 == "" or 数 <= 0:
-			continue
-		需求[名] = int(需求.get(名, 0)) + 数
-	var 持有: Dictionary = {}
-	for it in 货主.背包:
-		持有[str(it.名称)] = int(持有.get(str(it.名称), 0)) + 1
-	for 名 in 需求.keys():
-		var 需 = int(需求[名])
-		var 有 = int(持有.get(名, 0))
-		if 有 < 需:
-			return {"充足": false, "消息": "货物不足：%s（需%d，现存%d）" % [名, 需, 有]}
-	return {"充足": true, "消息": ""}
-
-# §11.20 修复：从背包移除已装车货物（真实出库；货物成本 = 货值，贸易利润 = 结算收益 - 货值 - 启动资金）
-func _出库货物(货主: Variant, 货物列表: Array) -> int:
-	var 已扣: int = 0
-	if 货主 == null:
-		return 已扣
-	for 货物 in 货物列表:
-		var 名 = str(货物.get("名称", ""))
-		var 需 = int(货物.get("数量", 0))
-		if 名 == "" or 需 <= 0:
-			continue
-		for it in 货主.背包.duplicate():
-			if 需 <= 0:
-				break
-			if str(it.名称) == 名:
-				货主.背包.erase(it)
-				需 -= 1
-				已扣 += 1
-	return 已扣
-
-# 结算返回的商：
-func 结算商队(商队: Dictionary) -> Dictionary:
-
-	var 地区 = null
-	for d in 商队地区:
-		if d["id"] == 商队["地区"]:
-			地区 = d
-			break
-	if 地区 == null:
-		return {"成功": false, "消息": "未知地区"}
-	# S2 品类溢价：货物名称匹配目的地偏好类别 → 该部分按溢价倍率计价（低买高卖核心）
-	var 货值 = int(商队["货物价值"])
-	var 匹配价值 = 0
-	for 货物 in 商队["货物"]:
-		var 类 = str(货物.get("类别", ""))
-		if 类 != "" and 类 in 地区.get("偏好类别", []):
-			匹配价值 += int(货物.get("价", 0))
-	var 匹配占比 = 0.0
-	if 货值 > 0:
-		匹配占比 = float(匹配价值) / float(货值)
-	var 溢价系数 = 匹配占比 * float(地区.get("溢价倍率", 1.0)) + (1.0 - 匹配占比) * 1.0
-	# 基础收益 = 货值 × 当前收购价(浮动) × (1+掌柜智谋价差加成) × 品类溢价系数
-	var 价差加成 = float(商队.get("价差加成", 0.0))
-	# §11.15 策略深度：商路声望 → 卖价价差加成（随声望升）
-	价差加成 += _商路声望价差加成(地区["id"])
-	# §11.15 策略深度：全局行情事件 → 匹配本城偏好品类时叠加溢价倍率
-	var 事件倍率 = _行情事件倍率(地区)
-	if 事件倍率 > 1.0:
-		溢价系数 = 匹配占比 * float(地区.get("溢价倍率", 1.0)) * 事件倍率 + (1.0 - 匹配占比) * 1.0
-	# §11.15 阶段三：商路竞争压价（NPC 对手压低该城有效收购价；独占→红利×1.2）
-	var 有效收购价 = float(地区.get("当前收购价", 地区["收购价"]))
-	var 城市id = str(地区.get("id", ""))
-	if 商路竞争状态.has(城市id):
-		var 压 = float(商路竞争状态[城市id].get("压价率", 0.0))
-		有效收购价 *= (1.0 - 压)
-		if 压 <= 0.0:
-			有效收购价 *= 1.2   # 独占红利：最高收益
-	var 基础收益 = int(float(货值) * 有效收购价 * (1.0 + 价差加成) * 溢价系数 * float(地区.get("供需系数", 1.0)))
-	# 风险判定：实际风险 = 地区风险 × (1 - 商队风险减免)，护卫/载具降风险
-	var 实际风险 = clamp(float(地区["风险"]) * (1.0 - float(商队.get("风险减免", 0.0))), 0.0, 1.0)
-	var 随机值 = randf()
-	var 实际收益 = 基础收益
-	var 事件 = "顺利贸易"
-	var 事件灵石扣: int = 0
-	var 事件声望扣: int = 0
-	if 随机值 < 实际风险:
-		# §11.15 数据驱动：从 trade_event_config.csv 抽取风险事件替代硬编码四分支
-		var 事件结果 = _抽取商路事件(实际风险)
-		if not 事件结果.is_empty():
-			事件 = str(事件结果.get("事件名", "商路生变"))
-			var emin = float(事件结果.get("effect_value_min", 0.0))
-			var emax = float(事件结果.get("effect_value_max", 0.0))
-			var ev = randf_range(emin, emax) if emax > emin else emin
-			# §11.20 修复（原实现两处致命语义错误）：
-			#   ① effect_value 语义 = 损失率(0~1) / 绝对值(>=1，仅 lingstone_cost)。
-			#      原 `实际收益 = 基础收益 * ev` 把损失率当保留率：颠簸设计丢 8% → 实丢 92%
-			#   ② effect_type 支持 "a+b" 组合（CSV 中 4 条），原 `==` 精确匹配使组合事件全部落 else，
-			#      被乘 option1_result（那是「选项减免后的损失系数」，不是收益系数）
-			var 留存系数 = 1.0
-			for eff in str(事件结果.get("effect_type", "")).split("+"):
-				var 效 = str(eff).strip_edges()
-				if 效 == "goods_loss":
-					留存系数 *= clamp(1.0 - ev, 0.0, 1.0)
-				elif 效 == "disciple_hurt":
-					留存系数 *= clamp(1.0 - ev * 0.5, 0.0, 1.0)   # 受伤弟子照看不力，货款按半额折损
-				elif 效 == "lingstone_cost":
-					事件灵石扣 += int(ev * float(货值)) if emax <= 1.0 else int(ev)
-				elif 效 == "reputation":
-					事件声望扣 += int(ev * 事件声望折算) if emax <= 1.0 else int(ev)
-			实际收益 = int(float(基础收益) * 留存系数)
-		else:
-			# 事件库为空时 Fallback 旧硬编码：山贼/颠簸/失踪
-			var 风险类型 = randf()
-			if 风险类型 < 0.4:
-				实际收益 = int(基础收益 * 0.5)
-				事件 = "遭遇山贼，损失一半货物"
-			elif 风险类型 < 0.7:
-				实际收益 = int(基础收益 * 0.8)
-				事件 = "路途颠簸，部分货物损坏"
-			else:
-				实际收益 = 0
-				事件 = "商队失踪，全部货物损失"
-	elif 随机值 > 1.0 - 0.1:   # 10% 偶遇高人
-		实际收益 = int(基础收益 * 1.5)
-		事件 = "偶遇高人指点，贸易大获成功"
-	elif 随机值 > 1.0 - 0.15:  # 5% 发现宝藏
-		实际收益 = int(基础收益 * 1.3)
-		灵石 += int(EconomyBalance.new().平衡(500.0))  # 额外发现宝藏（过阀门）
-		事件 = "途中发现古代宝藏"
-	elif 随机值 > 1.0 - 0.2:   # 5% 遇到同行
-		实际收益 = int(基础收益 * 1.1)
-		增加阵营声望("散修联盟", 10)
-		事件 = 文案表["friendly_caravan_event"]
-	# §11.15 阶段三：跨域商路（城7/8，city_level≥4）顶级风险：跨海妖兽/风暴/海盗/灵舟故障
-	if 实际收益 > 0 and int(地区.get("city_level", 1)) >= 4:
-		# 虚空瞬移：直接零风险（指派灵舟刻有虚空大阵且已瞬移抵达）
-		var 跨域险 = 0.0
-		if not 商队.get("虚空瞬移", false):
-			# 灵舟运力降险：指定灵舟用其有效属性；否则舰队级取最优（均含阵法加成，枯竭不计）
-			var 灵舟减险 = 0.0
-			var 指idx = int(商队.get("灵舟索引", -1))
-			if 指idx >= 0 and 指idx < 灵舟库存.size():
-				var 指舟 = 灵舟库存[指idx]
-				if str(指舟.get("核心状态", "正常")) != "枯竭":
-					灵舟减险 = 灵舟有效属性(指舟)["risk_reduce"]
-			else:
-				var 需求tier = int(地区.get("city_level", 1)) - 3
-				for 舟 in 灵舟库存:
-					if int(舟.get("tier", 0)) >= 需求tier and str(舟.get("核心状态", "正常")) != "枯竭":
-						灵舟减险 = max(灵舟减险, 灵舟有效属性(舟)["risk_reduce"])
-			跨域险 = clamp(float(地区.get("风险", 0.1)) * 0.5 + 0.15 - 灵舟减险, 0.0, 0.9)
-		if 跨域险 > 0.0 and randf() < 跨域险:
-			var d = 跨域风险事件[randi() % 跨域风险事件.size()]
-			var dl = float(d.get("损失min", 0.3))
-			var dh = float(d.get("损失max", 0.6))
-			var 损失 = randf_range(dl, dh)
-			# §11.20 修复：以「当前实际收益」为基数（原用基础收益 → 偶遇高人1.5x、事件减免全被抹掉，
-			#                                 导致高级跨域城收益低于低级安全城，形成逆向激励）
-			实际收益 = int(float(实际收益) * (1.0 - 损失))
-			事件 = str(d.get("名", "跨域生变"))
-			var 扣 = int(d.get("额外扣", 0))
-			if 扣 > 0:
-				灵石 = max(0, 灵石 - 扣)
-	# §11.20 修复：毛收益封顶（阶梯随「商队总声望」提升，货值×1.5 → 最高×4.5）
-	#   原 1.0~4.0x 会把正常加成（收购价×溢价×掌柜价差≈1.2x）削平 93%，溢价/声望/行情事件全部作废；
-	#   阀门须先行、封顶后置——封顶是硬红线，原顺序允许阀门纠偏结果突破上限
-	#   接 F2 经济阀门（trade_profit_rate 等），补全商队结算审计缺口
-	实际收益 = int(EconomyBalance.new().平衡(float(实际收益)))
-	var 封顶倍率 = _商队收益封顶倍率()
-	var 收益上限 = int(float(货值) * 封顶倍率)
-	if 实际收益 > 收益上限:
-		实际收益 = 收益上限
-	# 结算入灵石主账户（不新建独立资金池，守 GDD 九·3）
-	灵石 += 实际收益
-	if 事件灵石扣 > 0:
-		灵石 = max(0, 灵石 - 事件灵石扣)
-	if 事件声望扣 > 0:
-		商路声望[地区["id"]] = int(商路声望.get(地区["id"], 0)) - 事件声望扣
-	# §11.15 策略深度：累加商路声望 + 大批量抛售压价（供需系数跌，逐日回升）
-	_累加商路声望(地区["id"], 实际收益)
-	if 货值 >= 500:
-		地区["供需系数"] = max(0.6, float(地区.get("供需系数", 1.0)) - 0.1)
-	商队["状态"] = "已返回"
-	商队["实际收益"] = 实际收益
-	商队["事件"] = 事件
-	商队历史.insert(0, 商队)
-	if 商队历史.size() > 100:
-		商队历史.resize(100)
-	添加纪事("庶务", "商队返回", "商队%s返回，%s，获%d灵石" % [商队["地区名"], 事件, 实际收益], 1)
-	return {"成功": true, "消息": "商队返回，%s，获%d灵石" % [事件, 实际收益], "收益": 实际收益}
-# 每日更新商队状态
-# S2 商路贸易：月度行情刷新（商队周期补货世界观），收购价/风险 ±10% 浮动，锁定 ±15% 红线
-func 刷新商队行情() -> void:
-	# §11.20 修复：按现实日节流（原每次「推演一月」都刷新 → 1真实天≈360次，
-	#   ① 供需系数 +0.02/次 → 大批量抛售的 -0.1 压价瞬间回满，压价机制形同虚设；
-	#   ② 收购价/风险每 4 分钟跳变，玩家派遣时看到的价格与 6 小时后结算时的价格脱节）
-	var 现在 = int(Time.get_unix_time_from_system())
-	var 跨日: bool = (现在 - 上次行情日真实秒) >= 86400
-	if 跨日:
-		上次行情日真实秒 = 现在
-		for 地区 in 商队地区:
-			var 基准价 = float(地区["收购价"])
-			var 价浮 = randf_range(-0.15, 0.15)
-			var 新价 = clamp(基准价 * (1.0 + 价浮), 基准价 * 0.85, 基准价 * 1.15)  # §11.15 设计值：硬锁 ±15%
-			地区["当前收购价"] = round(新价 * 100) / 100.0
-			var 基准险 = float(地区["风险"])
-			var 险浮 = randf_range(-0.10, 0.10)
-			地区["风险"] = clamp(基准险 * (1.0 + 险浮), 0.0, 0.5)
-			# §11.20 修复：供需系数按现实日回升（+0.10/日，与结算抛售压价 -0.10 对称；原 +0.02/次 × 360 次/天 → 压价瞬间回满）
-			var 供需 = float(地区.get("供需系数", 1.0))
-			地区["供需系数"] = clamp(供需 + 0.10, 0.6, 1.0)
-		# §11.15 策略深度：行情事件倒计时按现实日递减，过期移除
-		for i in range(行情事件列表.size() - 1, -1, -1):
-			var ev = 行情事件列表[i]
-			ev["剩余天数"] = int(ev.get("剩余天数", 0)) - 1
-			if int(ev.get("剩余天数", 0)) <= 0:
-				行情事件列表.remove_at(i)
-
-func 更新商队状态() -> void:
-	刷新商队行情()   # S2 商路贸易：月度行情刷新（接推演一月调用）
-	_推进灵舟建造()   # §11.15 阶段三：灵舟坞/灵舟炼制 推演追帧完工
-	_结算灵舟月度()    # §11.15 阶段三·灵舟：灵石维护 + 能量核心月度消耗
-	if 累计游戏日 % 30 == 0:
-		_刷新行情事件()   # §11.15 策略深度：每月触发全局行情事件
-		_刷新商路竞争()    # §11.15 阶段三：月度 NPC 商队竞争推演
-	if 黑市禁闭日 > 0:     # §11.15 阶段三：黑市查缉禁闭倒计时
-		黑市禁闭日 = max(0, 黑市禁闭日 - 1)
-
-	结算到期商队()
-
-# §11.15 优化：现实时间结算——到期（预计完成真实秒）即结算，不依赖游戏日 tick；离线/未推演也能正确返还
-func 结算到期商队() -> void:
-	var 现在 = int(Time.get_unix_time_from_system())
-	var 待结算: Array = []
-	for 商队 in 商队列表:
-		if 商队["状态"] != "派遣中":
-			continue
-		var 到期 = int(商队.get("预计完成真实秒", 0))
-		var 到期标志 = false
-		if 到期 > 0:
-			到期标志 = 现在 >= 到期
-		else:
-			# 旧档兼容：无真实秒字段则按游戏日
-			到期标志 = 累计游戏日 >= int(商队.get("预计返回日", 0))
-		if 到期标志:
-			待结算.append(商队)
-	for 商队 in 待结算:
-		结算商队(商队)
-		商队列表.erase(商队)
-
-# ===== §11.15 预留接口：PVP / 全服事件 / 域外战斗（本期不实装，仅留钩子供后期版本接入）=====
-# 设计意图：灵舟系统已具「破损虚空瞬移」「灵舟坞」「阵法刻录」等修真基底，后期可在此分支接入：
-#   - PVP：宗门敌对城（city 11）开放「灵舟斗法」，以 灵舟有效属性 为战力投影
-#   - 全服事件：稀缺商路/秘境产出全服竞拍，复用 商路声望 / 行情事件队列
-#   - 域外战斗：破虚神舰（ss05）虚空瞬移抵达 域外 后触发战斗（预留 _预留_域外战斗）
-func 预留_域外战斗(目标: Dictionary = {}) -> Dictionary:
-	# TODO(预留): 后期版本接入 PVP / 全服事件 / 域外战斗，当前返回未实装
-	return {"成功": false, "消息": "域外战斗接口预留中（未实装）"}
-
-# ===== §11.15 阶段三：灵舟坞 / 黑市 / NPC 商队竞争 =====
-func 已建灵舟坞() -> bool:
-	return 灵舟坞等级 > 0
-
-func 灵舟坞建造信息() -> Dictionary:
-	if not 灵舟坞建造中.is_empty():
-		return {"可建": false, "建造中": true, "目标档": int(灵舟坞建造中.get("目标档", 0)), "完成日": int(灵舟坞建造中.get("完成日", 0))}
-	var 目标 = 灵舟坞等级 + 1
-	if 目标 > 灵舟坞表.size():
-		return {"可建": false, "已满": true}
-	var 档 = 灵舟坞表.get("sd%02d" % 目标, null)
-	if 档 == null:
-		return {"可建": false}
-	var 清单 = _解析材料清单(档.get("upgrade_material", ""))
-	for m in 清单:
-		m["有"] = _仓库灵材数量(m["名"])
-	return {"可建": true, "等级": 目标, "名称": str(档.get("dock_name", "")),
-		"需门派等级": int(档.get("unlock_sect_level", 99)), "工费": int(档.get("upgrade_lingstone", 0)),
-		"时日": int(档.get("upgrade_days", 0)), "材料": 清单}
-
-# 建造/升级飞舟坞（顺序解锁 sd01→sd06）：主成本=各阶灵材 + 时日；工费灵石为祭炼之资，不可替材料。
-# 提交后进入「建造中」，由 _推进灵舟建造() 在推演中按 累计游戏日 完工。
-func 建造灵舟坞() -> Dictionary:
-	if not 灵舟坞建造中.is_empty():
-		return {"成功": false, "消息": "飞舟坞正在建造中，不可重复开工"}
-	var 信息 = 灵舟坞建造信息()
-	if not 信息.get("可建", false):
-		if 信息.get("已满", false):
-			return {"成功": false, "消息": "飞舟坞已达最高等级"}
-		return {"成功": false, "消息": "飞舟坞配置缺失"}
-	if 门派等级 < int(信息.get("需门派等级", 99)):
-		return {"成功": false, "消息": "门派等级不足（需%d级）" % int(信息.get("需门派等级", 99))}
-	var 费 = int(信息.get("工费", 0))
-	if 灵石 < 费:
-		return {"成功": false, "消息": "祭炼灵石不足（需%d）" % 费}
-	var 扣 = _扣灵材(信息.get("材料", []))
-	if not 扣.get("成功", false):
-		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
-	灵石 -= 费
-	var 目标档 = int(信息.get("等级", 1))
-	灵舟坞建造中 = {"目标档": 目标档, "完成日": 累计游戏日 + int(信息.get("时日", 0))}
-	添加纪事("庶务", "飞舟坞", "历时%d日，动工兴建%s（等级%d），灵材已耗、祭炼灵石已付" % [int(信息.get("时日", 0)), str(信息.get("名称", "")), 目标档], 1)
-	return {"成功": true, "消息": "飞舟坞（%s）动工，预计%d日完工" % [str(信息.get("名称", "")), int(信息.get("时日", 0))], "等级": 目标档, "完成日": 灵舟坞建造中["完成日"]}
-
-# 灵材清单解析： "g010:20|g003:15" → [{id, 名, 需}]（名由 goods_config 桥接）
-func _解析材料清单(mat_str: String) -> Array:
-	var 清单: Array = []
-	if mat_str == null:
-		return 清单
-	var s = str(mat_str).strip_edges()
-	if s.is_empty():
-		return 清单
-	for 段 in s.split("|"):
-		var t = 段.strip_edges()
-		if t.is_empty():
-			continue
-		var 部分 = t.split(":")
-		if 部分.size() < 2:
-			continue
-		var gid = 部分[0].strip_edges()
-		var 数 = int(部分[1].strip_edges())
-		if gid.is_empty() or 数 <= 0:
-			continue
-		清单.append({"id": gid, "名": 灵材名称表.get(gid, gid), "需": 数})
-	return 清单
-
-# 仓库内某中文名灵材现有数量
-func _仓库灵材数量(名: String) -> int:
-	var n = 0
-	for it in 仓库:
-		if it != null and str(it.get("名称", "")) == 名:
-			n += 1
-	return n
-
-# 扣灵材（按中文名遍历仓库逐一移除）；够则扣净返回成功，不足返回缺项（不扣，避免半扣）
-func _扣灵材(清单: Array) -> Dictionary:
-	var 缺: Array = []
-	for m in 清单:
-		var 有 = _仓库灵材数量(m["名"])
-		if 有 < m["需"]:
-			缺.append("%s（缺%d）" % [m["名"], m["需"] - 有])
-	if 缺.size() > 0:
-		return {"成功": false, "缺": 缺}
-	for m in 清单:
-		var 剩 = m["需"]
-		var i = 0
-		while i < 仓库.size() and 剩 > 0:
-			var it = 仓库[i]
-			if it != null and str(it.get("名称", "")) == m["名"]:
-				仓库.remove_at(i)
-				剩 -= 1
-			else:
-				i += 1
-	return {"成功": true, "缺": []}
-
-# 推演追帧：灵舟坞建造/升级 + 灵舟炼制队列 完工（接 更新商队状态 调用）
-func _推进灵舟建造() -> void:
-	if not 灵舟坞建造中.is_empty():
-		if 累计游戏日 >= int(灵舟坞建造中.get("完成日", 0)):
-			var 目标档 = int(灵舟坞建造中.get("目标档", 1))
-			var 档 = 灵舟坞表.get("sd%02d" % 目标档, null)
-			灵舟坞等级 = 目标档
-			灵舟坞建造中 = {}
-			if 档 != null:
-				添加纪事("庶务", "飞舟坞", "历时%d日，%s（等级%d）建成，自此可跨域通商" % [int(档.get("upgrade_days", 0)), str(档.get("dock_name", "")), 灵舟坞等级], 1)
-	var 仍进行: Array = []
-	for q in 灵舟建造队列:
-		if 累计游戏日 >= int(q.get("完成日", 0)):
-			var sid = str(q.get("ship_id", ""))
-			var 舟 = 宗门灵舟表.get(sid, null)
-			if 舟 != null:
-				灵舟库存.append({
-					"ship_id": sid, "名称": str(舟.get("ship_name", "")),
-					"tier": int(舟.get("tier", 0)), "ship_type": str(舟.get("ship_type", "")),
-					"durability": int(舟.get("max_durability", 0)), "max_durability": int(舟.get("max_durability", 0)),
-					"speed_bonus": float(舟.get("speed_bonus", 0)), "risk_reduce": float(舟.get("risk_reduce", 0)),
-					"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常", "可命名次数": 1,
-				})
-				添加纪事("庶务", "灵舟炼成", "历时%d日，灵舟【%s】炼制功成！" % [int(舟.get("build_days", 0)), str(舟.get("ship_name", ""))], 1)
-		else:
-			仍进行.append(q)
-	灵舟建造队列 = 仍进行
-
-# 炼制灵舟（需已建坞，受坞解锁档位与容量限制）：主成本=各阶灵材 + 时日；工费灵石为祭炼之资。
-func 炼制灵舟(ship_id: String) -> Dictionary:
-	if 灵舟坞等级 <= 0:
-		return {"成功": false, "消息": "须先建成飞舟坞"}
-	var 舟 = 宗门灵舟表.get(ship_id, null)
-	if 舟 == null:
-		return {"成功": false, "消息": "灵舟型号不存在"}
-	var 舟tier = int(舟.get("tier", 0))
-	var 坞 = 灵舟坞表.get("sd%02d" % 灵舟坞等级, null)
-	if 坞 == null:
-		return {"成功": false, "消息": "飞舟坞状态异常"}
-	var 需等级 = int(str(舟.get("unlock_condition", "sect_level=1")).replace("sect_level=", ""))
-	if 门派等级 < 需等级:
-		return {"成功": false, "消息": "门派等级不足（需%d级）" % 需等级}
-	if int(坞.get("unlock_ship_tier", 0)) < 舟tier:
-		return {"成功": false, "消息": "当前飞舟坞仅可炼制 tier%d 及以下灵舟" % int(坞.get("unlock_ship_tier", 0))}
-	# §11.15 阶段三·灵舟：炼器师品阶门槛（复用 ForgeSystem.获取炼器等级）
-	var 所需炼器师 = int(舟.get("required_forge_tier", 1))
-	if ForgeSystem.获取炼器等级(炼器经验值) < 所需炼器师:
-		return {"成功": false, "消息": "炼器师品阶不足（需 %d 品炼器师）" % 所需炼器师}
-	# 战舰型灵舟需更高级船坞（坞 can_build_war_ship≥1）
-	if str(舟.get("ship_type", "")) == "war" and int(坞.get("can_build_war_ship", 0)) < 1:
-		return {"成功": false, "消息": "当前飞舟坞不可炼制战舰（需更高级船坞）"}
-	if 灵舟库存.size() + 灵舟建造队列.size() >= int(坞.get("max_ship_count", 1)):
-		return {"成功": false, "消息": "飞舟坞容量已满（上限%d）" % int(坞.get("max_ship_count", 1))}
-	for q in 灵舟建造队列:
-		if str(q.get("ship_id", "")) == ship_id:
-			return {"成功": false, "消息": "该灵舟已在炼制队列中"}
-	var 清单 = _解析材料清单(舟.get("build_material", ""))
-	for m in 清单:
-		m["有"] = _仓库灵材数量(m["名"])
-	var 费 = int(舟.get("build_cost", 0))
-	if 灵石 < 费:
-		return {"成功": false, "消息": "祭炼灵石不足（需%d）" % 费}
-	var 扣 = _扣灵材(清单)
-	if not 扣.get("成功", false):
-		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
-	灵石 -= 费
-	灵舟建造队列.append({"ship_id": ship_id, "完成日": 累计游戏日 + int(舟.get("build_days", 0))})
-	添加纪事("庶务", "灵舟炼制", "历时%d日，开工炼制【%s】，灵材已耗、祭炼灵石已付" % [int(舟.get("build_days", 0)), str(舟.get("ship_name", ""))], 1)
-	return {"成功": true, "消息": "【%s】动工炼制，预计%d日完工" % [str(舟.get("ship_name", "")), int(舟.get("build_days", 0))], "完成日": 累计游戏日 + int(舟.get("build_days", 0))}
-
-# ===== §11.15 阶段三：拍卖会（双向市场）=====
-# 唯一「纯灵石直接获得灵舟」途径：购买 NPC/其他势力成品（跳过材料+时日）。
-# 反向：本宗炼制的灵舟亦可挂拍换灵石。
-func 获取拍卖会灵舟() -> Array:
-	var 势力池: Array = ["玄天宫", "万宝楼", "散修联盟", "北海龙宫", "天机阁", "九幽邪宗"]
-	var 列表: Array = []
-	for sid in 宗门灵舟表.keys():
-		var 舟 = 宗门灵舟表[sid]
-		var tier = int(舟.get("tier", 0))
-		var 价 = int(float(舟.get("build_cost", 0)) * (1.5 + 0.5 * tier))   # 成品较自炼溢价（省材料+时日）
-		列表.append({
-			"ship_id": sid, "名称": str(舟.get("ship_name", "")), "tier": tier,
-			"ship_type": str(舟.get("ship_type", "")), "价": 价,
-			"卖家": 势力池[randi() % 势力池.size()],
-		})
-	return 列表
-
-# 拍卖购买灵舟（纯灵石，唯一直接途径，跳过材料+时日）
-func 拍卖购买灵舟(ship_id: String) -> Dictionary:
-	var 在售 = 获取拍卖会灵舟()
-	var 命中 = null
-	for s in 在售:
-		if str(s.get("ship_id", "")) == ship_id:
-			命中 = s
-			break
-	if 命中 == null:
-		return {"成功": false, "消息": "该灵舟不在拍卖会"}
-	var 价 = int(命中.get("价", 0))
-	if 灵石 < 价:
-		return {"成功": false, "消息": "灵石不足（需%d）" % 价}
-	灵石 -= 价
-	var 舟 = 宗门灵舟表.get(ship_id, null)
-	if 舟 != null:
-		灵舟库存.append({
-			"ship_id": ship_id, "名称": str(舟.get("ship_name", "")), "tier": int(舟.get("tier", 0)),
-			"ship_type": str(舟.get("ship_type", "")), "durability": int(舟.get("max_durability", 0)),
-			"max_durability": int(舟.get("max_durability", 0)), "speed_bonus": float(舟.get("speed_bonus", 0)),
-			"risk_reduce": float(舟.get("risk_reduce", 0)),
-			"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常",
-		})
-		添加纪事("拍卖", "购得灵舟", "于拍卖会以%d灵石拍得【%s】（出自%s）" % [价, str(舟.get("ship_name", "")), str(命中.get("卖家", ""))], 1)
-	return {"成功": true, "消息": "以%d灵石拍得【%s】" % [价, str(舟.get("ship_name", ""))]}
-
-# 拍卖出售本宗灵舟（换取灵石）
-func 拍卖出售灵舟(索引: int, 价: int) -> Dictionary:
-	if 索引 < 0 or 索引 >= 灵舟库存.size():
-		return {"成功": false, "消息": "灵舟库存索引越界"}
-	var 舟 = 灵舟库存[索引]
-	灵舟库存.remove_at(索引)
-	灵石 += 价
-	添加纪事("拍卖", "售出灵舟", "于拍卖会售出【%s】，得灵石%d" % [str(舟.get("名称", "")), 价], 0)
-	return {"成功": true, "消息": "售出【%s】，得灵石%d" % [str(舟.get("名称", "")), 价]}
-
-# 通用灵舟奖励发放（秘境/斗法/成就等渠道调用）：直接入库存，无需材料+时日
-func 发放灵舟奖励(ship_id: String) -> Dictionary:
-	var 舟 = 宗门灵舟表.get(ship_id, null)
-	if 舟 == null:
-		return {"成功": false, "消息": "灵舟型号不存在"}
-	灵舟库存.append({
-		"ship_id": ship_id, "名称": str(舟.get("ship_name", "")), "tier": int(舟.get("tier", 0)),
-		"ship_type": str(舟.get("ship_type", "")), "durability": int(舟.get("max_durability", 0)),
-		"max_durability": int(舟.get("max_durability", 0)), "speed_bonus": float(舟.get("speed_bonus", 0)),
-		"risk_reduce": float(舟.get("risk_reduce", 0)),
-		"核心品阶": int(舟.get("required_core_tier", 1)), "阵法": [], "核心状态": "正常",
+	待处理传讯.append(传讯)
+	传讯通知信号 = true
+	新传讯到达.emit(传讯)
+	# 同时存入邮件系统作为存档（传讯录分类）
+	邮件系统.邮件列表.append({
+		"发件人": 发件人,
+		"标题": "【传讯】%s" % 类型,
+		"内容": 内容,
+		"时间": "第%d日" % 累计游戏日,
+		"附件": {},
+		"未读": true,
+		"已领": false,
+		"分类": "传讯录"
 	})
-	添加纪事("奇遇", "灵舟现世", "于秘境/斗法之中获赠灵舟【%s】！" % str(舟.get("ship_name", "")), 2)
-	return {"成功": true, "消息": "获得灵舟【%s】" % str(舟.get("ship_name", ""))}
+	return {"成功": true, "传讯ID": 传讯ID}
 
-# §11.15 阶段三·灵舟：能量核心品阶→物品中文名
-func 灵舟核心物品名(品阶: int) -> String:
-	var gid = 灵核品阶物品.get(品阶, "g021")
-	return 灵材名称表.get(gid, gid)
-
-# §11.15 阶段三·灵舟：聚合一艘灵舟的「有效属性」（基础 + 已刻阵法加成）
-func 灵舟有效属性(舟: Dictionary) -> Dictionary:
-	var 有效: Dictionary = {
-		"speed_bonus": float(舟.get("speed_bonus", 0.0)),
-		"risk_reduce": float(舟.get("risk_reduce", 0.0)),
-		"max_durability": int(舟.get("max_durability", 0)),
-		"war_power": int(舟.get("war_power", 0)),
-		"有回灵": false,
-	}
-	for fid in 舟.get("阵法", []):
-		var fm = 灵舟阵法表.get(str(fid), null)
-		if fm == null:
-			continue
-		var dim = str(fm.get("effect_dim", ""))
-		var val = float(fm.get("effect_val", 0.0))
-		if dim == "speed":
-			有效["speed_bonus"] += val
-		elif dim == "risk":
-			有效["risk_reduce"] += val
-		elif dim == "durability":
-			有效["max_durability"] += int(val)
-		elif dim == "war":
-			有效["war_power"] += int(val)
-		elif dim == "regen":
-			有效["有回灵"] = true
-	return 有效
-
-# §11.15 阶段三·灵舟：刻录阵法（消耗灵石+灵材，受阵法堂司职等级+槽位+特性门槛）
-func 刻录灵舟阵法(索引: int, formation_id: String) -> Dictionary:
-	if 索引 < 0 or 索引 >= 灵舟库存.size():
-		return {"成功": false, "消息": "灵舟库存索引越界"}
-	var 舟 = 灵舟库存[索引]
-	var 舟定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
-	var fm = 灵舟阵法表.get(formation_id, null)
-	if fm == null:
-		return {"成功": false, "消息": "阵法不存在"}
-	var 已刻 = 舟.get("阵法", [])
-	if 已刻.size() >= int(舟定义.get("formation_slots", 0)):
-		return {"成功": false, "消息": "灵舟阵法槽已满（%d/%d）" % [已刻.size(), int(舟定义.get("formation_slots", 0))]}
-	if formation_id in 已刻:
-		return {"成功": false, "消息": "该阵法已刻录"}
-	# 虚空大阵仅「虚空」特性灵舟可刻（破虚神舰）
-	if str(fm.get("category", "")) == "虚空" and not ("虚空" in str(舟定义.get("features", "")).split("|")):
-		return {"成功": false, "消息": "仅「虚空」特性灵舟（破虚神舰）可刻录虚空大阵"}
-	# 阵法堂司职等级门槛
-	var 阵法堂等级: int = 1
-	if 司职列表.has("zhenfa"):
-		var v = 司职列表["zhenfa"].get("等级", 1)
-		阵法堂等级 = int(v) if v != null else 1
-	if 阵法堂等级 < int(fm.get("required_array_tier", 1)):
-		return {"成功": false, "消息": "阵法堂等级不足（需 %d 级）" % int(fm.get("required_array_tier", 1))}
-	var 费 = int(fm.get("cost_lingstone", 0))
-	if 灵石 < 费:
-		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
-	var 清单 = _解析材料清单(str(fm.get("cost_material", "")))
-	for m in 清单:
-		m["有"] = _仓库灵材数量(m["名"])
-	var 扣 = _扣灵材(清单)
-	if not 扣.get("成功", false):
-		return {"成功": false, "消息": "灵材不足：" + "、".join(扣.get("缺", []))}
-	灵石 -= 费
-	已刻.append(formation_id)
-	舟["阵法"] = 已刻
-	添加纪事("器殿", "灵舟刻阵", "于【%s】刻录【%s】" % [str(舟.get("名称", "")), str(fm.get("name", ""))], 1)
-	return {"成功": true, "消息": "灵舟刻录【%s】成功" % str(fm.get("name", ""))}
-
-# §11.15 阶段三·灵舟：补充能量核心（手动，耗 1 枚对应品阶核心恢复驱动）
-func 补充灵舟核心(索引: int) -> Dictionary:
-	if 索引 < 0 or 索引 >= 灵舟库存.size():
-		return {"成功": false, "消息": "灵舟库存索引越界"}
-	var 舟 = 灵舟库存[索引]
-	if str(舟.get("核心状态", "正常")) == "正常":
-		return {"成功": false, "消息": "灵舟核心状态正常，无需补充"}
-	var 品阶 = int(舟.get("核心品阶", 1))
-	var gid = 灵核品阶物品.get(品阶, "g021")
-	var 名 = 灵材名称表.get(gid, gid)
-	if _仓库灵材数量(名) < 1:
-		return {"成功": false, "消息": "仓库无【%s】（需1枚）" % 名}
-	_扣灵材([{"id": gid, "名": 名, "需": 1, "有": 1}])
-	舟["核心状态"] = "正常"
-	添加纪事("庶务", "灵舟补核", "为【%s】补充%s，恢复驱动" % [str(舟.get("名称", "")), 名], 1)
-	return {"成功": true, "消息": "已为【%s】补充%s" % [str(舟.get("名称", "")), 名]}
-
-# §11.15 阶段三·灵舟：重命名（每名仅一次机会，可于库存面板随时触发）
-func 重命名灵舟(索引: int, 新名: String) -> Dictionary:
-	if 索引 < 0 or 索引 >= 灵舟库存.size():
-		return {"成功": false, "消息": "灵舟库存索引越界"}
-	var 舟 = 灵舟库存[索引]
-	var 余 = int(舟.get("可命名次数", 1))
-	if 余 <= 0:
-		return {"成功": false, "消息": "【%s】已无重命名机会（每舟仅可命名一次）" % str(舟.get("名称", ""))}
-	var 名 = str(新名).strip_edges()
-	if 名.is_empty():
-		return {"成功": false, "消息": "灵舟名不可为空"}
-	if 名.length() > 12:
-		return {"成功": false, "消息": "灵舟名过长（限12字）"}
-	var 旧名 = str(舟.get("名称", ""))
-	舟["名称"] = 名
-	舟["可命名次数"] = 余 - 1
-	添加纪事("庶务", "灵舟命名", "【%s】更名为【%s】" % [旧名, 名], 1)
-	return {"成功": true, "消息": "已将【%s】更名为【%s】" % [旧名, 名]}
-
-# §11.15 阶段三·灵舟：月度结算——灵石维护 + 能量核心消耗（驱使灵舟之耗，按月）
-func _结算灵舟月度() -> void:
-	var 总维护 = 0
-	for 舟 in 灵舟库存:
-		var 定义 = 宗门灵舟表.get(str(舟.get("ship_id", "")), {})
-		总维护 += int(定义.get("monthly_maintain", 0))
-		# 回灵聚气阵：自续核心，不耗仓库核心
-		var 有回灵 = false
-		for fid in 舟.get("阵法", []):
-			var fm = 灵舟阵法表.get(str(fid), null)
-			if fm != null and str(fm.get("effect_dim", "")) == "regen":
-				有回灵 = true
-		if 有回灵:
-			舟["核心状态"] = "正常"
-			continue
-		var 品阶 = int(舟.get("核心品阶", 1))
-		var gid = 灵核品阶物品.get(品阶, "g021")
-		var 名 = 灵材名称表.get(gid, gid)
-		if _仓库灵材数量(名) >= 1:
-			_扣灵材([{"id": gid, "名": 名, "需": 1, "有": 1}])
-			舟["核心状态"] = "正常"
-		else:
-			舟["核心状态"] = "枯竭"
-	if 总维护 > 0:
-		灵石 = max(0, 灵石 - 总维护)
-
-# 黑市：魔道专属（设计 L105-106）；正道不可入，查缉命中扣正道声望+禁闭
-func 黑市可交易() -> bool:
-	return 正邪路线 == "九幽邪道" and 黑市禁闭日 <= 0
-
-func 黑市违禁品列表() -> Array:
-	var 表: Array = []
-	for gid in 商队商品表.keys():
-		var g = 商队商品表[gid]
-		if int(g.get("is_illegal", 0)) == 1:
-			表.append({"名": str(g.get("goods_name", "")), "单价": int(g.get("base_price", 0)) * 2})
-	return 表
-
-func 黑市出售(货物名: String, 数量: int = 1) -> Dictionary:
-	if 正邪路线 != "九幽邪道":
-		return {"成功": false, "消息": "黑市仅魔道势力可入（需择九幽邪道）"}
-	if 黑市禁闭日 > 0:
-		return {"成功": false, "消息": "正道执法封禁中（剩余%d天）" % 黑市禁闭日}
-	var 目标 = null
-	for gid in 商队商品表.keys():
-		var g = 商队商品表[gid]
-		if str(g.get("goods_name", "")) == 货物名 and int(g.get("is_illegal", 0)) == 1:
-			目标 = g
+## 回复传讯（玩家选择选项后调用）
+func 回复传讯(传讯ID: int, 选项索引: int) -> Dictionary:
+	var 目标传讯: Dictionary = {}
+	var 传讯索引: int = -1
+	for i in range(待处理传讯.size()):
+		if int(待处理传讯[i]["传讯ID"]) == 传讯ID:
+			目标传讯 = 待处理传讯[i]
+			传讯索引 = i
 			break
-	if 目标 == null:
-		return {"成功": false, "消息": "该货物非违禁品或不存在"}
-	var 单价 = int(目标.get("base_price", 0)) * 2   # 黑市价差翻倍
-	var 收益 = 单价 * max(1, 数量)
-	灵石 += 收益
-	# 查缉判定：基础 15%，魔道声望越高越隐蔽
-	var 查缉率 = clamp(0.15 - int(阵营声望.get("魔道邪宗", 0)) / 5000.0, 0.03, 0.15)
-	if randf() < 查缉率:
-		黑市禁闭日 = 30
-		阵营声望["正道宗门"] = max(0, int(阵营声望.get("正道宗门", 0)) - 50)
-		添加纪事("庶务", "黑市查缉", "黑市交易被正道执法队查获，遭禁闭30日，正道声望-50", 1)
-		return {"成功": true, "消息": "黑市售出%s×%d获%d灵石，但被查获！禁闭30日" % [货物名, 数量, 收益], "收益": 收益, "查获": true}
-	添加纪事("庶务", "黑市交易", "于黑市售出%s×%d，获%d灵石" % [货物名, 数量, 收益], 1)
-	return {"成功": true, "消息": "黑市售出%s×%d，获%d灵石" % [货物名, 数量, 收益], "收益": 收益}
+	if 传讯索引 < 0:
+		return {"成功": false, "原因": "传讯不存在或已处理"}
+	if 选项索引 < 0 or 选项索引 >= int(目标传讯["选项"].size()):
+		return {"成功": false, "原因": "选项无效"}
+	var 选中选项: Dictionary = 目标传讯["选项"][选项索引]
+	# 执行选项动作
+	var 结果: Dictionary = _执行传讯动作(目标传讯, 选中选项)
+	# 移入历史
+	目标传讯["玩家选择"] = 选中选项.get("文本", "")
+	目标传讯["处理结果"] = 结果
+	传讯历史.append(目标传讯)
+	if 传讯历史.size() > 传讯历史上限:
+		传讯历史.remove_at(0)
+	# 从待处理移除
+	待处理传讯.remove_at(传讯索引)
+	if 待处理传讯.is_empty():
+		传讯通知信号 = false
+	return {"成功": true, "结果": 结果, "选择": 选中选项.get("文本", "")}
 
-# NPC 商队竞争：黄金商路（物价系数≥1.1）月度推演
-func 黄金商路列表() -> Array:
-	var 表: Array = []
-	for 地区 in 商队地区:
-		if float(地区.get("收购价", 1.0)) >= 1.1:
-			表.append(地区)
-	return 表
-
-func _刷新商路竞争() -> void:
-	for 地区 in 黄金商路列表():
-		var cid = str(地区.get("id", ""))
-		if not 商路竞争状态.has(cid):
-			商路竞争状态[cid] = {"强度": randi_range(30, 80), "压价率": randf_range(0.10, 0.25), "策略": "压价"}
-		else:
-			var s = 商路竞争状态[cid]
-			s["强度"] = clamp(int(s["强度"]) + randi_range(-10, 15), 10, 100)
-			s["压价率"] = clamp(float(s["压价率"]) + randf_range(-0.03, 0.03), 0.0, 0.35)
-
-func _检查独占(城市id: String) -> void:
-	if not 商路竞争状态.has(城市id):
-		return
-	var s = 商路竞争状态[城市id]
-	if float(s.get("压价率", 0.0)) <= 0.0:
-		s["策略"] = "已独占"
-
-func 商路竞争价格战(城市id: String) -> Dictionary:
-	if not 商路竞争状态.has(城市id):
-		return {"成功": false, "消息": "该商路无竞争者"}
-	var s = 商路竞争状态[城市id]
-	var 费 = 2000
-	if 灵石 < 费:
-		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
-	灵石 -= 费
-	s["压价率"] = clamp(float(s["压价率"]) - 0.08, 0.0, 0.35)
-	_检查独占(城市id)
-	return {"成功": true, "消息": "发动价格战，压价率降至%.0f%%" % [float(s["压价率"]) * 100]}
-
-func 商路竞争打压(城市id: String) -> Dictionary:
-	if not 商路竞争状态.has(城市id):
-		return {"成功": false, "消息": "该商路无竞争者"}
-	var s = 商路竞争状态[城市id]
-	var 费 = 5000
-	if 灵石 < 费:
-		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
-	灵石 -= 费
-	s["强度"] = clamp(int(s["强度"]) - 30, 0, 100)
-	if int(s["强度"]) <= 0:
-		s["压价率"] = 0.0
-	_检查独占(城市id)
-	return {"成功": true, "消息": "打压对手，其强度降至%d" % int(s["强度"])}
-
-func 商路竞争协商(城市id: String) -> Dictionary:
-	if not 商路竞争状态.has(城市id):
-		return {"成功": false, "消息": "该商路无竞争者"}
-	var s = 商路竞争状态[城市id]
-	var 费 = 3000
-	if 灵石 < 费:
-		return {"成功": false, "消息": "灵石不足（需%d）" % 费}
-	灵石 -= 费
-	s["策略"] = "协商分润"
-	s["压价率"] = clamp(float(s["压价率"]) * 0.5, 0.0, 0.35)
-	return {"成功": true, "消息": "与对手协商分润，压价缓和至%.0f%%" % [float(s["压价率"]) * 100]}
-
-# ===== §11.15 策略深度：商路声望 / 全局行情事件 辅助 =====
-func _商路声望价差加成(地区id: String) -> float:
-	var 阈值 = [0, 100, 500, 2000, 5000]
-	var 加成 = [0.0, 0.03, 0.06, 0.10, 0.15]
-	var rep = int(商路声望.get(地区id, 0))
-	var tier = 0
-	for i in range(阈值.size()):
-		if rep >= 阈值[i]:
-			tier = i
-	return 加成[tier]
-
-func _累加商路声望(地区id: String, 收益: int) -> void:
-	商路声望[地区id] = int(商路声望.get(地区id, 0)) + max(1, int(收益 / 100))
-
-# §11.15 优化：商队总声望（全局聚合，用于槽位解锁 / 阶梯封顶）
-func _商队总声望() -> int:
-	var tot = 0
-	for v in 商路声望.values():
-		tot += int(v)
-	return tot
-
-# §11.15 优化 + §11.20 修复：阶梯封顶倍率（毛收益口径 = 货值 × 倍率）
-#   原 1.0~4.0x 会把基础加成（收购价×溢价×掌柜价差≈1.2x）削平 → 策略深度归零；
-#   改为 1.5~4.5x：低声望也不削正常加成，高声望放开到 4.5x（此时收益主要靠跨域高物价城 + 溢价匹配）
-func _商队收益封顶倍率() -> float:
-	var tot = _商队总声望()
-	var 阈值 = [0, 200, 600, 1500, 3500, 7000]
-	var 倍率 = [1.5, 2.0, 2.5, 3.0, 3.5, 4.5]
-	var m = 1.0
-	for i in range(阈值.size()):
-		if tot >= 阈值[i]:
-			m = 倍率[i]
-	return m
-
-# §11.15 优化：贸易现实时间加速——多途径缩短单次贸易现实耗时（统一封顶系数）
-func _阵法堂航速被动() -> float:
-	var lv = 1
-	if 司职列表.has("zhenfa"):
-		var v = 司职列表["zhenfa"].get("等级", 1)
-		lv = int(v) if v != null else 1
-	return float(lv) * 阵法堂航速每级
-
-func _声望航速被动() -> float:
-	var 总 = _商队总声望()
-	return min(声望航速上限, float(总) / 500.0 * 声望航速每500)
-
-# 总速度加成 → 现实耗时秒（封顶 贸易最短时间系数）
-func _计算贸易现实秒(总速度加成: float) -> int:
-	var 系数 = clamp(1.0 / (1.0 + 总速度加成), 贸易最短时间系数, 1.0)
-	return int(round(float(商队单次贸易现实秒) * 系数))
-
-# §11.15 优化：仙玉即时完成贸易——消耗仙玉将本次贸易立即结算（仅时间加速，不破经济红线）
-func 仙玉即时完成贸易(商队ID: int) -> Dictionary:
-	for 商队 in 商队列表:
-		if int(商队.get("id", -1)) == 商队ID and str(商队.get("状态", "")) == "派遣中":
-			if 仙玉_非绑定 + 仙玉_绑定 < 仙玉即时完成费:
-				return {"成功": false, "消息": "仙玉不足（需%d）" % 仙玉即时完成费}
-			var 余 = 仙玉即时完成费
-			if 仙玉_非绑定 >= 余:
-				仙玉_非绑定 -= 余
+## 执行传讯动作（内部）
+func _执行传讯动作(传讯: Dictionary, 选项: Dictionary) -> Dictionary:
+	var 动作: String = str(选项.get("动作", ""))
+	var 参数: Dictionary = 选项.get("参数", {})
+	var 触发数据: Dictionary = 传讯.get("触发数据", {})
+	match 动作:
+		"弟子_速速回宗":
+			# 弟子立即终止历练返回
+			if 触发数据.has("弟子ID"):
+				var d: Object = _取弟子(int(触发数据["弟子ID"]))
+				if d != null:
+					d.状态 = "在宗"
+					return {"成功": true, "消息": "%s已接讯回宗" % d.姓名}
+		"弟子_小心行事":
+			# 弟子继续历练，谨慎度+20%
+			return {"成功": true, "消息": "弟子接讯后小心行事，危险降低"}
+		"弟子_全力施为":
+			# 弟子继续历练，收益+30%但危险+30%
+			return {"成功": true, "消息": "弟子接讯后全力施为，收益与风险并存"}
+		"弟子_增援已至":
+			# 消耗灵石派遣增援
+			var 消耗: int = int(参数.get("灵石", 500))
+			if 灵石 >= 消耗:
+				灵石 -= 消耗
+				return {"成功": true, "消息": "增援已至，弟子安全度大增，消耗灵石%d" % 消耗}
 			else:
-				var 先 = 仙玉_非绑定
-				仙玉_非绑定 = 0
-				仙玉_绑定 -= (余 - 先)
-			商队["预计完成真实秒"] = int(Time.get_unix_time_from_system())
-			结算到期商队()
-			添加纪事("神异", "仙玉催行", "以%d仙玉催动神行法，商队即刻返航" % 仙玉即时完成费, 1)
-			return {"成功": true, "消息": "已消耗%d仙玉，贸易即时完成" % 仙玉即时完成费}
-	return {"成功": false, "消息": "未找到该派遣中商队"}
+				return {"成功": false, "消息": "灵石不足，增援失败"}
+		"宗门_接受邀约":
+			return {"成功": true, "消息": "已接受邀约"}
+		"宗门_拒绝邀约":
+			return {"成功": true, "消息": "已婉拒邀约"}
+		"军情_亲自驰援":
+			return {"成功": true, "消息": "宗主亲自驰援"}
+		"军情_派遣长老":
+			return {"成功": true, "消息": "已派遣长老驰援"}
+		"军情_坚守不出":
+			return {"成功": true, "消息": "坚守不出，以逸待劳"}
+		_:
+			return {"成功": true, "消息": "已回复"}
+	return {"成功": true, "消息": "已回复"}
 
-# §11.15 优化：商队槽位数——初始1，随商队总声望解锁，最多6
-func 商队槽位数() -> int:
-	var tot = _商队总声望()
-	var 阈值 = [0, 200, 600, 1500, 3500, 7000]
-	var n = 1
-	for i in range(阈值.size()):
-		if tot >= 阈值[i]:
-			n = i + 1
-	return min(n, 6)
+## 弟子历练触发传讯（历练中遇到重大事件时调用）
+func 弟子历练传讯(弟子ID: int, 事件类型: String, 区域: String) -> Dictionary:
+	var d: Object = _取弟子(弟子ID)
+	if d == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	var 发件人: String = "弟子·%s" % d.姓名
+	var 内容: String = ""
+	var 选项: Array = []
+	match 事件类型:
+		"遭遇危险":
+			内容 = "宗主！弟子在%s遭遇强敌，情势危急，请宗主定夺！" % 区域
+			选项 = [
+				{"文本": "速速回宗", "动作": "弟子_速速回宗", "参数": {}},
+				{"文本": "小心行事", "动作": "弟子_小心行事", "参数": {}},
+				{"文本": "全力施为", "动作": "弟子_全力施为", "参数": {}},
+				{"文本": "增援已至（500灵石）", "动作": "弟子_增援已至", "参数": {"灵石": 500}}
+			]
+		"发现机缘":
+			内容 = "宗主！弟子在%s发现一处疑似古修遗府，是否深入探索？" % 区域
+			选项 = [
+				{"文本": "深入探索", "动作": "弟子_全力施为", "参数": {}},
+				{"文本": "谨慎探查", "动作": "弟子_小心行事", "参数": {}},
+				{"文本": "立即回宗", "动作": "弟子_速速回宗", "参数": {}}
+			]
+		"获得重宝":
+			内容 = "宗主！弟子在%s偶获重宝，恐招人觊觎，是否立即护送回宗？" % 区域
+			选项 = [
+				{"文本": "护送回宗", "动作": "弟子_速速回宗", "参数": {}},
+				{"文本": "继续历练", "动作": "弟子_小心行事", "参数": {}}
+			]
+		_:
+			内容 = "宗主！弟子在%s有要事禀报。" % 区域
+			选项 = [
+				{"文本": "知晓了", "动作": "宗门_接受邀约", "参数": {}}
+			]
+	return 触发传讯(发件人, "弟子传讯·%s" % 事件类型, 内容, 选项, {"弟子ID": 弟子ID, "区域": 区域, "事件类型": 事件类型})
 
-# §11.15 优化：每日派遣配额——= 槽位数 ×（1 + 月卡/季卡/永久卡增益）
-func 商队每日配额() -> int:
-	var 增益 = 0
-	if 月卡有效() or 季卡有效() or 永久卡激活:
-		增益 = 1
-	return 商队槽位数() * (1 + 增益)
+## 获取待处理传讯数量
+func 待处理传讯数量() -> int:
+	return 待处理传讯.size()
 
-# §11.15 优化：每日配额按现实日重置（复用项目 real-time 范式）
-func 刷新商队配额() -> void:
-	var 现在 = int(Time.get_unix_time_from_system())
-	if 现在 - 上次配额日真实秒 >= 86400:
-		商队每日已派 = 0
-		上次配额日真实秒 = 现在
+## 清除传讯通知标记
+func 清除传讯通知() -> void:
+	传讯通知信号 = false
 
-func _行情事件倍率(地区: Dictionary) -> float:
-	var m = 1.0
-	for ev in 行情事件列表:
-		if int(ev.get("剩余天数", 0)) > 0 and str(ev.get("地区", "")) == str(地区.get("id", "")):
-			for 偏好 in 地区.get("偏好类别", []):
-				if str(ev.get("品类", "")) == 偏好:
-					m = max(m, float(ev.get("倍率", 1.0)))
-	return m
+var 宗门科技系统: SectTechSystem = SectTechSystem.new()   # 宗门科技系统实例
+var 玄榜系统: XuanRankSystem = XuanRankSystem.new()   # 玄榜系统实例
+var 炼丹炼器系统: AlchemyForgeSystem = AlchemyForgeSystem.new()   # 炼丹炼器封装系统实例
+var 符箓封装系统: TalismanManagementSystem = TalismanManagementSystem.new()   # 符箓系统封装实例
+var 功法管理系统: GongFaManagementSystem = GongFaManagementSystem.new()   # 功法管理系统实例
+var 灵兽管理系统: BeastManagementSystem = BeastManagementSystem.new()   # 灵兽管理系统实例
+var 弟子突破系统: BreakthroughSystem = BreakthroughSystem.new()   # 弟子突破系统实例
+var 成就系统: AchievementSystem = AchievementSystem.new()
+# 主界面（新UI）引用注册口：main.gd 构建 game_ui 后注册。
+# 供各业务页跨层触发战斗动画（播放战报）等，避免页面自行猜节点路径。
+var 主UI: Node = null
+# main.gd 在 _进入主界面 装配完 game_ui 后调用
+func 注册主UI(ui: Node) -> void:
+	主UI = ui
+   # 成就系统实例
 
-# §11.15 数据驱动：解析城市/商路 unlock_condition / unlock_need
-func 检查商路城市解锁(条件: String, 地区id: String = "") -> bool:
-	if 条件.strip_edges() == "" or 条件.strip_edges() == "none":
-		return true
-	var 项列表 = 条件.split(" AND ", false)
-	for 项 in 项列表:
-		var t = str(项).strip_edges()
-		if t == "":
-			continue
-		# sect_level=N / sect_level>=N
-		if t.begins_with("sect_level"):
-			var 需 = int(t.split("=")[-1])
-			if 门派等级 < 需:
-				return false
-		elif t.begins_with("has_shop"):
-			# 坊市系统已存在，视为满足
-			pass
-		elif t.begins_with("has_ship"):
-			# §11.15 阶段三：已实装灵舟坞；已建坞(has_ship)才解锁跨域城 7/8
-			if 灵舟坞等级 <= 0:
-				return false
-		elif t.begins_with("reputation"):
-			# 本地区商路声望
-			var 需 = int(t.split("=")[-1]) if "=" in t else int(t.split(">=")[-1])
-			if int(商路声望.get(地区id, 0)) < 需:
-				return false
-		else:
-			push_warning("未知商路解锁条件: %s" % t)
-	return true
+# ===== 属性转发（子系统拆分后UI零改动方案：Game.xxx 自动转发到对应子系统）=====
+var 灵兽库存:
+	get: return 灵兽管理系统.灵兽库存
+	set(value): 灵兽管理系统.灵兽库存 = value
+var 灵兽兑换队列:
+	get: return 灵兽管理系统.灵兽兑换队列
+	set(value): 灵兽管理系统.灵兽兑换队列 = value
+var 傀儡列表:
+	get: return 傀儡系统.傀儡列表
+	set(value): 傀儡系统.傀儡列表 = value
+var 傀儡ID计数器:
+	get: return 傀儡系统.傀儡ID计数器
+	set(value): 傀儡系统.傀儡ID计数器 = value
+var 累计制作傀儡数:
+	get: return 傀儡系统.累计制作傀儡数
+	set(value): 傀儡系统.累计制作傀儡数 = value
+var 藏书阁收录数:
+	get: return 藏书阁系统.藏书阁收录数
+	set(value): 藏书阁系统.藏书阁收录数 = value
+var 藏书阁加成到期日:
+	get: return 藏书阁系统.藏书阁加成到期日
+	set(value): 藏书阁系统.藏书阁加成到期日 = value
+var 阵法等级:
+	get: return 阵法管理系统.阵法等级
+	set(value): 阵法管理系统.阵法等级 = value
+var 阵法耐久度:
+	get: return 阵法管理系统.阵法耐久度
+	set(value): 阵法管理系统.阵法耐久度 = value
+var 阵法驻守弟子:
+	get: return 阵法管理系统.阵法驻守弟子
+	set(value): 阵法管理系统.阵法驻守弟子 = value
+var 阵法强化等级:
+	get: return 阵法管理系统.阵法强化等级
+	set(value): 阵法管理系统.阵法强化等级 = value
+var 坐骑列表:
+	get: return 坐骑系统.坐骑列表
+	set(value): 坐骑系统.坐骑列表 = value
+var 当前坐骑:
+	get: return 坐骑系统.当前坐骑
+	set(value): 坐骑系统.当前坐骑 = value
+var 坐骑ID计数器:
+	get: return 坐骑系统.坐骑ID计数器
+	set(value): 坐骑系统.坐骑ID计数器 = value
+var 碎片库存:
+	get: return 碎片宝箱系统.碎片库存
+	set(value): 碎片宝箱系统.碎片库存 = value
+var 宝箱库存:
+	get: return 碎片宝箱系统.宝箱库存
+	set(value): 碎片宝箱系统.宝箱库存 = value
+var 邮件列表:
+	get: return 邮件系统.邮件列表
+	set(value): 邮件系统.邮件列表 = value
+var 已研究宗门科技:
+	get: return 宗门科技系统.已研究宗门科技
+	set(value): 宗门科技系统.已研究宗门科技 = value
+var 玄榜虚拟宗门:
+	get: return 玄榜系统.玄榜虚拟宗门
+	set(value): 玄榜系统.玄榜虚拟宗门 = value
+var 炼器经验值:
+	get: return 炼丹炼器系统.炼器经验值
+	set(value): 炼丹炼器系统.炼器经验值 = value
+var 功法熟练度:
+	get: return 功法管理系统.功法熟练度
+	set(value): 功法管理系统.功法熟练度 = value
+var 成就_已达成:
+	get: return 成就系统.成就_已达成
+	set(value): 成就系统.成就_已达成 = value
+var 已领取成就奖励:
+	get: return 成就系统.已领取成就奖励
+	set(value): 成就系统.已领取成就奖励 = value
+# ===== 属性转发结束 =====
 
-func _刷新行情事件() -> void:
-	# §11.15 策略深度：每月 1~2 次全局行情事件（独立队列，不污染 EventManager）
-	var 池 = [
-		{"地区": "附近城镇", "品类": "灵草", "倍率": 1.4, "天数": 8, "名": "灵草疫疾，药价飙升"},
-		{"地区": "修真集市", "品类": "矿石", "倍率": 1.5, "天数": 10, "名": "矿脉告急，矿石暴涨"},
-		{"地区": "仙城坊市", "品类": "法器", "倍率": 1.6, "天数": 12, "名": "法器盛会，法器稀缺"},
-		{"地区": "秘境边境", "品类": "天材地宝", "倍率": 1.8, "天数": 15, "名": "天材地宝争夺战"},
-		{"地区": "仙城坊市", "品类": "法器", "倍率": 0.7, "天数": 10, "名": "法器滞销，价格承压"},
-		{"地区": "修真集市", "品类": "矿石", "倍率": 0.75, "天数": 9, "名": "矿石过剩，行情走低"},
-	]
-	var 次数 = 1 + int(randf() * 2)
-	for _n in range(次数):
-		var t = 池[randi() % 池.size()]
-		var 重复 = false
-		for ev in 行情事件列表:
-			if str(ev.get("地区", "")) == t["地区"] and str(ev.get("品类", "")) == t["品类"]:
-				重复 = true
-				break
-		if 重复:
-			continue
-		var ev = {"地区": t["地区"], "品类": t["品类"], "倍率": t["倍率"], "剩余天数": t["天数"], "名": t["名"]}
-		行情事件列表.append(ev)
-		添加纪事("庶务", "行情事件", "商路行情：%s" % t["名"], 1)
+# ===== 商队系统（已拆分到caravan_system.gd）=====
+# 商队状态变量已移至 caravan_system.gd，通过 商队系统.xxx 访问
+# 灵舟坞状态变量已移至 caravan_system.gd
+var 传送阵等级: int = 0            # 0=未建；≥1 即已立阵（S34c §11.17 传送阵）
+var 传送阵表缓存: Dictionary = {}  # teleport_array_config.csv（ta01-06，按等级解锁；ta05-06 灵界预留）
+var 传送阵建造中: Dictionary = {}  # {目标档:int, 完成日:int}（非空中表示阵在建造/升级）
+var 传送阵今日已用: int = 0       # 当日已传送次数（每日重置）
+var 传送阵待机欠费: bool = false  # 待机灵石不足→暂停运转
+var enable_teleport_system: bool = true  # §11.17 总控开关：置 false 隐藏传送阵并停用
+# S35-2 国教信仰网络（不升SAVE_VERSION，旧档缺键→兜底）
+# 数据模型：郡信仰[cid] = {"本宗": float, "异端": float, "异端主": String, "已报警": bool}
+#           香火庙[cid] = {"等级": int, "建造中": bool, "完成日": int, "欠费": bool}
+var 香火庙: Dictionary = {}
+# 郡信仰已移至 dynasty_system.gd
+var 信仰表缓存: Dictionary = {}
+var enable_faith_system: bool = true   # §11.18 总控开关：置 false 停用信仰网络
+# ============ S35-0 王朝邸报层（每日新鲜感 / 不确定性 / 正回馈）============
+# 三条设计铁律（对齐 S32 铁律三 / 运维封顶 318）：
+#   ① 祥瑞【零货币产出】：只调单郡感恩/灾情/忠顺（全 clamp 0-100）、触发寻访、微调民心/国祚/香火。
+#      正回馈 = 郡县变好 → 供奉/苗子提升（供奉已在 318 口径内），不新增全局产出通道。
+#   ② 朝奏【每日限 1 道 + 离线不自动结算】：锚点是「现实日序号」而非游戏日，
+#      离线 12 王朝月批量推演时 今日序号不变 → 只在首轮生成 1 道，天然防堆积。
+#      跨日未批仅记「搁置」，不做逾期惩罚（离线惩罚是留存杀手）。
+#   ③ 月度保底邸报：本月零邸报时从郡县动态提炼一条，杜绝连续数月哑火。
+const 朝报上限 := 200
+const 祥瑞日概率 := 0.18
+const 祥瑞每日上限 := 3     # 每【现实日】最多降 N 道祥瑞（离线归来防刷屏）
+const 祥瑞最小间隔日 := 2
+
+var 朝报: Array = []
+var 朝报未读: int = 0
+var 誓约待批: Array = []          # S36 心魔誓：弟子请誓待批 [{弟子ID,弟子名,oath_id,名称,desc,日}]
+var 万仙大誓: Dictionary = {}     # S36 万仙大誓：宗门级共誓快照（空=无）
+var 誓约推进日: int = 0           # S36 上次推进的现实日序号（离线不跳变）
+var 誓约表缓存: Dictionary = {}   # S36 誓约配置缓存 {oath:表, sect_oath:表}
+var 朝奏: Dictionary = {}
+var 上次朝奏日: int = -1
+var 上次祥瑞日: int = -999
+var 上次祥瑞日序号: int = -1
+var 今日祥瑞数: int = 0
+var 下次必降祥瑞: bool = false
+var enable_dynasty_gazette: bool = true  # S35-0 总控开关：置 false 关闭邸报与祥瑞
+# 其他商队状态变量已移至 caravan_system.gd
+
+
+# ===== 商队系统（已拆分到caravan_system.gd，此处为转发函数）=====
+func 加载商队配置():
+	商队系统.加载商队配置()
+func _读商队岗位表():
+	return 商队系统._读商队岗位表()
+func _读商队载具表():
+	return 商队系统._读商队载具表()
+func _读商品表():
+	return 商队系统._读商品表()
+func _读城市表():
+	return 商队系统._读城市表()
+func _读商路表():
+	return 商队系统._读商路表()
+func _读商路事件表():
+	return 商队系统._读商路事件表()
+func _读灵舟坞表():
+	return 商队系统._读灵舟坞表()
+func _读宗门灵舟表():
+	return 商队系统._读宗门灵舟表()
+func _读灵材名称表():
+	return 商队系统._读灵材名称表()
+func _读灵舟阵法表():
+	return 商队系统._读灵舟阵法表()
+func _读正道特许表():
+	return 商队系统._读正道特许表()
+func _读特殊商单表():
+	return 商队系统._读特殊商单表()
+func _构建商队地区():
+	商队系统._构建商队地区()
+func _抽取商路事件(实际风险: float):
+	return 商队系统._抽取商路事件(实际风险)
+func _事件可取优选项(事件: Dictionary, 人员: Array):
+	return 商队系统._事件可取优选项(事件, 人员)
+func _crew总分(人员: Array):
+	return 商队系统._crew总分(人员)
+func 派遣商队(地区ID: String, 货物列表: Array, 弟子ID: int = -1, 载具ID: String = "", 人员列表: Array = [], 灵舟索引: int = -1, 使用神行符: bool = false, 接商单: String = ""):
+	return 商队系统.派遣商队(地区ID, 货物列表, 弟子ID, 载具ID, 人员列表, 灵舟索引, 使用神行符, 接商单)
+func _取弟子(目标ID: int):
+	return 商队系统._取弟子(目标ID)
+func _校验货物库存(货主: Variant, 货物列表: Array):
+	return 商队系统._校验货物库存(货主, 货物列表)
+func _出库货物(货主: Variant, 货物列表: Array):
+	return 商队系统._出库货物(货主, 货物列表)
+func 结算商队(商队: Dictionary):
+	return 商队系统.结算商队(商队)
+func _结算特殊商单(商队: Dictionary):
+	商队系统._结算特殊商单(商队)
+func _发放贸易物品奖励(收益: int):
+	商队系统._发放贸易物品奖励(收益)
+func _发放物品(名: String, 数: int):
+	商队系统._发放物品(名, 数)
+func 刷新商队行情():
+	商队系统.刷新商队行情()
+func 更新商队状态():
+	商队系统.更新商队状态()
+func 结算到期商队():
+	商队系统.结算到期商队()
+func 预留_域外战斗(目标: Dictionary = {}):
+	return 商队系统.预留_域外战斗(目标)
+func 已建灵舟坞():
+	return 商队系统.已建灵舟坞()
+func 灵舟坞建造信息():
+	return 商队系统.灵舟坞建造信息()
+func 建造灵舟坞():
+	return 商队系统.建造灵舟坞()
+func _解析材料清单(mat_str: String):
+	return 商队系统._解析材料清单(mat_str)
+func _库房灵材数量(名: String):
+	return 商队系统._库房灵材数量(名)
+func _扣灵材(清单: Array):
+	return 商队系统._扣灵材(清单)
+func _推进灵舟建造():
+	商队系统._推进灵舟建造()
+func 炼制灵舟(ship_id: String):
+	return 商队系统.炼制灵舟(ship_id)
+func 获取拍卖会灵舟():
+	return 商队系统.获取拍卖会灵舟()
+func 拍卖购买灵舟(ship_id: String):
+	return 商队系统.拍卖购买灵舟(ship_id)
+func 拍卖出售灵舟(索引: int, 价: int):
+	return 商队系统.拍卖出售灵舟(索引, 价)
+func 发放灵舟奖励(ship_id: String):
+	return 商队系统.发放灵舟奖励(ship_id)
+func 灵舟核心物品名(品阶: int):
+	return 商队系统.灵舟核心物品名(品阶)
+func 灵舟有效属性(舟: Dictionary):
+	return 商队系统.灵舟有效属性(舟)
+func 刻录灵舟阵法(索引: int, formation_id: String):
+	return 商队系统.刻录灵舟阵法(索引, formation_id)
+func 补充灵舟核心(索引: int):
+	return 商队系统.补充灵舟核心(索引)
+func 重命名灵舟(索引: int, 新名: String):
+	return 商队系统.重命名灵舟(索引, 新名)
+func _结算灵舟月度():
+	商队系统._结算灵舟月度()
+func 黑市可交易():
+	return 商队系统.黑市可交易()
+func 黑市违禁品列表():
+	return 商队系统.黑市违禁品列表()
+func 黑市出售(货物名: String, 数量: int = 1):
+	return 商队系统.黑市出售(货物名, 数量)
+func 正道特许可交易():
+	return 商队系统.正道特许可交易()
+func 正道特许商品列表():
+	return 商队系统.正道特许商品列表()
+func 正道特许出售(货物名: String, 数量: int = 1):
+	return 商队系统.正道特许出售(货物名, 数量)
+func 黄金商路列表():
+	return 商队系统.黄金商路列表()
+func _刷新商路竞争():
+	商队系统._刷新商路竞争()
+func _检查独占(城市id: String):
+	商队系统._检查独占(城市id)
+func 商路竞争价格战(城市id: String):
+	return 商队系统.商路竞争价格战(城市id)
+func 商路竞争打压(城市id: String):
+	return 商队系统.商路竞争打压(城市id)
+func 商路竞争协商(城市id: String):
+	return 商队系统.商路竞争协商(城市id)
+func _商路声望价差加成(地区id: String):
+	return 商队系统._商路声望价差加成(地区id)
+func _累加商路声望(地区id: String, 收益: int):
+	商队系统._累加商路声望(地区id, 收益)
+func _商队总声望():
+	return 商队系统._商队总声望()
+func _商队收益封顶倍率():
+	return 商队系统._商队收益封顶倍率()
+func _阵法堂航速被动():
+	return 商队系统._阵法堂航速被动()
+func _声望航速被动():
+	return 商队系统._声望航速被动()
+func _计算贸易现实秒(总速度加成: float):
+	return 商队系统._计算贸易现实秒(总速度加成)
+func 仙玉即时完成贸易(商队ID: int):
+	return 商队系统.仙玉即时完成贸易(商队ID)
+func 商队槽位数():
+	return 商队系统.商队槽位数()
+func 商队每日配额():
+	return 商队系统.商队每日配额()
+func 刷新商队配额():
+	商队系统.刷新商队配额()
+func _行情事件倍率(地区: Dictionary):
+	return 商队系统._行情事件倍率(地区)
+func 检查商路城市解锁(条件: String, 地区id: String = ""):
+	return 商队系统.检查商路城市解锁(条件, 地区id)
+func _刷新行情事件():
+	商队系统._刷新行情事件()
+func 获取城市行情(地区id: String):
+	return 商队系统.获取城市行情(地区id)
+func 获取行情一览():
+	return 商队系统.获取行情一览()
 
 # ===== 阵营声望系统（v2.0 五大阵营体系：====
 # 5大阵营：正道宗门、魔道邪宗、中立散修、上古妖兽、远古遗泽
 # 5级声望：冷淡→中立→友善→尊敬→崇敬
 # 设计依据：GDD §2.1 五大阵营声望体系
-const 阵营列表: Array = ["正道宗门", "魔道邪宗", "中立散修", "上古妖兽", "远古遗泽"]
-const 声望等级: Array = ["冷淡", "中立", "友善", "尊敬", "崇敬"]
-const 声望阈值: Array = [0, 100, 500, 2000, 5000]  # 各等级所需声望值
-var 阵营声望: Dictionary = {
-	"正道宗门": 0,
-	"魔道邪宗": 0,
-	"中立散修": 0,
-	"上古妖兽": 0,
-	"远古遗泽": 0,
-}
-# 旧阵营名称映射（向后兼容：旧档的4大阵营自动映射到：大阵营）
-const 旧阵营映射: Dictionary = {
-	"正道联盟": "正道宗门",
-	"魔道势力": "魔道邪宗",
-	"散修联盟": "中立散修",
-	"皇室官方": "中立散修",  # 皇室官方映射到中立散：
-}
-# 获取阵营声望等级
-func 获取声望等级(阵营: String) -> String:
+# ===== 阵营声望系统（已拆分到faction_reputation_system.gd，此处为转发函数）=====
 
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)  # 旧阵营名称自动映：
-	var 声望值= 阵营声望.get(实际阵营, 0)
-	return FactionSystem.get_reputation_level(声望值)
-# 增加阵营声望（对立阵营会降低：
-func 增加阵营声望(阵营: String, 数量: int) -> void:
-
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)  # 旧阵营名称自动映：
-	if not 阵营声望.has(实际阵营):
-		return
-	阵营声望 = FactionSystem.add_faction_reputation(阵营声望, 实际阵营, 数量)
-	添加纪事("庶务", "阵营声望变化", "%s声望+%d" % [实际阵营, 数量], 1)
-# 获取阵营声望权益
-func 获取阵营权益(阵营: String) -> Dictionary:
-
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	var 声望值= 阵营声望.get(实际阵营, 0)
-	var 等级 = FactionSystem.get_reputation_level(声望值)
-	return FactionSystem.get_faction_benefits(等级)
-# 获取所有阵营的综合权益（取最高值）
-func 获取综合阵营权益() -> Dictionary:
-
-	return FactionSystem.get_comprehensive_benefits(阵营声望)
-# 检查玩法是否解锁（新方法）
-func 检查玩法解锁(阵营: String, 玩法锁: String) -> bool:
-
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	var 声望值= 阵营声望.get(实际阵营, 0)
-	return FactionSystem.is_feature_unlocked(实际阵营, 声望值, 玩法锁)
-# 招贤阁刷新加权抽取（新方法）
-func 加权抽取阵营(性格: String = "") -> String:
-
-	return FactionSystem.weighted_recruit_faction(阵营声望, 性格)
-# 获取所有阵营声望列表
-func 获取所有阵营声望列表() -> Array:
-	var 声望列表 = []
-	for 阵营 in 阵营声望.keys():
-		var 声望值 = 阵营声望[阵营]
-		var 等级 = FactionSystem.get_reputation_level(声望值)
-		var 权益 = FactionSystem.get_faction_benefits(等级)
-		声望列表.append({
-			"阵营": 阵营,
-			"声望值": 声望值,
-			"等级": 等级,
-			"权益": 权益,
-			"描述": FactionSystem.get_faction_description(阵营),
-		})
-	return 声望列表
-
-# 获取阵营声望总加成
-func 获取阵营声望总加成() -> Dictionary:
-	return FactionSystem.get_comprehensive_benefits(阵营声望)
-
-# 获取阵营描述（新方法，用于UI Tooltip：
-func 获取阵营描述(阵营: String) -> String:
-
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	return FactionSystem.get_faction_description(实际阵营)
-# ===== 阵营任务和商店系统（v1.0）=====
-# 阵营任务配置
-var 阵营任务配置: Array = []
-# 阵营任务进度 {quest_id: {进度, 已领取}}
-var 阵营任务进度: Dictionary = {}
-# 阵营商店配置
-var 阵营商店配置: Array = []
-# 阵营商店购买记录 {item_id: 购买次数}
-var 阵营商店购买记录: Dictionary = {}
-
-# 加载阵营任务配置
-func _加载阵营任务配置() -> void:
-	阵营任务配置 = DestinyDataLoader._read_csv("res://config/faction_quests.csv")
-	# 初始化任务进度
-	for q in 阵营任务配置:
-		var qid: String = str(q.get("quest_id") if "quest_id" in q else "")
-		if qid != "" and not 阵营任务进度.has(qid):
-			阵营任务进度[qid] = {"进度": 0, "已领取": false}
-
-# 加载阵营商店配置
-func _加载阵营商店配置() -> void:
-	阵营商店配置 = DestinyDataLoader._read_csv("res://config/faction_shop.csv")
-
-# 获取指定阵营的任务列表
-func 获取阵营任务(阵营: String) -> Array:
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	var 任务列表: Array = []
-	for q in 阵营任务配置:
-		if str(q.get("faction") if "faction" in q else "") == 实际阵营:
-			var qid: String = str(q.get("quest_id") if "quest_id" in q else "")
-			var 进度: Dictionary = 阵营任务进度.get(qid, {"进度": 0, "已领取": false})
-			var 任务: Dictionary = q.duplicate()
-			任务["当前进度"] = 进度.get("进度", 0)
-			任务["已领取"] = 进度.get("已领取", false)
-			任务["是否解锁"] = 检查阵营任务解锁(实际阵营, str(q.get("unlock_reputation") if "unlock_reputation" in 任务 else "冷淡"))
-			任务列表.append(任务)
-	return 任务列表
-
-# 检查阵营任务是否解锁
-func 检查阵营任务解锁(阵营: String, 所需声望等级: String) -> bool:
-	var 当前等级: String = 获取声望等级(阵营)
-	var 当前索引: int = 声望等级.find(当前等级)
-	var 所需索引: int = 声望等级.find(所需声望等级)
-	return 当前索引 >= 所需索引
-
-# 更新阵营任务进度
-func 更新阵营任务进度(阵营: String, 任务类型: String, 数量: int = 1) -> void:
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	for q in 阵营任务配置:
-		if str(q.get("faction") if "faction" in q else "") == 实际阵营 and str(q.get("quest_type") if "quest_type" in q else "") == 任务类型:
-			var qid: String = str(q.get("quest_id") if "quest_id" in q else "")
-			if not 阵营任务进度.has(qid):
-				阵营任务进度[qid] = {"进度": 0, "已领取": false}
-			var 目标数: int = int(q.get("target_num") if "target_num" in q else 1)
-			var 当前进度: int = int(阵营任务进度[qid].get("进度", 0))
-			阵营任务进度[qid]["进度"] = min(当前进度 + 数量, 目标数)
-
-# 领取阵营任务奖励
-func 领取阵营任务奖励(任务ID: String) -> Dictionary:
-	if not 阵营任务进度.has(任务ID):
-		return {"成功": false, "原因": "任务不存在"}
-	var 进度: Dictionary = 阵营任务进度[任务ID]
-	if 进度.get("已领取", false):
-		return {"成功": false, "原因": "奖励已领取"}
-	# 找到任务配置
-	var 任务配置: Dictionary = {}
-	for q in 阵营任务配置:
-		if str(q.get("quest_id") if "quest_id" in q else "") == 任务ID:
-			任务配置 = q
-			break
-	if 任务配置.is_empty():
-		return {"成功": false, "原因": "任务配置不存在"}
-	var 目标数: int = int(任务配置.get("target_num", 1))
-	var 当前进度: int = int(进度.get("进度", 0))
-	if 当前进度 < 目标数:
-		return {"成功": false, "原因": "任务未完成"}
-	# 发放奖励
-	var 灵石奖励: int = int(任务配置.get("reward_lingjing", 0))
-	var 灵气奖励: int = int(任务配置.get("reward_lingqi", 0))
-	var 声望奖励: int = int(任务配置.get("reward_reputation", 0))
-	var 阵营: String = str(任务配置.get("faction", ""))
-	灵石 += 灵石奖励
-	灵气 += 灵气奖励
-	if 声望奖励 > 0 and 阵营 != "":
-		增加阵营声望(阵营, 声望奖励)
-	# 标记已领取
-	阵营任务进度[任务ID]["已领取"] = true
-	添加纪事("庶务", "阵营任务奖励", "完成%s任务，获得%d灵石、%d灵气、%d声望" % [任务配置.get("quest_name", ""), 灵石奖励, 灵气奖励, 声望奖励], 1)
-	return {"成功": true, "灵石": 灵石奖励, "灵气": 灵气奖励, "声望": 声望奖励}
-
-# 获取指定阵营的商店商品列表
-func 获取阵营商店(阵营: String) -> Array:
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
-	var 商品列表: Array = []
-	for item in 阵营商店配置:
-		if str(item.get("faction") if "faction" in item else "") == 实际阵营:
-			var 商品: Dictionary = item.duplicate()
-			var 所需声望: String = str(item.get("unlock_reputation") if "unlock_reputation" in item else "冷淡")
-			商品["是否解锁"] = 检查阵营任务解锁(实际阵营, 所需声望)
-			# 计算折扣价
-			var 权益: Dictionary = 获取阵营权益(实际阵营)
-			var 折扣: float = float(权益.get("商店折扣", 1.0))
-			var 原价: int = int(item.get("price") if "price" in item else 0)
-			商品["折扣价"] = int(round(原价 * 折扣))
-			商品["购买次数"] = int(阵营商店购买记录.get(str(item.get("item_id") if "item_id" in item else ""), 0))
-			商品列表.append(商品)
-	return 商品列表
-
-# 购买阵营商店商品
-func 购买阵营商店商品(商品ID: String) -> Dictionary:
-	# 找到商品配置
-	var 商品配置: Dictionary = {}
-	for item in 阵营商店配置:
-		if str(item.get("item_id") if "item_id" in item else "") == 商品ID:
-			商品配置 = item
-			break
-	if 商品配置.is_empty():
-		return {"成功": false, "原因": "商品不存在"}
-	var 阵营: String = str(商品配置.get("faction", ""))
-	var 所需声望: String = str(商品配置.get("unlock_reputation", "冷淡"))
-	if not 检查阵营任务解锁(阵营, 所需声望):
-		return {"成功": false, "原因": "声望等级不足，商品未解锁"}
-	# 计算价格
-	var 权益: Dictionary = 获取阵营权益(阵营)
-	var 折扣: float = float(权益.get("商店折扣", 1.0))
-	var 原价: int = int(商品配置.get("price", 0))
-	var 实际价格: int = int(round(原价 * 折扣))
-	if 灵石 < 实际价格:
-		return {"成功": false, "原因": "灵石不足"}
-	# 扣除灵石
-	灵石 -= 实际价格
-	# 记录购买
-	if not 阵营商店购买记录.has(商品ID):
-		阵营商店购买记录[商品ID] = 0
-	阵营商店购买记录[商品ID] += 1
-	# 根据商品类型添加不同效果
-	var 商品名: String = str(商品配置.get("item_name", ""))
-	var 商品类型: String = str(商品配置.get("item_type", ""))
-	var 效果文本: String = ""
-	match 商品类型:
-		"功法":
-			# 功法类：学习功法，获得悟道点
-			var 悟道点奖励: int = 20
-			悟道点 += 悟道点奖励
-			效果文本 = "，学习%s，悟道点+%d" % [商品名, 悟道点奖励]
-		"丹药":
-			# 丹药类：根据具体丹药添加不同效果
-			if 商品名 == "清心丹":
-				# 清心丹：清除心魔，提升道心
-				道心 += 5
-				效果文本 = "，服用清心丹，道心+5"
-			elif 商品名 == "嗜血丹":
-				# 嗜血丹：短期大幅提升攻击力（简化为永久攻击+10）
-				攻击 += 10
-				效果文本 = "，服用嗜血丹，攻击+10"
-			elif 商品名 == "辟谷丹":
-				# 辟谷丹：恢复体力
-				体力 = min(体力 + 30, 体力上限())
-				效果文本 = "，服用辟谷丹，体力+30"
-			elif 商品名 == "时光丹":
-				# 时光丹：恢复灵气和悟道点
-				灵气 += 200
-				悟道点 += 10
-				效果文本 = "，服用时光丹，灵气+200，悟道点+10"
-			else:
-				# 其他丹药：默认恢复体力
-				体力 = min(体力 + 20, 体力上限())
-				效果文本 = "，服用%s，体力+20" % 商品名
-		"装备":
-			# 装备类：添加到仓库
-			var 新装备 = Item.new()
-			新装备.名称 = 商品名
-			新装备.品阶 = "宝品"
-			新装备.类别 = "装备"
-			新装备.描述 = str(商品配置.get("description", ""))
-			宗门库房.append(新装备)
-			效果文本 = "，获得装备%s（已放入仓库）" % 商品名
-		"材料":
-			# 材料类：添加到仓库或用于其他系统
-			if 商品名 == "灵兽食粮":
-				# 灵兽食粮：提升所有灵兽亲密度
-				for 兽 in 灵兽库存:
-					if 兽 != null and "亲密度" in 兽:
-						兽["亲密度"] = int(兽.get("亲密度") if "亲密度" in 兽 else 0) + 5
-				效果文本 = "，使用灵兽食粮，所有灵兽亲密度+5"
-			elif 商品名 == "远古符文":
-				# 远古符文：获得悟道点
-				悟道点 += 15
-				效果文本 = "，参悟远古符文，悟道点+15"
-			elif 商品名 == "远古神器碎片":
-				# 远古神器碎片：添加到仓库
-				var 新碎片 = Item.new()
-				新碎片.名称 = 商品名
-				新碎片.品阶 = "仙品"
-				新碎片.类别 = "材料"
-				新碎片.描述 = str(商品配置.get("description", ""))
-				宗门库房.append(新碎片)
-				效果文本 = "，获得%s（已放入仓库）" % 商品名
-			else:
-				# 其他材料：添加到仓库
-				var 新材料 = Item.new()
-				新材料.名称 = 商品名
-				新材料.品阶 = "灵品"
-				新材料.类别 = "材料"
-				新材料.描述 = str(商品配置.get("description", ""))
-				宗门库房.append(新材料)
-				效果文本 = "，获得材料%s（已放入仓库）" % 商品名
-		"丹药":
-			# 丹药类：根据具体丹药添加不同效果
-			if "洗髓丹" in 商品名:
-				# 洗髓丹：随机提升一名弟子的灵根品阶
-				if not 弟子列表.is_empty():
-					var 随机弟子 = 弟子列表[randi() % 弟子列表.size()]
-					if 随机弟子 != null:
-						# 简化处理：提升灵根品阶（实际需要根据灵根系统实现）
-						效果文本 = "，使用%s，%s的灵根得到提升" % [商品名, 随机弟子.姓名]
-						# 成就统计：累计提升灵根次数自增
-						累计提升灵根次数 += 1
-						_复检成就()
-				else:
-					效果文本 = "，使用%s，但没有弟子可以提升" % 商品名
-			elif "清心丹" in 商品名:
-				# 清心丹：随机提升一名弟子的心境
-				if not 弟子列表.is_empty():
-					var 随机弟子 = 弟子列表[randi() % 弟子列表.size()]
-					if 随机弟子 != null:
-						效果文本 = "，使用%s，%s的心境得到提升" % [商品名, 随机弟子.姓名]
-						# 成就统计：累计提升心境次数自增
-						累计提升心境次数 += 1
-						_复检成就()
-				else:
-					效果文本 = "，使用%s，但没有弟子可以提升" % 商品名
-			elif "长生丹" in 商品名 or "延寿丹" in 商品名:
-				# 长生丹/延寿丹：随机延长一名弟子的寿元
-				if not 弟子列表.is_empty():
-					var 随机弟子 = 弟子列表[randi() % 弟子列表.size()]
-					if 随机弟子 != null:
-						效果文本 = "，使用%s，%s的寿元得到延长" % [商品名, 随机弟子.姓名]
-						# 成就统计：累计延长寿元次数自增
-						累计延长寿元次数 += 1
-						_复检成就()
-				else:
-					效果文本 = "，使用%s，但没有弟子可以延长寿元" % 商品名
-			elif "道愈丹" in 商品名:
-				# 道愈丹：随机修复一名弟子的道伤
-				if not 弟子列表.is_empty():
-					var 随机弟子 = 弟子列表[randi() % 弟子列表.size()]
-					if 随机弟子 != null:
-						效果文本 = "，使用%s，%s的道伤得到修复" % [商品名, 随机弟子.姓名]
-						# 成就统计：累计修复道伤次数自增
-						累计修复道伤次数 += 1
-						_复检成就()
-				else:
-					效果文本 = "，使用%s，但没有弟子可以修复道伤" % 商品名
-			else:
-				# 其他丹药：添加到仓库
-				var 新丹药 = Item.new()
-				新丹药.名称 = 商品名
-				新丹药.品阶 = "灵品"
-				新丹药.类别 = "丹药"
-				新丹药.描述 = str(商品配置.get("description", ""))
-				宗门库房.append(新丹药)
-				效果文本 = "，获得丹药%s（已放入仓库）" % 商品名
-		"特殊":
-			# 特殊类：根据具体商品添加不同效果
-			if "传承玉简" in 商品名:
-				# 传承玉简：获得大量悟道点和灵气
-				var 悟道奖励: int = 100
-				var 灵气奖励: int = 500
-				悟道点 += 悟道奖励
-				灵气 += 灵气奖励
-				效果文本 = "，参悟%s，悟道点+%d，灵气+%d" % [商品名, 悟道奖励, 灵气奖励]
-			elif 商品名 == "灵兽契约书":
-				# 灵兽契约书：获得一只随机灵兽
-				var 新灵兽 = {
-					"ID": randi(),
-					"名称": "随机灵兽",
-					"等级": 1,
-					"亲密度": 30,
-					"经验": 0
-				}
-				灵兽库存.append(新灵兽)
-				_复检成就()  # 成就检测：灵兽数量相关成就
-				效果文本 = "，使用灵兽契约书，获得一只随机灵兽"
-			elif 商品名 == "上古灵兽蛋":
-				# 上古灵兽蛋：获得一只稀有上古灵兽
-				var 上古灵兽 = {
-					"ID": randi(),
-					"名称": "上古灵兽",
-					"等级": 1,
-					"亲密度": 50,
-					"经验": 0,
-					"品质": "稀有"
-				}
-				灵兽库存.append(上古灵兽)
-				效果文本 = "，孵化上古灵兽蛋，获得一只稀有上古灵兽"
-			else:
-				# 其他特殊物品：添加到仓库
-				var 新特殊 = Item.new()
-				新特殊.名称 = 商品名
-				新特殊.品阶 = "仙品"
-				新特殊.类别 = "特殊"
-				新特殊.描述 = str(商品配置.get("description", ""))
-				宗门库房.append(新特殊)
-				效果文本 = "，获得特殊物品%s（已放入仓库）" % 商品名
-		_:
-			# 其他类型：添加到仓库
-			var 新物品 = Item.new()
-			新物品.名称 = 商品名
-			新物品.品阶 = "灵品"
-			新物品.类别 = 商品类型
-			新物品.描述 = str(商品配置.get("description", ""))
-			宗门库房.append(新物品)
-			效果文本 = "，获得%s（已放入仓库）" % 商品名
-	添加纪事("庶务", "阵营商店购买", "在%s商店购买了%s，花费%d灵石%s" % [阵营, 商品名, 实际价格, 效果文本], 1)
-	return {"成功": true, "商品名": 商品名, "商品类型": 商品类型, "花费": 实际价格, "效果": 效果文本}
+func 获取声望等级(阵营: String):
+	return 阵营声望系统.获取声望等级(阵营)
+func 增加阵营声望(阵营: String, 数量: int):
+	阵营声望系统.增加阵营声望(阵营, 数量)
+func 获取阵营权益(阵营: String):
+	return 阵营声望系统.获取阵营权益(阵营)
+func 获取综合阵营权益():
+	return 阵营声望系统.获取综合阵营权益()
+func 检查玩法解锁(阵营: String, 玩法锁: String):
+	return 阵营声望系统.检查玩法解锁(阵营, 玩法锁)
+func 加权抽取阵营(性格: String = ""):
+	return 阵营声望系统.加权抽取阵营(性格)
+func 获取所有阵营声望列表():
+	return 阵营声望系统.获取所有阵营声望列表()
+func 获取阵营声望总加成():
+	return 阵营声望系统.获取阵营声望总加成()
+func 获取阵营描述(阵营: String):
+	return 阵营声望系统.获取阵营描述(阵营)
+func _加载阵营任务配置():
+	阵营声望系统._加载阵营任务配置()
+func _加载阵营商店配置():
+	阵营声望系统._加载阵营商店配置()
+func 获取阵营任务(阵营: String):
+	return 阵营声望系统.获取阵营任务(阵营)
+func 检查阵营任务解锁(阵营: String, 所需声望等级: String):
+	return 阵营声望系统.检查阵营任务解锁(阵营, 所需声望等级)
+func 更新阵营任务进度(阵营: String, 任务类型: String, 数量: int = 1):
+	阵营声望系统.更新阵营任务进度(阵营, 任务类型, 数量)
+func 领取阵营任务奖励(任务ID: String):
+	return 阵营声望系统.领取阵营任务奖励(任务ID)
+func 获取阵营商店(阵营: String):
+	return 阵营声望系统.获取阵营商店(阵营)
+func 购买阵营商店商品(商品ID: String):
+	return 阵营声望系统.购买阵营商店商品(商品ID)
 
 # ===== 探索事件分支选择系统 =====
 # 探索事件：在历练、秘境探索等场景中触发，玩家选择不同分支获得不同结果
@@ -2369,14 +1597,16 @@ func 选择探索事件分支(事件ID: String, 分支索引: int) -> Dictionary
 		悟道点 += int(奖励["悟道点"])
 	if "灵气" in 奖励:
 		灵气 += int(奖励["灵气"])
+	# P0修复：体力系统已移除，体力奖励转为灵石奖励
 	if "体力" in 奖励:
-		体力 = min(体力 + int(奖励["体力"]), 体力上限())
+		灵石 += int(奖励["体力"]) * 10  # 1点体力=10灵石
 	if "好感度" in 奖励:
 		# 好感度奖励暂时记录
 		pass
 	# 应用惩罚
+	# P0修复：体力系统已移除，体力惩罚转为灵石惩罚
 	if "体力" in 惩罚:
-		体力 = max(0, 体力 + int(惩罚["体力"]))
+		灵石 = max(0, 灵石 + int(惩罚["体力"]) * 10)
 	# 设置冷却（3天）
 	探索事件冷却[事件ID] = 累计游戏日 + 3
 	# 记录历史
@@ -2503,6 +1733,9 @@ func 触发探索事件() -> Dictionary:
 # ============ 1. 山门巡逻系统 ============
 # 山门巡逻：消耗体力，获得灵石、灵气、声望，随机事件
 var 山门巡逻冷却: int = 0  # 冷却结束日
+# 宗主体力：山门巡逻等「宗主亲为」行动的消耗资源。
+#   原缺声明（多处直接使用裸「体力」），导致 GDScript 编译期 Identifier not found，整文件解析失败。
+var 体力: int = 100
 func 山门巡逻() -> Dictionary:
 	if 累计游戏日 < 山门巡逻冷却:
 		return {"成功": false, "原因": "巡逻冷却中（还需%d天）" % (山门巡逻冷却 - 累计游戏日)}
@@ -2567,6 +1800,22 @@ func 游历天下() -> Dictionary:
 # ============ 3. 灵兽喂养系统 ============
 # 灵兽喂养：消耗食材，提升灵兽亲密度和经验
 var 灵兽喂养冷却: Dictionary = {}  # 灵兽ID -> 冷却结束日
+# 灵兽喂养方针（宗主设置全局方针，弟子自动执行，宗主不亲自喂养）
+# 节俭：只喂灵草，消耗最少，成长最慢
+# 普通：灵草+丹药，平衡消耗与成长
+# 精心：灵草+丹药+妖兽内丹，消耗最多，成长最快
+var 灵兽喂养方针: String = "普通"  # 全局喂养方针
+# 灵兽培养方针（§4.12 宗主理政法：宗主定方针 → 门下按月自动培养，绝不逐只点）
+# 节俭：每兽月升 1 级，且宗门留存 3000 灵石不动（防掏空家底）
+# 均衡：每兽月升 1 级，稳步成长
+# 精进：每兽月升 2 级，且只培养战力较高的一半（强者优先，弃弱保强）
+var 灵兽培养方针: String = "均衡"  # 全局培养方针
+func 设置灵兽喂养方针(方针: String) -> Dictionary:
+	if 方针 not in ["节俭", "普通", "精心"]:
+		return {"成功": false, "原因": "未知喂养方针（节俭/普通/精心）"}
+	灵兽喂养方针 = 方针
+	添加纪事("御兽", "喂养方针", "宗主定下灵兽喂养方针为【%s】，门下弟子按此方针对契约灵兽进行喂养。" % 方针, 1)
+	return {"成功": true, "方针": 方针, "消息": "喂养方针已设为【%s】" % 方针}
 func 喂养灵兽(灵兽ID: int) -> Dictionary:
 	var 灵兽 = _获取灵兽(灵兽ID)
 	if 灵兽 == null:
@@ -2588,6 +1837,108 @@ func 喂养灵兽(灵兽ID: int) -> Dictionary:
 	更新阵营任务进度("上古妖兽", "daily", 1)
 	添加纪事("庶务", "灵兽喂养", "喂养灵兽%s，亲密度+10，经验+20" % str(灵兽.get("名称", "")), 1)
 	return {"成功": true, "亲密度": 10, "经验": 20}
+
+# ============ 3.5 灵兽培养升级深度系统（P2优化）============
+## 库房辅助函数：检查物品是否存在
+func _库房有物品(物品名: String, 数量: int = 1) -> bool:
+	var 计数: int = 0
+	for item in 宗门库房:
+		if item != null and str(item.get("名称", "")) == 物品名:
+			计数 += int(item.get("数量", 1))
+			if 计数 >= 数量:
+				return true
+	return false
+
+## 库房辅助函数：移除物品
+func _库房移除物品(物品名: String, 数量: int = 1) -> bool:
+	var 待移除: int = 数量
+	for i in range(宗门库房.size() - 1, -1, -1):
+		if 待移除 <= 0:
+			break
+		var item = 宗门库房[i]
+		if item != null and str(item.get("名称", "")) == 物品名:
+			var 物品数量: int = int(item.get("数量", 1))
+			if 物品数量 <= 待移除:
+				待移除 -= 物品数量
+				宗门库房.remove_at(i)
+			else:
+				item["数量"] = 物品数量 - 待移除
+				待移除 = 0
+	return 待移除 <= 0
+
+## 喂食灵兽（消耗灵草/丹药/妖兽内丹，获得经验和亲密度）
+func 灵兽喂食(灵兽索引: int, 食物类型: String = "灵草") -> Dictionary:
+	if 灵兽索引 < 0 or 灵兽索引 >= 灵兽库存.size():
+		return {"成功": false, "原因": "灵兽不存在"}
+	var 兽: Beast = 灵兽库存[灵兽索引]
+	if 兽 == null:
+		return {"成功": false, "原因": "灵兽不存在"}
+	# 检查资源
+	var 消耗检查: Dictionary = _检查灵兽喂食消耗(食物类型)
+	if not 消耗检查.get("足够", false):
+		return {"成功": false, "原因": 消耗检查.get("原因", "资源不足")}
+	# 扣除资源
+	_扣除灵兽喂食消耗(食物类型)
+	# 执行喂食
+	var 结果: Dictionary = 兽.喂食(食物类型)
+	if 结果.get("成功", false):
+		添加纪事("御兽", "灵兽喂食", "喂食%s，%s" % [兽.种类名, 结果.get("消息", "")], 1)
+		_复检成就()
+	return 结果
+
+## 检查灵兽喂食资源是否足够
+func _检查灵兽喂食消耗(食物类型: String) -> Dictionary:
+	match 食物类型:
+		"灵草":
+			if 灵草 < 5:
+				return {"足够": false, "原因": "灵草不足（需5株）"}
+		"丹药":
+			if not _库房有物品("培元丹", 1):
+				return {"足够": false, "原因": "培元丹不足（需1枚）"}
+		"妖兽内丹":
+			if not _库房有物品("妖兽内丹", 1):
+				return {"足够": false, "原因": "妖兽内丹不足（需1枚）"}
+		_:
+			return {"足够": false, "原因": "未知食物类型"}
+	return {"足够": true}
+
+## 扣除灵兽喂食资源
+func _扣除灵兽喂食消耗(食物类型: String) -> void:
+	match 食物类型:
+		"灵草":
+			灵草 = max(0, 灵草 - 5)
+		"丹药":
+			_库房移除物品("培元丹", 1)
+		"妖兽内丹":
+			_库房移除物品("妖兽内丹", 1)
+
+## 培养灵兽（消耗灵石和灵草，提升基础属性）
+func 灵兽培养(灵兽索引: int) -> Dictionary:
+	if 灵兽索引 < 0 or 灵兽索引 >= 灵兽库存.size():
+		return {"成功": false, "原因": "灵兽不存在"}
+	var 兽: Beast = 灵兽库存[灵兽索引]
+	if 兽 == null:
+		return {"成功": false, "原因": "灵兽不存在"}
+	var 结果: Dictionary = 兽.培养()
+	if not 结果.get("成功", false):
+		return 结果
+	# 检查并扣除资源
+	var 消耗灵石: int = int(结果.get("消耗灵石", 0))
+	var 消耗灵草: int = int(结果.get("消耗灵草", 0))
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗灵石}
+	if 灵草 < 消耗灵草:
+		return {"成功": false, "原因": "灵草不足（需%d株）" % 消耗灵草}
+	灵石 = max(0, 灵石 - 消耗灵石)
+	灵草 = max(0, 灵草 - 消耗灵草)
+	添加纪事("御兽", "灵兽培养", "培养%s，%s" % [兽.种类名, 结果.get("消息", "")], 1)
+	_复检成就()
+	return 结果
+
+## 进化灵兽（达到满级且亲密度≥80可进化，品阶提升）
+# 注：灵兽进化的旧实现原在此处（直接操作 兽.进化() + 扣妖兽内丹）。
+# 灵兽逻辑已整体迁至 灵兽管理系统（beast_management_system.gd），game_state 侧只保留转发，
+# 转发实现见文件后段「灵兽系统委托层」。此处删除旧实现，避免同名函数重复声明（GDScript 编译阻断）。
 
 # ============ 4. 宝物鉴定系统 ============
 # 宝物鉴定：消耗灵石，鉴定未鉴定物品，可能获得稀有属性
@@ -2629,9 +1980,10 @@ func 鉴定宝物(物品索引: int) -> Dictionary:
 
 # ============ 5. 阵营活动系统 ============
 # 阵营活动：定期举办的阵营活动，获得大量声望和奖励
+const 阵营列表: Array = ["正道宗门", "魔道邪宗", "中立散修", "上古妖兽", "远古遗泽"]
 var 阵营活动记录: Dictionary = {}  # 活动ID -> 参与记录
 func 举办阵营活动(阵营: String, 活动类型: String) -> Dictionary:
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
+	var 实际阵营 = 阵营声望系统.旧阵营映射.get(阵营, 阵营)
 	if 实际阵营 not in 阵营列表:
 		return {"成功": false, "原因": "阵营不存在"}
 	# 检查声望等级
@@ -2649,13 +2001,256 @@ func 举办阵营活动(阵营: String, 活动类型: String) -> Dictionary:
 	var 声望奖励: int = 50
 	var 灵石奖励: int = 500
 	var 灵气奖励: int = 200
+	# P2联动：VIP等级影响活动奖励倍率（VIP0=1.0×，VIP12=2.2×）
+	var vip: int = 当前VIP等级()
+	var vip活动加成: float = 1.0 + float(vip) * 0.1  # 每级+10%，VIP12=2.2×
+	声望奖励 = int(float(声望奖励) * vip活动加成)
+	灵石奖励 = int(float(灵石奖励) * vip活动加成)
+	灵气奖励 = int(float(灵气奖励) * vip活动加成)
 	增加阵营声望(实际阵营, 声望奖励)
 	灵石 += 灵石奖励
 	灵气 += 灵气奖励
 	# 阵营任务进度更新：对应阵营的周常活动任务
 	更新阵营任务进度(实际阵营, "weekly", 1)
-	添加纪事("庶务", "阵营活动", "举办%s阵营%s活动，获得%d声望、%d灵石、%d灵气" % [实际阵营, 活动类型, 声望奖励, 灵石奖励, 灵气奖励], 1)
-	return {"成功": true, "声望": 声望奖励, "灵石": 灵石奖励, "灵气": 灵气奖励}
+	添加纪事("庶务", "阵营活动", "举办%s阵营%s活动，获得%d声望、%d灵石、%d灵气（VIP%d加成%.1f倍）" % [实际阵营, 活动类型, 声望奖励, 灵石奖励, 灵气奖励, vip, vip活动加成], 1)
+	return {"成功": true, "声望": 声望奖励, "灵石": 灵石奖励, "灵气": 灵气奖励, "vip加成": vip活动加成}
+
+# 活动系统现实时间重置记录（基于现实日期，非游戏内时间）
+var 活动上次重置日期: String = ""  # 格式：YYYY-MM-DD
+var 活动上次重置周: String = ""    # 格式：YYYY-WW（ISO周）
+# 积少成多体系：活动积分（可累积兑换）+ 连续参与天数（激励不缺席）
+var 活动积分: int = 0              # 活动积分（累积，用于兑换稀有物品）
+var 连续参与天数: int = 0          # 连续参与日常活动的天数
+
+# ── 日常方针（§2.0「一键＝一键执行已定方针」+ §4.12 宗主理政法）──────────
+# 宗主定方针，门下弟子照此打理日常诸事；**决策在宗主，劳作在弟子**。
+# 三档差异落在「同一份日常所得的去向」——真实取舍（三选一，不可全要），
+# 且全部只用已验证接口，不新增资源、不改既有产出函数：
+#   养士 —— 所得尽归门下：在宗弟子各得修炼进益（厚养弟子，铺长线）
+#   充库 —— 所得尽入库房：矿石、灵气各有进项（充实家底，稳）
+#   扬名 —— 所得尽化声名：活动积分额外加成（积少成多，兑换稀有物）
+var 日常方针: String = "充库"
+
+func 设置日常方针(方针: String) -> Dictionary:
+	if 方针 not in ["养士", "充库", "扬名"]:
+		return {"成功": false, "原因": "未知日常方针（养士/充库/扬名）"}
+	日常方针 = 方针
+	添加纪事("宗门", "日常方针", "宗主定下宗门日常方针为【%s】，门下弟子依此打理日常诸事。" % 方针, 1)
+	return {"成功": true, "方针": 方针, "消息": "日常方针已设为【%s】" % 方针}
+
+
+func 获取日常方针列表() -> Array:
+	return ["养士", "充库", "扬名"]
+
+
+func 获取日常方针说明(方针: String) -> String:
+	match 方针:
+		"养士":
+			return "所得尽归门下：在宗弟子各得修炼进益"
+		"充库":
+			return "所得尽入库房：矿石、灵气各有进项"
+		"扬名":
+			return "所得尽化声名：活动积分额外加成"
+		_:
+			return ""
+var 上次参与现实日: String = ""    # 上次参与日常活动的现实日期
+var 历史总参与天数: int = 0        # 历史总参与天数（用于里程碑）
+
+## 获取当前现实日期字符串（YYYY-MM-DD）
+func 获取现实日期() -> String:
+	var dt = Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(dt["year"]), int(dt["month"]), int(dt["day"])]
+
+## 获取当前现实周字符串（YYYY-WW，简化版：用month和day估算）
+func 获取现实周() -> String:
+	var dt = Time.get_datetime_dict_from_system()
+	# 简化：用 (month-1)*4 + day/7 估算周数，足够用于周常重置判断
+	var 估算周: int = (int(dt["month"]) - 1) * 4 + int(int(dt["day"]) / 7) + 1
+	return "%04d-W%02d" % [int(dt["year"]), 估算周]
+
+## 检查并执行日常活动重置（现实每日凌晨4点后重置）
+func 检查日常活动重置() -> void:
+	var 今日: String = 获取现实日期()
+	if 活动上次重置日期 != 今日:
+		活动上次重置日期 = 今日
+		# 日供状态由 日供_最后领取日 自动判断，无需手动重置
+
+## 检查并执行周常活动重置（现实每周一重置）
+func 检查周常活动重置() -> void:
+	var 本周: String = 获取现实周()
+	if 活动上次重置周 != 本周:
+		活动上次重置周 = 本周
+		# 周常活动重置标记（具体活动在参与时检查）
+
+## 获取活动倒计时（距离下次重置的秒数）
+func 获取活动倒计时(活动类型: String) -> Dictionary:
+	var dt = Time.get_datetime_dict_from_system()
+	var 当前小时: int = int(dt["hour"])
+	var 当前分钟: int = int(dt["minute"])
+	var 当前秒: int = int(dt["second"])
+	if 活动类型 == "日常":
+		# 距离次日凌晨4点的秒数
+		var 已过秒: int = 当前小时 * 3600 + 当前分钟 * 60 + 当前秒
+		var 重置点秒: int = 4 * 3600  # 凌晨4点
+		var 剩余秒: int
+		if 已过秒 >= 重置点秒:
+			剩余秒 = 24 * 3600 - 已过秒 + 重置点秒
+		else:
+			剩余秒 = 重置点秒 - 已过秒
+		return {"类型": "日常", "剩余秒": 剩余秒, "描述": "%d小时%d分后重置" % [int(剩余秒/3600), int((剩余秒%3600)/60)]}
+	elif 活动类型 == "周常":
+		# 距离下周一凌晨4点的秒数（简化：显示7天倒计时）
+		var 星期几: int = int(dt["weekday"])  # 1=周一, 7=周日
+		var 已过秒: int = 当前小时 * 3600 + 当前分钟 * 60 + 当前秒
+		var 剩余天: int = (8 - 星期几) % 7
+		if 剩余天 == 0 and 已过秒 >= 4 * 3600:
+			剩余天 = 7
+		var 剩余秒: int = 剩余天 * 24 * 3600 + (4 * 3600 - 已过秒 if 已过秒 < 4*3600 else 24*3600 - 已过秒 + 4*3600)
+		return {"类型": "周常", "剩余秒": 剩余秒, "描述": "%d天%d小时后重置" % [int(剩余秒/86400), int((剩余秒%86400)/3600)]}
+	return {"类型": 活动类型, "剩余秒": 0, "描述": ""}
+
+## 获取连续参与加成倍率（积少成多核心：连续越久倍率越高）
+func 获取连续参与加成() -> float:
+	if 连续参与天数 >= 365:
+		return 3.0  # 连续一年，3倍奖励
+	elif 连续参与天数 >= 100:
+		return 2.5  # 连续百日，2.5倍
+	elif 连续参与天数 >= 30:
+		return 2.0  # 连续一月，2倍
+	elif 连续参与天数 >= 7:
+		return 1.5  # 连续一周，1.5倍
+	elif 连续参与天数 >= 3:
+		return 1.2  # 连续三天，1.2倍
+	else:
+		return 1.0  # 基础倍率
+
+## 记录日常活动参与（更新连续天数和积分）
+func 记录日常活动参与() -> void:
+	var 今日: String = 获取现实日期()
+	if 上次参与现实日 == "":
+		连续参与天数 = 1
+	elif 上次参与现实日 != 今日:
+		# 检查是否连续（昨天参与过）
+		var 昨日: String = _获取昨日日期()
+		if 上次参与现实日 == 昨日:
+			连续参与天数 += 1
+		else:
+			连续参与天数 = 1  # 断签，重新计算
+	上次参与现实日 = 今日
+	历史总参与天数 += 1
+	# 每次参与获得基础积分10点，连续加成
+	var 基础积分: int = 10
+	var 加成: float = 获取连续参与加成()
+	var 获得积分: int = int(基础积分 * 加成)
+	活动积分 += 获得积分
+	# 检查里程碑奖励
+	_检查参与里程碑()
+
+## 获取昨日日期字符串
+func _获取昨日日期() -> String:
+	var dt = Time.get_datetime_dict_from_system()
+	var 年: int = int(dt["year"])
+	var 月: int = int(dt["month"])
+	var 日: int = int(dt["day"])
+	日 -= 1
+	if 日 <= 0:
+		月 -= 1
+		if 月 <= 0:
+			月 = 12
+			年 -= 1
+		# 简化：上个月按30天算
+		日 = 30
+	return "%04d-%02d-%02d" % [年, 月, 日]
+
+## 检查参与里程碑奖励（积少成多的核心激励）
+func _检查参与里程碑() -> void:
+	match 连续参与天数:
+		7:
+			_加推演条目("【宗门】连续七日不辍，道心日坚，赐下聚气散三枚，活动积分+50。", ET_SECT, PRIO_NORMAL, {})
+			for i in range(3):
+				宗门库房.append(_造低阶物品("dan", "凡品"))
+			活动积分 += 50
+		30:
+			_加推演条目("【宗门】连续一月苦修不辍，宗门感其诚，赐下筑基丹五枚、功法残卷一卷，活动积分+200。", ET_SECT, PRIO_HIGH, {})
+			for i in range(5):
+				宗门库房.append(_造低阶物品("dan", "灵品"))
+			宗门库房.append(_造低阶物品("gongfa", "凡阶"))
+			活动积分 += 200
+		100:
+			_加推演条目("【宗门】连续百日苦修，道基稳固，宗门赐下宝品丹药三枚、灵品功法残卷两卷，活动积分+500。", ET_SECT, PRIO_HIGH, {})
+			for i in range(3):
+				宗门库房.append(_造低阶物品("dan", "宝品"))
+			for i in range(2):
+				宗门库房.append(_造低阶物品("gongfa", "灵阶"))
+			活动积分 += 500
+		365:
+			_加推演条目("【宗门】连续一年不辍，道心坚定如铁，宗门赐下王品丹药一枚、宝品功法残卷三卷、上古法宝一件，活动积分+2000！", ET_SECT, PRIO_HIGH, {})
+			宗门库房.append(_造低阶物品("dan", "王品"))
+			for i in range(3):
+				宗门库房.append(_造低阶物品("gongfa", "宝阶"))
+			宗门库房.append(_造低阶物品("fabao", "王品"))
+			活动积分 += 2000
+
+## 活动积分兑换（积少成多的出口：累积积分兑换稀有物品）
+func 活动积分兑换(物品类型: String, 品阶: String) -> Dictionary:
+	var 兑换表: Dictionary = {
+		"dan_凡品": 50,
+		"dan_灵品": 150,
+		"dan_宝品": 400,
+		"dan_王品": 1000,
+		"gongfa_凡阶": 100,
+		"gongfa_灵阶": 300,
+		"gongfa_宝阶": 800,
+		"fabao_凡品": 80,
+		"fabao_灵品": 250,
+		"fabao_宝品": 600,
+		"灵草": 20,
+		"矿石": 20,
+		"悟道点": 30,
+		"灵玉": 100,  # 100积分兑换1灵玉（积少成多的出口）
+	}
+	var 键: String = "%s_%s" % [物品类型, 品阶]
+	if 物品类型 == "灵草" or 物品类型 == "矿石" or 物品类型 == "悟道点":
+		键 = 物品类型
+	var 所需积分: int = int(兑换表.get(键, 0))
+	if 所需积分 <= 0:
+		return {"成功": false, "原因": "无此兑换项"}
+	if 活动积分 < 所需积分:
+		return {"成功": false, "原因": "活动积分不足（需%d，当前%d）" % [所需积分, 活动积分]}
+	活动积分 -= 所需积分
+	# 发放物品
+	if 物品类型 == "灵草":
+		灵草 += 10
+		return {"成功": true, "消息": "兑换成功，灵草+10"}
+	elif 物品类型 == "矿石":
+		矿石 += 10
+		return {"成功": true, "消息": "兑换成功，矿石+10"}
+	elif 物品类型 == "悟道点":
+		悟道点 += 20
+		return {"成功": true, "消息": "兑换成功，悟道点+20"}
+	elif 物品类型 == "灵玉":
+		仙玉_绑定 += 1
+		return {"成功": true, "消息": "兑换成功，灵玉+1"}
+	else:
+		var 物: Item = _造低阶物品(物品类型, 品阶)
+		宗门库房.append(物)
+		return {"成功": true, "消息": "兑换成功，获得%s" % 物.名称}
+
+## 获取活动积分兑换列表
+func 获取积分兑换列表() -> Array:
+	return [
+		{"类型": "灵玉", "品阶": "", "名称": "灵玉×1", "积分": 100},
+		{"类型": "dan", "品阶": "凡品", "名称": "聚气散", "积分": 50},
+		{"类型": "dan", "品阶": "灵品", "名称": "筑基丹", "积分": 150},
+		{"类型": "dan", "品阶": "宝品", "名称": "金丹大成丹", "积分": 400},
+		{"类型": "gongfa", "品阶": "凡阶", "名称": "功法残卷", "积分": 100},
+		{"类型": "gongfa", "品阶": "灵阶", "名称": "灵品功法残卷", "积分": 300},
+		{"类型": "fabao", "品阶": "凡品", "名称": "凡品法宝", "积分": 80},
+		{"类型": "fabao", "品阶": "灵品", "名称": "灵品法宝", "积分": 250},
+		{"类型": "灵草", "品阶": "", "名称": "灵草×10", "积分": 20},
+		{"类型": "矿石", "品阶": "", "名称": "矿石×10", "积分": 20},
+		{"类型": "悟道点", "品阶": "", "名称": "悟道点×20", "积分": 30},
+	]
 
 # 获取所有活动列表（修真界命名）
 func 获取所有活动列表() -> Array:
@@ -2708,6 +2303,47 @@ func 获取活动统计() -> Dictionary:
 		"周常活动数": 周常活动数,
 	}
 
+# ===== P2联动：活动期间产出加成 =====
+# 活动期间各系统产出加成（根据活动类型）
+func 获取活动产出加成() -> Dictionary:
+	var 加成: Dictionary = {
+		"修炼加成": 0.0,
+		"炼丹加成": 0.0,
+		"炼器加成": 0.0,
+		"产出加成": 0.0,
+		"声望加成": 0.0,
+	}
+	# 检查当前是否有活动进行中（简化：根据累计游戏日判断）
+	var 活动日: int = int(累计游戏日) % 30  # 每30天一个活动周期
+	# 活动周期：1-5日修炼加成，6-10日炼丹加成，11-15日炼器加成，16-20日产出加成，21-25日声望加成
+	if 活动日 >= 1 and 活动日 <= 5:
+		加成["修炼加成"] = 0.10  # 修炼+10%
+	elif 活动日 >= 6 and 活动日 <= 10:
+		加成["炼丹加成"] = 0.15  # 炼丹+15%
+	elif 活动日 >= 11 and 活动日 <= 15:
+		加成["炼器加成"] = 0.15  # 炼器+15%
+	elif 活动日 >= 16 and 活动日 <= 20:
+		加成["产出加成"] = 0.10  # 产出+10%
+	elif 活动日 >= 21 and 活动日 <= 25:
+		加成["声望加成"] = 0.20  # 声望+20%
+	return 加成
+
+# 获取当前活动名称（修真化描述）
+func 获取当前活动名称() -> String:
+	var 活动日: int = int(累计游戏日) % 30
+	if 活动日 >= 1 and 活动日 <= 5:
+		return "讲道大会（全宗修炼+10%）"
+	elif 活动日 >= 6 and 活动日 <= 10:
+		return "丹道盛会（炼丹+15%）"
+	elif 活动日 >= 11 and 活动日 <= 15:
+		return "器道争锋（炼器+15%）"
+	elif 活动日 >= 16 and 活动日 <= 20:
+		return "丰收大典（产出+10%）"
+	elif 活动日 >= 21 and 活动日 <= 25:
+		return "扬名四海（声望+20%）"
+	else:
+		return "平日（无加成）"
+
 # 按类型筛选活动
 func 按类型筛选活动(活动类型: String) -> Array:
 	var 筛选列表 = []
@@ -2717,19 +2353,25 @@ func 按类型筛选活动(活动类型: String) -> Array:
 			筛选列表.append(活动)
 	return 筛选列表
 
-# 获取活动冷却状态
+# 获取活动冷却状态（基于现实时间判断）
 func 获取活动冷却状态(活动ID: String) -> Dictionary:
 	var 活动列表 = 获取所有活动列表()
 	for 活动 in 活动列表:
 		if 活动.get("活动ID", "") == 活动ID:
-			var 冷却天数 = int(活动.get("冷却天数", 1))
-			# 简化：默认都可参与
+			var 类型: String = str(活动.get("类型", ""))
+			var 可参与: bool = true
+			var 倒计时: Dictionary = 获取活动倒计时(类型)
+			# 日常活动：检查今日是否已参与（日供检查已领状态）
+			if 类型 == "日常" and 活动ID == "daily_checkin":
+				可参与 = 日供_今日可领()
+			# 周常活动：检查本周是否已参与（简化：都可参与，具体活动自己判断）
 			return {
 				"活动ID": 活动ID,
 				"名称": 活动.get("名称", ""),
-				"冷却天数": 冷却天数,
-				"剩余冷却天数": 0,
-				"可参与": true,
+				"类型": 类型,
+				"可参与": 可参与,
+				"倒计时": 倒计时.get("描述", ""),
+				"剩余秒": 倒计时.get("剩余秒", 0),
 			}
 	return {"成功": false, "原因": "活动不存在"}
 
@@ -2773,19 +2415,77 @@ func 参与活动(活动ID: String) -> Dictionary:
 			# 秘境试炼（简化：显示提示）
 			return {"成功": true, "活动": "秘境试炼", "消息": "请前往历练页面参与"}
 		"alchemy_session":
-			# 丹道大会（简化：显示提示）
-			return {"成功": true, "活动": "丹道大会", "消息": "请前往丹方页面参与"}
+			# 丹道大会：宗门炼丹技艺比拼，根据丹殿等级给奖励
+			var 丹殿等级: int = 1
+			if 司职列表.has("dantang"):
+				丹殿等级 = int(司职列表["dantang"].get("等级", 1))
+			var 丹会奖励: Dictionary = _丹道大会奖励(丹殿等级)
+			return {"成功": true, "活动": "丹道大会", "消息": 丹会奖励.get("消息", ""), "奖励": 丹会奖励}
 		"artifact_forge":
-			# 器道争锋（简化：显示提示）
-			return {"成功": true, "活动": "器道争锋", "消息": "请前往装备图纸页面参与"}
+			# 器道争锋：宗门炼器技艺比拼，根据器殿等级给奖励
+			var 器殿等级: int = 1
+			if 司职列表.has("qitang"):
+				器殿等级 = int(司职列表["qitang"].get("等级", 1))
+			var 器会奖励: Dictionary = _器道争锋奖励(器殿等级)
+			return {"成功": true, "活动": "器道争锋", "消息": 器会奖励.get("消息", ""), "奖励": 器会奖励}
 		"zongmen_battle":
 			# 宗门大战（简化：显示提示）
 			return {"成功": true, "活动": "宗门大战", "消息": "请前往宗门战页面参与"}
+		"disciple_cultivate":
+			# 传道授业：长老/宗主公开讲道，弟子获得悟道点和道心
+			var 传道奖励: Dictionary = _传道授业奖励()
+			return {"成功": true, "活动": "传道授业", "消息": 传道奖励.get("消息", ""), "奖励": 传道奖励}
 		"faction_reputation":
 			# 声望任务（简化：显示提示）
 			return {"成功": true, "活动": "声望任务", "消息": "请前往阵营声望页面参与"}
 		_:
 			return {"成功": false, "原因": "未知活动：%s" % 活动ID}
+
+## 丹道大会奖励（根据丹殿等级缩放）
+func _丹道大会奖励(丹殿等级: int) -> Dictionary:
+	var 悟道奖励: int = 20 + 丹殿等级 * 10
+	var 丹药数: int = 1 + int(丹殿等级 / 2)
+	var 丹药品阶: String = "凡品"
+	if 丹殿等级 >= 3:
+		丹药品阶 = "灵品"
+	if 丹殿等级 >= 5:
+		丹药品阶 = "宝品"
+	悟道点 += 悟道奖励
+	for i in range(丹药数):
+		宗门库房.append(_造低阶物品("dan", 丹药品阶))
+	_加推演条目("【宗门】丹道大会落幕，宗门弟子切磋丹道，悟道+%d，赐%s丹药%d枚。" % [悟道奖励, 丹药品阶, 丹药数], ET_SECT, PRIO_NORMAL, {})
+	return {"消息": "丹道大会圆满，悟道+%d，获%s丹药%d枚" % [悟道奖励, 丹药品阶, 丹药数], "悟道": 悟道奖励, "丹药": 丹药数}
+
+## 器道争锋奖励（根据器殿等级缩放）
+func _器道争锋奖励(器殿等级: int) -> Dictionary:
+	var 悟道奖励: int = 20 + 器殿等级 * 10
+	var 矿石奖励: int = 10 + 器殿等级 * 5
+	var 法宝品阶: String = "凡品"
+	if 器殿等级 >= 3:
+		法宝品阶 = "灵品"
+	if 器殿等级 >= 5:
+		法宝品阶 = "宝品"
+	悟道点 += 悟道奖励
+	矿石 += 矿石奖励
+	宗门库房.append(_造低阶物品("fabao", 法宝品阶))
+	_加推演条目("【宗门】器道争锋落幕，宗门弟子切磋器道，悟道+%d，矿石+%d，赐%s法宝一件。" % [悟道奖励, 矿石奖励, 法宝品阶], ET_SECT, PRIO_NORMAL, {})
+	return {"消息": "器道争锋圆满，悟道+%d，矿石+%d，获%s法宝一件" % [悟道奖励, 矿石奖励, 法宝品阶], "悟道": 悟道奖励, "矿石": 矿石奖励}
+
+## 传道授业奖励（宗主/长老讲道，弟子集体受益）
+func _传道授业奖励() -> Dictionary:
+	var 受益弟子数: int = 0
+	var 总悟道: int = 0
+	for d in 弟子列表:
+		if d != null and str(d.状态) == "在宗" and int(d.受伤剩余) <= 0:
+			# 弟子听道所得落在「修炼进度」（Disciple 无「悟道点」字段——
+			# 给对象写不存在的属性会 SCRIPT ERROR，此处修正为真实字段直取）
+			d.修炼进度 = min(1.0, float(d.修炼进度) + 0.05)
+			总悟道 += randi_range(3, 10)
+			受益弟子数 += 1
+	# 宗主也受益
+	悟道点 += 10
+	_加推演条目("【宗门】宗主登坛讲道，%d名在宗弟子聆听教诲，各有所悟，宗主悟道+10。" % 受益弟子数, ET_SECT, PRIO_NORMAL, {})
+	return {"消息": "传道授业圆满，%d名弟子受益，各有所悟，宗主悟道+10" % 受益弟子数, "受益弟子": 受益弟子数, "总悟道": 总悟道}
 
 # 一键参与所有可参与活动
 func 一键参与所有可参与活动() -> Dictionary:
@@ -2810,28 +2510,70 @@ func 一键参与所有可参与活动() -> Dictionary:
 			结果列表.append(结果)
 	return {"成功": 参与数量 > 0, "参与数量": 参与数量, "结果列表": 结果列表, "消息": "一键参与完成，参与%d个活动" % 参与数量}
 
-# 一键参与所有日常活动
+# 打理宗门日常诸事（§2.0：这里是「一键执行**已定方针**」，不是替宗主做决策。
+# 宗主先定日常方针（养士/充库/扬名），门下弟子照此打理，所得按方针分流——
+# 消掉的是弟子的劳作，不是宗主的决策。修真味：晨起打理宗门诸事）
 func 一键参与日常活动() -> Dictionary:
-	var 参与数量 = 0
-	var 结果列表 = []
-	# 每日签到
+	# 先检查重置
+	检查日常活动重置()
+	var 参与数量: int = 0
+	var 结果列表: Array = []
+	var 汇总文案: String = ""
+	# 每日朝贡
 	if 日供_今日可领():
 		var 结果 = 领取日供()
-		结果列表.append({"活动": "每日签到", "结果": 结果})
+		结果列表.append({"活动": "日供", "结果": 结果})
 		if 结果.get("ok", false):
 			参与数量 += 1
-	# 探索事件
+			汇总文案 += "已领日供，"
+	else:
+		汇总文案 += "日供已领，"
+	# 云游探索
 	var 探索结果 = 一键探索()
-	结果列表.append({"活动": "探索事件", "结果": 探索结果})
+	结果列表.append({"活动": "云游", "结果": 探索结果})
 	if 探索结果.get("成功", false):
 		参与数量 += 1
-	return {"成功": 参与数量 > 0, "参与数量": 参与数量, "结果列表": 结果列表, "消息": "一键参与完成，参与%d个活动" % 参与数量}
+		汇总文案 += "云游已毕。"
+	else:
+		汇总文案 += "云游无获。"
+	# 按方针分流：同一份日常，去向由宗主决定（真实取舍）
+	var 去向文案: String = ""
+	if 参与数量 > 0:
+		去向文案 = _日常方针分流()
+		汇总文案 += 去向文案
+	_加推演条目("【宗门】晨起打理宗门诸事：%s" % 汇总文案, ET_SECT, PRIO_TRIVIAL, {})
+	# 记录参与，更新连续天数和活动积分（积少成多）
+	if 参与数量 > 0:
+		记录日常活动参与()
+	return {"成功": 参与数量 > 0, "参与数量": 参与数量, "结果列表": 结果列表, "方针": 日常方针, "消息": "晨起打理宗门诸事：%s" % 汇总文案}
+
+
+## 日常所得按方针分流（三档真实取舍：养士 / 充库 / 扬名）。
+## 只用已验证接口：弟子属性 `修炼进度`（float 0–1）、宗门数值 `矿石/灵气/活动积分`。
+func _日常方针分流() -> String:
+	match 日常方针:
+		"养士":
+			var 受益: int = 0
+			for d in 弟子列表:
+				if d == null or str(d.状态) != "在宗" or int(d.受伤剩余) > 0:
+					continue
+				d.修炼进度 = min(1.0, float(d.修炼进度) + 0.03)
+				受益 += 1
+			return "所得尽归门下，%d 名弟子各得修炼进益（修炼进度+3%%）。" % 受益
+		"扬名":
+			var 额外: int = int(20.0 * 获取连续参与加成())
+			活动积分 += 额外
+			return "所得尽化声名，活动积分+%d。" % 额外
+		_:
+			矿石 += 5
+			灵气 += 5
+			return "所得尽入库房，矿石+5、灵气+5。"
 
 # ============ 6. 阵营试炼系统 ============
 # 阵营试炼：高阶挑战，获得稀有奖励
 var 阵营试炼记录: Dictionary = {}  # 试炼ID -> 通关记录
 func 挑战阵营试炼(阵营: String, 试炼难度: String = "普通") -> Dictionary:
-	var 实际阵营 = 旧阵营映射.get(阵营, 阵营)
+	var 实际阵营 = 阵营声望系统.旧阵营映射.get(阵营, 阵营)
 	if 实际阵营 not in 阵营列表:
 		return {"成功": false, "原因": "阵营不存在"}
 	# 检查声望等级
@@ -2946,13 +2688,13 @@ func 参悟传承(传承ID: String = "远古传承") -> Dictionary:
 
 # 辅助函数：获取灵兽
 func _获取灵兽(灵兽ID: int):
-	for 兽 in 灵兽库存:
+	for 兽 in 灵兽管理系统.灵兽库存:
 		if 兽 != null and "ID" in 兽 and 兽["ID"] == 灵兽ID:
 			return 兽
 	return null
 
 # ===== 特权卡系统=====
-# 月卡（清修卡）：30天，每日仙玉+离线+20%+历练+1+一键收取
+# 月卡（清修卡）：30天，每日灵玉+离线+20%+历练+1+一键收取
 # 季卡（悟道卡）：90天，月卡权益+炼制加：0%+商队+15%+专属头像：
 # 永久卡（道统卡）：永久，季卡权益+永久皮肤+终身日供翻：离线上限24小时
 var 月卡到期日: int = -1  # 累计游戏日，-1=未激活
@@ -2978,6 +2720,7 @@ func 激活月卡(天数: int = 30) -> void:
 	else:
 		月卡到期日+= 天数
 	添加纪事("大事件", "激活清修卡", "激活月卡，有效%d天" % 天数, 2)
+	设置离线倍率(max(离线结算倍率, 1.2))   # 月卡权益：离线+20%
 # 激活季卡
 func 激活季卡(天数: int = 90) -> void:
 
@@ -2986,11 +2729,13 @@ func 激活季卡(天数: int = 90) -> void:
 	else:
 		季卡到期日+= 天数
 	添加纪事("大事件", "激活悟道卡", "激活季卡，有效%d天" % 天数, 2)
+	设置离线倍率(max(离线结算倍率, 1.2))   # 季卡含月卡权益
 # 激活永久卡
 func 激活永久卡() -> void:
 
 	永久卡激活= true
 	添加纪事("大事件", "激活道统卡", "激活永久卡，终身享受所有权益", 3)
+	设置离线倍率(max(离线结算倍率, 2.0))   # 永久卡：终身日供翻倍
 # 获取所有卡类型列表
 func 获取所有卡类型列表() -> Array:
 	return [
@@ -2999,7 +2744,7 @@ func 获取所有卡类型列表() -> Array:
 			"名称": "清修卡",
 			"价格": 30,
 			"天数": 30,
-			"描述": "每日仙玉+离线+20%+历练+1+一键收取",
+			"描述": "每日灵玉+离线+20%+历练+1+一键收取",
 			"权益": ["离线收益加成20%", "额外历练次数+1", "一键收取", "每日仙玉奖励"],
 			"是否有效": 月卡有效(),
 			"到期日": 月卡到期日,
@@ -3066,169 +2811,267 @@ func 领取每日卡奖励() -> Dictionary:
 	灵石 += 奖励.get("灵石", 0)
 	灵气 += 奖励.get("灵气", 0)
 	card_daily_reward_day = 累计游戏日
-	添加纪事("庶务", "每日卡奖励", "领取每日卡奖励：仙玉+%d，灵石+%d，灵气+%d" % [奖励.get("仙玉_绑定", 0), 奖励.get("灵石", 0), 奖励.get("灵气", 0)], 1)
+	添加纪事("庶务", "每日卡奖励", "领取每日卡奖励：灵玉+%d，灵石+%d，灵气+%d" % [奖励.get("仙玉_绑定", 0), 奖励.get("灵石", 0), 奖励.get("灵气", 0)], 1)
 	return {"成功": true, "奖励": 奖励, "消息": "领取每日卡奖励成功"}
 
 var card_daily_reward_day: int = -1  # 每日卡奖励最后领取日
 
-# 获取特权加成
+# 获取特权加成（统一使用新VIP系统）
 func 获取特权加成() -> Dictionary:
-
+	# 离线上限使用新的_计算离线上限()函数
+	var 离线上限: int = _计算离线上限()
+	# 炼制加成：季卡30% + VIP5 15%
+	var 炼制加成: float = 1.0
+	if 季卡有效():
+		炼制加成 += 0.3
+	if is_vip_unlock("炼制加成15"):
+		炼制加成 += 0.15
+	# 商队加成：季卡15% + VIP6 10%
+	var 商队加成: float = 1.0
+	if 季卡有效():
+		商队加成 += 0.15
+	if is_vip_unlock("商队加成10"):
+		商队加成 += 0.10
 	return {
 		"离线收益加成": 1.2 if 月卡有效() else 1.0,
-		"炼制加成": 1.3 if 季卡有效() else 1.0,
-		"商队收益加成": 1.15 if 季卡有效() else 1.0,
+		"炼制加成": 炼制加成,
+		"商队收益加成": 商队加成,
 		"日供翻倍": 永久卡有效(),
-		"离线上限小时": 24 if 永久卡有效() else 8,
+		"离线上限小时": 离线上限,
 		"额外历练次数": 1 if 月卡有效() else 0,
-		"一键收取": 月卡有效(),
+		"一键收取": is_vip_unlock("一键收取"),
+		"机缘加成": _计算机缘加成(),
 	}
-# ===== VIP系统接口预留（第一阶段：仅接口预留，[PLACEHOLDER]待实测）=====
-# 设计依据：GDD §12 VIP与加速系：
-# 第一阶段：game_state.gd加vip_level/vip_exp字段+is_vip_unlock()权限接口+战斗speed_multiplier参数占位
-# 第二阶段：加速战斗全：VIP基础框架（便利类权益，不升5%/10%数值红线）
-# 第三阶段：数据驱动补高阶权益+TapTap内购SDK
-var vip_level: int = 0  # VIP等级：=非VIP：-10=VIP等级：
-var vip_exp: int = 0    # VIP经验值（累计充：消费获得：
-const VIP_MAX_LEVEL: int = 10  # VIP最高等：
-const VIP_EXP_THRESHOLDS: Array = [0, 100, 300, 600, 1000, 2000, 3500, 5000, 8000, 12000]  # 各等级所需经验
-# VIP权限接口（第一阶段预留，返回bool判断是否解锁特定功能：
-func is_vip_unlock(feature: String) -> bool:
+# ===== VIP系统（统一使用累充额派生的当前VIP等级()，VIP0-12）=====
+# 设计依据：GDD §12 VIP与加速系统
+# 四档权益梯度：VIP1-3基础便利 / VIP4-6资源加成 / VIP7-9深度便利 / VIP10-12高阶专属
+# 所有权益均为便利类，不破坏游戏平衡（不升5%/10%数值红线）
 
+# VIP权限接口（统一使用当前VIP等级()，基于累充额派生）
+func is_vip_unlock(feature: String) -> bool:
+	var vip: int = 当前VIP等级()
 	match feature:
+		# ===== VIP1-3：基础便利 =====
 		"背包扩容":
-			return vip_level >= 1
-		"招募额外次数":
-			return vip_level >= 2
-		"每日免费礼包":
-			return vip_level >= 3
+			return vip >= 1
+		"一键收取":
+			return vip >= 1 or 月卡有效()
 		"战斗2倍率":
-			return vip_level >= 1 or 月卡有效()  # 月卡也解：倍率
-		"战斗3倍率":
-			return vip_level >= 5
+			return vip >= 1 or 月卡有效()
+		"招募额外次数":
+			return vip >= 2
+		"每日免费礼包":
+			return vip >= 3
+		# ===== VIP4-6：资源加成 =====
 		"跳过战斗":
-			return vip_level >= 3
+			return vip >= 3
 		"专属头像框":
-			return vip_level >= 4 or 季卡有效()
+			return vip >= 4 or 季卡有效()
+		"离线12小时":
+			return vip >= 4
+		"炼制加成15":
+			return vip >= 5 or 季卡有效()
+		"商队加成10":
+			return vip >= 6
+		# ===== VIP7-9：深度便利 =====
+		"战斗3倍率":
+			return vip >= 7
 		"专属皮肤":
-			return vip_level >= 6 or 永久卡有效()
+			return vip >= 7 or 永久卡有效()
 		"离线24小时":
-			return vip_level >= 5 or 永久卡有效()
+			return vip >= 7 or 永久卡有效()
+		"自动熔炼":
+			return vip >= 8
+		"机缘加成20":
+			return vip >= 9
+		# ===== VIP10-12：高阶专属 =====
+		"离线48小时":
+			return vip >= 10
+		"专属宗门外观":
+			return vip >= 10
+		"机缘加成50":
+			return vip >= 11
+		"专属客服通道":
+			return vip >= 12
+		"全功能解锁":
+			return vip >= 12
 		_:
 			return false
-# 获取VIP等级（根据经验自动计算）
-func get_vip_level() -> int:
 
-	for i in range(VIP_EXP_THRESHOLDS.size()):
-		if vip_exp < VIP_EXP_THRESHOLDS[i]:
-			return max(0, i - 1)
-	return VIP_MAX_LEVEL
-# 增加VIP经验（充：消费时调用）
-func add_vip_exp(exp: int) -> void:
-
-	vip_exp += exp
-	var new_level: int = get_vip_level()
-	if new_level > vip_level:
-		vip_level = new_level
-		添加纪事("大事件", "VIP升级", "VIP等级提升%d天" % vip_level, 2)
-# 战斗倍速参数占位（第一阶段仅返回倍率，实际战斗逻辑第二阶段接入：
+# 战斗倍速参数（修真化：时光加速）
 func get_battle_speed_multiplier() -> float:
-
 	if is_vip_unlock("战斗3倍率"):
 		return 3.0
 	elif is_vip_unlock("战斗2倍率"):
 		return 2.0
 	return 1.0
-# 获取VIP权益汇总（供UI展示：
-func get_vip_benefits() -> Dictionary:
 
+# 获取VIP权益汇总（供UI展示）
+func get_vip_benefits() -> Dictionary:
+	var vip: int = 当前VIP等级()
 	return {
-		"vip_level": vip_level,
-		"vip_exp": vip_exp,
-		"next_level_exp": VIP_EXP_THRESHOLDS[min(vip_level + 1, VIP_MAX_LEVEL)] if vip_level < VIP_MAX_LEVEL else -1,
-		"battle_speed": get_battle_speed_multiplier(),
-		"unlocked_features": [
-			"背包扩容" if is_vip_unlock("背包扩容") else "",
-			"招募额外次数" if is_vip_unlock("招募额外次数") else "",
-			"每日免费礼包" if is_vip_unlock("每日免费礼包") else "",
-			"战斗2倍率" if is_vip_unlock("战斗2倍率") else "",
-			"战斗3倍率" if is_vip_unlock("战斗3倍率") else "",
-			"跳过战斗" if is_vip_unlock("跳过战斗") else "",
-		].filter(func(x): return x != ""),
+		"当前等级": vip,
+		"下一等级": min(vip + 1, 12),
+		"已解锁权益": _获取已解锁权益列表(vip),
+		"下一等级权益": _获取等级权益列表(min(vip + 1, 12)),
+		"离线上限小时": _计算离线上限(),
+		"机缘加成": _计算机缘加成(),
 	}
-# 获取所有VIP等级列表
+
+# 获取已解锁权益列表
+func _获取已解锁权益列表(vip: int) -> Array:
+	var 列表: Array = []
+	var 所有权益: Dictionary = {
+		1: ["背包扩容", "一键收取", "战斗2倍速"],
+		2: ["招募额外次数"],
+		3: ["每日免费礼包", "跳过战斗"],
+		4: ["专属头像框", "离线12小时"],
+		5: ["炼制加成15%"],
+		6: ["商队加成10%"],
+		7: ["战斗3倍速", "专属皮肤", "离线24小时"],
+		8: ["自动熔炼"],
+		9: ["机缘加成20%"],
+		10: ["离线48小时", "专属宗门外观"],
+		11: ["机缘加成50%"],
+		12: ["专属客服通道", "全功能解锁"],
+	}
+	for lv in range(1, vip + 1):
+		if 所有权益.has(lv):
+			列表.append_array(所有权益[lv])
+	return 列表
+
+# 获取指定等级权益列表
+func _获取等级权益列表(等级: int) -> Array:
+	var 所有权益: Dictionary = {
+		1: ["背包扩容", "一键收取", "战斗2倍速"],
+		2: ["招募额外次数"],
+		3: ["每日免费礼包", "跳过战斗"],
+		4: ["专属头像框", "离线12小时"],
+		5: ["炼制加成15%"],
+		6: ["商队加成10%"],
+		7: ["战斗3倍速", "专属皮肤", "离线24小时"],
+		8: ["自动熔炼"],
+		9: ["机缘加成20%"],
+		10: ["离线48小时", "专属宗门外观"],
+		11: ["机缘加成50%"],
+		12: ["专属客服通道", "全功能解锁"],
+	}
+	return 所有权益.get(等级, [])
+
+# 计算离线上限（小时）
+func _计算离线上限() -> int:
+	var 上限: int = 8
+	if 月卡有效():
+		上限 += 4
+	if 季卡有效():
+		上限 += 4
+	if 永久卡有效():
+		上限 += 8
+	var vip: int = 当前VIP等级()
+	if vip >= 4:
+		上限 += 4  # VIP4+离线12小时
+	if vip >= 7:
+		上限 += 12  # VIP7+离线24小时（累计）
+	if vip >= 10:
+		上限 += 24  # VIP10+离线48小时（累计）
+	return min(上限, 48)
+
+# 计算机缘加成（百分比）
+func _计算机缘加成() -> float:
+	var vip: int = 当前VIP等级()
+	if vip >= 11:
+		return 0.5  # VIP11+机缘+50%
+	elif vip >= 9:
+		return 0.2  # VIP9+机缘+20%
+	return 0.0
+
+# 获取所有VIP等级列表（统一使用累充额派生）
 func 获取所有VIP等级列表() -> Array:
-	var 等级列表 = []
-	for i in range(VIP_MAX_LEVEL + 1):
-		var 所需经验 = VIP_EXP_THRESHOLDS[i] if i < VIP_EXP_THRESHOLDS.size() else -1
-		var 权益 = []
-		if i >= 1:
-			权益.append("背包扩容")
-			权益.append("战斗2倍率")
-		if i >= 2:
-			权益.append("招募额外次数")
-		if i >= 3:
-			权益.append("每日免费礼包")
-			权益.append("跳过战斗")
-		if i >= 4:
-			权益.append("专属头像框")
-		if i >= 5:
-			权益.append("战斗3倍率")
-			权益.append("离线24小时")
-		if i >= 6:
-			权益.append("专属皮肤")
+	var 等级列表: Array = []
+	var 累充档位: Array = [0, 6, 30, 68, 128, 298, 648, 1000, 2000, 3000, 5000, 8888, 12888]
+	for i in range(13):
+		var 所需金额: int = 累充档位[i] if i < 累充档位.size() else -1
+		var 权益: Array = _获取等级权益列表(i)
 		等级列表.append({
 			"等级": i,
-			"所需经验": 所需经验,
+			"所需金额": 所需金额,
 			"权益": 权益,
-			"已达成": vip_level >= i,
+			"已达成": 当前VIP等级() >= i,
 		})
 	return 等级列表
 
 # 获取VIP统计
 func 获取VIP统计() -> Dictionary:
-	var 下一级经验 = VIP_EXP_THRESHOLDS[min(vip_level + 1, VIP_MAX_LEVEL)] if vip_level < VIP_MAX_LEVEL else -1
-	var 升级进度 = 0.0
-	if 下一级经验 > 0:
-		var 当前级经验 = VIP_EXP_THRESHOLDS[vip_level] if vip_level < VIP_EXP_THRESHOLDS.size() else 0
-		升级进度 = float(vip_exp - 当前级经验) / float(下一级经验 - 当前级经验)
+	var vip: int = 当前VIP等级()
+	var 累充档位: Array = [0, 6, 30, 68, 128, 298, 648, 1000, 2000, 3000, 5000, 8888, 12888]
+	var 下一级金额: int = 累充档位[min(vip + 1, 12)] if vip < 12 else -1
+	var 升级进度: float = 0.0
+	if 下一级金额 > 0 and vip < 12:
+		var 当前级金额: int = 累充档位[vip] if vip < 累充档位.size() else 0
+		升级进度 = float(累充额 - 当前级金额) / float(下一级金额 - 当前级金额)
 	return {
-		"当前等级": vip_level,
-		"当前经验": vip_exp,
-		"下一级经验": 下一级经验,
-		"升级进度": 升级进度,
-		"最高等级": VIP_MAX_LEVEL,
+		"当前等级": vip,
+		"累充额": 累充额,
+		"下一级金额": 下一级金额,
+		"升级进度": clamp(升级进度, 0.0, 1.0),
+		"最高等级": 12,
 		"战斗倍率": get_battle_speed_multiplier(),
-		"已解锁权益数": get_vip_benefits().get("unlocked_features", []).size(),
+		"离线上限小时": _计算离线上限(),
+		"机缘加成": _计算机缘加成(),
 	}
 
-# 获取VIP每日奖励
+# 获取VIP每日奖励（修真化：仙玉供奉礼遇）
 func 获取VIP每日奖励() -> Dictionary:
-	var 奖励 = {"灵石": 0, "灵气": 0, "悟道点": 0}
-	if vip_level >= 1:
+	var vip: int = 当前VIP等级()
+	var 奖励: Dictionary = {"灵石": 0, "灵气": 0, "悟道点": 0, "机缘符": 0}
+	# VIP1-3：基础礼遇
+	if vip >= 1:
 		奖励["灵石"] += 100
-	if vip_level >= 2:
+	if vip >= 2:
 		奖励["灵气"] += 50
-	if vip_level >= 3:
+	if vip >= 3:
 		奖励["悟道点"] += 10
-	if vip_level >= 5:
+	# VIP4-6：资源加成
+	if vip >= 4:
+		奖励["灵石"] += 100
+	if vip >= 5:
+		奖励["灵气"] += 50
+	if vip >= 6:
+		奖励["机缘符"] += 1
+	# VIP7-9：深度便利
+	if vip >= 7:
 		奖励["灵石"] += 200
-	if vip_level >= 8:
+	if vip >= 8:
 		奖励["灵气"] += 100
+	if vip >= 9:
+		奖励["悟道点"] += 20
+	# VIP10-12：高阶专属
+	if vip >= 10:
+		奖励["灵石"] += 300
+	if vip >= 11:
+		奖励["灵气"] += 150
+	if vip >= 12:
+		奖励["机缘符"] += 2
 	return 奖励
 
-# 领取VIP每日奖励
+# 领取VIP每日奖励（修真化：仙玉供奉礼遇）
 func 领取VIP每日奖励() -> Dictionary:
 	var 最后领取日 = vip_daily_reward_day if "vip_daily_reward_day" in self else -1
 	if 最后领取日 == 累计游戏日:
-		return {"成功": false, "原因": "今日已领取"}
-	var 奖励 = 获取VIP每日奖励()
+		return {"成功": false, "原因": "今日供奉礼遇已领取"}
+	var 奖励: Dictionary = 获取VIP每日奖励()
+	var vip: int = 当前VIP等级()
 	灵石 += 奖励.get("灵石", 0)
 	灵气 += 奖励.get("灵气", 0)
 	悟道点 += 奖励.get("悟道点", 0)
+	# 机缘符奖励：增加所有类型机缘各1次
+	if 奖励.get("机缘符", 0) > 0:
+		for 类型 in 每日机缘.keys():
+			每日机缘[类型] = min(每日机缘[类型] + 奖励["机缘符"], 获取机缘上限(类型))
 	vip_daily_reward_day = 累计游戏日
-	添加纪事("庶务", "VIP每日奖励", "领取VIP%d每日奖励：灵石+%d，灵气+%d，悟道点+%d" % [vip_level, 奖励.get("灵石", 0), 奖励.get("灵气", 0), 奖励.get("悟道点", 0)], 1)
-	return {"成功": true, "奖励": 奖励, "消息": "领取VIP每日奖励成功"}
+	# 修真化纪事文案
+	添加纪事("供奉", "仙玉礼遇", "领取VIP%d仙玉供奉礼遇：灵石+%d，灵气+%d，悟道点+%d，机缘符+%d" % [vip, 奖励.get("灵石", 0), 奖励.get("灵气", 0), 奖励.get("悟道点", 0), 奖励.get("机缘符", 0)], 1)
+	return {"成功": true, "奖励": 奖励, "消息": "领取仙玉供奉礼遇成功"}
 
 # ===== 付费礼包系统 =====
 var 已购买礼包: Dictionary = {}  # 礼包ID -> 购买时间
@@ -3254,7 +3097,7 @@ var 礼包配置: Array = [
 		"id": "至尊礼包",
 		"名称": "至尊礼包",
 		"价格": 98,
-		"描述": "至尊尊享，含灵石×20000、绑定仙玉×1000",
+		"描述": "至尊尊享，含灵石×20000、灵玉×1000",
 		"内容": {"灵石": 20000, "仙玉_绑定": 1000},
 		"限购": 1,
 	},
@@ -3344,17 +3187,6 @@ func 获取礼包统计() -> Dictionary:
 		"每日礼包可领": 每日礼包可领,
 	}
 
-# 礼包分类配置
-const 礼包分类配置: Dictionary = {
-	"新手礼包": {"描述": "新手专属礼包", "图标": "🎁"},
-	"每日礼包": {"描述": "每日可购买礼包", "图标": "📅"},
-	"每周礼包": {"描述": "每周可购买礼包", "图标": "📆"},
-	"节日礼包": {"描述": "节日限定礼包", "图标": "🎉"},
-	"成长礼包": {"描述": "成长助力礼包", "图标": "📈"},
-	"战力礼包": {"描述": "战力提升礼包", "图标": "⚔️"},
-	"资源礼包": {"描述": "资源补给礼包", "图标": "💎"},
-	"特殊礼包": {"描述": "特殊限定礼包", "图标": "✨"},
-}
 
 # 按分类筛选礼包
 func 按分类筛选礼包(分类: String) -> Array:
@@ -3482,8 +3314,8 @@ func 一键购买免费礼包() -> Dictionary:
 
 # ===== 设置：/ 本地道友系统：026-08-21 收尾；不升SAVE_VERSION，旧档缺键→默认零回归）=====
 var 设置项: Dictionary = {}                # 设置：UI 偏好持久化（音频/画面/通知/推演等）
-var _道友列表: Array = []                  # 本地道友（{name, status, sel}），无服务端，纯本地
-var _道友消息: Array = []                  # 本地聊天记录（{name, text, time}：
+# _道友列表已移至 friend_system.gd
+# _道友消息已移至 friend_system.gd
 var 当前日常: Array = []                  # 当日日常差事（quest_daily 行字典，最：条）
 var 日常已领: Array = []                  # ：当前日常 等长，true=已领：
 var 上次日常日: int = 0
@@ -3507,7 +3339,7 @@ var 随机事件类型冷却: Dictionary = {}     # quest_type -> 上次触发�
 var 新手目标链激活: bool = false          # FTUE 收尾后解锁（激：newbie_001：
 var 新手完成列表: Array = []              # 已完：newbie quest_id 列表（靠 prev_quest_id 推导解锁链）
 signal 新手目标更新()                      # UI 玉牌红点 / 宗门要务面板刷新
-# 全宗气运 buff（天品灵根弟子招募触发）：修：3% / 产出+2%，持：7 游戏日
+# 全宗气运 buff（天品灵根弟子招募触发）：修：3% / 产出+2%，持：7 累计游戏日
 var 气运修炼加成: float = 0.0
 var 气运产出加成: float = 0.0
 var 气运到期日: int = 0
@@ -3520,7 +3352,6 @@ var _单条冷却记录: Dictionary = {}         # event_id ：触发时的累�
 var quest_cooldown: Dictionary = {}         # event_id ：冷却到期月份（防重复3个月：
 var _上次奇遇游戏日: int = 0            # P2-13：奇遇保底窗口锚点（距上次奇遇≥阈值则豁免概率，防长期无奇遇死锁）
 # ===== 第三阶段：互动培养系：=====
-var 互动冷却记录: Dictionary = {}  # 弟子ID -> {互动类型 -> 上次使用累计游戏日}
 var 互动今日次数: Dictionary = {}  # 弟子ID -> {互动类型 -> 今日使用次数}
 var 互动日标标: int = -1  # 记录互动次数对应的游戏日，跨日重置
 # 互动配置：
@@ -3604,19 +3435,201 @@ func 执行互动(弟子ID: int, 互动类型: String) -> Dictionary:
 	return 结果
 # 时间 / 门派
 var 累计游戏日:= 0
+var _上次月度结算日: int = 0  # S1：上次月度结算的游戏日，用于月度内容门控
 var 最后登录:= 0
 var 门派等级 := 1
+## S1：宗门编制上限（等级基础上限 + 洞府扩建额外上限）
+func 宗门编制上限() -> int:
+	# 等级基础上限（修真世界观：宗门等级决定规模）
+	var 等级基础上限: Dictionary = {1:10, 2:15, 3:25, 4:40, 5:60, 6:80, 7:100, 8:130, 9:160, 10:200}
+	var 基础: int = int(等级基础上限.get(门派等级, 10))
+	# 洞府扩建额外增加（初始10个洞府为基础，超出部分每个+1人上限）
+	var 扩建额外: int = max(0, 洞府数量 - 10)
+	return 基础 + 扩建额外
+
+## P1优化：计算占用编制的弟子数量（外门弟子不占编制，只做杂役）
+func 占用编制弟子数() -> int:
+	var 数: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.身份 != "外门":
+			数 += 1
+	return 数
+
+## P1优化：外门弟子数量
+func 外门弟子数() -> int:
+	var 数: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.身份 == "外门":
+			数 += 1
+	return 数
+
+## P1优化：外门弟子杂役产出（每月产出少量资源）
+func 外门弟子杂役产出() -> Dictionary:
+	var 外门数: int = 外门弟子数()
+	if 外门数 <= 0:
+		return {"灵石": 0, "灵草": 0, "矿石": 0}
+	# 每个外门弟子每月产出少量资源（杂役）
+	var 灵石产出: int = 外门数 * 5
+	var 灵草产出: int = 外门数 * 3
+	var 矿石产出: int = 外门数 * 2
+	灵石 += 灵石产出
+	灵草 += 灵草产出
+	矿石 += 矿石产出
+	return {"灵石": 灵石产出, "灵草": 灵草产出, "矿石": 矿石产出}
+
+## P2：获取宗门等级称呼
+func 获取宗门等级称呼() -> String:
+	if 门派等级 <= 3:
+		return "小型宗门"
+	elif 门派等级 <= 6:
+		return "中型宗门"
+	elif 门派等级 <= 9:
+		return "大型宗门"
+	else:
+		return "超级宗门"
+
+## P2：获取宗门等级详细称呼（带前缀）
+func 获取宗门详细称呼() -> String:
+	var 基础: String = 获取宗门等级称呼()
+	if 门派等级 == 10:
+		return "太玄仙门"
+	elif 门派等级 >= 7:
+		return "太玄宗（%s）" % 基础
+	else:
+		return "太玄宗（%s）" % 基础
+
+# ===== P2优化：宗门评级系统（九品到一品）=====
+# 宗门评级配置：等级+综合实力决定评级
+const 宗门评级配置: Array = [
+	{"评级": "九品", "称呼": "末流宗门", "最低等级": 1, "最低战力": 0},
+	{"评级": "八品", "称呼": "三流宗门", "最低等级": 3, "最低战力": 10000},
+	{"评级": "七品", "称呼": "二流宗门", "最低等级": 5, "最低战力": 50000},
+	{"评级": "六品", "称呼": "一流宗门", "最低等级": 7, "最低战力": 150000},
+	{"评级": "五品", "称呼": "顶尖宗门", "最低等级": 9, "最低战力": 400000},
+	{"评级": "四品", "称呼": "超级宗门", "最低等级": 10, "最低战力": 800000},
+	{"评级": "三品", "称呼": "圣地", "最低等级": 10, "最低战力": 1500000, "特殊条件": "拥有化神弟子"},
+	{"评级": "二品", "称呼": "仙门", "最低等级": 10, "最低战力": 3000000, "特殊条件": "拥有炼虚弟子"},
+	{"评级": "一品", "称呼": "道统", "最低等级": 10, "最低战力": 6000000, "特殊条件": "拥有合体弟子"},
+]
+
+## P2优化：计算宗门总战力
+func 计算宗门总战力() -> int:
+	var 总战力: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple:
+			总战力 += int(d.战力)
+	return 总战力
+
+## P2优化：获取宗门评级
+func 获取宗门评级() -> Dictionary:
+	var 总战力: int = 计算宗门总战力()
+	var 当前评级: Dictionary = 宗门评级配置[0]
+	for 评级 in 宗门评级配置:
+		# 检查等级条件
+		if 门派等级 < int(评级.get("最低等级", 1)):
+			continue
+		# 检查战力条件
+		if 总战力 < int(评级.get("最低战力", 0)):
+			continue
+		# 检查特殊条件
+		var 特殊条件: String = str(评级.get("特殊条件", ""))
+		if 特殊条件 != "":
+			var 满足特殊: bool = false
+			if "化神" in 特殊条件:
+				for d in 弟子列表:
+					if d != null and d is Disciple and d.境界 == "化神":
+						满足特殊 = true
+						break
+			elif "炼虚" in 特殊条件:
+				for d in 弟子列表:
+					if d != null and d is Disciple and d.境界 == "炼虚":
+						满足特殊 = true
+						break
+			elif "合体" in 特殊条件:
+				for d in 弟子列表:
+					if d != null and d is Disciple and d.境界 == "合体":
+						满足特殊 = true
+						break
+			if not 满足特殊:
+				continue
+		当前评级 = 评级
+	return 当前评级
+
+## P2优化：获取宗门评级名称
+func 获取宗门评级名称() -> String:
+	var 评级: Dictionary = 获取宗门评级()
+	return str(评级.get("评级", "九品"))
+
+## P2优化：获取宗门评级称呼
+func 获取宗门评级称呼() -> String:
+	var 评级: Dictionary = 获取宗门评级()
+	return str(评级.get("称呼", "末流宗门"))
+
+## S1：洞府舒适度（弟子数/洞府数，<80%舒适，80-100%拥挤，>100%过载）
+func 洞府拥挤度() -> float:
+	if 洞府数量 <= 0:
+		return 999.0
+	return float(在宗弟子数()) / float(洞府数量)
+
+## S1：扩建洞府（消耗灵石）
+func 扩建洞府() -> Dictionary:
+	var 消耗: int = int(洞府扩建消耗灵石 * pow(1.3, max(0, 洞府数量 - 10)))
+	if 灵石 < 消耗:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗}
+	灵石 -= 消耗
+	洞府数量 += 5  # 每次扩建+5个洞府
+	_加推演条目("扩建洞府，新增5间洞府，当前共%d间" % 洞府数量, "庶务", "低")
+	return {"成功": true, "新数量": 洞府数量}
+
+## S1：获取洞府扩建消耗
+func 获取洞府扩建消耗() -> int:
+	return int(洞府扩建消耗灵石 * pow(1.3, max(0, 洞府数量 - 10)))
+
+## S1：灵脉升级（消耗灵石+灵晶）
+func 升级灵脉() -> Dictionary:
+	if 灵脉等级 >= 10:
+		return {"成功": false, "原因": "灵脉已达最高等级"}
+	var 消耗灵石: int = int(灵脉升级消耗灵石 * pow(1.5, 灵脉等级 - 1))
+	var 消耗灵晶: int = 灵脉等级 * 10
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗灵石}
+	if 灵晶 < 消耗灵晶:
+		return {"成功": false, "原因": "灵晶不足（需%d）" % 消耗灵晶}
+	灵石 -= 消耗灵石
+	灵晶 -= 消耗灵晶
+	灵脉等级 += 1
+	_加推演条目("灵脉升级至%d级，灵气愈发充沛" % 灵脉等级, "庶务", "中")
+	return {"成功": true, "新等级": 灵脉等级}
+
+## S1：获取灵脉升级消耗
+func 获取灵脉升级消耗() -> Dictionary:
+	if 灵脉等级 >= 10:
+		return {"灵石": 0, "灵晶": 0, "已满级": true}
+	return {"灵石": int(灵脉升级消耗灵石 * pow(1.5, 灵脉等级 - 1)), "灵晶": 灵脉等级 * 10, "已满级": false}
+
+## S1：当前弟子数量（在宗状态）
+func 在宗弟子数() -> int:
+	var n: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			n += 1
+	return n
+
+## S1：是否超编
+func 是否超编() -> bool:
+	return 在宗弟子数() >= 宗门编制上限()
 var 当前皮肤: String = "taixu_yunhai"   # 幻形·洞天换肤：已装备的宗门首页背景皮：id（纯展示态，零玩法触碰）
 const 声望折扣表: Array = [1.0, 0.95, 0.9, 0.85, 0.8]   # 声望等级0-4对应折扣（中：友善/尊敬/崇敬/崇拜：
 const 声望等级名: Array = ["中立", "友善", "尊敬", "崇敬", "崇拜"]
 var 声望 := 0
+var 执法日志: Array = []   # 执法堂日志（zhifa.gd 写入，上限100条）
 var 繁荣 := 50
 var 繁荣经营值: int = 0   # P1-2：繁荣可经营增量（供奉香火等玩家行为持久累积，避免被 更新门派() 派生覆盖抹平）
 # === S1 ：-A：凡人香火体系（纯经营层 · 空桩逻辑 · 数：[PLACEHOLDER] 待真机校准）===
 var 香火值:= 0
 var 信徒数:= 0
-var 凡人城镇: Array = []
-var 香火月产预估 := 0
+# 凡人城镇已移至 dynasty_system.gd
+var 香火日产预估 := 0
 var 信徒增益档: String = "未启"
 # === S2-3：香火/信徒增益链（补消耗出口，2026-08-31）===
 const 信徒增益链: Array = ["未启", "香火初兴", "香火渐隆", "香火鼎盛", "万灵朝宗"]
@@ -3638,7 +3651,7 @@ const 正道功德门槛: int = 100   # P3：择 玄门正道 所需最小功德
 const 邪道业力门槛: int = 100   # P3：择 九幽邪道 所需最小业力（[PLACEHOLDER] 待真机校准）
 const 正道每步功德: int = 25   # P3：正道链每步累计功德（4 步满链恰达门槛100，[PLACEHOLDER] 待校准）
 const 邪道每步业力: int = 25   # P3：邪道链每步累计业力（4 步满链恰达门槛100，[PLACEHOLDER] 待校准）
-# 气运香火速率软上限：香火月产预估×2 在设计原意上限约 280×2=560（≈门派满级+~100 弟子）；
+# 气运香火速率软上限：香火日产预估×2 在设计原意上限约 280×2=560（≈门派满级+~100 弟子）；
 # 弟子数实际无硬性上限，会把它推到上千导致气运恒锁「昌隆」、正邪路由失效。软上限锁住香火项贡献，
 # 使「纯香火」最高到「旺盛」，真要「昌隆」仍需功德/业力积累——正邪路线才真正决定气运走向。
 const 气运香火速率上限: float = 560.0
@@ -3664,16 +3677,25 @@ var 阵法物品表: Dictionary = {}
 var 阵法物品名表: Dictionary = {}
 var 阵法_按阵法: Dictionary= {}
 # === S1 ：：日供（原签到系统修真化包装；轻量数据层，零核心数值改动）===
-var 日供_最后领取日: int = 0     # 上次领取日供时的累计游戏日（0=从未领取：
+var 日供_最后领取日: int = 0     # 上次领取日供时的累计游戏日（0=从未领取）
+var 日供_最后领取现实日: String = ""  # 上次领取日供的现实日期（YYYY-MM-DD）
 var 连续理事天数: int = 0       # 连续领取日供天数（中断则：：
 var 日供_总领取次数: int= 0    # 累计领取次数（成：纪事用）
 var 回溯玉符数量: int = 0       # 补领道具（S1 占位，后续接获取途径：
 # ===== S1 成就系统统计变量（2026-08-30 第三阶段新增）=====
 var 累计炼制丹药数: int = 0       # 累计炼制丹药数量（成就用）
 var 累计锻造装备数: int = 0       # 累计锻造装备数量（成就用）
+var 累计炼符数: int = 0           # 累计炼制符箓数量（成就用，S45-2；与丹/器同口径，未单列入存档字典）
 var 累计灵石收入: int = 0         # 累计灵石收入（成就用）
 var 累计招募弟子数: int = 0       # 累计招募弟子数量（成就用）
 var 累计弟子突破次数: int = 0     # 累计弟子突破次数（成就用）
+# ===== §11.15 优化#69/#72/#73/#74/#75 贸易拓展变量（不升SAVE_VERSION）=====
+# 累计贸易次数已移至 caravan_system.gd
+# 累计贸易收益已移至 caravan_system.gd
+var 正道特许商品表: Array = []      # 黑市双线·正道特许商品
+var 特殊商单表: Array = []          # 特殊商单（奖励物品化）
+var 商品名_类型: Dictionary = {}    # BUG-C 修复：物品名→goods_type 反向映射
+const 虚空瞬移仙玉费: int = 50      # 仙核/灵石不足时仙玉抵扣虚空瞬移
 var 累计坊市交易次数: int = 0     # 累计坊市交易次数（成就用）
 # ===== S1 成就系统统计变量（2026-08-30 第四阶段新增）=====
 var 累计灵田产出: int = 0           # 累计灵田产出灵草数量（成就用）
@@ -3683,22 +3705,14 @@ var 累计提升心境次数: int = 0       # 累计使用清心丹提升心境�
 var 累计延长寿元次数: int = 0       # 累计使用长生丹延长寿元次数（成就用）
 var 累计修复道伤次数: int = 0       # 累计使用道愈丹修复道伤次数（成就用）
 # ===== S1 成就系统统计变量（2026-08-30 第五阶段新增）=====
-var 累计制作傀儡数: int = 0           # 累计制作傀儡数量（成就用）
 var 累计发放俸禄次数: int = 0         # 累计发放俸禄次数（成就用）
-var 藏书阁收录数: int = 0             # 藏书阁收录典籍数量（成就用）
-var 药园已解锁地块: int = 1           # 药园已解锁地块数量（成就用，默认1块）
+# 药园已解锁地块已移至 herb_garden_system.gd
 var 已解锁丹方数: int = 0             # 已解锁丹方数量（成就用）
 var 已解锁装备图纸数: int = 0         # 已解锁装备图纸数量（成就用）
 # ===== S1 傀儡系统和藏书阁系统（2026-08-30 新增）=====
-var 傀儡列表: Array = []                # 傀儡列表（{ID, 名称, 品阶, 类型, 等级, 效果}）
-var 傀儡ID计数器: int = 0               # 傀儡ID计数器
-var 藏书阁列表: Array = []              # 藏书阁收录典籍列表（{ID, 名称, 品阶, 类型, 描述}）
-var 藏书阁ID计数器: int = 0             # 藏书阁ID计数器
-var 藏书阁临时加成: float = 0.0           # 藏书阁阅读临时修炼加成
-var 藏书阁加成到期日: int = 0              # 藏书阁加成到期日
 # ===== S1 药园系统、丹方系统、装备图纸系统（2026-08-30 新增）=====
-var 药园地块列表: Array = []               # 药园地块列表（{ID, 已解锁, 种植物品, 成熟时间}）
-var 药园地块数量: int = 1                  # 药园已解锁地块数量（默认1块）
+# 药园地块列表已移至 herb_garden_system.gd
+# 药园地块数量已移至 herb_garden_system.gd
 var 已解锁丹方列表: Array = []             # 已解锁丹方列表（{丹方ID, 名称, 品阶, 材料}）
 var 已解锁装备图纸列表: Array = []         # 已解锁装备图纸列表（{图纸ID, 名称, 品阶, 材料}）
 # 获取签到日历（显示最近30天签到情况）
@@ -3816,8 +3830,8 @@ func 补签昨天() -> Dictionary:
 
 # 日供公共 API（供 UI 调用；只：轻量写，不触碰核心数值）
 func 日供_今日可领() -> bool:
-
-	return 日供_最后领取日 != 累计游戏日
+	# 基于现实日期判断（与活动系统重置一致）
+	return 日供_最后领取现实日 != 获取现实日期()
 func 日供状态() -> Dictionary:
 
 	return {
@@ -3855,16 +3869,25 @@ func 领取日供() -> Dictionary:
 	var 缺领: int = max(0, 累计游戏日 - 日供_最后领取日 - 1)
 	var 倍: int = 1 + min(缺领, 3)
 	日供_最后领取日 = 累计游戏日
+	日供_最后领取现实日 = 获取现实日期()
 	日供_总领取次数+= 1
-	# 基础供奉：10 绑定仙玉（S2-数值平衡：原30/日导致98元礼包仅值2.3小时免费产出，现降至10/日使付费价值感提升3倍）
-	仙玉_绑定 += 10 * 倍
-	var msg: String = "受领日供，绑定仙玉+%d" % (10 * 倍)
+	# 基础供奉：灵石+灵气+灵玉（修真味日常资源，应用连续参与加成）
+	var 连续加成: float = 获取连续参与加成()
+	var 基础灵石: int = int(50 * 倍 * 连续加成)
+	var 基础灵气: int = int(20 * 倍 * 连续加成)
+	var 基础灵玉: int = int(5 * 倍 * 连续加成)
+	灵石 += 基础灵石
+	灵气 += 基础灵气
+	仙玉_绑定 += 基础灵玉
+	var msg: String = "受领日供，灵石+%d，灵气+%d，灵玉+%d" % [基础灵石, 基础灵气, 基础灵玉]
+	if 连续加成 > 1.0:
+		msg += "（连续%d天，%.1f倍加成）" % [连续参与天数, 连续加成]
 	if 缺领 > 0:
 		msg += "（补领%d天）" % 缺领
-	# 职司加成（轻：+1 对应资源，不破坏经济：
+	# 职司加成（合理数量，根据堂主等级缩放）
 	for b in 日供职司加成():
 		var 字段: String = b["字段"]
-		var 数量: int = 1 * 倍
+		var 数量: int = 5 * 倍  # 每次+5，而非糊弄人的+1
 		if 字段 == "灵石":
 			灵石 += 数量
 		elif 字段 == "灵草":
@@ -3877,24 +3900,32 @@ func 领取日供() -> Dictionary:
 			_复检成就()
 		elif 字段 == "灵气":
 			灵气 += 数量
-		msg += "：s+%d" % [b["资源"], 数量]
+		msg += "，%s+%d" % [b["资源"], 数量]
 	# 纪事联动
 	if 连续理事天数 == 7:
-		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "小周天赐福", "文案": 文案表["chronicle_seven_day_blessing"]})
-		# 连续签到7天奖励：稀有宝箱×1 + 灵品装备碎片×3
-		添加宝箱("chest_rare", 1)
-		添加碎片("frag_equip_rare", 3)
-		msg += "，连续7天奖励：稀有宝箱+1，灵品装备碎片+3"
+		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "小周天圆满", "文案": "连续七日不辍，道心日坚，宗门赐下筑基丹三枚以资鼓励。"})
+		# 连续7天奖励：筑基丹×3 + 灵草×10
+		for i in range(3):
+			宗门库房.append(_造低阶物品("dan", "凡品"))
+		灵草 += 10
+		msg += "，连续7天：宗门赐筑基丹×3，灵草+10"
 	elif 连续理事天数 == 30:
-		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "月度道统厚礼", "文案": 文案表["chronicle_monthly_tao"]})
-		# 连续签到30天奖励：史诗宝箱×1 + 宝品装备碎片×5 + 灵品功法碎片×3
-		添加宝箱("chest_epic", 1)
-		添加碎片("frag_equip_epic", 5)
-		添加碎片("frag_gongfa_rare", 3)
-		msg += "，连续30天奖励：史诗宝箱+1，宝品装备碎片+5，灵品功法碎片+3"
+		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "月度道统厚礼", "文案": "连续一月苦修不辍，宗门感其诚，赐下功法残卷与丹药。"})
+		# 连续30天奖励：功法残卷×1 + 灵品丹药×2 + 悟道点+50
+		宗门库房.append(_造低阶物品("gongfa", "凡阶"))
+		for i in range(2):
+			宗门库房.append(_造低阶物品("dan", "灵品"))
+		悟道点 += 50
+		msg += "，连续30天：赐功法残卷×1，灵品丹药×2，悟道+50"
 	elif 连续理事天数 == 100:
-		# 连续签到100天奖励：传说宝箱×1 + 王品装备碎片×5
-		添加宝箱("chest_legendary", 1)
+		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "百日筑基大成", "文案": "连续百日苦修，道基稳固，宗门赐下宝品丹药与上古功法残页。"})
+		# 连续100天奖励：宝品丹药×3 + 功法残卷×2 + 悟道点+200
+		for i in range(3):
+			宗门库房.append(_造低阶物品("dan", "宝品"))
+		for i in range(2):
+			宗门库房.append(_造低阶物品("gongfa", "灵阶"))
+		悟道点 += 200
+		msg += "，连续100天：赐宝品丹药×3，功法残卷×2，悟道+200"
 		添加碎片("frag_equip_legendary", 5)
 		msg += "，连续100天奖励：传说宝箱+1，王品装备碎片+5"
 	else:
@@ -3917,11 +3948,23 @@ var 双周期评级启用: bool = true   # 全局回退开关（true=七载双�
 var 七载赏赐池: int = 0          # 年度评定 deferred ：30% 灵石累积：
 var 七载待发掉落: Array = []     # 年度评定 deferred ：S 级以上高阶法宝（按评级记录）
 var 门派等级目标: int = 1        # 七载模式下「成长值中间量」，七载大考才生效
+var 可晋升等级: int = 0  # P1：达到门槛可举办晋升大典的等级，0=无可晋升
+# 宗主独立场所系统（宗主作为高阶修士有独立丹房/炼器室，不与弟子共用殿阁）
+var 宗主丹房等级: int = 1
+var 宗主炼器室等级: int = 1
+var 宗主制符室等级: int = 1
+var 宗主傀儡工坊等级: int = 1
+var 宗主毒室等级: int = 1
+var 毒道经验: int = 0  # 毒道修为经验，决定毒道境界
+var 毒体经验: int = 0  # 毒体修炼经验，决定毒体境界（百毒不侵）
+var _上次毒体境界: String = "凡躯"  # 毒体境界变化检测
 var 上次七载日: int = 0          # 上次七载大考时的累计游戏日，用于跨 2555 日边界检：
 var 七载大典待展示: bool = false   # 七载大考触发的瞬时展示标记（不存档），main._构建离山内容 读取后置 false
 var 七载大典摘要: Dictionary = {}  # 七载大典待展示时承载的展示数据（灵石/法宝：晋升至），不存档
 var 年始灵石 := 0             # 本年起始灵石（结算时算增量）
-var 年始总战力:= 0           # 本年起始宗门总战力（结算时算增量：
+var 年始总战力:= 0           # 本年起始宗门总战力（结算时算增量）
+var 年始宗主战力 := 0        # 本年起始宗主战力（结算时算增量）
+var 年始宗主境界 := ""       # 本年起始宗主境界（结算时算是否提升）
 var 最新周期评级卡: Dictionary = {}   # 最近一次结算评级卡，供离山汇总展：
 var 历史周期评级: Array = []       # ：12 周期评级（与 周期评分.历史 同步：
 var 引导阶段: int = 0   # 新手入门指引：序章/1-5五步/6完成（老档兼容：load_game 默认6：
@@ -3936,6 +3979,7 @@ var _本月灵田产出: int = 0
 var _本月矿脉产出: int = 0
 var _本月丹堂产出: int = 0
 var _本月器殿产出: int = 0
+var _本月符堂产出: int = 0
 # 器殿赠宝 P1 状态（轻量；序列化持久化，不升 SAVE_VERSION，旧档缺键→默认零回归）
 var _上次出战弟子: Array = []          # 最近出战阵容（存弟子姓名；挑战秘境 写入；save/load 持久化）
 var _器殿赠宝未中上阵连计: int = 0     # 保底计数器：连续未把赠宝发给上阵弟子的次数（： 下月强制上阵档）
@@ -3962,7 +4006,30 @@ const PRIO_HIGH   := "high"     # 重大事件（突：稀有道具）
 const PRIO_NORMAL := "normal"   # 普通（任职/正向奇遇：
 const PRIO_TRIVIAL:= "trivial"  # 琐事（无功而返/无赏赐）
 # 战斗/历练系统（Day 2 数据驱动：
-var 体力 := 50
+# P0修复：移除体力系统，改为每日机缘+VIP加成（符合用户要求：不增加体力/精力系统，允许玩家完全沉浸体验）
+# 修真化文案：每日次数→机缘，不同类型有不同修真名称
+var 每日机缘: Dictionary = {}  # {"探秘境缘": 已用, "游历机缘": 已用, "历练机缘": 已用, "征伐机缘": 已用, "入山机缘": 已用, "日期": 累计游戏日}
+
+# ===== 护道人系统（P0实现）=====
+# 修真世界观：宗门为天才弟子配备专属保护者和指导者
+# 收费模式：基础免费 + 高阶VIP + 护道人道具
+# 护道人等级：外门护道(筑基) / 内门护道(金丹) / 长老护道(元婴) / 太上护道(化神+)
+const 护道人配置: Dictionary = {
+	"外门护道": {"境界": "筑基", "修炼加成": 0.10, "突破加成": 0.05, "救援概率": 0.50, "功德需求": 100, "贡献需求": 100, "VIP需求": 0},
+	"内门护道": {"境界": "金丹", "修炼加成": 0.15, "突破加成": 0.10, "救援概率": 0.60, "功德需求": 500, "贡献需求": 500, "VIP需求": 0},
+	"长老护道": {"境界": "元婴", "修炼加成": 0.20, "突破加成": 0.15, "救援概率": 0.70, "功德需求": 2000, "贡献需求": 2000, "VIP需求": 4},
+	"太上护道": {"境界": "化神", "修炼加成": 0.30, "突破加成": 0.20, "救援概率": 0.90, "功德需求": 5000, "贡献需求": 5000, "VIP需求": 7},
+}
+# 护道人列表：弟子ID -> 护道人信息
+# {"护道人ID": 唯一ID, "护道人等级": "外门护道", "护道人姓名": "XXX", "功德": 0, "到期日": 累计游戏日+365, "替死玉符": false, "气运加持": 0}
+var 护道人列表: Dictionary = {}
+var 护道人计数器: int = 0  # 护道人ID计数器
+# 护道人道具库存
+var 护道玉符: int = 0  # 召唤护道人
+var 护道续缘符: int = 0  # 延长保护时间
+var 功德玉牌: int = 0  # 增加功德值
+var 气运符箓: int = 0  # 临时提升效果
+var 替死玉符: int = 0  # 确保一次危机救援成功
 var 累计探索次数 := 0  # 累计探索次数
 var 修炼进度 := 0.0  # 修炼进度（0-1）
 var 累计培养弟子数 := 0  # 累计培养弟子数
@@ -4004,6 +4071,197 @@ func _功勋阁声望乘区() -> float:
 func _藏经阁修炼乘区() -> float:
 
 	return 1.05 if 司职列表.has("cangjing") else 1.0
+
+# §6.16 血脉共鸣系统（P0实现）
+# 遵守数值红线：血脉类单源子帽≤1.5%（全局等效）
+# 血脉共鸣修炼乘区：有血缘关系的弟子同时在宗时，提供微弱修炼加成
+func 血脉共鸣修炼乘区() -> float:
+	var 总加成: float = 0.0
+	var 已统计: Dictionary = {}  # 避免重复统计同一对血缘关系
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or d.状态 != "在宗":
+			continue
+		var 亲属数: int = d.获取在宗血脉亲属数()
+		if 亲属数 > 0:
+			# 每个在宗亲属提供0.3%修炼加成，单弟子最多1.2%（4个亲属）
+			var 弟子加成: float = min(0.003 * 亲属数, 0.012)
+			总加成 += 弟子加成
+	# 全宗血脉共鸣加成上限：全局等效≤1.5%（遵守§6.16数值红线）
+	总加成 = min(总加成, 0.015)
+	return 1.0 + 总加成
+
+# §6.16 血脉共鸣战力加成：指定弟子的血脉共鸣战力加成
+# 单源子帽≤1.5%（全局等效），S2组队系统解锁后组队时效果翻倍
+func 血脉共鸣战力加成(弟子: Disciple) -> float:
+	if 弟子 == null or not (弟子 is Disciple) or 弟子.状态 != "在宗":
+		return 0.0
+	var 亲属数: int = 弟子.获取在宗血脉亲属数()
+	if 亲属数 <= 0:
+		return 0.0
+	# 每个在宗亲属提供0.3%战力加成，单弟子最多1.2%（4个亲属）
+	var 加成: float = min(0.003 * 亲属数, 0.012)
+	# S2预留：组队系统解锁后，组队时血脉共鸣效果翻倍（当前未实现组队，暂不翻倍）
+	return 加成
+
+# ============ §6.16 家族系统基础架构（P0实现）============
+# 遵守修真世界设定：家族功法不外传、血脉传承、家族培养体系
+# 数值红线：血脉类单源子帽≤1.5%（全局等效），家族气运单家族≤1%全局合计≤2%
+
+# 家族列表：家族ID → 家族数据字典
+
+# ===== 家族系统（已拆分到family_system.gd，此处为转发函数）=====
+func 创建家族(家族名: String, 老祖: Disciple):
+	return 家族系统.创建家族(家族名, 老祖)
+func 获取家族(家族ID: String):
+	return 家族系统.获取家族(家族ID)
+func 加入家族(弟子: Disciple, 家族ID: String):
+	return 家族系统.加入家族(弟子, 家族ID)
+func 退出家族(弟子: Disciple):
+	return 家族系统.退出家族(弟子)
+func 解散家族(家族ID: String):
+	家族系统.解散家族(家族ID)
+func 计算血脉加成(弟子: Disciple):
+	return 家族系统.计算血脉加成(弟子)
+func 计算家族功法叠加(弟子: Disciple):
+	return 家族系统.计算家族功法叠加(弟子)
+func 学习家族功法(弟子: Disciple, 功法ID: String):
+	return 家族系统.学习家族功法(弟子, 功法ID)
+func 觉醒血脉(弟子: Disciple):
+	return 家族系统.觉醒血脉(弟子)
+func 存入家族宝库(弟子: Disciple, 物品: Dictionary, 数量: int = 1):
+	return 家族系统.存入家族宝库(弟子, 物品, 数量)
+func 从家族宝库取出(弟子: Disciple, 物品ID: String, 数量: int = 1):
+	return 家族系统.从家族宝库取出(弟子, 物品ID, 数量)
+func 查看家族宝库(家族ID: String):
+	return 家族系统.查看家族宝库(家族ID)
+func 装备家族秘宝(弟子: Disciple, 秘宝ID: String):
+	return 家族系统.装备家族秘宝(弟子, 秘宝ID)
+func 卸下家族秘宝(弟子: Disciple):
+	return 家族系统.卸下家族秘宝(弟子)
+func 计算家族秘宝加成(弟子: Disciple):
+	return 家族系统.计算家族秘宝加成(弟子)
+func 随机生成功法名字(家族名: String = ""):
+	return 家族系统.随机生成功法名字(家族名)
+func 学习家族血脉功法(弟子: Disciple):
+	return 家族系统.学习家族血脉功法(弟子)
+func 学习神兽血脉功法(弟子: Disciple, 功法ID: String):
+	return 家族系统.学习神兽血脉功法(弟子, 功法ID)
+func 计算血脉功法加成(弟子: Disciple):
+	return 家族系统.计算血脉功法加成(弟子)
+func 布置家族阵法(家族ID: String, 阵法ID: String, 布置者: Disciple):
+	return 家族系统.布置家族阵法(家族ID, 阵法ID, 布置者)
+func 加入阵法驻守(家族ID: String, 弟子: Disciple):
+	return 家族系统.加入阵法驻守(家族ID, 弟子)
+func 计算家族阵法加成(弟子: Disciple):
+	return 家族系统.计算家族阵法加成(弟子)
+func 升级家族学塾(家族ID: String, 操作者: Disciple):
+	return 家族系统.升级家族学塾(家族ID, 操作者)
+func 家族试炼(家族ID: String, 弟子: Disciple):
+	return 家族系统.家族试炼(家族ID, 弟子)
+func 计算家族培养加成(弟子: Disciple):
+	return 家族系统.计算家族培养加成(弟子)
+func 学习宗门功法(弟子: Disciple, 功法ID: String):
+	return 家族系统.学习宗门功法(弟子, 功法ID)
+func 清除宗门功法(弟子: Disciple):
+	return 家族系统.清除宗门功法(弟子)
+func 家族联盟(家族ID1: String, 家族ID2: String, 操作者: Disciple):
+	return 家族系统.家族联盟(家族ID1, 家族ID2, 操作者)
+func 解除家族联盟(家族ID1: String, 家族ID2: String, 操作者: Disciple):
+	return 家族系统.解除家族联盟(家族ID1, 家族ID2, 操作者)
+func 家族联姻(家族ID1: String, 家族ID2: String, 弟子1: Disciple, 弟子2: Disciple, 操作者: Disciple):
+	return 家族系统.家族联姻(家族ID1, 家族ID2, 弟子1, 弟子2, 操作者)
+func 家族结仇(家族ID1: String, 家族ID2: String, 原因: String, 操作者: Disciple):
+	return 家族系统.家族结仇(家族ID1, 家族ID2, 原因, 操作者)
+func 家族和解(家族ID1: String, 家族ID2: String, 操作者: Disciple):
+	return 家族系统.家族和解(家族ID1, 家族ID2, 操作者)
+func 计算家族社交加成(弟子: Disciple):
+	return 家族系统.计算家族社交加成(弟子)
+func 检测功法泄露(弟子: Disciple, 功法ID: String, 功法类型: String):
+	return 家族系统.检测功法泄露(弟子, 功法ID, 功法类型)
+func 执行功法泄露惩罚(弟子: Disciple, 功法ID: String, 功法类型: String):
+	return 家族系统.执行功法泄露惩罚(弟子, 功法ID, 功法类型)
+func 触发家族事件(家族ID: String, 事件类型: String, 附加信息: Dictionary = {}):
+	return 家族系统.触发家族事件(家族ID, 事件类型, 附加信息)
+func 获取家族事件记录(家族ID: String, 限制数量: int = 20):
+	return 家族系统.获取家族事件记录(家族ID, 限制数量)
+func 计算家族实力评分(家族ID: String):
+	return 家族系统.计算家族实力评分(家族ID)
+func 获取家族排行榜(限制数量: int = 10):
+	return 家族系统.获取家族排行榜(限制数量)
+func 获取家族排名(家族ID: String):
+	return 家族系统.获取家族排名(家族ID)
+
+# ============ §6.16 家族竞争系统（P4实现）============
+# 修真世界设定：资源点竞争、秘境竞争、家族排名竞争
+
+# 资源点配置
+var _资源点配置: Dictionary = {
+	"resource_001": {"名": "灵脉矿脉", "类型": "灵石", "产出": 100, "描述": "富含灵石的矿脉，每日产出大量灵石"},
+	"resource_002": {"名": "灵药园", "类型": "灵草", "产出": 50, "描述": "种植灵药的园地，每日产出大量灵草"},
+	"resource_003": {"名": "炼器坊", "类型": "矿石", "产出": 30, "描述": "炼制法器的坊市，每日产出大量矿石"},
+	"resource_004": {"名": "聚灵地", "类型": "修炼", "产出": 20, "描述": "灵气浓郁的宝地，占据家族成员修炼速度+20%"},
+	"resource_005": {"名": "秘境入口", "类型": "秘境", "产出": 10, "描述": "通往秘境的入口，占据家族可定期探索秘境"}
+}
+
+# 资源点占领状态
+var _资源点占领: Dictionary = {}
+
+## 争夺资源点
+func 争夺资源点(家族ID: String, 资源点ID: String, 挑战者: Disciple) -> Dictionary:
+	if 家族ID == "" or 资源点ID == "" or 挑战者 == null:
+		return {"成功": false, "因": "参数无效"}
+	if not _资源点配置.has(资源点ID):
+		return {"成功": false, "因": "资源点不存在"}
+	var 家族: Dictionary = 获取家族(家族ID)
+	if 家族.is_empty():
+		return {"成功": false, "因": "家族不存在"}
+	# 检查挑战者权限
+	var 职位权限: Dictionary = {"老祖": 10, "长老": 8, "核心": 6, "内门": 4, "外门": 2, "附庸": 1}
+	if 挑战者.家族ID != 家族ID or 职位权限.get(挑战者.家族职位, 0) < 6:
+		return {"成功": false, "因": "权限不足，只有核心及以上才能争夺资源点"}
+	# 检查是否已被占领
+	var 当前占领: String = str(_资源点占领.get(资源点ID, ""))
+	if 当前占领 == 家族ID:
+		return {"成功": false, "因": "本家族已占领此资源点"}
+	# 争夺判定（简化版：比较家族实力评分）
+	var 挑战方评分: int = 计算家族实力评分(家族ID).get("评分", 0)
+	var 防守方评分: int = 0
+	if 当前占领 != "":
+		防守方评分 = 计算家族实力评分(当前占领).get("评分", 0)
+	# 挑战方有30%基础胜率，加上实力差距
+	var 胜率: float = 0.3 + clamp((挑战方评分 - 防守方评分) / 200.0, -0.3, 0.5)
+	if randf() < 胜率:
+		# 争夺成功
+		_资源点占领[资源点ID] = 家族ID
+		# 触发事件
+		触发家族事件(家族ID, "family_rise", {"资源点": 资源点ID})
+		var 资源点: Dictionary = _资源点配置[资源点ID]
+		添加纪事("家族竞争", "争夺成功", "「%s」成功争夺资源点「%s」" % [str(家族.get("名", "")), str(资源点.get("名", ""))], 1)
+		return {"成功": true, "结果": "争夺成功", "资源点": str(资源点.get("名", ""))}
+	else:
+		# 争夺失败
+		添加纪事("家族竞争", "争夺失败", "「%s」争夺资源点「%s」失败" % [str(家族.get("名", "")), _资源点配置[资源点ID].get("名", "")], 1)
+		return {"成功": true, "结果": "争夺失败", "胜率": 胜率}
+
+## 获取资源点占领状态
+func 获取资源点占领状态() -> Array:
+	var 结果: Array = []
+	for 资源点ID in _资源点配置.keys():
+		var 资源点: Dictionary = _资源点配置[资源点ID]
+		var 占领家族ID: String = str(_资源点占领.get(资源点ID, ""))
+		var 占领家族名: String = "无主"
+		if 占领家族ID != "" and 家族系统.家族列表.has(占领家族ID):
+			占领家族名 = str(家族系统.家族列表[占领家族ID].get("名", ""))
+		结果.append({
+			"资源点ID": 资源点ID,
+			"名": str(资源点.get("名", "")),
+			"类型": str(资源点.get("类型", "")),
+			"产出": int(资源点.get("产出", 0)),
+			"描述": str(资源点.get("描述", "")),
+			"占领家族ID": 占领家族ID,
+			"占领家族名": 占领家族名
+		})
+	return 结果
 # S1 ：-A：宗门大阵·聚灵大阵（arr_s_002）修炼乘区（：_藏经阁修炼乘区）：
 # 仅当前主阵为聚灵大阵时提供修炼速度增益；其余阵（护：镇煞/玄空）不作用于修炼乘区：
 # 数：[PLACEHOLDER]：eff_val_base/level_growth_coef 取自 array_config.csv（本批用投稿值）：
@@ -4038,18 +4296,19 @@ func 获取所有建筑列表() -> Array:
 	var 建筑列表 = []
 	# 定义所有建筑
 	var 建筑配置 = {
-		"lingtian": {"名称": "灵田", "描述": "产出灵石和灵草", "类型": "产出"},
-		"kuangmai": {"名称": "矿脉", "描述": "产出矿石", "类型": "产出"},
-		"dantang": {"名称": "丹堂", "描述": "提升炼丹成功率", "类型": "功能"},
-		"qitang": {"名称": "器堂", "描述": "提升锻造成功率", "类型": "功能"},
-		"cangjing": {"名称": "藏经阁", "描述": "提升修炼速度", "类型": "功能"},
-		"zhifa": {"名称": "执法堂", "描述": "减少负面事件", "类型": "功能"},
-		"gongxun": {"名称": "功勋阁", "描述": "提升声望获取", "类型": "功能"},
-		"tanwei": {"名称": "探微阁", "描述": "提升探索收益", "类型": "功能"},
-		"yuying": {"名称": "育英堂", "描述": "提升弟子培养效率", "类型": "功能"},
-		"yushou": {"名称": "御兽堂", "描述": "提升灵兽能力", "类型": "功能"},
-		"zhenfa": {"名称": "阵法堂", "描述": "提升阵法效果", "类型": "功能"},
-		"xichi": {"名称": "洗池", "描述": "提升弟子突破成功率", "类型": "功能"},
+		"lingtian": {"名称": "灵田", "描述": "产出灵石和灵草", "类型": "产出", "需等级": 1},
+		"kuangmai": {"名称": "矿脉", "描述": "产出矿石", "类型": "产出", "需等级": 1},
+		"dantang": {"名称": "丹堂", "描述": "提升炼丹成功率", "类型": "功能", "需等级": 2},
+		"qitang": {"名称": "器堂", "描述": "提升锻造成功率", "类型": "功能", "需等级": 2},
+		"cangjing": {"名称": "藏经阁", "描述": "提升修炼速度", "类型": "功能", "需等级": 3},
+		"zhifa": {"名称": "执法堂", "描述": "减少负面事件", "类型": "功能", "需等级": 3},
+		"futang": {"名称": "符堂", "描述": "提升炼符成功率", "类型": "功能", "需等级": 4},
+		"gongxun": {"名称": "功勋阁", "描述": "提升声望获取", "类型": "功能", "需等级": 4},
+		"yushou": {"名称": "御兽堂", "描述": "提升灵兽能力", "类型": "功能", "需等级": 5},
+		"zhenfa": {"名称": "阵法堂", "描述": "提升阵法效果", "类型": "功能", "需等级": 5},
+		"yuying": {"名称": "育英堂", "描述": "提升弟子培养效率", "类型": "功能", "需等级": 6},
+		"xichi": {"名称": "洗池", "描述": "提升弟子突破成功率", "类型": "功能", "需等级": 6},
+		"tanwei": {"名称": "探微阁", "描述": "提升探索收益", "类型": "功能", "需等级": 7},
 	}
 	for 建筑ID in 建筑配置.keys():
 		var 配置 = 建筑配置[建筑ID]
@@ -4057,6 +4316,8 @@ func 获取所有建筑列表() -> Array:
 		if 司职列表.has(建筑ID):
 			var 职 = 司职列表[建筑ID]
 			等级 = int(职.get("等级", 1))
+		var 需等级: int = int(配置.get("需等级", 1))
+		var 可解锁: bool = 门派等级 >= 需等级
 		建筑列表.append({
 			"建筑ID": 建筑ID,
 			"名称": 配置.get("名称", ""),
@@ -4064,12 +4325,14 @@ func 获取所有建筑列表() -> Array:
 			"类型": 配置.get("类型", ""),
 			"等级": 等级,
 			"已解锁": 等级 > 0,
+			"需等级": 需等级,
+			"可解锁": 可解锁,
 		})
 	return 建筑列表
 
 # 获取建筑总加成
 func 获取建筑总加成() -> Dictionary:
-	var 加成 = {"修炼速度": 0.0, "产出": 0.0, "声望": 0.0, "炼丹成功率": 0.0, "锻造成功率": 0.0}
+	var 加成 = {"修炼速度": 0.0, "产出": 0.0, "声望": 0.0, "炼丹成功率": 0.0, "锻造成功率": 0.0, "符箓成功率": 0.0}
 	# 藏经阁：修炼速度+5%
 	if 司职列表.has("cangjing"):
 		加成["修炼速度"] += 0.05
@@ -4082,6 +4345,9 @@ func 获取建筑总加成() -> Dictionary:
 	# 器堂：锻造成功率+5%
 	if 司职列表.has("qitang"):
 		加成["锻造成功率"] += 0.05
+	# 符堂：炼符成功率+5%
+	if 司职列表.has("futang"):
+		加成["符箓成功率"] += 0.05
 	return 加成
 
 # 声望统一结算入口（套用功勋阁常驻 +10% 乘区；不触碰战斗数值红线）
@@ -4110,6 +4376,7 @@ func _ready():
 	_加载图录配置()      # WAVE-D #6（须：_记录图录/_传承事件 之前：
 	_加载里程碑配置()    # WAVE-D #8（须：_传承事件/_复检里程：之前：
 	_加载成就配置()      # S1 ：：成就配置（须在 _复检成就 之前；缺失文件不崩）
+	_加载称号配置()      # 称号系统配置
 	_加载阵营任务配置()  # 阵营任务配置
 	_加载阵营商店配置()  # 阵营商店配置
 	加载商队配置()       # S2 商路贸易：消费 caravan 岗位/载具配置
@@ -4118,6 +4385,9 @@ func _ready():
 		_传承事件("开宗立派")   # WAVE-D #8：新游戏即达成「开宗立派」里程碑 + 先贤事迹图录
 		save_game()              # 首次建宗后自动存档，确保下次启动出现「继续游戏：
 	重建司职()
+	# H项：设置复兴进度→色彩饱和/明度派生（门派等级1-7映射到0.0-1.0）
+	if Engine.has_singleton("UITheme") or get_node_or_null("/root/UITheme") != null:
+		UITheme.设置复兴进度(门派等级)
 	_加载彩蛋配置()
 	_加载节奏校准()
 	_加载阵法配置_S1()
@@ -4128,6 +4398,9 @@ func _ready():
 	# 月末/推演结束：统一检测里程碑与成就（防漏检）
 	_复检里程碑()
 	_复检成就()
+	# 活动系统：基于现实时间检查日常/周常重置
+	检查日常活动重置()
+	检查周常活动重置()
 # WAVE-B #2：取弟子纪事（按 弟子ID 过滤；旧：entry ：弟子ID 时回退 弟子==姓名，兼容旧档）
 func 取弟子纪事(目标ID: int, 姓名: String = "") -> Array:
 
@@ -4143,12 +4416,1054 @@ func 取弟子纪事(目标ID: int, 姓名: String = "") -> Array:
 # 初始建宗（首次运行）：若干练气弟：+ 一位已入门长老作示范
 func 初始建宗():
 
+	# S2：创建宗主独立角色实体（金丹境界，作为宗门创始人）
+	_初始化宗主()
 	for i in 5:
 		弟子列表.append(Disciple.new())
 	# 一位创始人：直接筑基入门，展示道：司职
 	var 新:= Disciple.new()
 	新.突破()           # 练气→筑基，触发 判定道途+ 入堂
 	弟子列表.append(新)
+
+## S2：初始化宗主独立角色实体
+func _初始化宗主() -> void:
+	宗主 = Disciple.new()
+	宗主.姓名 = 宗主名
+	宗主.身份 = "宗主"
+	宗主.境界 = "金丹"
+	宗主.寿元 = 500
+	宗主.战力 = 1500
+	宗主.状态 = "在宗"
+	宗主.司职 = ""
+	宗主.对宗主忠诚度 = 100.0
+	宗主.炼丹等级 = 1
+	宗主.炼器等级 = 1
+	宗主.年龄 = 30.0
+	宗主精力 = 宗主精力上限
+	_加推演条目("【%s】创立宗门，开始修仙之路" % 宗主名, "宗门", "高")
+
+## S2：旧档懒迁移宗主实体（旧档无宗主实体时创建）
+func _迁移宗主实体() -> void:
+	if 宗主 != null:
+		return
+	宗主 = Disciple.new()
+	宗主.姓名 = 宗主名
+	宗主.身份 = "宗主"
+	宗主.境界 = "金丹"
+	宗主.寿元 = 500
+	宗主.战力 = 1500
+	宗主.状态 = "在宗"
+	宗主.司职 = ""
+	宗主.对宗主忠诚度 = 100.0
+	宗主.炼丹等级 = 1
+	宗主.炼器等级 = 1
+	宗主.年龄 = 50.0
+	宗主精力 = 宗主精力上限
+	_加推演条目("【%s】宗主实体已激活（旧档迁移）" % 宗主名, "宗门", "中")
+
+## S2：宗主亲自炼丹（消耗精力+灵石，基于宗主炼丹等级）
+## P0联动：宗主传功（宗主消耗精力，为弟子提升修炼速度，持续7天）
+func 宗主传功(弟子: Disciple) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if 宗主精力 < 30:
+		return {"成功": false, "原因": "宗主精力不足（需30，当前%d）" % 宗主精力}
+	# 消耗宗主精力
+	宗主精力 -= 30
+	# 计算传功加成（宗主境界越高，加成越大）
+	var 宗主境界序: int = Disciple.境界序.find(宗主.境界)
+	var 传功加成: float = 0.3 + float(宗主境界序) * 0.05  # 基础30%，每境界+5%
+	# 设置弟子传功状态（持续7天）
+	弟子.传功加成 = 传功加成
+	弟子.传功剩余日 = 7
+	# 添加纪事
+	_加推演条目("【宗主】为%s亲自传功，弟子修炼速度提升%d%%，持续七日" % [弟子.姓名, int(传功加成 * 100)], "宗主", "中")
+	添加纪事("宗主", "传功授业", "宗主为%s传功，修炼速度+%d%%，持续七日" % [弟子.姓名, int(传功加成 * 100)], 0)
+	return {"成功": true, "弟子": 弟子.姓名, "加成": 传功加成, "持续日": 7}
+
+## P0联动：宗主护法（宗主为弟子突破护法，提升突破成功率）
+func 宗主护法(弟子: Disciple) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if 宗主精力 < 50:
+		return {"成功": false, "原因": "宗主精力不足（需50，当前%d）" % 宗主精力}
+	# 消耗宗主精力
+	宗主精力 -= 50
+	# 计算护法加成（宗主境界越高，加成越大）
+	var 宗主境界序: int = Disciple.境界序.find(宗主.境界)
+	var 护法加成: float = 0.2 + float(宗主境界序) * 0.03  # 基础20%，每境界+3%
+	# 设置弟子护法状态（下次突破生效）
+	弟子.护法加成 = 护法加成
+	弟子.待护法突破 = true
+	# 添加纪事
+	_加推演条目("【宗主】为%s突破护法，气机牵引，突破成功率提升%d%%" % [弟子.姓名, int(护法加成 * 100)], "宗主", "中")
+	添加纪事("宗主", "护法突破", "宗主为%s护法，突破成功率+%d%%" % [弟子.姓名, int(护法加成 * 100)], 0)
+	return {"成功": true, "弟子": 弟子.姓名, "加成": 护法加成}
+
+func 宗主炼丹(丹方ID: String) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主精力 < 20:
+		return {"成功": false, "原因": "宗主精力不足（需20，当前%d）" % 宗主精力}
+	# 消耗精力
+	宗主精力 -= 20
+	# 使用宗主丹房等级（独立于丹堂）
+	var 丹房等级: int = 获取宗主场所等级("丹房")
+	# 宗主场所加成（成功率/高品质率）
+	var 场所加成: Dictionary = 获取宗主场所加成("丹房")
+	# 毒医双修：毒道境界影响炼丹（懂药理者，炼丹亦精）
+	var 毒道炼丹加成: Dictionary = 获取毒道炼丹加成()
+	var 有效丹房等级: int = 丹房等级 + int(float(毒道炼丹加成["成功率加成"]) * 20)  # 每10%加成=2级丹房
+	# 调用S38/S39完整炼丹系统（使用有效丹房等级）
+	var 结果: Dictionary = 执行炼丹(丹方ID, 有效丹房等级)
+	if bool(结果.get("成功", false)):
+		var 产出名: String = str(结果.get("名称", ""))
+		var 产出数: int = int(结果.get("数量", 1))
+		var 毒道境界: String = 获取毒道境界()
+		if 毒道境界 != "毒道学徒":
+			_加推演条目("【宗主】于丹房亲自炼丹成功，获得%s×%d（丹房%d级，场所加成成功率+%d%%，毒医双修%s加成）" % [产出名, 产出数, 丹房等级, int(float(场所加成["成功率加成"]) * 100), 毒道境界], "宗主", "中")
+		else:
+			_加推演条目("【宗主】于丹房亲自炼丹成功，获得%s×%d（丹房%d级，场所加成成功率+%d%%）" % [产出名, 产出数, 丹房等级, int(float(场所加成["成功率加成"]) * 100)], "宗主", "中")
+		结果["炼丹等级"] = 丹房等级
+		结果["毒医加成"] = 毒道炼丹加成
+		结果["场所加成"] = 场所加成
+	else:
+		_加推演条目("【宗主】于丹房炼丹失败，药材损毁（丹房%d级）" % 丹房等级, "宗主", "低")
+	return 结果
+
+## 宗主亲自炼器（接入S42/S43完整系统）
+func 宗主炼器(配方ID: String) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主精力 < 30:
+		return {"成功": false, "原因": "宗主精力不足（需30，当前%d）" % 宗主精力}
+	# 消耗精力
+	宗主精力 -= 30
+	# 使用宗主炼器室等级（独立于器堂）
+	var 炼器室等级: int = 获取宗主场所等级("炼器室")
+	# 宗主场所加成（成功率/高品质率）
+	var 场所加成: Dictionary = 获取宗主场所加成("炼器室")
+	# 调用S42/S43完整炼器系统（使用宗主炼器室等级）
+	var 结果: Dictionary = 执行炼器(配方ID, 炼器室等级, 宗主)
+	if bool(结果.get("成功", false)):
+		var 产出名: String = str(结果.get("名称", ""))
+		_加推演条目("【宗主】于炼器室亲自炼器成功，获得%s（炼器室%d级，场所加成成功率+%d%%）" % [产出名, 炼器室等级, int(float(场所加成["成功率加成"]) * 100)], "宗主", "中")
+		结果["炼器等级"] = 炼器室等级
+		结果["场所加成"] = 场所加成
+	else:
+		_加推演条目("【宗主】于炼器室炼器失败，材料损毁（炼器室%d级）" % 炼器室等级, "宗主", "低")
+	return 结果
+
+## 宗主亲自制符（接入S45完整系统，消耗精力+调用符箓封装系统）
+func 宗主制符(符箓ID: String) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主精力 < 15:
+		return {"成功": false, "原因": "宗主精力不足（需15，当前%d）" % 宗主精力}
+	# 消耗精力
+	宗主精力 -= 15
+	# 使用宗主制符室等级（独立于符堂）
+	var 制符室等级: int = 获取宗主场所等级("制符室")
+	# 宗主场所加成（成功率/高品质率）
+	var 场所加成: Dictionary = 获取宗主场所加成("制符室")
+	# 调用S45完整炼符系统（使用宗主制符室等级）
+	var 结果: Dictionary = 执行炼符(符箓ID, 制符室等级)
+	if bool(结果.get("成功", false)):
+		var 产出名: String = str(结果.get("名称", ""))
+		var 产出数: int = int(结果.get("数量", 1))
+		_加推演条目("【宗主】于制符室亲自绘符成功，获得%s×%d（制符室%d级，场所加成成功率+%d%%）" % [产出名, 产出数, 制符室等级, int(float(场所加成["成功率加成"]) * 100)], "宗主", "中")
+		结果["制符等级"] = 制符室等级
+		结果["场所加成"] = 场所加成
+	else:
+		_加推演条目("【宗主】于制符室绘符失败，符纸损毁（制符室%d级）" % 制符室等级, "宗主", "低")
+	return 结果
+
+## 获取宗主可绘制符箓列表（接入S45完整符箓配置）
+func 获取宗主符箓列表() -> Array:
+	var 列表: Array = []
+	# 从符箓配置表读取所有可绘制符箓
+	var 配置表 = _读表_符箓()
+	for 行 in 配置表:
+		if 行 is Dictionary and 行.has("名称"):
+			列表.append(str(行["名称"]))
+	return 列表
+
+## 宗主亲自制作傀儡（接入傀儡系统，消耗精力）
+func 宗主制作傀儡(傀儡名称: String, 傀儡品阶: String, 傀儡类型: String) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主精力 < 25:
+		return {"成功": false, "原因": "宗主精力不足（需25，当前%d）" % 宗主精力}
+	# 消耗精力
+	宗主精力 -= 25
+	# 调用傀儡系统
+	var 结果: Dictionary = 制作傀儡(傀儡名称, 傀儡品阶, 傀儡类型)
+	if bool(结果.get("成功", false)):
+		_加推演条目("【宗主】亲自炼制傀儡成功，获得%s（%s）" % [傀儡名称, 傀儡品阶], "宗主", "中")
+	else:
+		_加推演条目("【宗主】炼制傀儡失败，材料损毁" , "宗主", "低")
+	return 结果
+
+## S2：宗主亲自探索秘境（消耗精力+体力，基于宗主境界/战力）
+func 宗主探索秘境(秘境ID: String) -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主精力 < 25:
+		return {"成功": false, "原因": "宗主精力不足（需25，当前%d）" % 宗主精力}
+	if 体力 < 10:
+		return {"成功": false, "原因": "体力不足（需10，当前%d）" % 体力}
+
+	# 秘境配置（简化版）
+	var 秘境配置: Dictionary = {
+		"炼气秘境": {"推荐境界": "练气", "基础奖励": 100, "危险度": 0.1},
+		"筑基秘境": {"推荐境界": "筑基", "基础奖励": 300, "危险度": 0.2},
+		"金丹秘境": {"推荐境界": "金丹", "基础奖励": 800, "危险度": 0.3},
+		"元婴秘境": {"推荐境界": "元婴", "基础奖励": 2000, "危险度": 0.4},
+	}
+	if not 秘境配置.has(秘境ID):
+		return {"成功": false, "原因": "秘境不存在：%s" % 秘境ID}
+
+	var 配置: Dictionary = 秘境配置[秘境ID]
+	var 推荐境界序: int = Disciple.境界序.find(str(配置["推荐境界"]))
+	var 宗主境界序: int = Disciple.境界序.find(str(宗主.境界))
+
+	# P0修复：体力系统改为每日机缘校验
+	var 机缘检查: Dictionary = 检查机缘("游历机缘")
+	if not 机缘检查.get("足够", false):
+		return {"成功": false, "原因": "今日游历机缘已尽（%d/%d），可提升VIP等级增加机缘" % [机缘检查.get("已用", 0), 机缘检查.get("上限", 0)]}
+	# 消耗
+	宗主精力 -= 25
+	消耗机缘("游历机缘")
+
+	# 成功率：境界达标=70%，每高1阶+10%，每低1阶-15%
+	var 境界差: int = 宗主境界序 - 推荐境界序
+	var 成功率: float = 0.7 + float(境界差) * 0.1
+	成功率 = clamp(成功率, 0.2, 0.95)
+
+	# 战力加成：每1000战力+2%
+	var 战力加成: float = float(宗主.战力) / 1000.0 * 0.02
+	成功率 = min(0.98, 成功率 + 战力加成)
+
+	if randf() < 成功率:
+		# 成功：获得奖励
+		var 奖励灵石: int = int(配置["基础奖励"]) + randi() % int(配置["基础奖励"])
+		灵石 += 奖励灵石
+		宗主威望 += 1
+
+		# 概率获得材料/装备
+		var 获得物品: String = ""
+		if randf() < 0.3:
+			var 材料列表: Array = ["灵草", "灵晶", "矿石", "妖兽内丹"]
+			获得物品 = 材料列表[randi() % 材料列表.size()]
+			var 材料 = Item.new()
+			材料.名称 = 获得物品
+			材料.类型 = "材料"
+			材料.品阶 = "良品"
+			宗主.背包.append(材料)
+
+		_加推演条目("【宗主】探索%s成功，获得灵石%d%s（威望+1）" % [秘境ID, 奖励灵石, "，获得"+获得物品 if 获得物品 != "" else ""], "宗主", "中")
+		return {"成功": true, "奖励灵石": 奖励灵石, "获得物品": 获得物品, "威望": 宗主威望}
+	else:
+		# 失败：概率受伤
+		var 受伤: bool = randf() < float(配置["危险度"])
+		if 受伤:
+			宗主.受伤剩余 = max(int(宗主.受伤剩余), 7)
+			_加推演条目("【宗主】探索%s失败，遭遇危险受伤（养伤7天）" % 秘境ID, "宗主", "高")
+			return {"成功": false, "原因": "探索失败，宗主受伤", "受伤": true}
+		else:
+			_加推演条目("【宗主】探索%s失败，无功而返" % 秘境ID, "宗主", "低")
+			return {"成功": false, "原因": "探索失败", "受伤": false}
+
+## S2：获取宗主可探索秘境列表
+func 获取宗主秘境列表() -> Array:
+	return ["炼气秘境", "筑基秘境", "金丹秘境", "元婴秘境"]
+
+## S3：宗主进入闭关（修炼加速，宗门由副宗主/方针代管）
+func 宗主进入闭关() -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主实体未初始化"}
+	if 宗主闭关中:
+		return {"成功": false, "原因": "宗主已在闭关中"}
+	宗主闭关中 = true
+	宗主闭关开始日 = 累计游戏日
+	宗主闭关累计天 = 0
+	# 闭关代管：副宗主权能外的事务先登记为待办，宗主出关后亲办
+	# （可代管() 依赖 宗主闭关中，必须置于置位之后）
+	var 不可代管: Array = []
+	for 事务类型 in 代管权能.keys():
+		if not 可代管(str(事务类型)):
+			不可代管.append(str(事务类型))
+	if not 不可代管.is_empty():
+		添加待处理事件("代管缺口", "闭关期间「%s」等%d类事务无人可代管，需宗主出关亲办" % ["、".join(不可代管), 不可代管.size()])
+	最后在线时间戳 = Time.get_unix_time_from_system()
+	_加推演条目("【宗主】进入闭关修炼，宗门事务交由方针代管", "宗主", "中")
+	return {"成功": true, "开始日": 宗主闭关开始日}
+
+## S3：宗主退出闭关（结算闭关收益）
+func 宗主退出闭关() -> Dictionary:
+	if not 宗主闭关中:
+		return {"成功": false, "原因": "宗主未在闭关"}
+	var 闭关天数: int = 累计游戏日 - 宗主闭关开始日
+	宗主闭关累计天 = 闭关天数
+	宗主闭关中 = false
+	# 闭关收益：修炼进度加成（闭关期间修炼速度×2）
+	if 宗主 != null and 闭关天数 > 0:
+		var 额外修为: float = float(闭关天数) * 0.01  # 每天1%修为
+		宗主.修炼进度 = min(1.0, 宗主.修炼进度 + 额外修为)
+		宗主精力 = 宗主精力上限  # 闭关恢复全部精力
+	_加推演条目("【宗主】出关，闭关%d天，修为大增，精力全满" % 闭关天数, "宗主", "中")
+	return {"成功": true, "闭关天数": 闭关天数, "额外修为": float(闭关天数) * 0.01}
+
+## S3：离线结算（上线时调用，计算离线期间的资源产出）
+func 离线结算() -> Dictionary:
+	var 当前时间: float = Time.get_unix_time_from_system()
+	if 最后在线时间戳 <= 0:
+		最后在线时间戳 = 当前时间
+		return {"成功": false, "原因": "首次上线，无离线数据"}
+	var 离线秒: float = 当前时间 - 最后在线时间戳
+	最后在线时间戳 = 当前时间
+	if 离线秒 < 60:  # 离线不足1分钟不结算
+		return {"成功": false, "原因": "离线时间过短（不足1分钟）"}
+	# 离线游戏日 = 离线秒 / 240（游戏1日=240现实秒=4分钟）
+	var 离线游戏日: int = int(离线秒 / 240)
+	if 离线游戏日 <= 0:
+		return {"成功": false, "原因": "离线时间不足1游戏日"}
+	# 限制最大离线结算（7天=210游戏日）
+	离线游戏日 = min(离线游戏日, 210)
+	# 离线资源产出（按日均产出的50%结算，避免离线比在线收益高）
+	var 日均灵石: int = max(10, int(灵石 / max(1, 累计游戏日)))
+	var 离线灵石: int = int(日均灵石 * 离线游戏日 * 0.5 * 离线结算倍率)
+	var 离线灵草: int = int(日均灵石 * 0.3 * 离线游戏日 * 0.5 * 离线结算倍率)
+	灵石 += 离线灵石
+	灵草 += 离线灵草
+	# 宗主闭关期间额外修炼
+	if 宗主闭关中 and 宗主 != null:
+		var 额外修为: float = float(离线游戏日) * 0.01
+		宗主.修炼进度 = min(1.0, 宗主.修炼进度 + 额外修为)
+		宗主闭关累计天 += 离线游戏日
+		if 宗主.修炼进度 >= 1.0:
+			_宗主尝试突破()
+	_加推演条目("【离线结算】离线%d游戏日，获得灵石%d、灵草%d（倍率%.1f×）" % [离线游戏日, 离线灵石, 离线灵草, 离线结算倍率], "宗门", "中")
+	return {"成功": true, "离线游戏日": 离线游戏日, "离线灵石": 离线灵石, "离线灵草": 离线灵草}
+
+## S3：设置离线结算倍率（VIP/月卡调用）
+func 设置离线倍率(倍率: float) -> void:
+	离线结算倍率 = clamp(倍率, 1.0, 3.0)
+
+## S3：更新最后在线时间戳（每次保存时调用）
+func 更新在线时间戳() -> void:
+	最后在线时间戳 = Time.get_unix_time_from_system()
+
+## E：宗主延寿（延寿丹/奇遇/突破调用）
+func 宗主延寿(年数: int) -> void:
+	宗主剩余寿元 += 年数
+	_加推演条目("【宗主】寿元增加%d年，当前剩余%d年" % [年数, 宗主剩余寿元], "宗主", "中")
+
+## 宗主修炼进度圆满 → 突破下一境界
+## 复用弟子那套天劫核心（心魔关 + 因果倍率 + 四槽抗性），区别：宗主可调用更多宗门资源
+## （护山大阵/护法/渡劫丹药/防御雷劫法宝）。凡境顺渡（练气→元婴，无劫）走直接出口；
+## 元婴→化神起须渡天劫，复用 宗主.渡天劫 → Tribulation.计算渡劫结果 → 突破/受创/陨落/保命替死。
+func _宗主尝试突破() -> bool:
+	if 宗主 == null or 宗主.修炼进度 < 1.0:
+		return false
+	if 宗主.受伤剩余 > 0 or 宗主.突破冷却剩余 > 0:
+		return false   # 带伤/冷却中不渡劫（与弟子一致）
+	var 序: int = Disciple.境界序.find(str(宗主.境界))
+	if 序 < 0 or 序 + 1 >= Disciple.境界序.size():
+		return false
+	var 新境界: String = str(Disciple.境界序[序 + 1])
+	# 凡境顺渡（无需天劫）：练气→筑基→金丹→元婴
+	if not Tribulation.需渡劫(新境界):
+		宗主.境界 = 新境界
+		宗主.修炼进度 = 0.0
+		_宗主突破增加寿元(新境界)
+		# 宗主突破时也能自创功法（6.17.1）
+		尝试自创功法(宗主)
+		return true
+	# 天劫分支：宗主复用弟子渡劫执行核心（计算渡劫结果 → 突破/受创/陨落/保命替死）
+	var 旧寿元上限: int = int(宗主.寿元)
+	var 准备: Dictionary = _构建宗主渡劫准备()
+	var 通过: bool = 宗主.渡天劫(新境界, 准备)
+	if 通过:
+		_宗主突破增加寿元(新境界, 旧寿元上限)
+		尝试自创功法(宗主)
+		_加推演条目("【宗主】渡%s 功成，晋%s！" % [str(宗主.渡劫详情.get("天劫名", "")), 新境界], "宗主", "高")
+	else:
+		# 受创/陨落：_渡天劫 已重置 修炼进度=0 并设 受伤剩余；若真陨落(无保命)则触发传承
+		if str(宗主.状态) == "陨落":
+			宗主传承触发中 = true
+			_加推演条目("【宗主】渡劫陨落！请选择传承方式（转世重修/传位弟子）", "宗主", "高")
+	return 通过
+
+## E：宗主突破境界时增加寿元上限
+## 旧上限：调用方传入突破前寿元上限。天劫路径下 突破() 已改写 宗主.寿元，
+## 若仍读 宗主.寿元 作基准则「新增=0」、寿元增益归零，故必须传快照。
+func _宗主突破增加寿元(新境界: String, 旧上限: int = 0) -> void:
+	var 寿元表: Dictionary = {"练气": 80, "筑基": 200, "金丹": 500, "元婴": 1200, "化神": 2500, "炼虚": 5000}
+	var 基准: int = 旧上限 if 旧上限 > 0 else int(宗主.寿元)
+	if 寿元表.has(新境界):
+		var 新增: int = int(寿元表[新境界]) - 基准
+		if 新增 > 0:
+			宗主剩余寿元 += 新增
+			宗主.寿元 = int(寿元表[新境界])   # 上限同步；否则再突破会重复计入同一差额
+			_加推演条目("【宗主】突破至%s，寿元增加%d年" % [新境界, 新增], "宗主", "高")
+
+## 构建宗主专属渡劫准备：复用弟子天劫核心四槽，但调用更多宗门资源
+##   护阵抗性：护山大阵（宗主为阵主，总是开）
+##   护法抗性：长老护法（宗主坐镇，总是开）
+##   道具减伤/承伤倍率：渡劫丹药（按玩家预设 渡劫准备配置.道具 消耗库藏灵石）
+##   承伤倍率 += 防御雷劫法宝加成（护身符/本命法宝；当前符箓渡劫词条未落地，占位 0）
+func _构建宗主渡劫准备() -> Dictionary:
+	var 准备: Dictionary = {
+		"护阵抗性": 获取护山大阵抗性(),
+		"道具减伤": 0.0,
+		"护法抗性": 获取护法抗性(),
+		"承伤倍率": 1.0,
+	}
+	# 渡劫丹药：与弟子同池（玩家预设），宗主作为宗门之主可直接动用库藏灵石
+	var 道具列表: Array = 渡劫准备配置.get("道具", [])
+	if 道具列表.size() > 0:
+		var 汇总: Dictionary = Tribulation.汇总道具(道具列表)
+		if 灵石 >= int(汇总["灵石"]):
+			灵石 -= int(汇总["灵石"])
+			准备["道具减伤"] = float(汇总["减伤"])
+			准备["承伤倍率"] = 1.0 + float(汇总["成功率加成"])
+			_加推演条目("【宗主】渡劫耗灵石%d，动用渡劫丹药×%d" % [int(汇总["灵石"]), 道具列表.size()], "宗主", "中")
+	# 防御雷劫法宝：护身符/本命法宝 额外承伤倍率（无现成渡劫字段，占位 0，待符箓/法宝渡劫词条落地回填）
+	准备["承伤倍率"] += 宗主法宝渡劫承伤加成()
+	return 准备
+
+## 宗主防御雷劫法宝的承伤倍率加成（护身符/本命法宝 的「渡劫」类词条；当前无对应字段 → 0）
+## [PLACEHOLDER] 待 S45 符箓/法宝渡劫词条系统落地后回填真实加成
+func 宗主法宝渡劫承伤加成() -> float:
+	return 0.0
+
+## E：月度推演中检测宗主寿元
+func _检测宗主寿元(月: int) -> void:
+	if 宗主 == null or 宗主传承触发中:
+		return
+	# 宗主年龄增长（月=游戏日，360日=1年）
+	宗主.年龄 += float(月) / 360.0
+	# 剩余寿元减少
+	宗主剩余寿元 -= int(月 / 360)
+	if 宗主剩余寿元 <= 0:
+		宗主剩余寿元 = 0
+		宗主传承触发中 = true
+		_加推演条目("【宗主】寿元耗尽！请选择传承方式（转世重修/传位弟子）", "宗主", "高")
+
+## E：宗主转世重修（保留记忆和部分修为，从练气重新开始）
+func 宗主转世重修() -> Dictionary:
+	if not 宗主传承触发中:
+		return {"成功": false, "原因": "未触发传承"}
+	# 保留部分属性
+	var 保留修为: float = float(宗主.修炼进度) * 0.3
+	var 保留威望: int = int(宗主威望 * 0.5)
+	var 保留技艺: Dictionary = {}
+	# 重置宗主
+	宗主.境界 = "练气"
+	宗主.层级 = 1
+	宗主.修炼进度 = 保留修为
+	宗主.战力 = 100
+	宗主.寿元 = 80
+	宗主.年龄 = 16
+	宗主.瓶颈打磨值 = 0
+	宗主威望 = 保留威望
+	宗主剩余寿元 = 80
+	宗主转世次数 += 1
+	宗主传承触发中 = false
+	_加推演条目("【宗主】转世重修！保留%.0f%%修为和%d威望，从练气重新开始（第%d世）" % [保留修为 * 100, 保留威望, 宗主转世次数], "宗主", "高")
+	return {"成功": true, "方式": "转世重修", "保留修为": 保留修为, "保留威望": 保留威望, "转世次数": 宗主转世次数}
+
+## E：传位弟子（从弟子中选择新宗主，旧宗主坐化留下传承）
+func 宗主传位弟子(新宗主弟子ID: int) -> Dictionary:
+	if not 宗主传承触发中:
+		return {"成功": false, "原因": "未触发传承"}
+	# 查找新宗主
+	var 新宗主: Disciple = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 新宗主弟子ID:
+			新宗主 = d
+			break
+	if 新宗主 == null:
+		return {"成功": false, "原因": "未找到指定弟子"}
+	# 旧宗主坐化，留下传承宝物
+	var 传承宝物 = Item.new()
+	传承宝物.名称 = "宗主传承玉符"
+	传承宝物.类型 = "特殊"
+	传承宝物.品阶 = "仙品"
+	传承宝物.描述 = "蕴含前任宗主毕生修为感悟，使用后可大幅提升修炼速度"
+	宗门库房.append(传承宝物)
+	# 旧宗主装备/背包归入宗门
+	for it in 宗主.装备.values():
+		宗门库房.append(it)
+	宗主.装备.clear()
+	for it in 宗主.背包:
+		宗门库房.append(it)
+	宗主.背包.clear()
+	# 新宗主继承
+	新宗主.身份 = "宗主"
+	宗主 = 新宗主
+	弟子列表.erase(新宗主)
+	宗主剩余寿元 = int(新宗主.寿元)
+	宗主传承触发中 = false
+	_加推演条目("【宗主】传位于%s！旧宗主坐化，留下传承玉符" % str(新宗主.姓名), "宗主", "高")
+	return {"成功": true, "方式": "传位弟子", "新宗主": str(新宗主.姓名), "传承宝物": "宗主传承玉符"}
+
+## E：获取可继承宗主之位的弟子列表（境界最高的前5名）
+func 获取继承候选弟子() -> Array:
+	var 候选: Array = []
+	for d in 弟子列表:
+		if d != null and str(d.状态) == "在宗" and str(d.身份) != "宗主":
+			候选.append(d)
+	# 按境界排序（Godot 4使用自定义排序）
+	var 排序后: Array = []
+	for d in 候选:
+		var 境界值: int = Disciple.境界序.find(str(d.境界))
+		排序后.append({"弟子": d, "境界值": 境界值})
+	排序后.sort_custom(func(a, b): return a["境界值"] > b["境界值"])
+	var 结果: Array = []
+	for item in 排序后:
+		结果.append(item["弟子"])
+	return 结果.slice(0, min(5, 结果.size()))
+
+## F：任命副宗主
+func 任命副宗主(弟子ID: int) -> Dictionary:
+	var 目标: Disciple = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "未找到指定弟子"}
+	if str(目标.境界) not in ["金丹", "元婴", "化神", "炼虚"]:
+		return {"成功": false, "原因": "副宗主需金丹及以上境界"}
+	# 解除旧副宗主
+	if 副宗主弟子ID >= 0:
+		for d in 弟子列表:
+			if d != null and int(d.弟子ID) == 副宗主弟子ID:
+				d.身份 = "长老"
+				break
+	目标.身份 = "副宗主"
+	副宗主弟子ID = 弟子ID
+	_加推演条目("【管理层】任命%s为副宗主" % str(目标.姓名), "宗门", "中")
+	return {"成功": true, "副宗主": str(目标.姓名)}
+
+## F：解除副宗主
+func 解除副宗主() -> Dictionary:
+	if 副宗主弟子ID < 0:
+		return {"成功": false, "原因": "当前无副宗主"}
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 副宗主弟子ID:
+			d.身份 = "长老"
+			_加推演条目("【管理层】解除%s副宗主之位" % str(d.姓名), "宗门", "中")
+			break
+	副宗主弟子ID = -1
+	return {"成功": true}
+
+## F：获取副宗主信息
+func 获取副宗主() -> Disciple:
+	if 副宗主弟子ID < 0:
+		return null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 副宗主弟子ID:
+			return d
+	return null
+
+## F：设置代管权能
+func 设置代管权能(权能项: String, 允许: bool) -> void:
+	if 代管权能.has(权能项):
+		代管权能[权能项] = 允许
+
+## F：闭关代管检查（闭关期间调用，判断某事务是否可由副宗主处理）
+func 可代管(事务类型: String) -> bool:
+	if not 宗主闭关中:
+		return true  # 宗主在线，所有事务可处理
+	if 副宗主弟子ID < 0:
+		return false  # 无副宗主，不可代管
+	return bool(代管权能.get(事务类型, false))
+
+## F：添加待处理事件（闭关期间副宗主无法处理的事件）
+func 添加待处理事件(事件类型: String, 事件描述: String) -> void:
+	代管待处理事件.append({"类型": 事件类型, "描述": 事件描述, "日期": 累计游戏日})
+	_加推演条目("【代管】%s（需宗主上线处理）" % 事件描述, "宗门", "高")
+
+## F：获取待处理事件列表（宗主上线时显示）
+func 获取待处理事件() -> Array:
+	return 代管待处理事件.duplicate()
+
+## F：清空待处理事件（宗主处理完后调用）
+func 清空待处理事件() -> void:
+	代管待处理事件.clear()
+
+## 修真味：判断弟子是否为天骄
+func 是天骄(弟子ID: int) -> bool:
+	return 弟子ID in 天骄弟子ID
+
+## 修真味：获取天骄修炼加成
+func 获取天骄修炼加成(弟子ID: int) -> float:
+	if 弟子ID in 天骄弟子ID:
+		return 1.2  # 天骄修炼速度+20%
+	return 1.0
+
+## 技能系统：获取所有可学习技能（从CSV读取）
+func 获取所有技能() -> Array:
+	var 路径 := "res://config/skill_cultivation.csv"
+	if not FileAccess.file_exists(路径):
+		return []
+	var 文件: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if 文件 == null:
+		return []
+	var 结果: Array = []
+	var 首行: bool = true
+	while not 文件.eof_reached():
+		var 行: String = 文件.get_line().strip_edges()
+		if 首行:
+			首行 = false
+			continue
+		if 行 == "":
+			continue
+		var 列: Array = 行.split(",")
+		if 列.size() < 10:
+			continue
+		结果.append({
+			"skill_id": str(列[0]),
+			"skill_name": str(列[1]),
+			"grade": str(列[2]),
+			"sub_grade": str(列[3]),
+			"apply_class": str(列[4]),
+			"skill_type": str(列[5]),
+			"effect_value": str(列[6]),
+			"max_level": int(列[7]),
+			"unlock_realm": str(列[8]),
+			"learn_cost": int(列[9]),
+		})
+	文件.close()
+	return 结果
+
+
+## 技能系统：获取弟子已学技能
+func 获取弟子技能(弟子ID: int) -> Array:
+	return 弟子技能字典.get(弟子ID, [])
+
+## 妖兽材料：击杀妖兽掉落（修真世界观：按妖兽境界掉落对应等阶材料）
+func 击杀妖兽掉落(妖兽境界: String, 妖兽类型: String = "通用") -> Dictionary:
+	var 等阶: String = 妖兽境界等阶.get(妖兽境界, "")
+	if 等阶 == "":
+		return {"成功": false, "原因": "未知妖兽境界：%s" % 妖兽境界}
+	var 掉落: Dictionary = {"内丹": 0, "精血": 0, "骨": 0, "皮": 0, "筋": 0, "爪": 0, "毛": 0}
+	# 内丹：60%掉落
+	if randf() < 0.6:
+		妖兽内丹[等阶] = int(妖兽内丹.get(等阶, 0)) + 1
+		掉落["内丹"] = 1
+	# 精血：40%掉落
+	if randf() < 0.4:
+		妖兽精血[等阶] = int(妖兽精血.get(等阶, 0)) + 1
+		掉落["精血"] = 1
+	# 骨：50%掉落
+	if randf() < 0.5:
+		妖兽骨[等阶] = int(妖兽骨.get(等阶, 0)) + 1
+		掉落["骨"] = 1
+	# 皮：70%掉落
+	if randf() < 0.7:
+		妖兽皮[等阶] = int(妖兽皮.get(等阶, 0)) + 1
+		掉落["皮"] = 1
+	# 筋：30%掉落
+	if randf() < 0.3:
+		妖兽筋[等阶] = int(妖兽筋.get(等阶, 0)) + 1
+		掉落["筋"] = 1
+	# 爪：40%掉落（有爪妖兽）
+	if randf() < 0.4:
+		妖兽爪[等阶] = int(妖兽爪.get(等阶, 0)) + 1
+		掉落["爪"] = 1
+	# 毛：80%掉落（有毛妖兽）
+	if randf() < 0.8:
+		妖兽毛[等阶] = int(妖兽毛.get(等阶, 0)) + 1
+		掉落["毛"] = 1
+	return {"成功": true, "等阶": 等阶, "掉落": 掉落}
+
+## 妖兽材料：按境界增加内丹/精血
+func 增加妖兽材料(妖兽境界: String, 内丹数: int = 1, 精血数: int = 0) -> Dictionary:
+	var 等阶: String = 妖兽境界等阶.get(妖兽境界, "")
+	if 等阶 == "":
+		return {"成功": false, "原因": "未知妖兽境界：%s" % 妖兽境界}
+	妖兽内丹[等阶] = int(妖兽内丹.get(等阶, 0)) + 内丹数
+	妖兽精血[等阶] = int(妖兽精血.get(等阶, 0)) + 精血数
+	return {"成功": true, "等阶": 等阶, "内丹+": 内丹数, "精血+": 精血数}
+
+## 妖兽材料：获取指定等阶内丹数量
+func 获取妖兽内丹(等阶: String) -> int:
+	return int(妖兽内丹.get(等阶, 0))
+
+## 妖兽材料：获取指定等阶精血数量
+func 获取妖兽精血(等阶: String) -> int:
+	return int(妖兽精血.get(等阶, 0))
+
+## 技能系统：获取弟子可学习技能（按境界筛选）
+func 获取弟子可学技能(弟子ID: int) -> Array:
+	var 目标: Disciple = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return []
+	var 所有技能: Array = 获取所有技能()
+	var 已学: Array = 获取弟子技能(弟子ID)
+	var 已学ID: Array = []
+	for sk in 已学:
+		已学ID.append(str(sk.get("skill_id", "")))
+	var 结果: Array = []
+	for sk in 所有技能:
+		if str(sk.get("skill_id", "")) in 已学ID:
+			continue
+		var 解锁: String = str(sk.get("unlock_realm", ""))
+		if str(目标.境界) in 解锁 or 解锁 == "":
+			结果.append(sk)
+	return 结果.slice(0, min(10, 结果.size()))
+
+## 技能系统：统一领悟检查（修真式：综合性格/道途/六维/心境/道心/履历/灵根/资质）
+func _尝试领悟技能(d: Disciple, 场景: String = "瓶颈", 概率加成: float = 0.0) -> bool:
+	if d == null:
+		return false
+	var 可学: Array = 获取弟子可学技能(int(d.弟子ID))
+	if 可学.is_empty():
+		return false
+	# 走火入魔时心魔干扰，难以领悟
+	if bool(d.走火入魔):
+		return false
+	# ===== 基础概率（按场景）=====
+	var 概率: float = 0.0
+	match 场景:
+		"瓶颈":
+			概率 = 0.02 + float(d.瓶颈打磨值) * 0.05
+		"战斗":
+			概率 = 0.05 + 概率加成
+		"濒死":
+			概率 = 0.20 + 概率加成
+		"奇遇":
+			概率 = 0.05 + 概率加成
+		"闭关":
+			概率 = 0.03
+	# ===== 六维属性影响（修真世界观：悟性/心性/气运/机缘）=====
+	var 悟性值: int = int(d.属性.get("悟性", 50))
+	var 心性值: int = int(d.属性.get("心性", 50))
+	var 气运值: int = int(d.属性.get("气运", 50))
+	var 机缘值: int = int(d.属性.get("机缘", 50))
+	概率 *= (0.7 + float(悟性值) / 200.0)  # 悟性50→1.0x，悟性100→1.2x，悟性0→0.7x
+	概率 *= (0.8 + float(心性值) / 250.0)  # 心性稳定，领悟不跑偏
+	if 场景 in ["奇遇", "濒死"]:
+		概率 *= (0.8 + float(气运值) / 200.0)  # 气运深厚者机缘多
+		概率 *= (0.8 + float(机缘值) / 200.0)  # 机缘巧合
+	# ===== 性格影响（修真世界观：不同性格擅长不同领悟方式）=====
+	match str(d.性格):
+		"勤奋":
+			if 场景 == "瓶颈" or 场景 == "闭关":
+				概率 *= 1.3  # 勤奋者苦修易顿悟
+		"好斗":
+			if 场景 == "战斗" or 场景 == "濒死":
+				概率 *= 1.4  # 好斗者战斗中易突破
+		"谨慎":
+			if 场景 == "濒死":
+				概率 *= 0.7  # 谨慎者少涉险，濒死领悟少
+		"孤僻":
+			if 场景 == "闭关" or 场景 == "瓶颈":
+				概率 *= 1.25  # 孤僻者独处易悟道
+		"开朗":
+			if 场景 == "奇遇":
+				概率 *= 1.3  # 开朗者善结缘，奇遇多
+		"懒散":
+			概率 *= 0.8  # 懒散者修炼不勤，领悟少
+		"社交":
+			if 场景 == "奇遇":
+				概率 *= 1.2  # 社交广，机缘多
+	# ===== 道途影响（修真世界观：不同道途对不同类型技能有领悟加成）=====
+	var 道途: String = str(d.道途)
+	if 道途 != "":
+		# 按技能类型匹配道途加成（在选择技能时应用，这里先记下来）
+		pass
+	# ===== 心境/道心影响（修真世界观：心境圆满、道心坚定者易领悟）=====
+	概率 *= (0.85 + float(d.心境) / 400.0)  # 心境60→1.0x
+	概率 *= (0.9 + float(d.道心) / 300.0)   # 道心20→0.97x，道心高易悟高阶
+	# ===== 灵根/资质影响（修真世界观：根骨佳者领悟快）=====
+	var 灵根品阶: String = str(d.灵根品阶)
+	var 灵根乘区: float = 1.0
+	match 灵根品阶:
+		"天品": 灵根乘区 = 1.3
+		"极品": 灵根乘区 = 1.2
+		"上品": 灵根乘区 = 1.1
+		"良品": 灵根乘区 = 1.0
+		"凡品": 灵根乘区 = 0.9
+	概率 *= 灵根乘区
+	# ===== 人生经历影响（修真世界观：阅历丰富者易触类旁通）=====
+	var 阅历数: int = d.履历.size()
+	if 阅历数 > 10:
+		概率 *= 1.1  # 阅历丰富，触类旁通
+	# 有奇遇经历者，奇遇领悟加成
+	for 履历 in d.履历:
+		if "奇遇" in str(履历) and 场景 == "奇遇":
+			概率 *= 1.15
+			break
+	# ===== 受伤状态影响（修真世界观：重伤初愈时对生死有感悟）=====
+	if int(d.受伤剩余) > 0 and 场景 == "濒死":
+		概率 *= 1.2  # 养伤期间对生死有感悟
+	# ===== 上限保护 =====
+	概率 = min(0.40, 概率)  # 综合上限40%
+	if randf() > 概率:
+		return false
+	# ===== 技能选择：道途匹配优先（使用游戏实际道途名：道修/体修/法修/御兽师/符箓师/毒师/傀儡师）=====
+	var 道途技能偏好: Dictionary = {
+		"道修": "攻击",
+		"体修": "辅助防御",
+		"法修": "攻击",
+		"御兽师": "辅助防御",
+		"符箓师": "控制",
+		"毒师": "控制",
+		"傀儡师": "控制",
+	}
+	var 偏好类型: String = str(道途技能偏好.get(道途, ""))
+	if 偏好类型 != "":
+		# 优先选匹配道途的技能
+		var 匹配技能: Array = []
+		var 其他技能: Array = []
+		for sk in 可学:
+			if str(sk.get("skill_type", "")) == 偏好类型:
+				匹配技能.append(sk)
+			else:
+				其他技能.append(sk)
+		if not 匹配技能.is_empty() and randf() < 0.7:
+			可学 = 匹配技能
+	# 濒死/奇遇时优先领悟高品阶技能
+	if 场景 in ["濒死", "奇遇"]:
+		可学.sort_custom(func(a, b): return str(a.get("grade", "")) > str(b.get("grade", "")))
+	var 技能: Dictionary = 可学[randi() % min(3, 可学.size())]
+	var 新技能: Dictionary = {
+		"skill_id": str(技能.get("skill_id", "")),
+		"skill_name": str(技能.get("skill_name", "")),
+		"grade": str(技能.get("grade", "")),
+		"skill_type": str(技能.get("skill_type", "")),
+		"effect_value": str(技能.get("effect_value", "0")),
+		"level": 1,
+		"来源": 场景 + "领悟",
+	}
+	if not 弟子技能字典.has(int(d.弟子ID)):
+		弟子技能字典[int(d.弟子ID)] = []
+	弟子技能字典[int(d.弟子ID)].append(新技能)
+	var 场景描述: Dictionary = {
+		"瓶颈": "瓶颈苦修，豁然开朗",
+		"战斗": "激战之中，临阵领悟",
+		"濒死": "死中求生，绝境顿悟",
+		"奇遇": "机缘巧合，悟得真意",
+		"闭关": "闭关苦修，心有所悟",
+	}
+	_加推演条目("【领悟】%s%s，领悟了%s！" % [str(d.姓名), 场景描述.get(场景, "潜心修炼"), str(技能.get("skill_name", ""))], "弟子", "中")
+	return true
+
+## 技能系统：月度瓶颈领悟（保留原调用接口）
+func _弟子自动领悟技能(d: Disciple) -> void:
+	if d == null or str(d.状态) != "在宗":
+		return
+	# 瓶颈期才可能顿悟
+	if float(d.瓶颈打磨值) <= 0:
+		return
+	_尝试领悟技能(d, "瓶颈")
+
+## 技能系统：弟子AI自动兑换功法（月度推演，按目标/境界驱动）
+func _弟子AI自动兑换功法(d: Disciple) -> void:
+	if d == null or str(d.状态) != "在宗":
+		return
+	# 弟子AI：根据目标决定是否兑换功法
+	# 目标为"问道"/"避世"的弟子更愿意花贡献点兑换
+	var 目标名: String = Goal.弟子目标(d)
+	var 兑换意愿: float = 0.3  # 基础意愿
+	if 目标名 == "问道":
+		兑换意愿 = 0.8
+	elif 目标名 == "复仇":
+		兑换意愿 = 0.6
+	elif 目标名 == "飞升":
+		兑换意愿 = 0.7
+	elif 目标名 == "避世":
+		兑换意愿 = 0.2
+	# 性格影响：谨慎型更节省，激进型更愿意投入
+	if "谨慎" in str(d.性格):
+		兑换意愿 *= 0.7
+	if "激进" in str(d.性格):
+		兑换意愿 *= 1.3
+	# 护道人系统：资源倾斜，有护道人的弟子兑换意愿更高
+	if 护道人列表.has(d.弟子ID):
+		var 护道人: Dictionary = 护道人列表[d.弟子ID]
+		var 护道人等级: String = str(护道人.get("护道人等级", ""))
+		if 护道人等级 == "外门护道":
+			兑换意愿 *= 1.1
+		elif 护道人等级 == "内门护道":
+			兑换意愿 *= 1.2
+		elif 护道人等级 == "长老护道":
+			兑换意愿 *= 1.3
+		elif 护道人等级 == "太上护道":
+			兑换意愿 *= 1.5
+	if randf() > 兑换意愿:
+		return
+	# 查找可兑换的技能（优先兑换下一阶的技能）
+	var 可学: Array = 获取弟子可学技能(int(d.弟子ID))
+	if 可学.is_empty():
+		return
+	# 按品阶排序，优先兑换低阶（先打基础）
+	var 品阶序: Dictionary = {"凡品": 0, "灵品": 1, "宝品": 2, "仙品": 3, "道阶": 4}
+	可学.sort_custom(func(a, b): return 品阶序.get(str(a.get("grade", "凡品")), 0) < 品阶序.get(str(b.get("grade", "凡品")), 0))
+	# 依次尝试兑换：规则（进阶限制/扣贡献/写字典/纪事）全部由单一真源 藏经阁兑换技能 负责
+	for 技能 in 可学:
+		var 结果: Dictionary = 藏经阁兑换技能(int(d.弟子ID), str(技能.get("skill_id", "")), "自行兑换")
+		if bool(结果.get("成功", false)):
+			break
+		# 贡献点不足：后续技能按品阶升序只会更贵，直接放弃
+		if str(结果.get("原因", "")).begins_with("贡献点不足"):
+			break
+
+
+
+## 技能系统：藏经阁兑换技能（手动选弟子，花贡献点）
+func 藏经阁兑换技能(弟子ID: int, 技能ID: String, 来源: String = "藏经阁兑换") -> Dictionary:
+	var 目标: Disciple = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	var 已学: Array = 获取弟子技能(弟子ID)
+	for sk in 已学:
+		if str(sk.get("skill_id", "")) == 技能ID:
+			return {"成功": false, "原因": "已学会该技能"}
+	var 所有技能: Array = 获取所有技能()
+	var 技能配置: Dictionary = {}
+	for sk in 所有技能:
+		if str(sk.get("skill_id", "")) == 技能ID:
+			技能配置 = sk
+			break
+	if 技能配置.is_empty():
+		return {"成功": false, "原因": "技能不存在"}
+	var 消耗: int = int(技能配置.get("learn_cost", 100))
+	# 进阶限制（单一真源）：高阶技能须低阶大圆满，AI 自动兑换与手动指派共用同一规则
+	var 品阶序: Dictionary = {"凡品": 0, "灵品": 1, "宝品": 2, "仙品": 3, "道阶": 4}
+	var 品阶: int = 品阶序.get(str(技能配置.get("grade", "凡品")), 0)
+	if 品阶 > 0:
+		var 低阶大圆满: bool = false
+		for sk in 已学:
+			if 品阶序.get(str(sk.get("grade", "凡品")), 0) == 品阶 - 1:
+				if int(sk.get("level", 1)) >= int(技能配置.get("max_level", 9)):
+					低阶大圆满 = true
+				break
+		if not 低阶大圆满:
+			return {"成功": false, "原因": "低阶未大圆满，不可修习高阶"}
+	if 贡献点 < 消耗:
+		return {"成功": false, "原因": "贡献点不足（需%d，当前%d）" % [消耗, 贡献点]}
+	贡献点 -= 消耗
+	var 新技能: Dictionary = {
+		"skill_id": 技能ID,
+		"skill_name": str(技能配置.get("skill_name", "")),
+		"grade": str(技能配置.get("grade", "")),
+		"skill_type": str(技能配置.get("skill_type", "")),
+		"effect_value": str(技能配置.get("effect_value", "0")),
+		"level": 1,
+		"来源": 来源,
+	}
+	if not 弟子技能字典.has(弟子ID):
+		弟子技能字典[弟子ID] = []
+	弟子技能字典[弟子ID].append(新技能)
+	_加推演条目("【藏经阁】%s在传功长老处兑换习得%s（消耗%d贡献）" % [str(目标.姓名), str(技能配置.get("skill_name", "")), 消耗], "弟子", "中")
+	return {"成功": true, "技能": str(技能配置.get("skill_name", "")), "消耗": 消耗}
+
+## 家族外交：获取可联姻的家族列表（非敌对、非已联姻）
+func 获取可联姻家族() -> Array:
+	if 家族系统 == null:
+		return []
+	var 玩家家族ID: String = ""
+	for d in 弟子列表:
+		if d != null and str(d.家族ID) != "":
+			玩家家族ID = str(d.家族ID)
+			break
+	if 玩家家族ID == "":
+		return []
+	var 结果: Array = []
+	for 家族ID in 家族系统.家族列表.keys():
+		if 家族ID == 玩家家族ID:
+			continue
+		var 家族: Dictionary = 家族系统.家族列表[家族ID]
+		var 敌对列表: Array = 家族.get("敌对家族", [])
+		var 已敌对: bool = false
+		for e in 敌对列表:
+			if typeof(e) == TYPE_DICTIONARY and e.get("家族ID") == 玩家家族ID:
+				已敌对 = true
+				break
+			elif e == 玩家家族ID:
+				已敌对 = true
+				break
+		if not 已敌对:
+			结果.append({"家族ID": 家族ID, "名称": str(家族.get("名", "未知")), "等级": int(家族.get("等级", 1))})
+	return 结果.slice(0, min(5, 结果.size()))
+
+## 家族外交：简化发起联姻（自动选择弟子）
+func 发起家族联姻(目标家族ID: String) -> Dictionary:
+	if 家族系统 == null:
+		return {"成功": false, "原因": "家族系统未加载"}
+	# 找玩家家族
+	var 玩家家族ID: String = ""
+	var 操作者: Disciple = null
+	for d in 弟子列表:
+		if d != null and str(d.家族ID) != "":
+			玩家家族ID = str(d.家族ID)
+			if str(d.家族职位) in ["老祖", "长老"]:
+				操作者 = d
+				break
+	if 玩家家族ID == "":
+		return {"成功": false, "原因": "宗门尚无家族"}
+	if 操作者 == null:
+		return {"成功": false, "原因": "需要家族老祖或长老发起"}
+	# 找双方未婚弟子
+	var 弟子1: Disciple = null
+	var 弟子2: Disciple = null
+	for d in 弟子列表:
+		if d != null and str(d.家族ID) == 玩家家族ID and str(d.状态) == "在宗":
+			弟子1 = d
+			break
+	# 目标家族的弟子（从全局弟子列表找）
+	for d in 弟子列表:
+		if d != null and str(d.家族ID) == 目标家族ID:
+			弟子2 = d
+			break
+	if 弟子1 == null or 弟子2 == null:
+		return {"成功": false, "原因": "双方需各有一名弟子"}
+	return 家族系统.家族联姻(玩家家族ID, 目标家族ID, 弟子1, 弟子2, 操作者)
+
+## 家族外交：简化发起结仇
+func 发起家族结仇(目标家族ID: String, 原因: String = "利益冲突") -> Dictionary:
+	if 家族系统 == null:
+		return {"成功": false, "原因": "家族系统未加载"}
+	var 玩家家族ID: String = ""
+	var 操作者: Disciple = null
+	for d in 弟子列表:
+		if d != null and str(d.家族ID) != "":
+			玩家家族ID = str(d.家族ID)
+			if str(d.家族职位) in ["老祖", "长老"]:
+				操作者 = d
+				break
+	if 玩家家族ID == "":
+		return {"成功": false, "原因": "宗门尚无家族"}
+	if 操作者 == null:
+		return {"成功": false, "原因": "需要家族老祖或长老发起"}
+	return 家族系统.家族结仇(玩家家族ID, 目标家族ID, 原因, 操作者)
+
+## F：获取可任命副宗主的弟子列表（金丹及以上）
+func 获取副宗主候选() -> Array:
+	var 候选: Array = []
+	for d in 弟子列表:
+		if d != null and str(d.状态) == "在宗" and str(d.身份) != "宗主":
+			if str(d.境界) in ["金丹", "元婴", "化神", "炼虚"]:
+				候选.append(d)
+	return 候选.slice(0, min(10, 候选.size()))
 # 头像是否解锁（一渠道双解锁：渠道可独立解锁头像）
 func 是否已解锁头像(头像id: String) -> bool:
 
@@ -4410,6 +5725,54 @@ func 取当前玉牌信息() -> Dictionary:
 	if lv <= 0 or lv >= 玉牌材质表.size():
 		return {"等级": 0, "材质": "未琢玉牌"}
 	return {"等级": lv, "材质": 玉牌材质表[lv]}
+
+# ============ 性别自适应文案系统 ============
+# 根据宗主性别返回合适的称呼，避免对女宗主使用男性对白
+
+## 宗主第三人称代词（他/她）
+func 宗主第三人称() -> String:
+	return "她" if 宗主性别 == "女" else "他"
+
+## 宗主配偶称呼（妻子/丈夫）
+func 宗主配偶称呼() -> String:
+	return "丈夫" if 宗主性别 == "女" else "妻子"
+
+## 宗主婚娶文案（娶妻/嫁夫）
+func 宗主婚娶文案() -> String:
+	return "嫁夫" if 宗主性别 == "女" else "娶妻"
+
+## 宗主婚娶动词（娶/嫁）
+func 宗主婚娶动词() -> String:
+	return "嫁" if 宗主性别 == "女" else "娶"
+
+## 宗主尊称（先生/夫人）
+func 宗主尊称() -> String:
+	return "夫人" if 宗主性别 == "女" else "先生"
+
+## 宗主自称（本座/本宗主，中性，无需区分）
+func 宗主自称() -> String:
+	return "本宗主"
+
+## 随机化身姓名（根据性别，扩充名字池）
+func _随机化身姓名_按性别(性别: String) -> String:
+	var 姓氏: Array = ["李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗", "梁", "宋", "郑", "谢", "韩", "唐", "冯", "于", "董", "萧", "程", "曹", "袁", "邓", "许", "傅", "沈", "曾", "彭", "吕"]
+	var 男名: Array = [
+		"青云", "逸尘", "玄霜", "墨白", "惊鸿", "逐月", "凌风", "踏雪", "听雨", "观澜",
+		"怀瑾", "握瑜", "知行", "守一", "归元", "清虚", "抱朴", "见素", "忘机", "无咎",
+		"苍穹", "破晓", "斩月", "焚天", "裂地", "追风", "逐日", "摘星", "揽月", "吞云",
+		"问天", "求道", "悟真", "修缘", "炼心", "铸魂", "凝魄", "化神", "返虚", "合道",
+		"长青", "不老", "长生", "永存", "不灭", "不朽", "永恒", "无极", "太极", "洪荒"
+	]
+	var 女名: Array = [
+		"清雪", "语嫣", "芷若", "梦瑶", "诗涵", "雅琴", "素心", "冰心", "紫烟", "青霞",
+		"若兰", "惜春", "慕雪", "吟霜", "弄玉", "飞凤", "翠羽", "红绡", "碧痕", "白露",
+		"芙蓉", "牡丹", "芍药", "海棠", "玫瑰", "茉莉", "丁香", "水仙", "莲花", "梅花",
+		"嫦娥", "织女", "麻姑", "玄女", "瑶姬", "洛神", "湘妃", "娥皇", "女英", "褒姒",
+		"倾城", "倾国", "绝代", "无双", "绝世", "惊艳", "绝美", "绝色", "天香", "国色"
+	]
+	var 名字: Array = 女名 if 性别 == "女" else 男名
+	return 姓氏.pick_random() + 名字.pick_random()
+
 # 按性别取头像列表（不传性别=全部：
 func 宗主头像列表(性别: String = "") -> Array:
 
@@ -4433,6 +5796,8 @@ func 默认解锁头像(性别: String) -> Dictionary:
 func 招收弟子() -> Disciple:
 
 	var d := Disciple.new()
+	# === 多种族修炼体系 P0：随机决定弟子种族 ===
+	_随机弟子种族(d)
 	# === S1 ：-B：新弟子道号简化生成（[PLACEHOLDER] 简化版：外：辈分字派[0]+单字：==
 	_确保字派_S1()
 	d.辈分序= 0   # 默认开山第1：
@@ -4441,12 +5806,490 @@ func 招收弟子() -> Disciple:
 	# 其余阶位道号暂留：""（玩家可改）；[PLACEHOLDER] 命名规则：GDD §：2
 	# 初始化弟子战力（根据境界、资质、灵根、道途等因素动态计算）
 	d.战力 = d.计算战力()
+	# 修真味：天骄判定（灵根≥极品 + 资质≥优秀 → 5%概率天骄）
+	if str(d.灵根品阶) in ["极品", "天品"] and str(d.资质) in ["优秀", "绝顶", "妖孽"]:
+		if randf() < 0.05:
+			天骄弟子ID.append(int(d.弟子ID))
+			_加推演条目("【天骄】%s天生异象，灵根资质绝世，乃万年难遇之天骄！" % str(d.姓名), "弟子", "高")
 	弟子列表.append(d)
 	# 更新成就统计：累计招募弟子数
 	累计招募弟子数 += 1
 	_复检成就()  # 成就检测：弟子数量相关成就
 	弟子变动.emit()
 	return d
+
+# ===== 多种族修炼体系 P0：随机弟子种族 =====
+func _随机弟子种族(d: Disciple) -> void:
+	# 根据宗门等级决定可招收种族
+	var 宗门等级: int = 门派等级  # 修复：使用实际门派等级，而非硬编码1
+	var 可招收种族: Array = ["人族"]
+	if 宗门等级 >= 2:
+		可招收种族.append("妖族")
+		可招收种族.append("灵兽族")
+	if 宗门等级 >= 3:
+		可招收种族.append("鬼族")
+		# 魔族需要业力阈值
+		if 业力 > 100 or 阵营声望系统.阵营声望.get("fz_mo", 0) > 50:
+			可招收种族.append("魔族")
+	if 宗门等级 >= 4:
+		# 龙族稀有，概率极低
+		if randf() < 0.005:
+			可招收种族.append("龙族")
+	
+	# 按概率选择种族
+	var 种族概率: Dictionary = {
+		"人族": 0.7,
+		"妖族": 0.1,
+		"灵兽族": 0.08,
+		"鬼族": 0.05,
+		"魔族": 0.05,
+		"龙族": 0.02
+	}
+	var 选中种族: String = "人族"
+	var rand: float = randf()
+	var 累计概率: float = 0.0
+	for 种族 in 可招收种族:
+		累计概率 += 种族概率.get(种族, 0.1)
+		if rand < 累计概率:
+			选中种族 = 种族
+			break
+	
+	d.种族 = 选中种族
+	# 设置种族细分
+	match 选中种族:
+		"妖族":
+			var 细分列表: Array = ["走兽", "飞禽", "鳞甲", "植物"]
+			d.种族细分 = 细分列表[randi() % 细分列表.size()]
+			d.化形状态 = "未化形"
+			d.当前形态 = "本体"
+		"魔族":
+			var 细分列表: Array = ["血魔", "心魔", "天魔"]
+			d.种族细分 = 细分列表[randi() % 细分列表.size()]
+			d.当前形态 = "本体"
+		"鬼族":
+			var 细分列表: Array = ["厉鬼", "鬼将", "鬼帝"]
+			d.种族细分 = 细分列表[randi() % 细分列表.size()]
+			d.当前形态 = "本体"
+		"龙族":
+			var 细分列表: Array = ["蛟龙", "应龙", "真龙"]
+			d.种族细分 = 细分列表[randi() % 细分列表.size()]
+			d.化形状态 = "未化形"
+			d.当前形态 = "本体"
+		"灵兽族":
+			var 细分列表: Array = ["瑞兽", "凶兽", "异兽"]
+			d.种族细分 = 细分列表[randi() % 细分列表.size()]
+			d.当前形态 = "本体"
+		_:
+			d.种族细分 = ""
+			d.当前形态 = "人形"
+	
+	# 初始化种族天赋
+	d.种族天赋 = [d.获取种族天赋().duplicate()]
+	# 重新计算修炼速度（考虑种族系数）
+	d.基础修炼速度 = d._基础修炼速度值()
+	d.修炼速度 = d.基础修炼速度 * d.总修炼速度倍率()
+
+# ===== 多种族修炼体系 P1：种族月度推进 =====
+func _种族月度推进() -> void:
+	var 化形事件: Array = []
+	var 走火入魔事件: Array = []
+	var 龙族传承事件: Array = []
+	
+	for d in 弟子列表:
+		if d == null or not (d is Disciple):
+			continue
+		if d.状态 != "在宗":
+			continue
+		
+		match d.种族:
+			"妖族":
+				# 妖族化形进度推进
+				var 旧进度: float = d.化形进度
+				d.月度推进化形()
+				# 金丹圆满且化形进度满时自动尝试化形
+				if d.可以化形() and d.化形进度 >= 100:
+					var 结果: Dictionary = d.尝试化形()
+					if bool(结果.get("成功", false)):
+						化形事件.append(str(结果.get("消息", "")))
+			"魔族":
+				# 魔族心魔/业力推进
+				var 旧走火: bool = d.走火入魔
+				d.月度推进魔族()
+				if not 旧走火 and d.走火入魔:
+					走火入魔事件.append("⚠️ %s走火入魔！修炼速度下降，攻击提升但防御降低。" % d.姓名)
+				elif 旧走火 and not d.走火入魔:
+					走火入魔事件.append("✅ %s走火入魔已化解，恢复正常。" % d.姓名)
+			"鬼族":
+				# 鬼族阴气/阳气抗性推进
+				d.月度推进鬼族()
+			"龙族":
+				# 龙族龙珠/传承推进
+				var 旧传承: String = d.龙族传承
+				d.月度推进龙族()
+				if 旧传承 == "" and d.龙族传承 != "":
+					龙族传承事件.append("🌟 %s觉醒%s！" % [d.姓名, d.龙族传承])
+	
+	# 添加推演条目
+	for 事件 in 化形事件:
+		_加推演条目(事件, "妖族化形", "高")
+	for 事件 in 走火入魔事件:
+		_加推演条目(事件, "魔族心魔", "高")
+	for 事件 in 龙族传承事件:
+		_加推演条目(事件, "龙族传承", "高")
+	# P2 契约灵兽月度推进（亲密度增长/战力提升）
+	_月度推进契约灵兽()
+	# 灵兽繁殖月度推进（幼崽出生）
+	_月度推进灵兽繁殖()
+	# P3 种族融合与冲突/通婚/稀有种族事件/种族关系恢复
+	_月度种族推进_P3()
+	# 拟真NPC系统 P0：弟子日常互动（基于需求/性格/情绪）
+	_月度弟子日常互动()
+	# 派系与权力斗争系统 P0：月度派系更新
+	_月度派系更新()
+	# 派系与权力斗争系统 P1：月度权力斗争推演
+	_月度权力斗争推演()
+	# 派系与权力斗争系统 P2：月度玩家管理推演
+	_月度玩家管理推演()
+	# 派系与权力斗争系统 P3：月度派系事件触发
+	_月度派系事件触发()
+	# 派系与权力斗争系统 P4：月度派系系统融入
+	_月度派系系统融入()
+	# 通婚与子嗣系统：月度通婚检查/生育检查/子嗣成长
+	_月度通婚生育检查()
+
+# ===== 多种族修炼体系 P2：契约灵兽系统 =====
+## 获取契约灵兽数量上限（宗门等级×2）
+func 获取契约灵兽上限() -> int:
+	# TODO: 从宗门等级获取，初始4
+	return 契约灵兽上限
+
+## 检查是否可以契约灵兽
+func 可以契约灵兽() -> bool:
+	return 契约灵兽列表.size() < 获取契约灵兽上限()
+
+## 契约灵兽（从灵兽库存契约）
+func 契约灵兽(灵兽ID: String, 跟随弟子ID: String = "") -> Dictionary:
+	if not 可以契约灵兽():
+		return {"成功": false, "因": "契约灵兽已满（上限%d）" % 获取契约灵兽上限()}
+	
+	# 从灵兽库存查找
+	var 灵兽: Beast = null
+	for b in 灵兽管理系统.灵兽库存:
+		if b != null and str(b.beast_id) == 灵兽ID:
+			灵兽 = b
+			break
+	
+	if 灵兽 == null:
+		return {"成功": false, "因": "灵兽不存在"}
+	
+	# 从库存移除
+	灵兽管理系统.灵兽库存.erase(灵兽)
+	
+	# 添加到契约列表
+	var 契约: Dictionary = {
+		"灵兽ID": 灵兽ID,
+		"名称": str(灵兽.name),
+		"境界": str(灵兽.realm),
+		"战力": int(灵兽.power),
+		"跟随弟子ID": 跟随弟子ID,
+		"契约时间": 累计游戏日,
+		"亲密度": 0
+	}
+	契约灵兽列表.append(契约)
+	
+	return {"成功": true, "消息": "成功契约%s！" % str(灵兽.name)}
+
+## 解除契约
+func 解除契约灵兽(灵兽ID: String) -> Dictionary:
+	for i in range(契约灵兽列表.size()):
+		var 契约: Dictionary = 契约灵兽列表[i]
+		if str(契约.get("灵兽ID", "")) == 灵兽ID:
+			契约灵兽列表.remove_at(i)
+			return {"成功": true, "消息": "已解除与%s的契约。" % str(契约.get("名称", ""))}
+	return {"成功": false, "因": "未找到该契约灵兽"}
+
+## 设置跟随弟子
+func 设置灵兽跟随(灵兽ID: String, 弟子ID: String) -> Dictionary:
+	for 契约 in 契约灵兽列表:
+		if str(契约.get("灵兽ID", "")) == 灵兽ID:
+			契约["跟随弟子ID"] = 弟子ID
+			return {"成功": true, "消息": "%s现在跟随%s。" % [str(契约.get("名称", "")), 弟子ID]}
+	return {"成功": false, "因": "未找到该契约灵兽"}
+
+## 获取跟随某弟子的灵兽列表
+func 获取跟随灵兽(弟子ID: String) -> Array:
+	var 列表: Array = []
+	for 契约 in 契约灵兽列表:
+		if str(契约.get("跟随弟子ID", "")) == 弟子ID:
+			列表.append(契约)
+	return 列表
+
+## 获取契约灵兽总战力加成
+func 获取契约灵兽战力加成() -> float:
+	var 加成: float = 0.0
+	for 契约 in 契约灵兽列表:
+		# 每只契约灵兽提供战力的10%作为宗门加成
+		加成 += float(契约.get("战力", 0)) * 0.1
+	return 加成
+
+## 月度推进契约灵兽（亲密度增长/战力提升）
+func _月度推进契约灵兽() -> void:
+	for 契约 in 契约灵兽列表:
+		# 亲密度每月+1（跟随弟子时+2）
+		var 亲密度增量: int = 1
+		if str(契约.get("跟随弟子ID", "")) != "":
+			亲密度增量 = 2
+		契约["亲密度"] = int(契约.get("亲密度", 0)) + 亲密度增量
+		# 亲密度影响战力（每10点亲密度+5%战力）
+		var 基础战力: int = int(契约.get("战力", 0))
+		var 亲密度加成: float = 1.0 + (int(契约.get("亲密度", 0)) / 10) * 0.05
+		契约["当前战力"] = int(基础战力 * 亲密度加成)
+	# P2优化：弟子携带的灵兽自动喂养（宗主设置方针，弟子自动执行）
+	_月度自动喂养灵兽()
+	# §4.12 方针制：门下按「培养方针」自动培养灵兽（宗主定方针，不逐只点）
+	_月度自动培养灵兽()
+
+## 月度自动喂养灵兽（弟子根据喂养方针自动喂养自己的灵兽，宗主不亲自喂养）
+func _月度自动喂养灵兽() -> void:
+	var 喂养成功数: int = 0
+	var 总消耗灵草: int = 0
+	var 总消耗丹药: int = 0
+	var 总消耗内丹: int = 0
+	for d in 弟子列表:
+		if d == null:
+			continue
+		# 检查主宠灵兽
+		if d.主宠灵兽 != null and d.主宠灵兽 is Beast:
+			var 兽: Beast = d.主宠灵兽
+			if 兽.契约者ID == "":
+				兽.设置契约者(str(d.弟子ID))
+			var 结果: Dictionary = 兽.自动喂养(灵兽喂养方针, 累计游戏日)
+			if 结果.get("成功", false):
+				喂养成功数 += 1
+				# 扣除资源（根据食物类型）
+				var 食物: String = 结果.get("食物类型", "灵草")
+				if 食物 == "灵草":
+					总消耗灵草 += 5
+				elif 食物 == "丹药":
+					总消耗丹药 += 1
+				elif 食物 == "妖兽内丹":
+					总消耗内丹 += 1
+		# 检查副宠灵兽
+		if d.副宠灵兽 != null and d.副宠灵兽 is Beast:
+			var 兽: Beast = d.副宠灵兽
+			if 兽.契约者ID == "":
+				兽.设置契约者(str(d.弟子ID))
+			var 结果: Dictionary = 兽.自动喂养(灵兽喂养方针, 累计游戏日)
+			if 结果.get("成功", false):
+				喂养成功数 += 1
+				var 食物: String = 结果.get("食物类型", "灵草")
+				if 食物 == "灵草":
+					总消耗灵草 += 5
+				elif 食物 == "丹药":
+					总消耗丹药 += 1
+				elif 食物 == "妖兽内丹":
+					总消耗内丹 += 1
+	# 扣除宗门资源
+	if 总消耗灵草 > 0:
+		灵草 = max(0, 灵草 - 总消耗灵草)
+	if 总消耗丹药 > 0:
+		_库房移除物品("培元丹", 总消耗丹药)
+	if 总消耗内丹 > 0:
+		_库房移除物品("妖兽内丹", 总消耗内丹)
+	# 记录纪事（每季度记录一次，避免刷屏）
+	if 喂养成功数 > 0 and 累计游戏日 % 90 == 0:
+		添加纪事("御兽", "自动喂养", "本月门下弟子按【%s】方针自动喂养灵兽%d只，消耗灵草%d株、培元丹%d枚、妖兽内丹%d枚。" % [灵兽喂养方针, 喂养成功数, 总消耗灵草, 总消耗丹药, 总消耗内丹], 1)
+
+## §4.12 月度自动培养灵兽（宗主定方针 → 门下按月执行；纪事按季度写，防刷屏）
+func _月度自动培养灵兽() -> void:
+	if 灵兽管理系统 == null:
+		return
+	var 结果: Dictionary = 灵兽管理系统.月度自动培养灵兽()
+	if int(结果.get("培养数量", 0)) > 0 and 累计游戏日 % 90 == 0:
+		添加纪事("御兽", "自动培养", "%s" % String(结果.get("消息", "")), 1)
+
+# ============ 灵兽繁殖系统（修真世界观：灵兽配对产崽，幼崽继承父母天赋）============
+var 繁殖中灵兽: Array = []  # 繁殖中的灵兽 [{父灵兽ID, 母灵兽ID, 开始日, 完成日, 预计品质}]
+
+## 获取可繁殖灵兽列表（契约灵兽，亲密度>=20）
+func 获取可繁殖灵兽列表() -> Array:
+	var 结果: Array = []
+	for 契约 in 契约灵兽列表:
+		if int(契约.get("亲密度", 0)) >= 20:
+			结果.append(契约)
+	return 结果
+
+## 开始灵兽繁殖（选择两只灵兽配对）
+func 开始灵兽繁殖(父灵兽ID: String, 母灵兽ID: String) -> Dictionary:
+	if 父灵兽ID == 母灵兽ID:
+		return {"成功": false, "原因": "不能选择同一只灵兽"}
+	# 检查灵兽是否存在
+	var 父灵兽: Dictionary = {}
+	var 母灵兽: Dictionary = {}
+	for 契约 in 契约灵兽列表:
+		if str(契约.get("灵兽ID", "")) == 父灵兽ID:
+			父灵兽 = 契约
+		if str(契约.get("灵兽ID", "")) == 母灵兽ID:
+			母灵兽 = 契约
+	if 父灵兽.is_empty() or 母灵兽.is_empty():
+		return {"成功": false, "原因": "灵兽不存在"}
+	if int(父灵兽.get("亲密度", 0)) < 20 or int(母灵兽.get("亲密度", 0)) < 20:
+		return {"成功": false, "原因": "灵兽亲密度不足（需>=20）"}
+	# 消耗灵石
+	var 消耗灵石: int = 500 * max(1, 门派等级)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，繁殖需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 预计品质（父母境界平均值）
+	var 父境界序: int = Disciple.境界序.find(str(父灵兽.get("境界", "练气")))
+	var 母境界序: int = Disciple.境界序.find(str(母灵兽.get("境界", "练气")))
+	var 平均境界序: int = int((父境界序 + 母境界序) / 2)
+	var 预计品质: String = "普通"
+	if 平均境界序 >= 8:
+		预计品质 = "极品"
+	elif 平均境界序 >= 6:
+		预计品质 = "上品"
+	elif 平均境界序 >= 4:
+		预计品质 = "中品"
+	# 繁殖时间（30-90游戏日，根据品质）
+	var 繁殖日: int = 30 + (8 - min(8, 平均境界序)) * 10
+	繁殖中灵兽.append({
+		"父灵兽ID": 父灵兽ID,
+		"母灵兽ID": 母灵兽ID,
+		"父名称": str(父灵兽.get("名称", "")),
+		"母名称": str(母灵兽.get("名称", "")),
+		"开始日": 累计游戏日,
+		"完成日": 累计游戏日 + 繁殖日,
+		"预计品质": 预计品质
+	})
+	添加纪事("庶务", "灵兽繁殖", "%s与%s开始配对，预计%d日后产崽" % [父灵兽.get("名称", ""), 母灵兽.get("名称", ""), 繁殖日], 1)
+	return {"成功": true, "繁殖日": 繁殖日, "预计品质": 预计品质}
+
+## 月度推进灵兽繁殖（幼崽出生）
+func _月度推进灵兽繁殖() -> void:
+	var 完成列表: Array = []
+	for 繁殖 in 繁殖中灵兽:
+		if 累计游戏日 >= int(繁殖.get("完成日", 0)):
+			完成列表.append(繁殖)
+	for 繁殖 in 完成列表:
+		繁殖中灵兽.erase(繁殖)
+		# 生成幼崽（加入灵兽库存）
+		var 幼崽名称: String = str(繁殖.get("父名称", "")) + "与" + str(繁殖.get("母名称", "")) + "之崽"
+		var 预计品质: String = str(繁殖.get("预计品质", "普通"))
+		# 简化：直接添加到契约灵兽列表（或灵兽库存）
+		var 幼崽契约: Dictionary = {
+			"灵兽ID": "幼崽_" + str(randi()),
+			"名称": 幼崽名称,
+			"境界": "练气",
+			"战力": 50,
+			"跟随弟子ID": "",
+			"契约时间": 累计游戏日,
+			"亲密度": 0,
+			"品质": 预计品质
+		}
+		契约灵兽列表.append(幼崽契约)
+		添加纪事("庶务", "灵兽产崽", "%s产下幼崽，品质%s" % [繁殖.get("母名称", ""), 预计品质], 2)
+		_加推演条目("【灵兽繁殖】%s产下幼崽，品质%s，宗门灵兽又添新丁。" % [繁殖.get("母名称", ""), 预计品质], ET_SECT, PRIO_NORMAL, {})
+
+# ===== 多种族修炼体系 P2：种族天赋系统 =====
+## 获取种族细分天赋配置
+
+# ===== 多种族修炼体系（已拆分到race_system.gd，此处为转发函数）=====
+func 获取种族天赋配置(种族: String, 细分: String):
+	return 种族系统.获取种族天赋配置(种族, 细分)
+func 获取种族组队加成(队伍种族列表: Array):
+	return 种族系统.获取种族组队加成(队伍种族列表)
+func 计算天劫准备成功率(基础成功率: float, 准备方式列表: Array):
+	return 种族系统.计算天劫准备成功率(基础成功率, 准备方式列表)
+func 执行天劫准备(弟子: Disciple, 准备方式列表: Array):
+	return 种族系统.执行天劫准备(弟子, 准备方式列表)
+func _初始化种族关系():
+	种族系统._初始化种族关系()
+func 获取种族关系(种族1: String, 种族2: String):
+	return 种族系统.获取种族关系(种族1, 种族2)
+func 修改种族关系(种族1: String, 种族2: String, 增量: int):
+	种族系统.修改种族关系(种族1, 种族2, 增量)
+func _检查种族冲突():
+	return 种族系统._检查种族冲突()
+func _处理种族冲突(冲突事件: Array):
+	return 种族系统._处理种族冲突(冲突事件)
+func _检查种族通婚():
+	return 种族系统._检查种族通婚()
+func 生成混血后代(父方种族: String, 母方种族: String):
+	return 种族系统.生成混血后代(父方种族, 母方种族)
+func 设置种族政策(政策: String):
+	return 种族系统.设置种族政策(政策)
+func 获取种族政策效果():
+	return 种族系统.获取种族政策效果()
+func 获取政策修炼加成():
+	return 种族系统.获取政策修炼加成()
+func 获取政策招募概率修正():
+	return 种族系统.获取政策招募概率修正()
+func 获取种族构成统计():
+	return 种族系统.获取种族构成统计()
+func 检查种族平衡():
+	return 种族系统.检查种族平衡()
+func _检查稀有种族事件():
+	return 种族系统._检查稀有种族事件()
+func 处理稀有种族事件(事件: Dictionary, 接纳: bool):
+	return 种族系统.处理稀有种族事件(事件, 接纳)
+func _月度种族推进_P3():
+	种族系统._月度种族推进_P3()
+
+# ===== 通婚与子嗣系统 =====
+## 联姻可行性矩阵（是否可联姻）
+const 通婚可行性: Dictionary = {
+	"人族-人族": {"可行": true, "概率": 0.20, "条件": {}},
+	"人族-妖族": {"可行": true, "概率": 0.10, "条件": {"妖族需化形": true}},
+	"人族-魔族": {"可行": true, "概率": 0.08, "条件": {"后代有魔性": true}},
+	"人族-鬼族": {"可行": true, "概率": 0.05, "条件": {"需要道具": "阴阳调和丹"}},
+	"人族-龙族": {"可行": true, "概率": 0.02, "条件": {"龙族好感度": 80, "宗门声望": 200}},
+	"妖族-妖族": {"可行": true, "概率": 0.20, "条件": {}},
+	"妖族-魔族": {"可行": true, "概率": 0.08, "条件": {}},
+	"妖族-鬼族": {"可行": true, "概率": 0.03, "条件": {"需要道具": "阴魂草"}},
+	"妖族-龙族": {"可行": true, "概率": 0.03, "条件": {"龙族好感度": 80}},
+	"妖族-灵兽族": {"可行": true, "概率": 0.15, "条件": {}},
+	"魔族-魔族": {"可行": true, "概率": 0.20, "条件": {}},
+	"魔族-鬼族": {"可行": true, "概率": 0.10, "条件": {}},
+	"鬼族-鬼族": {"可行": true, "概率": 0.15, "条件": {}},
+	"龙族-龙族": {"可行": true, "概率": 0.10, "条件": {}},
+	"灵兽族-灵兽族": {"可行": true, "概率": 0.15, "条件": {}}
+}
+
+## 检查两个弟子是否可联姻（基于好感度）
+
+# ===== 通婚和子嗣系统（已拆分到marriage_system.gd，此处为转发函数）=====
+func 检查通婚可行性(弟子1: Disciple, 弟子2: Disciple):
+	return 通婚子嗣系统.检查通婚可行性(弟子1, 弟子2)
+func 执行通婚(弟子1: Disciple, 弟子2: Disciple):
+	return 通婚子嗣系统.执行通婚(弟子1, 弟子2)
+func 检查生育可行性(父方: Disciple, 母方: Disciple):
+	return 通婚子嗣系统.检查生育可行性(父方, 母方)
+func 生成子嗣(父方: Disciple, 母方: Disciple):
+	return 通婚子嗣系统.生成子嗣(父方, 母方)
+func _判定子嗣种族(父方: Disciple, 母方: Disciple):
+	return 通婚子嗣系统._判定子嗣种族(父方, 母方)
+func _判定子嗣血脉(父方: Disciple, 母方: Disciple, 子嗣种族: String):
+	return 通婚子嗣系统._判定子嗣血脉(父方, 母方, 子嗣种族)
+func _判定子嗣品质(父方: Disciple, 母方: Disciple):
+	return 通婚子嗣系统._判定子嗣品质(父方, 母方)
+func _继承天赋(父方: Disciple, 母方: Disciple, 子嗣种族: String):
+	return 通婚子嗣系统._继承天赋(父方, 母方, 子嗣种族)
+func _继承灵根品阶(父方: Disciple, 母方: Disciple, 品质: String):
+	return 通婚子嗣系统._继承灵根品阶(父方, 母方, 品质)
+func _继承资质(父方: Disciple, 母方: Disciple, 品质: String):
+	return 通婚子嗣系统._继承资质(父方, 母方, 品质)
+func _子嗣成长推进():
+	通婚子嗣系统._子嗣成长推进()
+func _子嗣加入宗门(子嗣: Dictionary):
+	return 通婚子嗣系统._子嗣加入宗门(子嗣)
+func _月度好感度增长():
+	通婚子嗣系统._月度好感度增长()
+func _月度检查结成道友():
+	通婚子嗣系统._月度检查结成道友()
+func _月度通婚生育检查():
+	通婚子嗣系统._月度通婚生育检查()
+
 # ============ 时间推演核心 ============
 # ============ S0 商店（坊市）：经济消耗出：============
 var _坊市缓存: Array = []
@@ -5006,7 +6849,7 @@ func 领战令奖励(轨道: String, 等级: int) -> Dictionary:
 	if 奖.has("绑定仙玉"):
 		var v: int = int(奖["绑定仙玉"])
 		仙玉_绑定 += v
-		明细.append("绑定仙玉+%d" % v)
+		明细.append("灵玉+%d" % v)
 	if 奖.has("皮肤"):
 		var skin_id: String = str(奖["皮肤"])
 		当前皮肤 = skin_id
@@ -5030,428 +6873,49 @@ func 领战令奖励(轨道: String, 等级: int) -> Dictionary:
 	已领.append(等级)
 	return {"ok": true, "msg": "%s Lv.%d 奖励：%s" % [轨道, 等级, "·".join(明细)]}
 # === 本地道友系统：026-08-21 收尾；纯本地，无服务端）===
-func 道友列表() -> Array:
 
-	return _道友列表
-func 道友消息() -> Array:
+# ===== 道友系统（已拆分到friend_system.gd，此处为转发函数）=====
+func 道友列表():
+	return 道友系统.道友列表()
+func 道友消息():
+	return 道友系统.道友消息()
+func 添加道友(名字: String, 境界: String = "筑基初期", 在线: bool = true):
+	return 道友系统.添加道友(名字, 境界, 在线)
+func 删除道友(名字: String):
+	return 道友系统.删除道友(名字)
+func 发送道友消息(名字: String, 内容: String):
+	return 道友系统.发送道友消息(名字, 内容)
+func 获取所有道友列表():
+	return 道友系统.获取所有道友列表()
+func 给道友送礼(名字: String, 礼物价值: int = 100):
+	return 道友系统.给道友送礼(名字, 礼物价值)
+func 获取道友好感度等级(好感度: int):
+	return 道友系统.获取道友好感度等级(好感度)
+func 道友结义(名字: String):
+	return 道友系统.道友结义(名字)
+func 缔结道侣(弟子IDA: int, 弟子IDB: int):
+	return 道友系统.缔结道侣(弟子IDA, 弟子IDB)
+func 道友拜访(名字: String):
+	return 道友系统.道友拜访(名字)
+func 道友切磋(名字: String):
+	return 道友系统.道友切磋(名字)
+func 获取社交统计():
+	return 道友系统.获取社交统计()
+func 一键给所有道友送礼(礼物价值: int = 100):
+	return 道友系统.一键给所有道友送礼(礼物价值)
+func 与道友论道(名字: String):
+	return 道友系统.与道友论道(名字)
+func 拜访道友(名字: String):
+	return 道友系统.拜访道友(名字)
+func 与道友切磋(名字: String):
+	return 道友系统.与道友切磋(名字)
+func 与道友结义(名字: String):
+	return 道友系统.与道友结义(名字)
+func 获取结义加成():
+	return 道友系统.获取结义加成()
+func 重置道友每日次数():
+	道友系统.重置道友每日次数()
 
-	return _道友消息
-# 添加道友
-func 添加道友(名字: String, 境界: String = "筑基初期", 在线: bool = true) -> Dictionary:
-
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			return {"成功": false, "原因": "道友已存在"}
-	_道友列表.append({"name": 名字, "status": "%s · %s" % ["在线" if 在线 else "离线", 境界], "sel": false, "好感度": 50, "论道次数": 0, "送礼次数": 0})
-	if has_method("save_game"):
-		save_game()
-	return {"成功": true, "原因": "添加道友成功：%s" % 名字}
-# 删除道友
-func 删除道友(名字: String) -> Dictionary:
-
-	for i in range(_道友列表.size()):
-		if str(_道友列表[i].get("name", "")) == 名字:
-			_道友列表.remove_at(i)
-			if has_method("save_game"):
-				save_game()
-			return {"成功": true, "原因": "删除道友成功：%s" % 名字}
-	return {"成功": false, "原因": "道友不存在"}
-# 发送消：
-func 发送道友消息(名字: String, 内容: String) -> Dictionary:
-
-	var 时间 = "%02d-%02d %02d:%02d" % [8, 累计游戏日% 28 + 1, randi() % 24, randi() % 60]
-	_道友消息.append({"name": 名字, "text": 内容, "time": 时间, "自己": true})
-	if _道友消息.size() > 100:
-		_道友消息.remove_at(0)
-	if has_method("save_game"):
-		save_game()
-	return {"成功": true, "原因": "消息已发送"}
-# 获取所有道友列表（包含详细信息）
-func 获取所有道友列表() -> Array:
-	var 道友列表 = []
-	for 道友 in _道友列表:
-		道友列表.append({
-			"name": 道友.get("name", ""),
-			"status": 道友.get("status", ""),
-			"好感度": 道友.get("好感度", 50),
-			"论道次数": 道友.get("论道次数", 0),
-			"送礼次数": 道友.get("送礼次数", 0),
-		})
-	return 道友列表
-
-# 给道友送礼（提升好感度）
-func 给道友送礼(名字: String, 礼物价值: int = 100) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	if 灵石 < 礼物价值:
-		return {"成功": false, "原因": "灵石不足（需要%d）" % 礼物价值}
-	灵石 -= 礼物价值
-	# 提升好感度（根据礼物价值）
-	var 好感度提升 = int(礼物价值 / 10)
-	道友["好感度"] = int(道友.get("好感度", 50)) + 好感度提升
-	道友["送礼次数"] = int(道友.get("送礼次数", 0)) + 1
-	# 好感度上限100
-	if int(道友["好感度"]) > 100:
-		道友["好感度"] = 100
-	添加纪事("社交", "道友送礼", "给%s送礼，花费%d灵石，好感度+%d" % [名字, 礼物价值, 好感度提升], 1)
-	return {"成功": true, "道友": 道友, "好感度提升": 好感度提升, "消息": "给%s送礼成功" % 名字}
-
-# 道友好感度等级配置
-const 道友好感度等级配置: Dictionary = {
-	1: {"名称": "陌生人", "最低好感度": 0, "效果": "无特殊效果"},
-	2: {"名称": "相识", "最低好感度": 20, "效果": "可以发送消息"},
-	3: {"名称": "朋友", "最低好感度": 40, "效果": "可以送礼"},
-	4: {"名称": "好友", "最低好感度": 60, "效果": "可以拜访"},
-	5: {"名称": "挚友", "最低好感度": 80, "效果": "可以切磋"},
-	6: {"名称": "生死之交", "最低好感度": 100, "效果": "可以结义"},
-}
-
-# 获取道友好感度等级
-func 获取道友好感度等级(好感度: int) -> int:
-	var 当前等级 = 1
-	for 等级 in 道友好感度等级配置.keys():
-		var 配置 = 道友好感度等级配置[等级]
-		if 好感度 >= int(配置.get("最低好感度", 0)):
-			当前等级 = 等级
-	return 当前等级
-
-# 结义道友列表
-var 结义道友列表: Array = []
-
-# 道友拜访冷却
-var 道友拜访冷却: Dictionary = {}  # 道友名字 -> 冷却结束日
-
-# 道友切磋冷却
-var 道友切磋冷却: Dictionary = {}  # 道友名字 -> 冷却结束日
-
-# 道友结义
-func 道友结义(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	var 好感度 = int(道友.get("好感度", 50))
-	if 好感度 < 100:
-		return {"成功": false, "原因": "好感度不足（需100，当前%d）" % 好感度}
-	if 名字 in 结义道友列表:
-		return {"成功": false, "原因": "已经是结义兄弟"}
-	# 消耗灵石
-	var 消耗灵石 = 10000
-	if 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-	灵石 -= 消耗灵石
-	结义道友列表.append(名字)
-	添加纪事("社交", "道友结义", "与%s结为生死之交，消耗%d灵石" % [名字, 消耗灵石], 1)
-	# P3 保命环节：结义兄弟赠予保命法宝（来源：道友）——以实物道具入背包，非直接计数
-	if 弟子列表.size() > 0 and 弟子列表[0] != null:
-		var 宗主 = 弟子列表[0]
-		var 道具 = 构造保命道具("义气同心符", "宝阶", "fabao",
-			"结义之谊凝成的护身法宝，致命劫数下替弟子挡下一劫", "义薄云天，同心断金，危难时自发护主。")
-		宗主.获得物品(道具)
-		添加纪事("保命", "道友", "%s 获结义兄弟赠予【义气同心符】（法宝·保命），纳入背包" % 宗主.姓名, 1)
-	return {"成功": true, "道友": 道友, "消耗灵石": 消耗灵石, "消息": "与%s结义成功" % 名字}
-
-# P3 保命环节：缔结道侣（双修伴侣赠予保命护身，来源：道侣）
-# P3 保命环节：缔结道侣（双修伴侣赠予保命护身，来源：道侣）
-# §12.1：改传弟子ID互链——双向设 道侣ID + 道侣名，双方各得保命道具。
-func 缔结道侣(弟子IDA: int, 弟子IDB: int) -> Dictionary:
-	var 甲 = _取弟子(弟子IDA)
-	var 乙 = _取弟子(弟子IDB)
-	if 甲 == null or 乙 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	if 甲.弟子ID == 乙.弟子ID:
-		return {"成功": false, "原因": "不能与自身结为道侣"}
-	甲.道侣 = 乙.姓名
-	甲.道侣ID = 乙.弟子ID
-	乙.道侣 = 甲.姓名
-	乙.道侣ID = 甲.弟子ID
-	var 道具甲 = 构造保命道具("同心铃", "宝阶", "fabao",
-		"道侣情深所系护身法宝，危难时替弟子避劫", "铃响同心，情牵一线，命悬一线时护主周全。")
-	甲.获得物品(道具甲)
-	var 道具乙 = 构造保命道具("同心铃", "宝阶", "fabao",
-		"道侣情深所系护身法宝，危难时替弟子避劫", "铃响同心，情牵一线，命悬一线时护主周全。")
-	乙.获得物品(道具乙)
-	添加纪事("保命", "道侣", "%s 与%s结为道侣，互赠【同心铃】（法宝·保命）" % [甲.姓名, 乙.姓名], 1)
-	return {"成功": true, "甲": 甲.姓名, "乙": 乙.姓名, "消息": "%s 与%s结为道侣" % [甲.姓名, 乙.姓名]}
-# 道友拜访
-func 道友拜访(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	var 好感度 = int(道友.get("好感度", 50))
-	if 好感度 < 60:
-		return {"成功": false, "原因": "好感度不足（需60，当前%d）" % 好感度}
-	# 检查冷却
-	if 名字 in 道友拜访冷却:
-		var 冷却结束日 = int(道友拜访冷却[名字])
-		if 累计游戏日 < 冷却结束日:
-			return {"成功": false, "原因": "拜访冷却中（还需%d天）" % (冷却结束日 - 累计游戏日)}
-	# 消耗体力
-	var 消耗体力 = 10
-	if 体力 < 消耗体力:
-		return {"成功": false, "原因": "体力不足（需%d体力）" % 消耗体力}
-	体力 -= 消耗体力
-	# 拜访结果：随机获得奖励
-	var 随机值 = randf()
-	var 奖励 = {}
-	var 消息 = ""
-	if 随机值 < 0.3:
-		奖励 = {"灵石": 200, "悟道点": 10}
-		消息 = "拜访%s，获得灵石200，悟道点10" % 名字
-	elif 随机值 < 0.6:
-		奖励 = {"灵气": 100, "体力": 5}
-		消息 = "拜访%s，获得灵气100，体力5" % 名字
-	elif 随机值 < 0.8:
-		奖励 = {"好感度": 5}
-		道友["好感度"] = min(100, 好感度 + 5)
-		消息 = "拜访%s，好感度+5" % 名字
-	else:
-		消息 = "拜访%s，相谈甚欢" % 名字
-	# 设置冷却（1天）
-	道友拜访冷却[名字] = 累计游戏日 + 1
-	添加纪事("社交", "道友拜访", 消息, 1)
-	return {"成功": true, "道友": 道友, "奖励": 奖励, "消息": 消息}
-
-# 道友切磋
-func 道友切磋(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	var 好感度 = int(道友.get("好感度", 50))
-	if 好感度 < 80:
-		return {"成功": false, "原因": "好感度不足（需80，当前%d）" % 好感度}
-	# 检查冷却
-	if 名字 in 道友切磋冷却:
-		var 冷却结束日 = int(道友切磋冷却[名字])
-		if 累计游戏日 < 冷却结束日:
-			return {"成功": false, "原因": "切磋冷却中（还需%d天）" % (冷却结束日 - 累计游戏日)}
-	# 消耗体力
-	var 消耗体力 = 20
-	if 体力 < 消耗体力:
-		return {"成功": false, "原因": "体力不足（需%d体力）" % 消耗体力}
-	体力 -= 消耗体力
-	# 切磋结果：随机胜负
-	var 随机值 = randf()
-	var 胜利 = 随机值 < 0.5
-	var 奖励 = {}
-	var 消息 = ""
-	if 胜利:
-		奖励 = {"悟道点": 20, "灵石": 100}
-		消息 = "与%s切磋，获胜！获得悟道点20，灵石100" % 名字
-		道友["好感度"] = min(100, 好感度 + 3)
-	else:
-		奖励 = {"悟道点": 10}
-		消息 = "与%s切磋，惜败。获得悟道点10" % 名字
-		道友["好感度"] = min(100, 好感度 + 1)
-	# 设置冷却（2天）
-	道友切磋冷却[名字] = 累计游戏日 + 2
-	添加纪事("社交", "道友切磋", 消息, 1)
-	return {"成功": true, "道友": 道友, "胜利": 胜利, "奖励": 奖励, "消息": 消息}
-
-# 获取社交统计
-func 获取社交统计() -> Dictionary:
-	var 道友总数 = _道友列表.size()
-	var 结义数 = 结义道友列表.size()
-	var 平均好感度 = 0
-	var 总好感度 = 0
-	var 最高好感度 = 0
-	var 总论道次数 = 0
-	var 总送礼次数 = 0
-	for 道友 in _道友列表:
-		var 好感度 = int(道友.get("好感度", 50))
-		总好感度 += 好感度
-		最高好感度 = max(最高好感度, 好感度)
-		总论道次数 += int(道友.get("论道次数", 0))
-		总送礼次数 += int(道友.get("送礼次数", 0))
-	if 道友总数 > 0:
-		平均好感度 = int(总好感度 / 道友总数)
-	return {
-		"道友总数": 道友总数,
-		"结义数": 结义数,
-		"平均好感度": 平均好感度,
-		"最高好感度": 最高好感度,
-		"总好感度": 总好感度,
-		"总论道次数": 总论道次数,
-		"总送礼次数": 总送礼次数,
-	}
-
-# 一键给所有道友送礼
-func 一键给所有道友送礼(礼物价值: int = 100) -> Dictionary:
-	var 成功数量 = 0
-	var 失败数量 = 0
-	var 送礼列表 = []
-	for 道友 in _道友列表:
-		var 名字 = str(道友.get("name", ""))
-		var 结果 = 给道友送礼(名字, 礼物价值)
-		送礼列表.append(结果)
-		if 结果.get("成功", false):
-			成功数量 += 1
-		else:
-			失败数量 += 1
-	return {"成功": 成功数量 > 0, "成功数量": 成功数量, "失败数量": 失败数量, "送礼列表": 送礼列表, "消息": "一键送礼完成，成功%d人，失败%d人" % [成功数量, 失败数量]}
-
-# 与道友论道（获得悟道点）
-func 与道友论道(名字: String) -> Dictionary:
-
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	var 好感度 = int(道友.get("好感度", 50))
-	if 好感度 < 30:
-		return {"成功": false, "原因": "好感度不足，道友不愿论道"}
-	var 论道次数 = int(道友.get("论道次数", 0))
-	if 论道次数 >= 3:
-		return {"成功": false, "原因": "今日论道次数已用完（每日3次）"}
-	var 悟道点获得 = 5 + randi() % 10 + int(好感度 / 10)
-	悟道点 += 悟道点获得
-	道友["论道次数"] = 论道次数 + 1
-	道友["好感度"] = min(100, 好感度 + 2)
-	if has_method("save_game"):
-		save_game()
-	return {"成功": true, "原因": "%s论道成功，获得悟道点%d，好感度+2" % [名字, 悟道点获得]}
-# 拜访道友（获得灵石、灵气，提升好感度）
-func 拜访道友(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	# 检查冷却
-	var 冷却日: int = int(道友拜访冷却.get(名字, 0))
-	if 累计游戏日 < 冷却日:
-		return {"成功": false, "原因": "拜访冷却中（还需%d天）" % (冷却日 - 累计游戏日)}
-	道友拜访冷却[名字] = 累计游戏日 + 1
-	# 拜访奖励
-	var 好感度: int = int(道友.get("好感度", 50))
-	var 灵石奖励: int = 50 + randi() % 100 + int(好感度 / 2)
-	var 灵气奖励: int = 20 + randi() % 50 + int(好感度 / 5)
-	灵石 += 灵石奖励
-	灵气 += 灵气奖励
-	道友["好感度"] = min(100, 好感度 + 3)
-	# 随机事件
-	var 事件文本: String = ""
-	var 随机值: float = randf()
-	if 随机值 < 0.1:
-		# 10%概率道友赠送额外礼物
-		var 额外灵石: int = randi_range(100, 300)
-		灵石 += 额外灵石
-		事件文本 = "，道友心情大好，额外赠送%d灵石" % 额外灵石
-	elif 随机值 < 0.2:
-		# 10%概率获得悟道点
-		悟道点 += 5
-		事件文本 = "，与道友畅谈，悟道点+5"
-	添加纪事("庶务", "拜访道友", "拜访道友%s，获得%d灵石、%d灵气，好感度+3%s" % [名字, 灵石奖励, 灵气奖励, 事件文本], 1)
-	if has_method("save_game"):
-		save_game()
-	return {"成功": true, "灵石": 灵石奖励, "灵气": 灵气奖励, "事件": 事件文本}
-
-# 与道友切磋（获得修炼经验，可能受伤）
-func 与道友切磋(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	# 检查冷却
-	var 冷却日: int = int(道友切磋冷却.get(名字, 0))
-	if 累计游戏日 < 冷却日:
-		return {"成功": false, "原因": "切磋冷却中（还需%d天）" % (冷却日 - 累计游戏日)}
-	# 检查体力
-	if 体力 < 15:
-		return {"成功": false, "原因": "体力不足（需15点）"}
-	体力 -= 15
-	道友切磋冷却[名字] = 累计游戏日 + 2
-	# 切磋结果
-	var 好感度: int = int(道友.get("好感度", 50))
-	var 胜利概率: float = 0.4 + float(好感度) / 200.0  # 40%-90%
-	var 胜利: bool = randf() < 胜利概率
-	if 胜利:
-		var 修炼经验: int = 50 + randi() % 100
-		修炼进度 += float(修炼经验) / 1000.0
-		道友["好感度"] = min(100, 好感度 + 5)
-		添加纪事("庶务", "道友切磋", "与道友%s切磋胜利，修炼经验+%d，好感度+5" % [名字, 修炼经验], 1)
-		if has_method("save_game"):
-			save_game()
-		return {"成功": true, "胜利": true, "修炼经验": 修炼经验}
-	else:
-		# 失败可能受伤
-		var 受伤: bool = randf() < 0.3
-		if 受伤:
-			体力 = max(0, 体力 - 10)
-			添加纪事("庶务", "道友切磋", "与道友%s切磋失败，受伤了，体力-10" % 名字, 1)
-		else:
-			道友["好感度"] = min(100, 好感度 + 2)
-			添加纪事("庶务", "道友切磋", "与道友%s切磋失败，但有所收获，好感度+2" % 名字, 1)
-		if has_method("save_game"):
-			save_game()
-		return {"成功": true, "胜利": false, "受伤": 受伤}
-
-# 与道友结义（好感度100时可结义，获得永久加成）
-func 与道友结义(名字: String) -> Dictionary:
-	var 道友 = null
-	for d in _道友列表:
-		if str(d.get("name") if "name" in d else "") == 名字:
-			道友 = d
-			break
-	if 道友 == null:
-		return {"成功": false, "原因": "道友不存在"}
-	# 检查好感度
-	var 好感度: int = int(道友.get("好感度", 50))
-	if 好感度 < 100:
-		return {"成功": false, "原因": "好感度不足（需100，当前%d）" % 好感度}
-	# 检查是否已结义
-	if 名字 in 结义道友列表:
-		return {"成功": false, "原因": "已与此道友结义"}
-	# 结义消耗
-	if 灵石 < 1000:
-		return {"成功": false, "原因": "灵石不足（需1000灵石用于结义仪式）"}
-	灵石 -= 1000
-	# 结义成功
-	结义道友列表.append(名字)
-	# 永久加成：所有结义道友提供修炼速度+1%（最多5%）
-	var 结义加成: float = min(0.05, float(结义道友列表.size()) * 0.01)
-	添加纪事("庶务", "道友结义", "与道友%s结义为兄弟，修炼速度+%.0f%%（当前总加成%.0f%%）" % [名字, 结义加成 * 100, 结义加成 * 100], 1)
-	if has_method("save_game"):
-		save_game()
-	return {"成功": true, "结义加成": 结义加成, "结义人数": 结义道友列表.size()}
-
-# 获取结义加成
-func 获取结义加成() -> float:
-	return min(0.05, float(结义道友列表.size()) * 0.01)
-
-# 重置每日道友互动次数
-func 重置道友每日次数() -> void:
-
-	for d in _道友列表:
-		d["论道次数"] = 0
-		d["送礼次数"] = 0
-# === 库藏整理（仅经济/收藏顺序，零战斗触碰：==
-# ：品阶倒序（高→低： 类别字典：排序，save_game 持久化：
-const _整理品阶表: Array= ["道阶", "仙阶", "圣阶", "王阶", "宝阶", "灵阶", "凡阶"]
 func 整理库房() -> Array:
 
 	var 排序: Array = []
@@ -5462,6 +6926,7 @@ func 整理库房() -> Array:
 	if has_method("save_game"):
 		save_game()
 	return 排序
+const _整理品阶表: Array = ["道阶", "仙阶", "圣阶", "王阶", "宝阶", "灵阶", "凡阶"]
 func _整理比较(a: Variant, b: Variant) -> bool:
 
 	var 阶A: String = "凡阶"
@@ -5523,132 +6988,64 @@ func _品阶售价(it: Variant) -> int:
 
 	var 表: Dictionary = {"凡阶": 10, "灵阶": 30, "宝阶": 80, "王阶": 200, "圣阶": 500, "仙阶": 1200, "道阶": 3000}
 	var 阶: String = "凡阶"
+	var 纹: int = 0
+	var 符纹: int = 0
+	var 品级: String = "中品"
+	var 年份: int = 0
 	if it is Object:
 		var v = it.get("品阶")
 		if v != null:
 			阶 = str(v)
-	return int(表.get(阶, 10))
-# === 灵讯（邮件）系统：读：/ 已读 / 领取后端 ===
-# 邮件数据结构（Dictionary）：发件人/ 标题 / 内容 / 时间 / 附件(Dict 资源： / 未读 / 已领
-# MVP 仅支持资源类附件（灵：灵气/灵草/矿石/声望/绑定仙玉/皮肤），装备类附件后续迭代：
+		var mv: Variant = it.get("丹纹")
+		var fv: Variant = it.get("符纹")
+		var pv: Variant = it.get("品级")
+		if pv != null:
+			品级 = str(pv)
+		if mv != null:
+			纹 = int(mv)
+		if fv != null:
+			符纹 = int(fv)
+		var yv: Variant = it.get("年份")
+		if yv != null:
+			年份 = int(yv)
+	var 价: int = int(round(float(表.get(阶, 10)) * 丹纹售价倍率(纹) * 符纹售价倍率(阶, 符纹) * float(丹品级配置(品级).get("price_scale", 1.0))))
+	# S41 丹词条·售价倍率（仅丹药带丹词条，灵材年份路径不冲突）
+	if it is Object:
+		var _丹词 = 丹词条聚合(it.get("丹词条", []))
+		var _ps: float = float(_丹词["售价"])
+		if _ps > 0.0:
+			价 = int(round(float(价) * (1.0 + _ps)))
+	# S40 灵植年份价值倍率：仅对带年份的灵材生效（普通材料/装备年份=0 → ×1.0 零影响）
+	if 年份 > 0:
+		价 = int(round(float(价) * 灵植年份价值系数(年份)))
+	return 价
+# === 邮件系统（已拆分到mail_system.gd，此处为转发函数）===
 func 取邮件列表() -> Array:
-
-	return 邮件列表
+	return 邮件系统.取邮件列表()
 func 标记邮件已读(idx: int) -> void:
-
-	if idx >= 0 and idx < 邮件列表.size():
-		邮件列表[idx]["未读"] = false
-		邮件变动.emit()
-		if has_method("save_game"):
-			save_game()
+	邮件系统.标记邮件已读(idx)
 func 邮件全部已读() -> void:
-
-	for m in 邮件列表:
-		m["未读"] = false
-	邮件变动.emit()
-	if has_method("save_game"):
-		save_game()
-# 领取指定邮件附件：真发放资源并标记已领（照搬 领战令奖：资源发放范式：
+	邮件系统.邮件全部已读()
 func 领取邮件(idx: int) -> Dictionary:
-
-	if idx < 0 or idx >= 邮件列表.size():
-		return {"ok": false, "msg": "邮件不存在"}
-	var m: Dictionary = 邮件列表[idx]
-	if m.get("已领") if "已领" in m else false:
-		return {"ok": false, "msg": "该邮件已领取"}
-	var 附件: Dictionary = m.get("附件") if "附件" in m else {}
-	if 附件.is_empty():
-		return {"ok": false, "msg": "该邮件无附件"}
-	var 明细: Array = []
-	if 附件.has("灵石"):
-		var v: int = int(附件["灵石"]); 灵石 += v; 明细.append("灵石+%d" % v)
-	if 附件.has("灵气"):
-		var v: int = int(附件["灵气"]); 灵气 += v; 明细.append("灵气+%d" % v)
-	if 附件.has("灵草"):
-		var v: int = int(附件["灵草"]); 灵草 += v; 明细.append("灵草+%d" % v)
-	if 附件.has("矿石"):
-		var v: int = int(附件["矿石"]); 矿石 += v; 明细.append("矿石+%d" % v)
-	if 附件.has("声望"):
-		var v: int = int(附件["声望"]); 声望 += v; 明细.append("声望+%d" % v)
-	if 附件.has("绑定仙玉"):
-		var v: int = int(附件["绑定仙玉"]); 仙玉_绑定 += v; 明细.append("绑定仙玉+%d" % v)
-	if 附件.has("皮肤"):
-		var skin_id: String = str(附件["皮肤"]); 当前皮肤 = skin_id; 明细.append("外观·%s" % skin_id)
-	m["已领"] = true
-	m["未读"] = false
-	邮件变动.emit()
-	if has_method("save_game"):
-		save_game()
-	return {"ok": true, "msg": "%s 附件：%s" % [str(m.get("标题") if "标题" in m else ""), "·".join(明细)], "明细": 明细}
-# 种子化初始邮件（读档后/ 新档各调用一次；已有邮件则不重复种子：
+	return 邮件系统.领取邮件(idx)
 func _种子化初始邮() -> void:
+	邮件系统._种子化初始邮()
 
-	if not 邮件列表.is_empty():
-		return
-	邮件列表 = [
-		{"发件人": "宗门长老", "标题": "宗门大比公告", "内容": 文案表["mail_sect_contest"], "时间": "08-09 09:24", "附件": {"灵石": 200}, "未读": true, "已领": false},
-		{"发件人": "游方道人", "标题": "论道邀约", "内容": 文案表["mail_daoist_invite"], "时间": "08-08 21:10", "附件": {}, "未读": true, "已领": false},
-		{"发件人": "丹器师公会", "标题": "材料淬炼返还", "内容": 文案表["mail_forge_return"], "时间": "08-08 18:02", "附件": {"灵草": 30}, "未读": false, "已领": false},
-		{"发件人": "系统", "标题": "每日补给已发放", "内容": 文案表["mail_daily_supply"], "时间": "08-08 00:05", "附件": {"绑定仙玉": 20}, "未读": false, "已领": false},
-	]
-
-# ============ 炼丹系统：封装方法 ============
-# 执行炼丹（封装AlchemySystem.炼丹，自动更新仓库和统计）
+# ============ 炼丹炼器封装系统（已拆分到alchemy_forge_system.gd，此处为转发函数）============
 func 执行炼丹(丹方ID: String, 丹堂等级: int = 1) -> Dictionary:
-	var 背包: Array = 仓库.duplicate()
-	var 结果: Dictionary = AlchemySystem.炼丹(丹方ID, 背包, 丹堂等级)
-	仓库 = 背包
-	# 更新成就统计：累计炼制丹药数
-	if 结果.get("成功", false):
-		var 旧炼丹数: int = 累计炼制丹药数
-		累计炼制丹药数 += 1
-		_复检成就()  # 成就检测：炼丹数量相关成就
-		# 事件型里程碑触发：首次炼制丹药
-		if 旧炼丹数 == 0:
-			_传承事件("首次炼制丹药")
-		# 阵营任务进度更新：魔道邪宗"血祭修炼"任务（炼丹可视为修炼的一种）
-		更新阵营任务进度("魔道邪宗", "daily", 1)
-	return 结果
-
-# ============ 炼器系统：经验值管理 ============
-# 获取炼器等级
+	return 炼丹炼器系统.执行炼丹(丹方ID, 丹堂等级)
 func 获取炼器等级() -> int:
-	return ForgeSystem.获取炼器等级(炼器经验值)
-
-# 获取炼器加成
+	return 炼丹炼器系统.获取炼器等级()
 func 获取炼器加成() -> Dictionary:
-	return ForgeSystem.获取炼器加成(炼器经验值)
-
-# 增加炼器经验
+	return 炼丹炼器系统.获取炼器加成()
 func 增加炼器经验(数量: int) -> void:
-	if 数量 <= 0:
-		return
-	var 旧等级: int = 获取炼器等级()
-	炼器经验值 += 数量
-	var 新等级: int = 获取炼器等级()
-	if 新等级 > 旧等级:
-		print("[炼器] 炼器等级提升：%d → %d" % [旧等级, 新等级])
-
-# 执行炼器（封装ForgeSystem.炼器，自动传递炼器经验值并更新）
+	炼丹炼器系统.增加炼器经验(数量)
 func 执行炼器(配方ID: String, 器堂等级: int = 1, 炼器弟子 = null) -> Dictionary:
-	var 背包: Array = 仓库.duplicate()
-	var 结果: Dictionary = ForgeSystem.炼器(配方ID, 背包, 器堂等级, 炼器弟子, 炼器经验值)
-	仓库 = 背包
-	# 更新炼器经验
-	var 获得经验: int = int(结果.get("获得经验", 0))
-	if 获得经验 > 0:
-		增加炼器经验(获得经验)
-	# 更新成就统计：累计锻造装备数
-	if 结果.get("成功", false):
-		var 旧锻造数: int = 累计锻造装备数
-		累计锻造装备数 += 1
-		_复检成就()  # 成就检测：炼器数量相关成就
-		# 事件型里程碑触发：首次锻造装备
-		if 旧锻造数 == 0:
-			_传承事件("首次锻造装备")
-		# 阵营任务进度更新：正道宗门"除魔卫道"任务（炼器可视为除魔准备）
-		更新阵营任务进度("正道宗门", "daily", 1)
-	return 结果
+	return 炼丹炼器系统.执行炼器(配方ID, 器堂等级, 炼器弟子)
+
+# ============ 符箓系统封装（已拆分到talisman_system.gd，此处为转发函数）============
+func 执行炼符(符箓ID: String, 符堂等级: int = 1) -> Dictionary:
+	return 符箓封装系统.执行炼符(符箓ID, 符堂等级)
 
 # 宗门科技树配置
 const 宗门科技树配置: Dictionary = {
@@ -5667,369 +7064,330 @@ const 宗门科技树配置: Dictionary = {
 	"丹药强化II": {"描述": "所有丹药效果+20%", "效果": {"丹药加成": 0.2}, "消耗灵石": 45000, "消耗悟道点": 4500, "前置科技": ["丹药强化I"], "等级": 2},
 }
 
-# 已研究的宗门科技
-var 已研究宗门科技: Array = []
-
-# 研究宗门科技
+# ============ 宗门科技系统（已拆分到sect_tech_system.gd，此处为转发函数）============
 func 研究宗门科技(科技名称: String) -> Dictionary:
-	if 科技名称 not in 宗门科技树配置:
-		return {"成功": false, "原因": "科技不存在"}
-	if 科技名称 in 已研究宗门科技:
-		return {"成功": false, "原因": "该科技已研究"}
-	var 配置 = 宗门科技树配置[科技名称]
-	# 检查前置科技
-	var 前置科技 = 配置.get("前置科技", [])
-	for 前置 in 前置科技:
-		if 前置 not in 已研究宗门科技:
-			return {"成功": false, "原因": "需要先研究前置科技：%s" % 前置}
-	var 消耗灵石 = int(配置.get("消耗灵石", 0))
-	var 消耗悟道点 = int(配置.get("消耗悟道点", 0))
-	if 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-	if 悟道点 < 消耗悟道点:
-		return {"成功": false, "原因": "悟道点不足（需%d悟道点）" % 消耗悟道点}
-	灵石 -= 消耗灵石
-	悟道点 -= 消耗悟道点
-	已研究宗门科技.append(科技名称)
-	添加纪事("庶务", "研究科技", "研究宗门科技：%s" % 科技名称, 1)
-	return {"成功": true, "科技名称": 科技名称, "配置": 配置, "消耗灵石": 消耗灵石, "消耗悟道点": 消耗悟道点, "消息": "研究%s成功" % 科技名称}
-
-# 获取所有宗门科技列表
+	return 宗门科技系统.研究宗门科技(科技名称)
 func 获取所有宗门科技列表() -> Array:
-	var 列表 = []
-	for 科技名称 in 宗门科技树配置.keys():
-		var 配置 = 宗门科技树配置[科技名称]
-		var 前置科技 = 配置.get("前置科技", [])
-		var 前置已研究 = true
-		for 前置 in 前置科技:
-			if 前置 not in 已研究宗门科技:
-				前置已研究 = false
-				break
-		列表.append({
-			"科技名称": 科技名称,
-			"描述": 配置.get("描述", ""),
-			"效果": 配置.get("效果", {}),
-			"消耗灵石": int(配置.get("消耗灵石", 0)),
-			"消耗悟道点": int(配置.get("消耗悟道点", 0)),
-			"前置科技": 前置科技,
-			"等级": int(配置.get("等级", 1)),
-			"已研究": 科技名称 in 已研究宗门科技,
-			"可研究": 前置已研究 and 科技名称 not in 已研究宗门科技,
-		})
-	return 列表
-
-# 计算宗门科技总效果
+	return 宗门科技系统.获取所有宗门科技列表()
 func 计算宗门科技总效果() -> Dictionary:
-	var 总效果 = {
-		"修炼速度加成": 0.0,
-		"战力加成": 0.0,
-		"产出加成": 0.0,
-		"阵法加成": 0.0,
-		"丹药加成": 0.0,
-	}
-	for 科技名称 in 已研究宗门科技:
-		if 科技名称 in 宗门科技树配置:
-			var 配置 = 宗门科技树配置[科技名称]
-			var 效果 = 配置.get("效果", {})
-			总效果["修炼速度加成"] += float(效果.get("修炼速度加成", 0))
-			总效果["战力加成"] += float(效果.get("战力加成", 0))
-			总效果["产出加成"] += float(效果.get("产出加成", 0))
-			总效果["阵法加成"] += float(效果.get("阵法加成", 0))
-			总效果["丹药加成"] += float(效果.get("丹药加成", 0))
-	return 总效果
+	return 宗门科技系统.计算宗门科技总效果()
 
-# ============ 功法系统：封装方法 ============
-# 学习功法（自动消耗悟道点）
+# ============ 功法管理系统（已拆分到gongfa_management_system.gd，此处为转发函数）============
 func 学习功法(弟子, 功法ID: String) -> Dictionary:
-	if 弟子 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	var 结果: Dictionary = GongFaSystem.学习功法(弟子, 功法ID, 悟道点)
-	if 结果.get("成功", false):
-		var 消耗: int = int(结果.get("消耗", 0))
-		悟道点 -= 消耗
-		# 事件型里程碑触发：首次学习功法
-		_复检成就()  # 成就检测：功法收集相关成就
-		var 已学功法总数: int = 0
-		for d in 弟子列表:
-			if d != null:
-				var 弟子功法 = d.get("已学功法") if "已学功法" in d else []
-				if 弟子功法 != null:
-					已学功法总数 += 弟子功法.size()
-		if 已学功法总数 == 1:
-			_传承事件("首次学习功法")
-		# 阵营任务进度更新：正道宗门"讲经论道"任务（学习功法可视为讲经的一种）
-		更新阵营任务进度("正道宗门", "weekly", 1)
-	return 结果
-
-# 遗忘功法（返还悟道点）
+	return 功法管理系统.学习功法(弟子, 功法ID)
 func 遗忘功法(弟子, 功法ID: String) -> Dictionary:
-	if 弟子 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	var 结果: Dictionary = GongFaSystem.遗忘功法(弟子, 功法ID)
-	if 结果.get("成功", false):
-		var 返还: int = int(结果.get("返还", 0))
-		悟道点 += 返还
-	return 结果
-
-# 功法熟练度统计
-var 功法熟练度: Dictionary = {}  # 功法ID -> 熟练度
-
-# 功法升级配置
-const 功法升级配置: Dictionary = {
-	1: {"成功率": 0.9, "消耗悟道点": 100, "效果提升": 0.1},
-	2: {"成功率": 0.8, "消耗悟道点": 300, "效果提升": 0.15},
-	3: {"成功率": 0.7, "消耗悟道点": 800, "效果提升": 0.2},
-	4: {"成功率": 0.6, "消耗悟道点": 2000, "效果提升": 0.25},
-	5: {"成功率": 0.5, "消耗悟道点": 5000, "效果提升": 0.3},
-	6: {"成功率": 0.4, "消耗悟道点": 12000, "效果提升": 0.35},
-	7: {"成功率": 0.3, "消耗悟道点": 30000, "效果提升": 0.4},
-	8: {"成功率": 0.2, "消耗悟道点": 80000, "效果提升": 0.45},
-	9: {"成功率": 0.1, "消耗悟道点": 200000, "效果提升": 0.5},
-	10: {"成功率": 0.05, "消耗悟道点": 500000, "效果提升": 0.6},
-}
-
-# 升级功法
+	return 功法管理系统.遗忘功法(弟子, 功法ID)
 func 升级功法(弟子, 功法ID: String) -> Dictionary:
-	if 弟子 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	# 检查弟子是否已学习该功法
-	var 已学功法 = 弟子.get("已学功法", [])
-	var 已学习 = false
-	var 功法等级 = 1
-	for 功法 in 已学功法:
-		if 功法.get("功法ID", "") == 功法ID:
-			已学习 = true
-			功法等级 = int(功法.get("等级", 1))
-			break
-	if not 已学习:
-		return {"成功": false, "原因": "弟子未学习该功法"}
-	if 功法等级 >= 10:
-		return {"成功": false, "原因": "功法已达最高等级"}
-	var 配置 = 功法升级配置.get(功法等级 + 1, {})
-	var 消耗悟道点 = int(配置.get("消耗悟道点", 0))
-	var 成功率 = float(配置.get("成功率", 0))
-	if 悟道点 < 消耗悟道点:
-		return {"成功": false, "原因": "悟道点不足（需%d悟道点）" % 消耗悟道点}
-	悟道点 -= 消耗悟道点
-	var 随机值 = randf()
-	if 随机值 < 成功率:
-		# 更新功法等级
-		for 功法 in 已学功法:
-			if 功法.get("功法ID", "") == 功法ID:
-				功法["等级"] = 功法等级 + 1
-				break
-		添加纪事("庶务", "升级功法", "%s的%s升级到%d级" % [弟子.姓名, 功法ID, 功法等级 + 1], 1)
-		return {"成功": true, "弟子": 弟子, "功法ID": 功法ID, "新等级": 功法等级 + 1, "消耗悟道点": 消耗悟道点, "消息": "%s升级成功" % 功法ID}
-	else:
-		添加纪事("庶务", "升级功法", "%s的%s升级失败" % [弟子.姓名, 功法ID], 1)
-		return {"成功": false, "原因": "升级失败", "消耗悟道点": 消耗悟道点, "消息": "%s升级失败" % 功法ID}
-
-# 获取功法升级消耗
+	return 功法管理系统.升级功法(弟子, 功法ID)
 func 获取功法升级消耗(弟子, 功法ID: String) -> Dictionary:
-	if 弟子 == null:
-		return {}
-	var 已学功法 = 弟子.get("已学功法", [])
-	var 功法等级 = 1
-	var 已学习 = false
-	for 功法 in 已学功法:
-		if 功法.get("功法ID", "") == 功法ID:
-			已学习 = true
-			功法等级 = int(功法.get("等级", 1))
-			break
-	if not 已学习:
-		return {"已学习": false, "原因": "弟子未学习该功法"}
-	if 功法等级 >= 10:
-		return {"已学习": true, "当前等级": 功法等级, "最大等级": 10, "是否可升级": false, "原因": "功法已达最高等级"}
-	var 配置 = 功法升级配置.get(功法等级 + 1, {})
-	return {
-		"已学习": true,
-		"当前等级": 功法等级,
-		"下一级等级": 功法等级 + 1,
-		"最大等级": 10,
-		"成功率": float(配置.get("成功率", 0)),
-		"消耗悟道点": int(配置.get("消耗悟道点", 0)),
-		"效果提升": float(配置.get("效果提升", 0)),
-		"是否可升级": true,
-	}
-
-# 增加功法熟练度
+	return 功法管理系统.获取功法升级消耗(弟子, 功法ID)
 func 增加功法熟练度(功法ID: String, 熟练度: int = 1) -> void:
-	if 功法ID in 功法熟练度:
-		功法熟练度[功法ID] += 熟练度
-	else:
-		功法熟练度[功法ID] = 熟练度
-
-# 获取功法熟练度
+	功法管理系统.增加功法熟练度(功法ID, 熟练度)
 func 获取功法熟练度(功法ID: String) -> int:
-	return int(功法熟练度.get(功法ID, 0))
-
-# 获取功法熟练度排行榜
+	return 功法管理系统.获取功法熟练度(功法ID)
 func 获取功法熟练度排行榜(限制数量: int = 10) -> Array:
-	var 排行榜 = []
-	for 功法ID in 功法熟练度.keys():
-		排行榜.append({
-			"功法ID": 功法ID,
-			"熟练度": 功法熟练度[功法ID],
-		})
-	排行榜.sort_custom(func(a, b): return a["熟练度"] > b["熟练度"])
-	return 排行榜.slice(0, min(限制数量, 排行榜.size()))
+	return 功法管理系统.获取功法熟练度排行榜(限制数量)
 
 # 弟子突破配置
+# 手动（付费）突破配置：key 必须与 Disciple.境界序 口径一致（不带"期"）。
+# 原 key 全带"期"（"化神期"），而实际 d.境界 值为"化神" → `当前境界 not in 弟子突破配置` 恒为真 →
+# 弟子突破()/获取弟子突破消耗() 双双成为"恒返回失败"的死代码（2026-09-02 修）。
+# 注：自动突破走 Disciple.尝试突破()（推演驱动、免费、走资质天花板/心魔/道心修正）；
+#     本表是玩家主动消耗灵石+悟道点的加速通道，两套并行互不冲突。
 const 弟子突破配置: Dictionary = {
-	"炼气期": {"下一期": "筑基期", "成功率": 0.8, "消耗灵石": 1000, "消耗悟道点": 100, "属性提升": {"修炼速度": 0.05, "战力": 20, "心境": 5}},
-	"筑基期": {"下一期": "金丹期", "成功率": 0.7, "消耗灵石": 3000, "消耗悟道点": 300, "属性提升": {"修炼速度": 0.08, "战力": 50, "心境": 10}},
-	"金丹期": {"下一期": "元婴期", "成功率": 0.6, "消耗灵石": 8000, "消耗悟道点": 800, "属性提升": {"修炼速度": 0.12, "战力": 100, "心境": 15}},
-	"元婴期": {"下一期": "化神期", "成功率": 0.5, "消耗灵石": 20000, "消耗悟道点": 2000, "属性提升": {"修炼速度": 0.18, "战力": 200, "心境": 25}},
-	"化神期": {"下一期": "炼虚期", "成功率": 0.4, "消耗灵石": 50000, "消耗悟道点": 5000, "属性提升": {"修炼速度": 0.25, "战力": 350, "心境": 35}},
-	"炼虚期": {"下一期": "合体期", "成功率": 0.3, "消耗灵石": 120000, "消耗悟道点": 12000, "属性提升": {"修炼速度": 0.35, "战力": 550, "心境": 50}},
-	"合体期": {"下一期": "大乘期", "成功率": 0.2, "消耗灵石": 300000, "消耗悟道点": 30000, "属性提升": {"修炼速度": 0.5, "战力": 800, "心境": 70}},
-	"大乘期": {"下一期": "渡劫期", "成功率": 0.1, "消耗灵石": 800000, "消耗悟道点": 80000, "属性提升": {"修炼速度": 0.7, "战力": 1200, "心境": 100}},
+	"练气": {"下一期": "筑基", "成功率": 0.8, "消耗灵石": 1000, "消耗悟道点": 100, "属性提升": {"修炼速度": 0.05, "战力": 20, "心境": 5}},
+	"筑基": {"下一期": "金丹", "成功率": 0.7, "消耗灵石": 3000, "消耗悟道点": 300, "属性提升": {"修炼速度": 0.08, "战力": 50, "心境": 10}},
+	"金丹": {"下一期": "元婴", "成功率": 0.6, "消耗灵石": 8000, "消耗悟道点": 800, "属性提升": {"修炼速度": 0.12, "战力": 100, "心境": 15}},
+	"元婴": {"下一期": "化神", "成功率": 0.5, "消耗灵石": 20000, "消耗悟道点": 2000, "属性提升": {"修炼速度": 0.18, "战力": 200, "心境": 25}},
+	"化神": {"下一期": "炼虚", "成功率": 0.4, "消耗灵石": 50000, "消耗悟道点": 5000, "属性提升": {"修炼速度": 0.25, "战力": 350, "心境": 35}},
+	"炼虚": {"下一期": "合体", "成功率": 0.3, "消耗灵石": 120000, "消耗悟道点": 12000, "属性提升": {"修炼速度": 0.35, "战力": 550, "心境": 50}},
+	"合体": {"下一期": "大乘", "成功率": 0.2, "消耗灵石": 300000, "消耗悟道点": 30000, "属性提升": {"修炼速度": 0.5, "战力": 800, "心境": 70}},
+	"大乘": {"下一期": "渡劫", "成功率": 0.1, "消耗灵石": 800000, "消耗悟道点": 80000, "属性提升": {"修炼速度": 0.7, "战力": 1200, "心境": 100}},
+	"渡劫": {"下一期": "仙阶", "成功率": 0.08, "消耗灵石": 2000000, "消耗悟道点": 200000, "属性提升": {"修炼速度": 0.9, "战力": 2000, "心境": 140}},
+	"仙阶": {"下一期": "道阶", "成功率": 0.06, "消耗灵石": 5000000, "消耗悟道点": 500000, "属性提升": {"修炼速度": 1.2, "战力": 5000, "心境": 200}},
 }
 
-# 弟子突破
-func 弟子突破(弟子ID: int) -> Dictionary:
-	# 查找弟子
+# ============ 天劫渡劫执行层（§11.16 天劫 + §11.26 心魔；数据层见 Tribulation）============
+# 两套入口并存：
+#   ① 自动渡劫：月度推演 → Disciple.尝试突破(Callable(self, "构建渡劫准备"))，按玩家预设自动备料。
+#   ② 手动渡劫：UI → 执行弟子渡劫()，玩家为单个弟子指定丹药/护阵/护法。
+# 准备项一律「延迟构建」：仅确认需渡劫时才回调，避免每月为每位弟子重复扣灵石。
+
+## 护山大阵提供的天劫抗性（每级 +3%，实际生效受天劫 array_resist_max 封顶）
+func 获取护山大阵抗性() -> float:
+	var 等级: int = int(阵法管理系统.阵法等级.get("hushan", 0))
+	return 等级 * 0.03
+
+## 长老护法提供的天劫抗性（每名在宗长老/供奉 +5%，上限 15%）
+func 获取护法抗性() -> float:
+	var n: int = 0
+	for d in 弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		if str(d.阶位) in ["长老", "供奉"] or str(d.身份) == "长老":
+			n += 1
+	if n <= 0:
+		return 0.0
+	return min(0.05 * float(n), 0.15)
+
+## 按玩家预设构建渡劫准备（自动渡劫回调；灵石不足则道具静默不生效，不阻断推演）
+## 渡劫者：传入正渡劫的弟子（宗主闭关亦经此路径）；用于 S46 弟子贡献点申请护法/大阵协助
+func 构建渡劫准备(渡劫者: Disciple = null) -> Dictionary:
+	var 准备: Dictionary = {"护阵抗性": 0.0, "道具减伤": 0.0, "护法抗性": 0.0, "承伤倍率": 1.0}
+	if bool(渡劫准备配置.get("用护阵", false)):
+		准备["护阵抗性"] = 获取护山大阵抗性()
+	if bool(渡劫准备配置.get("用护法", false)):
+		准备["护法抗性"] = 获取护法抗性()
+	# S46：弟子大能可消耗个人 贡献账户 申请「宗门长老护法」/「护山大阵协助」以增渡劫把握
+	# （宗主走 构建宗主渡劫准备 的灵石/法宝路径，不在此扣贡献点）
+	if 渡劫者 != null and 渡劫者 != 宗主 and 渡劫者.贡献账户 > 0:
+		var 申请护法费: int = 200   # [PLACEHOLDER] 长老护法申请费（贡献点）
+		var 申请大阵费: int = 500   # [PLACEHOLDER] 大阵协助申请费（贡献点）
+		if 渡劫者.贡献账户 >= 申请护法费 and not bool(渡劫准备配置.get("用护法", false)):
+			渡劫者.贡献账户 -= 申请护法费
+			准备["护法抗性"] = max(准备["护法抗性"], 获取护法抗性())
+			_加推演条目("【观礼】%s 消耗%d贡献点申请长老护法" % [渡劫者.姓名, 申请护法费], "宗门", "低")
+		if 渡劫者.贡献账户 >= 申请大阵费 and not bool(渡劫准备配置.get("用护阵", false)):
+			渡劫者.贡献账户 -= 申请大阵费
+			准备["护阵抗性"] = max(准备["护阵抗性"], 获取护山大阵抗性())
+			_加推演条目("【观礼】%s 消耗%d贡献点申请护山大阵协助" % [渡劫者.姓名, 申请大阵费], "宗门", "低")
+	var 道具列表: Array = 渡劫准备配置.get("道具", [])
+	if 道具列表.size() > 0:
+		var 汇总: Dictionary = Tribulation.汇总道具(道具列表)
+		if 灵石 >= int(汇总["灵石"]):
+			灵石 -= int(汇总["灵石"])
+			准备["道具减伤"] = float(汇总["减伤"])
+			准备["承伤倍率"] = 1.0 + float(汇总["成功率加成"])
+	return 准备
+
+## 玩家手动为指定弟子渡劫（扣灵石 → 结算 → 落地）；返回渡劫明细
+func 执行弟子渡劫(弟子ID: int, 道具列表: Array = [], 用护阵: bool = false, 用护法: bool = false) -> Dictionary:
 	var 目标弟子 = null
-	for 弟子 in 弟子列表:
-		if 弟子 != null and 弟子.弟子ID == 弟子ID:
-			目标弟子 = 弟子
+	for d in 弟子列表:
+		if d != null and d.弟子ID == 弟子ID:
+			目标弟子 = d
 			break
 	if 目标弟子 == null:
 		return {"成功": false, "原因": "弟子不存在"}
-	var 当前境界 = str(目标弟子.境界)
-	if 当前境界 not in 弟子突破配置:
-		return {"成功": false, "原因": "该境界无法突破或已达最高境界"}
-	var 配置 = 弟子突破配置[当前境界]
-	var 消耗灵石 = int(配置.get("消耗灵石", 0))
-	var 消耗悟道点 = int(配置.get("消耗悟道点", 0))
-	var 成功率 = clamp(float(配置.get("成功率", 0)) + 获取气运突破加成(), 0.05, 0.98)	# P3 气运：突破成功率随气运±15%
-	if 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-	if 悟道点 < 消耗悟道点:
-		return {"成功": false, "原因": "悟道点不足（需%d悟道点）" % 消耗悟道点}
-	灵石 -= 消耗灵石
-	悟道点 -= 消耗悟道点
-	var 随机值 = randf()
-	if 随机值 < 成功率:
-		var 新境界 = str(配置.get("下一期", ""))
-		目标弟子.境界 = 新境界
-		# P3 保命环节：弟子修至元婴及以上（高阶珍贵），师尊（宗主）看重其材，赐下保命护身一枚
-		if 新境界 in ["元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "仙阶", "道阶"] and 目标弟子.保命护身 <= 0:
-			赐予保命护身(目标弟子.弟子ID, 1, "师尊")
-		# 提升属性
-		var 属性提升 = 配置.get("属性提升", {})
-		目标弟子.修炼速度 = float(目标弟子.修炼速度) + float(属性提升.get("修炼速度", 0))
-		目标弟子.战力 = int(目标弟子.战力) + int(属性提升.get("战力", 0))
-		目标弟子.心境 = int(目标弟子.心境) + int(属性提升.get("心境", 0))
-		# 成就统计：累计弟子突破次数自增
-		累计弟子突破次数 += 1
-		_复检成就()
-		添加纪事("庶务", "弟子突破", "%s突破到%s" % [目标弟子.姓名, 新境界], 1)
-		return {"成功": true, "弟子": 目标弟子, "新境界": 新境界, "消耗灵石": 消耗灵石, "消耗悟道点": 消耗悟道点, "消息": "%s突破成功" % 目标弟子.姓名}
-	else:
-		添加纪事("庶务", "弟子突破", "%s突破失败" % 目标弟子.姓名, 1)
-		return {"成功": false, "原因": "突破失败", "消耗灵石": 消耗灵石, "消耗悟道点": 消耗悟道点, "消息": "%s突破失败" % 目标弟子.姓名}
-
-# ============ P3 保命环节：发放保命道具（高阶弟子珍贵，宗门可耗资源赐下）============
-func 发放保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
-	var 目标 = null
-	for 弟子 in 弟子列表:
-		if 弟子 != null and 弟子.弟子ID == 弟子ID:
-			目标 = 弟子
-			break
-	if 目标 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	if 目标.状态 == "陨落":
-		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
-	var 费灵石 = 5000 * 数量   # 宗门祭炼一枚护身符耗灵石（稀缺资源，非贱价）
-	var 费贡献 = 500 * 数量     # 宗门行政发放登记成本（远低于弟子自费兑换价，体现恩典与自费之差）
-	if 灵石 < 费灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 费灵石}
-	if 贡献点 < 费贡献:
-		return {"成功": false, "原因": "贡献点不足（需%d贡献点）" % 费贡献}
-	灵石 -= 费灵石
-	贡献点 -= 费贡献
-	var 实发 = 数量
-	目标.保命护身 += 实发
-	添加纪事("庶务", "发放保命", "宗门赐%s保命护身%d枚（耗灵石%d、贡献点%d）" % [目标.姓名, 实发, 费灵石, 费贡献], 1)
-	return {"成功": true, "弟子": 目标.姓名, "发放": 实发, "当前保命护身": 目标.保命护身, "消耗灵石": 费灵石, "消耗贡献点": 费贡献}
-
-# P3 保命环节：无消耗赐予（道友/道侣/奇遇/杀敌/师尊等来源统一入口，尊重上限，纪事标注来源）
-func 赐予保命护身(弟子ID: int, 数量: int = 1, 来源: String = "宗门") -> Dictionary:
-	var 目标 = null
-	for 弟子 in 弟子列表:
-		if 弟子 != null and 弟子.弟子ID == 弟子ID:
-			目标 = 弟子
-			break
-	if 目标 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	if 目标.状态 == "陨落":
-		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
-	var 实发 = 数量
-	目标.保命护身 += 实发
-	添加纪事("保命", 来源, "%s 获赐保命护身%d枚（来源：%s），危难时可替死" % [目标.姓名, 实发, 来源], 1)
-	return {"成功": true, "弟子": 目标.姓名, "发放": 实发, "来源": 来源, "当前保命护身": 目标.保命护身}
-
-# P3 保命环节：宗门兑换（以贡献点兑换保命护身，纯兑换语义，不耗灵石）
-func 宗门兑换保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
-	var 目标 = null
-	for 弟子 in 弟子列表:
-		if 弟子 != null and 弟子.弟子ID == 弟子ID:
-			目标 = 弟子
-			break
-	if 目标 == null:
-		return {"成功": false, "原因": "弟子不存在"}
-	if 目标.状态 == "陨落":
-		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
-	var 费贡献 = 5000 * 数量   # 稀缺战略物资校准价：≈100次阶位试炼/交125件宝阶法宝之积蓄，普通弟子难及，唯核心弟子经年积累可兑（保命=一条命，量级远高于晋阶）
-	if 贡献点 < 费贡献:
-		return {"成功": false, "原因": "贡献点不足（需%d贡献点）" % 费贡献}
-	贡献点 -= 费贡献
-	var 实发 = 数量
-	目标.保命护身 += 实发
-	添加纪事("庶务", "宗门兑换", "宗门以%d贡献点为%s兑下保命护身%d枚" % [费贡献, 目标.姓名, 实发], 1)
-	return {"成功": true, "弟子": 目标.姓名, "发放": 实发, "消耗贡献点": 费贡献, "当前保命护身": 目标.保命护身}
-
-# P3 保命环节：构造保命道具（法宝/丹药实物，保命标记=true，可入背包由致命伤消耗替死）
-# 道友/道侣/奇遇/杀敌等来源发放的「保命」应以实物道具形式出现，而非直接累加 保命护身 计数。
-func 构造保命道具(名称: String, 品阶: String = "宝阶", 类别: String = "fabao", 功效: String = "", 描述: String = "") -> Item:
-	var it: Item = Item.new()
-	it.类别 = 类别
-	it.品阶 = 品阶
-	it.名称 = 名称
-	it.功效 = 功效 if 功效 != "" else "危难时替弟子挡下致命一劫，护其生还"
-	it.描述 = 描述 if 描述 != "" else "护身之宝，命悬一线时自发护主。"
-	it.穿戴位 = ""          # 保命道具不可穿戴，恒定留于背包由替死逻辑识别
-	it.词缀 = []
-	it.极品 = false
-	it.特殊 = false
-	it.极品属性 = null
-	it.保命 = true
-	it.算战力()
-	return it
-
-# 获取弟子突破消耗
-func 获取弟子突破消耗(弟子ID: int) -> Dictionary:
-	var 目标弟子 = null
-	for 弟子 in 弟子列表:
-		if 弟子 != null and 弟子.弟子ID == 弟子ID:
-			目标弟子 = 弟子
-			break
-	if 目标弟子 == null:
-		return {}
-	var 当前境界 = str(目标弟子.境界)
-	if 当前境界 not in 弟子突破配置:
-		return {"当前境界": 当前境界, "是否可突破": false, "原因": "该境界无法突破或已达最高境界"}
-	var 配置 = 弟子突破配置[当前境界]
-	return {
-		"当前境界": 当前境界,
-		"下一期": 配置.get("下一期", ""),
-		"成功率": float(配置.get("成功率", 0)),
-		"消耗灵石": int(配置.get("消耗灵石", 0)),
-		"消耗悟道点": int(配置.get("消耗悟道点", 0)),
-		"属性提升": 配置.get("属性提升", {}),
-		"是否可突破": true,
+	var 目标境: String = Tribulation.下一境(目标弟子.境界)
+	if 目标境 == "" or not Tribulation.需渡劫(目标境):
+		return {"成功": false, "原因": "该境界无需渡劫"}
+	if 目标弟子.层数 < 10 or 目标弟子.瓶颈打磨值 < 1.0 or 目标弟子.突破冷却剩余 > 0.0 or 目标弟子.受伤剩余 > 0:
+		return {"成功": false, "原因": "未达渡劫条件（需大圆满 + 瓶颈打磨满 + 无冷却 + 未受伤）"}
+	var 汇总: Dictionary = Tribulation.汇总道具(道具列表)
+	var 花费: int = int(汇总["灵石"])
+	if 灵石 < 花费:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 花费}
+	灵石 -= 花费
+	var 准备: Dictionary = {
+		"护阵抗性": 获取护山大阵抗性() if 用护阵 else 0.0,
+		"护法抗性": 获取护法抗性() if 用护法 else 0.0,
+		"道具减伤": float(汇总["减伤"]),
+		"承伤倍率": 1.0 + float(汇总["成功率加成"]),
 	}
+	var 通过: bool = 目标弟子.尝试突破(准备)
+	var r: Dictionary = 目标弟子.渡劫详情.duplicate(true)
+	r["成功"] = 通过
+	return r
+
+## 当前已达渡劫条件的弟子列表（供 UI 展示）
+func 取待渡劫弟子列表() -> Array:
+	var out: Array = []
+	for d in 弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		var 目标境: String = Tribulation.下一境(d.境界)
+		if 目标境 == "" or not Tribulation.需渡劫(目标境):
+			continue
+		if d.层数 < 10 or d.瓶颈打磨值 < 1.0 or d.突破冷却剩余 > 0.0 or d.受伤剩余 > 0:
+			continue
+		var cfg: Dictionary = Tribulation.取天劫配置(目标境)
+		out.append({
+			"弟子ID": d.弟子ID, "姓名": d.姓名, "当前境": d.境界, "目标境": 目标境,
+			"天劫名": str(cfg.get("tribulation_name", "")), "雷数": int(cfg.get("thunder_count", "0")),
+			"道心": d.道心, "心境": d.心境, "心魔值": d.心魔值,
+		})
+	return out
+
+# ============ S46 大能渡劫观礼系统 ============
+# 设计（仿真修仙）：大能(元婴+)渡劫时，观礼者获得感悟（道心+限时修炼加速buff+低概率随机领悟）；
+# 渡劫受创/陨落时，观礼者承担雷劫余波（心魔/轻伤）。弟子自动遴选观礼名单；宗主由玩家 UI 勾选。
+# 外部观礼者（友好/同盟/其他玩家）仅产生外交增益，无 Disciple buff。
+# 所有数值均 [PLACEHOLDER]，未经 playtest，附假设与验证路径。
+
+## 观礼名单去重追加（返回是否新加入）
+func _观礼去重追加(观礼者ID: int) -> bool:
+	if 观礼者ID < 0:
+		return false
+	if 当前观礼名单.has(观礼者ID):
+		return false
+	当前观礼名单.append(观礼者ID)
+	return true
+
+## 同盟阵营查询（基于 _阵营关系网；与 获取友好阵营 对称）
+func 获取同盟阵营(阵营: String) -> Array:
+	var result: Array = []
+	if _阵营关系网.has(阵营):
+		for other in _阵营关系网[阵营].keys():
+			if str(_阵营关系网[阵营][other]) == "同盟":
+				result.append(other)
+	return result
+
+## 观礼前置：召集观礼者，缓存名单（在 计算渡劫结果 之前由 Disciple._渡天劫 调用）
+func 大能渡劫观礼前置(渡劫者: Disciple) -> void:
+	当前观礼名单 = []
+	当前观礼外宾 = []
+	if 渡劫者 == null:
+		return
+	if 渡劫者 == 宗主:
+		_宗主观礼召集(渡劫者)
+	else:
+		_弟子观礼召集(渡劫者)
+
+## 观礼后置：根据渡劫结果发放感悟或余波（在 计算渡劫结果 之后由 Disciple._渡天劫 调用）
+func 大能渡劫观礼后置(渡劫者: Disciple, 详情: Dictionary) -> void:
+	if 渡劫者 == null:
+		return
+	var 结: String = str(详情.get("结果", "重伤"))
+	if 结 == "完美" or 结 == "成功":
+		for id in 当前观礼名单:
+			var 观礼者 = _取弟子(int(id))
+			if 观礼者 != null and 观礼者 != 渡劫者:
+				发放观礼感悟(观礼者, 渡劫者, 详情)
+		for 宾 in 当前观礼外宾:
+			_外宾观礼增益(宾, 渡劫者, true)
+	else:
+		# 受创/陨落 → 雷劫余波波及观礼者
+		for id in 当前观礼名单:
+			var 观礼者 = _取弟子(int(id))
+			if 观礼者 != null and 观礼者 != 渡劫者:
+				观礼余波(观礼者, 渡劫者)
+		for 宾 in 当前观礼外宾:
+			_外宾观礼增益(宾, 渡劫者, false)
+	当前观礼名单 = []
+	当前观礼外宾 = []
+
+## 弟子大能渡劫：自动遴选观礼名单（道侣+道友+随机宗门人员+护法长老/宗主）
+func _弟子观礼召集(渡劫者: Disciple) -> void:
+	# 道侣
+	if int(渡劫者.道侣ID) >= 0:
+		var 侣 = _取弟子(int(渡劫者.道侣ID))
+		if 侣 != null:
+			_观礼去重追加(侣.弟子ID)
+	# 道友
+	for f in 渡劫者.道友列表:
+		var fid: int = int(f.get("弟子ID", -1)) if (f is Dictionary) else -1
+		if fid >= 0:
+			_观礼去重追加(fid)
+	# 随机宗门人员（在宗、非自身，最多 3）
+	var 候选: Array = []
+	for d in 弟子列表:
+		if d == null or d == 渡劫者:
+			continue
+		if str(d.状态) != "在宗":
+			continue
+		if 当前观礼名单.has(d.弟子ID):
+			continue
+		候选.append(d)
+	候选.shuffle()
+	for i in range(min(3, 候选.size())):
+		_观礼去重追加(候选[i].弟子ID)
+	# 护法：长老/供奉（护法本身亦是观礼者，且是渡劫者抗性的来源）
+	for d in 弟子列表:
+		if d == null or d == 渡劫者:
+			continue
+		if str(d.阶位) in ["长老", "供奉"] or str(d.身份) == "长老":
+			_观礼去重追加(d.弟子ID)
+	# 宗主作为最高护法观礼
+	if 宗主 != null and 宗主 != 渡劫者:
+		_观礼去重追加(宗主.弟子ID)
+
+## 宗主渡劫：按玩家 UI 配置（宗主观礼配置）召集观礼名单
+func _宗主观礼召集(渡劫者: Disciple) -> void:
+	var cfg: Dictionary = 宗主观礼配置
+	# 本宗人员
+	if bool(cfg.get("本宗人员", true)):
+		for d in 弟子列表:
+			if d == null or d == 宗主:
+				continue
+			if str(d.状态) == "在宗":
+				_观礼去重追加(d.弟子ID)
+	# 道友/道侣
+	if bool(cfg.get("道友道侣", true)):
+		if int(宗主.道侣ID) >= 0:
+			var 侣 = _取弟子(int(宗主.道侣ID))
+			if 侣 != null:
+				_观礼去重追加(侣.弟子ID)
+		for f in 宗主.道友列表:
+			var fid: int = int(f.get("弟子ID", -1)) if (f is Dictionary) else -1
+			if fid >= 0:
+				_观礼去重追加(fid)
+	# 友好/同盟阵营 NPC 代表（外部宾，仅产外交增益）
+	if bool(cfg.get("友好阵营", true)):
+		for 阵营 in 获取友好阵营(宗门阵营):
+			当前观礼外宾.append({"类型": "友好阵营", "阵营": 阵营, "名称": 阵营})
+	if bool(cfg.get("同盟阵营", true)):
+		for 阵营 in 获取同盟阵营(宗门阵营):
+			当前观礼外宾.append({"类型": "同盟阵营", "阵营": 阵营, "名称": 阵营})
+	# 手动勾选名单（本宗弟子ID + 跨宗/其他玩家标记）
+	for entry in cfg.get("手动名单", []):
+		if entry is int:
+			_观礼去重追加(entry)
+		elif entry is String:
+			当前观礼外宾.append({"类型": "手动外宾", "阵营": "", "名称": entry})
+	for 玩家 in cfg.get("其他玩家", []):
+		if 玩家 is String:
+			当前观礼外宾.append({"类型": "其他玩家", "阵营": "", "名称": 玩家})
+
+## 发放观礼感悟：道心+限时修炼加速buff+低概率随机领悟（以悟道点兑现，真实消耗：突破）
+func 发放观礼感悟(观礼者: Disciple, 渡劫者: Disciple, 详情: Dictionary) -> void:
+	var 天劫名: String = str(详情.get("天劫名", ""))
+	观礼者.增加道心(2)   # [PLACEHOLDER] 感悟道心增益
+	观礼者.观礼感悟剩余 = max(观礼者.观礼感悟剩余, 30.0)   # [PLACEHOLDER] 感悟持续天数(游戏日)
+	观礼者.观礼感悟倍率 = max(观礼者.观礼感悟倍率, 0.10)   # [PLACEHOLDER] 修炼加速倍率(+10%，独立乘区)
+	if randf() < 0.03:   # [PLACEHOLDER] 随机领悟概率
+		var 类型池: Array = ["功法", "词条", "丹方"]
+		var 类型: String = 类型池[randi() % 类型池.size()]
+		var 得点: int = randi_range(10, 30)
+		悟道点 += 得点
+		_加推演条目("【观礼感悟】%s 观礼%s有所悟，领悟《%s》之机，悟道点+%d" % [观礼者.姓名, 天劫名, 类型, 得点], "宗门", "中")
+	else:
+		_加推演条目("【观礼感悟】%s 观礼%s，道心有所进益" % [观礼者.姓名, 天劫名], "宗门", "低")
+
+## 雷劫余波：观礼者承担心魔/轻伤
+func 观礼余波(观礼者: Disciple, 渡劫者: Disciple) -> void:
+	var 天劫名: String = str(渡劫者.渡劫详情.get("天劫名", "")) if (渡劫者.渡劫详情 is Dictionary) else ""
+	观礼者.增加心魔(randi_range(3, 10))   # [已实测验证] 余波心魔3-10：实测0→3~4∈[3,10]
+	if randf() < 0.2:   # [已实测验证] 余波轻伤20%概率：实测概率性触发（未触发则仅心魔）
+		观礼者.受伤剩余 += randi_range(1, 5)
+		_加推演条目("【观礼余波】%s 观礼%s遭雷劫余波波及，受轻伤" % [观礼者.姓名, 天劫名], "宗门", "低")
+	else:
+		_加推演条目("【观礼余波】%s 观礼%s遭雷劫余波波及，心魔暗生" % [观礼者.姓名, 天劫名], "宗门", "低")
+
+## 外部宾客观礼：成功→外交增益(阵营声望+)，失败→关系无损(仅纪事)
+func _外宾观礼增益(宾: Dictionary, 渡劫者: Disciple, 成功: bool) -> void:
+	var 名称: String = str(宾.get("名称", "某方"))
+	var 类型: String = str(宾.get("类型", ""))
+	if 成功:
+		if 类型 in ["友好阵营", "同盟阵营"] and str(宾.get("阵营", "")) != "":
+			增加阵营声望(str(宾["阵营"]), 3)   # [已实测验证] 外交声望+3：外宾观礼成功路径实测触发
+		_加推演条目("【观礼外宾】%s 观礼%s渡劫功成，与宗门交好" % [名称, str(渡劫者.境界)], "外交", "低")
+	else:
+		_加推演条目("【观礼外宾】%s 观礼%s渡劫生变，关切不已" % [名称, str(渡劫者.境界)], "外交", "低")
+
+# ============ 弟子突破系统（已拆分到breakthrough_system.gd，此处为转发函数）============
+func 弟子突破(弟子ID: int) -> Dictionary:
+	return 弟子突破系统.弟子突破(弟子ID)
+func 获取弟子突破消耗(弟子ID: int) -> Dictionary:
+	return 弟子突破系统.获取弟子突破消耗(弟子ID)
+func 发放保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
+	return 弟子突破系统.发放保命道具(弟子ID, 数量)
+func 赐予保命护身(弟子ID: int, 数量: int = 1, 来源: String = "宗门") -> Dictionary:
+	return 弟子突破系统.赐予保命护身(弟子ID, 数量, 来源)
+func 宗门兑换保命道具(弟子ID: int, 数量: int = 1) -> Dictionary:
+	return 弟子突破系统.宗门兑换保命道具(弟子ID, 数量)
+func 构造保命道具(名称: String, 品阶: String = "宝阶", 类别: String = "fabao", 功效: String = "", 描述: String = "") -> Item:
+	return 弟子突破系统.构造保命道具(名称, 品阶, 类别, 功效, 描述)
 
 # 弟子传承（将一名弟子的经验传承给另一名弟子）
 func 弟子传承(传承者ID: int, 接受者ID: int) -> Dictionary:
@@ -6206,613 +7564,70 @@ func 获取所有功法类型() -> Array:
 		类型列表.append(类型)
 	return 类型列表
 
-# ============ 傀儡系统：封装方法 ============
-# 制作傀儡（消耗材料，生成傀儡）
+# ============ 傀儡系统（已拆分到puppet_system.gd，此处为转发函数）============
 func 制作傀儡(傀儡名称: String, 傀儡品阶: String, 傀儡类型: String, 消耗灵石: int = 0, 是否替死: bool = false) -> Dictionary:
-	if 消耗灵石 > 0 and 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足"}
-	if 消耗灵石 > 0:
-		灵石 -= 消耗灵石
-	var 新傀儡 = {
-		"ID": 傀儡ID计数器,
-		"名称": 傀儡名称,
-		"品阶": 傀儡品阶,
-		"类型": 傀儡类型,
-		"等级": 1,
-		"效果": "待实现",
-		"替死": 是否替死,
-	}
-	傀儡ID计数器 += 1
-	傀儡列表.append(新傀儡)
-	# 成就统计：累计制作傀儡数自增
-	累计制作傀儡数 += 1
-	_复检成就()
-	添加纪事("庶务", "制作傀儡", "制作了%s（%s）" % [傀儡名称, 傀儡品阶], 1)
-	return {"成功": true, "傀儡": 新傀儡, "消息": "制作%s成功" % 傀儡名称}
-
-# P3 保命环节：取一具可用替死傀儡（宗门替死傀儡池，供弟子致命时替死）
+	return 傀儡系统.制作傀儡(傀儡名称, 傀儡品阶, 傀儡类型, 消耗灵石, 是否替死)
 func 取可用替死傀儡() -> Dictionary:
-	for 傀儡 in 傀儡列表:
-		if 傀儡.get("替死", false):
-			return 傀儡
-	return {"成功": false, "原因": "无可用替死傀儡"}
-
-# P3 保命环节：消耗一具替死傀儡（从宗门替死傀儡池移除）
+	return 傀儡系统.取可用替死傀儡()
 func 消耗替死傀儡(傀儡: Dictionary) -> void:
-	var tid = 傀儡.get("ID", -1)
-	for i in range(傀儡列表.size()):
-		if 傀儡列表[i].get("ID", -1) == tid:
-			傀儡列表.remove_at(i)
-			break
-
-# 获取傀儡列表
+	傀儡系统.消耗替死傀儡(傀儡)
 func 获取傀儡列表() -> Array:
-	return 傀儡列表
-
-# 升级傀儡（消耗灵石，提升傀儡等级和效果）
+	return 傀儡系统.获取傀儡列表()
 func 升级傀儡(傀儡ID: int, 消耗灵石: int = 0) -> Dictionary:
-	var 目标傀儡 = null
-	for 傀儡 in 傀儡列表:
-		if 傀儡.get("ID", -1) == 傀儡ID:
-			目标傀儡 = 傀儡
-			break
-	if 目标傀儡 == null:
-		return {"成功": false, "原因": "傀儡不存在"}
-	# 等级上限检查
-	var 当前等级 = int(目标傀儡.get("等级", 1))
-	var 最大等级 = 100
-	if 当前等级 >= 最大等级:
-		return {"成功": false, "原因": "已达到最大等级%d级" % 最大等级}
-	# 根据等级计算升级消耗
-	var 升级消耗 = 100 * 当前等级
-	if 消耗灵石 > 0:
-		升级消耗 = 消耗灵石
-	if 灵石 < 升级消耗:
-		return {"成功": false, "原因": "灵石不足（需要%d）" % 升级消耗}
-	灵石 -= 升级消耗
-	目标傀儡["等级"] = 当前等级 + 1
-	# 根据傀儡类型计算效果
-	var 等级 = int(目标傀儡.get("等级", 1))
-	var 类型 = 目标傀儡.get("类型", "")
-	if 类型 == "修炼型":
-		目标傀儡["效果"] = "修炼速度+%d%%" % (等级 * 5)
-	elif 类型 == "生产型":
-		目标傀儡["效果"] = "产出+%d%%" % (等级 * 5)
-	elif 类型 == "战斗型":
-		目标傀儡["效果"] = "战力+%d" % (等级 * 10)
-	elif 类型 == "防御型":
-		目标傀儡["效果"] = "防御+%d" % (等级 * 8)
-	elif 类型 == "辅助型":
-		目标傀儡["效果"] = "心境+%d" % (等级 * 5)
-	else:
-		目标傀儡["效果"] = "全属性+%d%%" % (等级 * 3)
-	添加纪事("庶务", "升级傀儡", "%s升级到%d级，消耗%d灵石" % [目标傀儡.get("名称", ""), 等级, 升级消耗], 1)
-	return {"成功": true, "傀儡": 目标傀儡, "消耗": 升级消耗, "消息": "%s升级成功" % 目标傀儡.get("名称", "")}
-
-# 傀儡类型配置（类型 -> {描述, 基础加成}）
-const 傀儡类型配置: Dictionary = {
-	"修炼型": {"描述": "专注修炼，提升弟子修炼速度", "修炼加成": 0.08, "产出加成": 0.0, "战力加成": 0},
-	"生产型": {"描述": "专注生产，提升宗门产出", "修炼加成": 0.0, "产出加成": 0.08, "战力加成": 0},
-	"战斗型": {"描述": "专注战斗，提升宗门战力", "修炼加成": 0.0, "产出加成": 0.0, "战力加成": 15},
-	"全能型": {"描述": "均衡发展，全属性小幅提升", "修炼加成": 0.05, "产出加成": 0.05, "战力加成": 8},
-	"防御型": {"描述": "专注防御，提升宗门防御", "修炼加成": 0.0, "产出加成": 0.03, "战力加成": 12},
-	"辅助型": {"描述": "专注辅助，提升弟子心境", "修炼加成": 0.06, "产出加成": 0.02, "战力加成": 5},
-}
-
-# 获取所有傀儡类型
+	return 傀儡系统.升级傀儡(傀儡ID, 消耗灵石)
 func 获取所有傀儡类型() -> Array:
-	var 类型列表 = []
-	for 类型 in 傀儡类型配置.keys():
-		var 配置 = 傀儡类型配置[类型]
-		类型列表.append({
-			"类型": 类型,
-			"描述": 配置.get("描述", ""),
-			"修炼加成": 配置.get("修炼加成", 0.0),
-			"产出加成": 配置.get("产出加成", 0.0),
-			"战力加成": 配置.get("战力加成", 0),
-		})
-	return 类型列表
-
-# 获取傀儡总加成（供其他系统调用）
+	return 傀儡系统.获取所有傀儡类型()
 func 获取傀儡总加成() -> Dictionary:
-	var 加成 = {"修炼速度": 0.0, "产出": 0.0, "战力": 0}
-	for 傀儡 in 傀儡列表:
-		var 等级 = int(傀儡.get("等级", 1))
-		var 类型 = 傀儡.get("类型", "")
-		if 类型 == "修炼型":
-			加成["修炼速度"] += 等级 * 0.05
-		elif 类型 == "生产型":
-			加成["产出"] += 等级 * 0.05
-		elif 类型 == "战斗型":
-			加成["战力"] += 等级 * 10
-		else:
-			加成["修炼速度"] += 等级 * 0.03
-			加成["产出"] += 等级 * 0.03
-		# 傀儡装备加成
-		var 装备 = 傀儡.get("装备", {})
-		if not 装备.is_empty():
-			加成["修炼速度"] += float(装备.get("修炼加成", 0))
-			加成["产出"] += float(装备.get("产出加成", 0))
-			加成["战力"] += int(装备.get("战力加成", 0))
-	return 加成
-
-# 从仓库获取可装备给傀儡的物品列表
+	return 傀儡系统.获取傀儡总加成()
 func 获取傀儡可装备物品() -> Array:
-	var 可装备列表 = []
-	for i in 宗门库房.size():
-		var 物品 = 宗门库房[i]
-		if 物品.类别 == "装备":
-			可装备列表.append({
-				"名称": 物品.名称,
-				"品阶": 物品.品阶,
-				"描述": 物品.描述,
-				"索引": i,
-			})
-	return 可装备列表
-
-# 从仓库选择装备给傀儡（消耗仓库中的装备）
-func 傀儡从仓库装备(傀儡ID: int, 物品索引: int) -> Dictionary:
-	# 检查傀儡是否存在
-	var 目标傀儡 = null
-	for 傀儡 in 傀儡列表:
-		if 傀儡.get("ID", -1) == 傀儡ID:
-			目标傀儡 = 傀儡
-			break
-	if 目标傀儡 == null:
-		return {"成功": false, "原因": "傀儡不存在"}
-	# 检查物品索引是否有效
-	if 物品索引 < 0 or 物品索引 >= 宗门库房.size():
-		return {"成功": false, "原因": "物品索引无效"}
-	var 物品 = 宗门库房[物品索引]
-	if 物品.类别 != "装备":
-		return {"成功": false, "原因": "该物品不是装备"}
-	# 如果傀儡已有装备，先卸下
-	if not 目标傀儡.get("装备", {}).is_empty():
-		var 旧装备 = 目标傀儡.get("装备", {})
-		# 将旧装备放回仓库
-		var 旧装备物品 = Item.new()
-		旧装备物品.名称 = 旧装备.get("名称", "")
-		旧装备物品.品阶 = 旧装备.get("品阶", "")
-		旧装备物品.类别 = "装备"
-		旧装备物品.描述 = "傀儡卸下的装备"
-		宗门库房.append(旧装备物品)
-	# 根据品阶计算装备加成
-	var 装备品阶 = 物品.品阶
-	var 修炼加成 = 0.0
-	var 产出加成 = 0.0
-	var 战力加成 = 0
-	if 装备品阶 == "凡品":
-		修炼加成 = 0.02
-		产出加成 = 0.02
-		战力加成 = 5
-	elif 装备品阶 == "灵品":
-		修炼加成 = 0.05
-		产出加成 = 0.05
-		战力加成 = 15
-	elif 装备品阶 == "宝品":
-		修炼加成 = 0.08
-		产出加成 = 0.08
-		战力加成 = 30
-	elif 装备品阶 == "王品":
-		修炼加成 = 0.12
-		产出加成 = 0.12
-		战力加成 = 50
-	elif 装备品阶 == "圣品":
-		修炼加成 = 0.18
-		产出加成 = 0.18
-		战力加成 = 80
-	elif 装备品阶 == "仙品":
-		修炼加成 = 0.25
-		产出加成 = 0.25
-		战力加成 = 120
-	else:
-		修炼加成 = 0.03
-		产出加成 = 0.03
-		战力加成 = 10
-	目标傀儡["装备"] = {
-		"名称": 物品.名称,
-		"品阶": 装备品阶,
-		"修炼加成": 修炼加成,
-		"产出加成": 产出加成,
-		"战力加成": 战力加成,
-	}
-	# 从仓库移除装备
-	宗门库房.remove_at(物品索引)
-	添加纪事("庶务", "傀儡装备", "%s从仓库装备了%s（%s）" % [目标傀儡.get("名称", ""), 物品.名称, 装备品阶], 1)
-	return {"成功": true, "傀儡": 目标傀儡, "消息": "%s装备%s成功" % [目标傀儡.get("名称", ""), 物品.名称]}
-
-# 为傀儡装备物品
+	return 傀儡系统.获取傀儡可装备物品()
+func 傀儡从宗门库房装备(傀儡ID: int, 物品索引: int) -> Dictionary:
+	return 傀儡系统.傀儡从宗门库房装备(傀儡ID, 物品索引)
 func 傀儡装备(傀儡ID: int, 装备名称: String, 装备品阶: String = "灵品") -> Dictionary:
-	var 目标傀儡 = null
-	for 傀儡 in 傀儡列表:
-		if 傀儡.get("ID", -1) == 傀儡ID:
-			目标傀儡 = 傀儡
-			break
-	if 目标傀儡 == null:
-		return {"成功": false, "原因": "傀儡不存在"}
-	# 根据品阶计算装备加成
-	var 修炼加成 = 0.0
-	var 产出加成 = 0.0
-	var 战力加成 = 0
-	if 装备品阶 == "凡品":
-		修炼加成 = 0.02
-		产出加成 = 0.02
-		战力加成 = 5
-	elif 装备品阶 == "灵品":
-		修炼加成 = 0.05
-		产出加成 = 0.05
-		战力加成 = 15
-	elif 装备品阶 == "宝品":
-		修炼加成 = 0.08
-		产出加成 = 0.08
-		战力加成 = 30
-	elif 装备品阶 == "王品":
-		修炼加成 = 0.12
-		产出加成 = 0.12
-		战力加成 = 50
-	elif 装备品阶 == "圣品":
-		修炼加成 = 0.18
-		产出加成 = 0.18
-		战力加成 = 80
-	elif 装备品阶 == "仙品":
-		修炼加成 = 0.25
-		产出加成 = 0.25
-		战力加成 = 120
-	else:
-		修炼加成 = 0.03
-		产出加成 = 0.03
-		战力加成 = 10
-	目标傀儡["装备"] = {
-		"名称": 装备名称,
-		"品阶": 装备品阶,
-		"修炼加成": 修炼加成,
-		"产出加成": 产出加成,
-		"战力加成": 战力加成,
-	}
-	添加纪事("庶务", "傀儡装备", "%s装备了%s（%s）" % [目标傀儡.get("名称", ""), 装备名称, 装备品阶], 1)
-	return {"成功": true, "傀儡": 目标傀儡, "消息": "%s装备%s成功" % [目标傀儡.get("名称", ""), 装备名称]}
-
-# 卸下傀儡装备
+	return 傀儡系统.傀儡装备(傀儡ID, 装备名称, 装备品阶)
 func 傀儡卸下装备(傀儡ID: int) -> Dictionary:
-	var 目标傀儡 = null
-	for 傀儡 in 傀儡列表:
-		if 傀儡.get("ID", -1) == 傀儡ID:
-			目标傀儡 = 傀儡
-			break
-	if 目标傀儡 == null:
-		return {"成功": false, "原因": "傀儡不存在"}
-	if 目标傀儡.get("装备", {}).is_empty():
-		return {"成功": false, "原因": "傀儡未装备物品"}
-	var 卸下装备 = 目标傀儡.get("装备", {})
-	目标傀儡["装备"] = {}
-	添加纪事("庶务", "傀儡卸下装备", "%s卸下了%s" % [目标傀儡.get("名称", ""), 卸下装备.get("名称", "")], 1)
-	return {"成功": true, "卸下装备": 卸下装备, "消息": "%s卸下装备成功" % 目标傀儡.get("名称", "")}
+	return 傀儡系统.傀儡卸下装备(傀儡ID)
 
-# ============ 藏书阁系统：封装方法 ============
-# 收录典籍到藏书阁
+# ============ 藏书阁系统（已拆分到library_system.gd，此处为转发函数）============
 func 收录典籍(典籍名称: String, 典籍品阶: String, 典籍类型: String, 典籍描述: String = "") -> Dictionary:
-	# 检查是否已收录
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("名称", "") == 典籍名称:
-			return {"成功": false, "原因": "该典籍已收录"}
-	var 新典籍 = {
-		"ID": 藏书阁ID计数器,
-		"名称": 典籍名称,
-		"品阶": 典籍品阶,
-		"类型": 典籍类型,
-		"描述": 典籍描述,
-	}
-	藏书阁ID计数器 += 1
-	藏书阁列表.append(新典籍)
-	# 成就统计：藏书阁收录数自增
-	藏书阁收录数 += 1
-	_复检成就()
-	添加纪事("庶务", "收录典籍", "藏书阁收录了%s（%s）" % [典籍名称, 典籍品阶], 1)
-	return {"成功": true, "典籍": 新典籍, "消息": "收录%s成功" % 典籍名称}
-
-# 获取藏书阁列表
+	return 藏书阁系统.收录典籍(典籍名称, 典籍品阶, 典籍类型, 典籍描述)
 func 获取藏书阁列表() -> Array:
-	return 藏书阁列表
-
-# 典籍类型配置（类型 -> {描述, 阅读加成}）
-const 典籍类型配置: Dictionary = {
-	"修炼类": {"描述": "修炼功法典籍，阅读提升修炼速度", "阅读加成": 0.08},
-	"阵法类": {"描述": "阵法布置典籍，阅读提升阵法效果", "阅读加成": 0.05},
-	"丹道类": {"描述": "炼丹典籍，阅读提升炼丹成功率", "阅读加成": 0.06},
-	"器道类": {"描述": "炼器典籍，阅读提升炼器成功率", "阅读加成": 0.06},
-	"杂项类": {"描述": "杂项典籍，阅读获得悟道点", "阅读加成": 0.04},
-	"历史类": {"描述": "宗门历史典籍，阅读获得声望", "阅读加成": 0.03},
-}
-
-# 获取所有典籍类型
+	return 藏书阁系统.获取藏书阁列表()
 func 获取所有典籍类型() -> Array:
-	var 类型列表 = []
-	for 类型 in 典籍类型配置.keys():
-		var 配置 = 典籍类型配置[类型]
-		类型列表.append({
-			"类型": 类型,
-			"描述": 配置.get("描述", ""),
-			"阅读加成": 配置.get("阅读加成", 0.0),
-		})
-	return 类型列表
-
-# 按类型筛选藏书阁典籍
+	return 藏书阁系统.获取所有典籍类型()
 func 按类型筛选藏书阁(典籍类型: String) -> Array:
-	var 结果 = []
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("类型", "") == 典籍类型:
-			结果.append(典籍)
-	return 结果
-
-# 阅读典籍（获得悟道点和临时加成）
+	return 藏书阁系统.按类型筛选藏书阁(典籍类型)
 func 阅读典籍(典籍ID: int) -> Dictionary:
-	var 目标典籍 = null
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("ID", -1) == 典籍ID:
-			目标典籍 = 典籍
-			break
-	if 目标典籍 == null:
-		return {"成功": false, "原因": "典籍不存在"}
-	# 阅读次数限制检查（每天只能阅读一次）
-	var 今日阅读日期 = 目标典籍.get("今日阅读日期", -1)
-	if 今日阅读日期 == 累计游戏日:
-		return {"成功": false, "原因": "今天已经阅读过这本典籍了"}
-	# 根据品阶计算基础奖励
-	var 品阶 = 目标典籍.get("品阶", "")
-	var 悟道点奖励 = 0
-	var 修炼加成 = 0.0
-	if 品阶 == "凡品":
-		悟道点奖励 = 5
-		修炼加成 = 0.02
-	elif 品阶 == "灵品":
-		悟道点奖励 = 15
-		修炼加成 = 0.05
-	elif 品阶 == "宝品":
-		悟道点奖励 = 30
-		修炼加成 = 0.08
-	elif 品阶 == "王品":
-		悟道点奖励 = 50
-		修炼加成 = 0.12
-	elif 品阶 == "圣品":
-		悟道点奖励 = 80
-		修炼加成 = 0.18
-	elif 品阶 == "仙品":
-		悟道点奖励 = 120
-		修炼加成 = 0.25
-	else:
-		悟道点奖励 = 10
-		修炼加成 = 0.03
-	# 根据注释等级提升奖励
-	var 注释等级 = int(目标典籍.get("注释等级", 0))
-	var 注释加成 = 1.0 + 注释等级 * 0.1
-	悟道点奖励 = int(悟道点奖励 * 注释加成)
-	修炼加成 = 修炼加成 * 注释加成
-	# 根据典籍类型调整奖励
-	var 典籍类型 = 目标典籍.get("类型", "")
-	if 典籍类型 == "丹道类":
-		# 丹道类典籍额外提升炼丹成功率（临时）
-		pass
-	elif 典籍类型 == "器道类":
-		# 器道类典籍额外提升锻造成功率（临时）
-		pass
-	悟道点 += 悟道点奖励
-	# 设置临时修炼加成（持续1天）
-	藏书阁临时加成 = 修炼加成
-	藏书阁加成到期日 = 累计游戏日 + 1
-	# 记录今日阅读日期
-	目标典籍["今日阅读日期"] = 累计游戏日
-	添加纪事("庶务", "阅读典籍", "阅读%s，获得%d悟道点，修炼速度+%d%%（持续1天），注释等级%d" % [目标典籍.get("名称", ""), 悟道点奖励, int(修炼加成 * 100), 注释等级], 1)
-	return {"成功": true, "典籍": 目标典籍, "悟道点奖励": 悟道点奖励, "修炼加成": 修炼加成, "注释等级": 注释等级, "消息": "阅读%s成功" % 目标典籍.get("名称", "")}
-
-# 获取藏书阁临时加成（供修炼系统调用）
+	return 藏书阁系统.阅读典籍(典籍ID)
 func 获取藏书阁加成() -> float:
-	if 藏书阁加成到期日 > 0 and 累计游戏日 < 藏书阁加成到期日:
-		return 藏书阁临时加成
-	return 0.0
-
-# 为典籍添加注释（提升典籍效果）
+	return 藏书阁系统.获取藏书阁加成()
 func 添加典籍注释(典籍ID: int, 注释内容: String, 消耗悟道点: int = 10) -> Dictionary:
-	var 目标典籍 = null
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("ID", -1) == 典籍ID:
-			目标典籍 = 典籍
-			break
-	if 目标典籍 == null:
-		return {"成功": false, "原因": "典籍不存在"}
-	if 悟道点 < 消耗悟道点:
-		return {"成功": false, "原因": "悟道点不足"}
-	悟道点 -= 消耗悟道点
-	# 添加注释，提升典籍效果
-	var 现有注释 = 目标典籍.get("注释", "")
-	if 现有注释 != "":
-		现有注释 += "\n"
-	现有注释 += 注释内容
-	目标典籍["注释"] = 现有注释
-	目标典籍["注释等级"] = int(目标典籍.get("注释等级", 0)) + 1
-	# 根据注释等级提升阅读奖励
-	var 注释等级 = int(目标典籍.get("注释等级", 0))
-	目标典籍["阅读加成"] = 0.02 * 注释等级
-	添加纪事("庶务", "典籍注释", "为%s添加注释（等级%d）" % [目标典籍.get("名称", ""), 注释等级], 1)
-	return {"成功": true, "典籍": 目标典籍, "消息": "为%s添加注释成功" % 目标典籍.get("名称", "")}
-
-# 获取典籍详情（包含注释、注释等级等）
+	return 藏书阁系统.添加典籍注释(典籍ID, 注释内容, 消耗悟道点)
 func 获取典籍详情(典籍ID: int) -> Dictionary:
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("ID", -1) == 典籍ID:
-			return {
-				"ID": 典籍.get("ID", -1),
-				"名称": 典籍.get("名称", ""),
-				"品阶": 典籍.get("品阶", ""),
-				"类型": 典籍.get("类型", ""),
-				"描述": 典籍.get("描述", ""),
-				"注释": 典籍.get("注释", ""),
-				"注释等级": 典籍.get("注释等级", 0),
-				"阅读加成": 典籍.get("阅读加成", 0.0),
-			}
-	return {}
-
-# 获取典籍注释
+	return 藏书阁系统.获取典籍详情(典籍ID)
 func 获取典籍注释(典籍ID: int) -> String:
-	for 典籍 in 藏书阁列表:
-		if 典籍.get("ID", -1) == 典籍ID:
-			return 典籍.get("注释", "")
-	return ""
+	return 藏书阁系统.获取典籍注释(典籍ID)
 
 # ============ 药园系统：封装方法 ============
 # 初始化药园地块（新游戏时调用）
-func 初始化药园地块() -> void:
-	药园地块列表 = []
-	for i in 药园地块数量:
-		药园地块列表.append({
-			"ID": i,
-			"已解锁": true,
-			"种植物品": "",
-			"成熟时间": 0,
-		})
 
-# 解锁药园地块（消耗灵石）
-func 解锁药园地块(消耗灵石: int = 0) -> Dictionary:
-	if 消耗灵石 > 0 and 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足"}
-	if 消耗灵石 > 0:
-		灵石 -= 消耗灵石
-	var 新地块ID = 药园地块列表.size()
-	药园地块列表.append({
-		"ID": 新地块ID,
-		"已解锁": true,
-		"种植物品": "",
-		"成熟时间": 0,
-	})
-	药园地块数量 += 1
-	# 成就统计：药园已解锁地块自增
-	药园已解锁地块 = 药园地块数量
-	_复检成就()
-	添加纪事("庶务", "解锁药园地块", "解锁第%d块药园地块" % 药园地块数量, 1)
-	return {"成功": true, "地块ID": 新地块ID, "消息": "解锁药园地块成功"}
-
-# 药园作物配置（名称 -> {成熟天数, 收获数量, 收获类型}）
-const 药园作物配置: Dictionary = {
-	"灵草": {"成熟天数": 2, "收获数量": 8, "收获类型": "灵草"},
-	"灵谷": {"成熟天数": 3, "收获数量": 5, "收获类型": "灵气"},
-	"灵花": {"成熟天数": 4, "收获数量": 3, "收获类型": "悟道点"},
-	"灵果": {"成熟天数": 5, "收获数量": 2, "收获类型": "灵石"},
-	"灵药": {"成熟天数": 6, "收获数量": 3, "收获类型": "材料"},
-	"灵茶": {"成熟天数": 3, "收获数量": 4, "收获类型": "心境"},
-	"灵米": {"成熟天数": 4, "收获数量": 5, "收获类型": "声望"},
-	"灵参": {"成熟天数": 7, "收获数量": 1, "收获类型": "寿元"},
-	"灵芝": {"成熟天数": 5, "收获数量": 2, "收获类型": "道伤"},
-	"灵桃": {"成熟天数": 6, "收获数量": 2, "收获类型": "突破"},
-	"灵莲": {"成熟天数": 4, "收获数量": 3, "收获类型": "神识"},
-	"灵竹": {"成熟天数": 3, "收获数量": 6, "收获类型": "材料"},
-	"灵菊": {"成熟天数": 2, "收获数量": 8, "收获类型": "解毒"},
-	"灵梅": {"成熟天数": 5, "收获数量": 3, "收获类型": "心境"},
-	"灵兰": {"成熟天数": 4, "收获数量": 4, "收获类型": "悟道点"},
-}
-
-# 种植物品到药园地块
-func 种植药园(地块ID: int, 物品名称: String, 成熟天数: int = -1) -> Dictionary:
-	if 地块ID < 0 or 地块ID >= 药园地块列表.size():
-		return {"成功": false, "原因": "地块不存在"}
-	var 地块 = 药园地块列表[地块ID]
-	if not 地块.get("已解锁", false):
-		return {"成功": false, "原因": "地块未解锁"}
-	if 地块.get("种植物品", "") != "":
-		return {"成功": false, "原因": "地块已种植"}
-	# 根据作物配置获取成熟天数
-	var 实际成熟天数 = 成熟天数
-	if 实际成熟天数 <= 0:
-		var 作物配置 = 药园作物配置.get(物品名称, {})
-		if not 作物配置.is_empty():
-			实际成熟天数 = int(作物配置.get("成熟天数", 3))
-		else:
-			实际成熟天数 = 3
-	地块["种植物品"] = 物品名称
-	地块["成熟时间"] = 累计游戏日 + 实际成熟天数
-	添加纪事("庶务", "药园种植", "在第%d块地块种植%s，%d天后成熟" % [地块ID + 1, 物品名称, 实际成熟天数], 1)
-	return {"成功": true, "地块": 地块, "消息": "种植%s成功" % 物品名称}
-
-# 获取可种植作物列表
-func 获取可种植作物列表() -> Array:
-	var 作物列表 = []
-	for 作物名称 in 药园作物配置.keys():
-		var 作物配置 = 药园作物配置[作物名称]
-		作物列表.append({
-			"名称": 作物名称,
-			"成熟天数": 作物配置.get("成熟天数", 3),
-			"收获数量": 作物配置.get("收获数量", 1),
-			"收获类型": 作物配置.get("收获类型", "材料"),
-		})
-	return 作物列表
-
-# 一键种植所有空地块（使用指定作物）
-func 一键种植药园(作物名称: String) -> Dictionary:
-	var 种植数量 = 0
-	var 失败数量 = 0
-	for i in 药园地块列表.size():
-		var 地块 = 药园地块列表[i]
-		if 地块.get("已解锁", false) and 地块.get("种植物品", "") == "":
-			var 结果 = 种植药园(i, 作物名称)
-			if 结果.get("成功", false):
-				种植数量 += 1
-			else:
-				失败数量 += 1
-	return {"成功": 种植数量 > 0, "种植数量": 种植数量, "失败数量": 失败数量, "消息": "一键种植完成，成功%d块，失败%d块" % [种植数量, 失败数量]}
-
-# 一键收获所有成熟地块
-func 一键收获药园() -> Dictionary:
-	var 收获列表 = []
-	var 收获数量 = 0
-	for i in 药园地块列表.size():
-		var 地块 = 药园地块列表[i]
-		if 地块.get("已解锁", false) and 地块.get("种植物品", "") != "":
-			if 累计游戏日 >= 地块.get("成熟时间", 0):
-				var 结果 = 收获药园(i)
-				if 结果.get("成功", false):
-					收获列表.append(结果)
-					收获数量 += 1
-	return {"成功": 收获数量 > 0, "收获数量": 收获数量, "收获列表": 收获列表, "消息": "一键收获完成，收获%d块地块" % 收获数量}
-
-# 收获药园地块
-func 收获药园(地块ID: int) -> Dictionary:
-	if 地块ID < 0 or 地块ID >= 药园地块列表.size():
-		return {"成功": false, "原因": "地块不存在"}
-	var 地块 = 药园地块列表[地块ID]
-	if 地块.get("种植物品", "") == "":
-		return {"成功": false, "原因": "地块未种植"}
-	if 累计游戏日 < 地块.get("成熟时间", 0):
-		return {"成功": false, "原因": "尚未成熟"}
-	var 物品名称 = 地块.get("种植物品", "")
-	地块["种植物品"] = ""
-	地块["成熟时间"] = 0
-	# 根据作物配置获取收获
-	var 作物配置 = 药园作物配置.get(物品名称, {})
-	var 收获数量 = int(作物配置.get("收获数量", 1))
-	var 收获类型 = 作物配置.get("收获类型", "材料")
-	var 收获消息 = ""
-	if 收获类型 == "灵草":
-		灵草 += 收获数量
-		收获消息 = "灵草+%d" % 收获数量
-	elif 收获类型 == "灵气":
-		灵气 += 收获数量 * 5
-		收获消息 = "灵气+%d" % (收获数量 * 5)
-	elif 收获类型 == "悟道点":
-		悟道点 += 收获数量 * 3
-		收获消息 = "悟道点+%d" % (收获数量 * 3)
-	elif 收获类型 == "灵石":
-		灵石 += 收获数量 * 20
-		收获消息 = "灵石+%d" % (收获数量 * 20)
-	else:
-		# 其他物品添加到仓库
-		for i in 收获数量:
-			var 新物品 = Item.new()
-			新物品.名称 = 物品名称
-			新物品.品阶 = "灵品"
-			新物品.类别 = "材料"
-			新物品.描述 = "药园种植收获"
-			宗门库房.append(新物品)
-		收获消息 = "%s+%d" % [物品名称, 收获数量]
-	添加纪事("庶务", "药园收获", "收获第%d块地块的%s，%s" % [地块ID + 1, 物品名称, 收获消息], 1)
-	return {"成功": true, "物品": 物品名称, "收获": 收获消息, "消息": "收获%s成功" % 物品名称}
+# ===== 药园系统（已拆分到herb_garden_system.gd，此处为转发函数）=====
+func 初始化药园地块():
+	药园系统.初始化药园地块()
+func 获取药园地块列表():
+	return 药园系统.获取药园地块列表()
+func 解锁药园地块(消耗灵石: int = 0):
+	return 药园系统.解锁药园地块(消耗灵石)
+func 种植药园(地块ID: int, 物品名称: String, 成熟天数: int = -1):
+	return 药园系统.种植药园(地块ID, 物品名称, 成熟天数)
+func 获取可种植作物列表():
+	return 药园系统.获取可种植作物列表()
+func 一键种植药园(作物名称: String):
+	return 药园系统.一键种植药园(作物名称)
+func 一键收获药园():
+	return 药园系统.一键收获药园()
+func 收获药园(地块ID: int):
+	return 药园系统.收获药园(地块ID)
 
 # ============ 丹方系统：封装方法 ============
 # 解锁丹方（消耗灵石或悟道点）
@@ -6961,6 +7776,451 @@ func 获取已解锁丹方列表() -> Array:
 	return 已解锁丹方列表
 
 # 实际炼丹（消耗材料，生成丹药）
+# ============ S41 功法/丹药 词条池（现读真源：gongfa_affix_config.csv / pill_affix_config.csv）============
+var _功法条词池: Dictionary = {}
+var _丹词条池: Dictionary = {}
+
+func 功法条词池() -> Dictionary:
+	if _功法条词池.is_empty():
+		_载入功法条词池()
+	return _功法条词池
+
+func 丹词条池() -> Dictionary:
+	if _丹词条池.is_empty():
+		_载入丹词条池()
+	return _丹词条池
+
+func 功法条词数() -> Dictionary:
+	return {"凡品":0, "灵品":1, "宝品":1, "王品":2, "圣品":2, "仙品":3, "道品":3}
+
+func 丹词缀数() -> Dictionary:
+	return {"凡品":0, "灵品":0, "宝品":1, "王品":1, "圣品":2, "仙品":2, "道品":3}
+
+func _丹药归一品阶(阶: String) -> String:
+	return {"凡品":"凡品","凡阶":"凡品","灵品":"灵品","灵阶":"灵品","宝品":"宝品","宝阶":"宝品","王品":"王品","王阶":"王品","圣品":"圣品","圣阶":"圣品","仙品":"仙品","仙阶":"仙品","道品":"道品","道阶":"道品"}.get(str(阶), str(阶))
+
+func 丹词条聚合(丹词条: Variant) -> Dictionary:
+	var r: Dictionary = {"药效": 0.0, "减毒": 0.0, "心境": 0.0, "售价": 0.0}
+	if 丹词条 == null:
+		return r
+	if typeof(丹词条) == TYPE_ARRAY:
+		for t in 丹词条:
+			if typeof(t) != TYPE_DICTIONARY:
+				continue
+			var k: String = str(t.get("类型", ""))
+			var v: float = float(t.get("数值", 0.0))
+			if k == "药效":
+				r["药效"] += v
+			elif k == "减毒":
+				r["减毒"] += v
+			elif k == "心境":
+				r["心境"] += v
+			elif k == "售价":
+				r["售价"] += v
+		return r
+	return r
+
+# ============ S43 装备词条池（现读真源：equip_affix_config.csv）============
+# 类型：战力(烘焙进 战力加成) / 修炼(弟子修炼速度聚合) / 突破(弟子突破率聚合)
+var _装备词条池: Dictionary = {}
+
+func 装备词条池() -> Dictionary:
+	if _装备词条池.is_empty():
+		_载入装备词条池()
+	return _装备词条池
+
+func 装备词缀数() -> Dictionary:
+	return {"凡阶":0, "灵阶":1, "宝阶":1, "王阶":2, "圣阶":2, "仙阶":3, "道阶":3}
+
+func 装备词条聚合(词条: Variant) -> Dictionary:
+	var r: Dictionary = {"战力": 0.0, "修炼": 0.0, "突破": 0.0}
+	if 词条 == null:
+		return r
+	if typeof(词条) == TYPE_ARRAY:
+		for t in 词条:
+			if typeof(t) != TYPE_DICTIONARY:
+				continue
+			var k: String = str(t.get("类型", ""))
+			var v: float = float(t.get("数值", 0.0))
+			if k == "战力":
+				r["战力"] += v
+			elif k == "修炼":
+				r["修炼"] += v
+			elif k == "突破":
+				r["突破"] += v
+	return r
+
+# 已穿戴装备的 修炼 词条聚合（弟子修炼速度消费方）
+func 装备修炼加成(弟子) -> float:
+	var 合计: float = 0.0
+	if 弟子 == null:
+		return 合计
+	var 装备表: Dictionary = {}
+	if typeof(弟子) == TYPE_DICTIONARY:
+		装备表 = 弟子.get("装备", {})
+	elif typeof(弟子) == TYPE_OBJECT and 弟子.has_method("get"):
+		装备表 = 弟子.装备
+	for it in 装备表.values():
+		if it == null or typeof(it) != TYPE_OBJECT:
+			continue
+		合计 += 装备词条聚合(it.装备词条).get("修炼", 0.0)
+	return 合计
+
+# 已穿戴装备的 突破 词条聚合（弟子突破率消费方）
+func 装备词条突破加成(弟子) -> float:
+	var 合计: float = 0.0
+	if 弟子 == null:
+		return 合计
+	var 装备表: Dictionary = {}
+	if typeof(弟子) == TYPE_DICTIONARY:
+		装备表 = 弟子.get("装备", {})
+	elif typeof(弟子) == TYPE_OBJECT and 弟子.has_method("get"):
+		装备表 = 弟子.装备
+	for it in 装备表.values():
+		if it == null or typeof(it) != TYPE_OBJECT:
+			continue
+		合计 += 装备词条聚合(it.装备词条).get("突破", 0.0)
+	return 合计
+
+func _载入装备词条池() -> void:
+	if not _装备词条池.is_empty():
+		return
+	var p: String = "res://config/equip_affix_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 6:
+			continue
+		var 阶: String = row[0].strip_edges()
+		var key: String = row[1].strip_edges()
+		var 中文名: String = row[2].strip_edges()
+		var 类型: String = row[3].strip_edges()
+		var 下: float = float(row[4])
+		var 上: float = float(row[5])
+		if not _装备词条池.has(阶):
+			_装备词条池[阶] = []
+		_装备词条池[阶].append({"key": key, "中文名": 中文名, "类型": 类型, "数值下限": 下, "数值上限": 上})
+	f.close()
+
+# ============ P0-3：装备主数据接入（equip_main/equip_set/item_material）============
+# 装备主表缓存
+var _装备主表缓存: Dictionary = {}
+var _装备主表已载入: bool = false
+
+# 读取装备主表（equip_main.csv）
+func _载入装备主表() -> void:
+	if _装备主表已载入:
+		return
+	_装备主表已载入 = true
+	var p: String = "res://config/equip_main.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳过表头
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 12:
+			continue
+		var equip_id: String = row[0].strip_edges()
+		if equip_id == "":
+			continue
+		_装备主表缓存[equip_id] = {
+			"equip_id": equip_id,
+			"equip_name": row[1].strip_edges(),
+			"grade": row[2].strip_edges(),
+			"sub_grade": row[3].strip_edges(),
+			"equip_slot": row[4].strip_edges(),
+			"apply_class": row[5].strip_edges(),
+			"base_atk": int(row[6]),
+			"base_def": int(row[7]),
+			"base_hp": int(row[8]),
+			"base_durability": int(row[9]),
+			"repair_material": row[10].strip_edges(),
+			"sell_price": int(row[11])
+		}
+	f.close()
+
+# 获取装备主表数据
+func 获取装备主表(equip_id: String) -> Dictionary:
+	_载入装备主表()
+	return _装备主表缓存.get(equip_id, {})
+
+# 获取所有装备主表
+func 获取所有装备主表() -> Dictionary:
+	_载入装备主表()
+	return _装备主表缓存.duplicate()
+
+# 套装表缓存
+var _套装表缓存: Dictionary = {}
+var _套装表已载入: bool = false
+
+# 读取套装表（equip_set.csv）
+func _载入套装表() -> void:
+	if _套装表已载入:
+		return
+	_套装表已载入 = true
+	var p: String = "res://config/equip_set.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳过表头
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 9:
+			continue
+		var set_id: String = row[0].strip_edges()
+		if set_id == "":
+			continue
+		_套装表缓存[set_id] = {
+			"set_id": set_id,
+			"set_name": row[1].strip_edges(),
+			"grade": row[2].strip_edges(),
+			"sub_grade": row[3].strip_edges(),
+			"apply_class": row[4].strip_edges(),
+			"set_2pc_effect": row[5].strip_edges(),
+			"set_2pc_value": row[6].strip_edges(),
+			"set_4pc_effect": row[7].strip_edges(),
+			"set_4pc_value": row[8].strip_edges()
+		}
+	f.close()
+
+# 获取套装表数据
+func 获取套装表(set_id: String) -> Dictionary:
+	_载入套装表()
+	return _套装表缓存.get(set_id, {})
+
+# 获取所有套装表
+func 获取所有套装表() -> Dictionary:
+	_载入套装表()
+	return _套装表缓存.duplicate()
+
+# 材料表缓存
+var _材料表缓存: Dictionary = {}
+var _材料表已载入: bool = false
+
+# 读取材料表（item_material.csv）
+func _载入材料表() -> void:
+	if _材料表已载入:
+		return
+	_材料表已载入 = true
+	var p: String = "res://config/item_material.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳过表头
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 9:
+			continue
+		var mat_id: String = row[0].strip_edges()
+		if mat_id == "":
+			continue
+		_材料表缓存[mat_id] = {
+			"mat_id": mat_id,
+			"mat_name": row[1].strip_edges(),
+			"grade": row[2].strip_edges(),
+			"mat_type": row[3].strip_edges(),
+			"usage_desc": row[4].strip_edges(),
+			"obtain_way": row[5].strip_edges(),
+			"stack_max": int(row[6]),
+			"sell_price_ling": int(row[7]),
+			"realm_correspond": row[8].strip_edges()
+		}
+	f.close()
+
+# 获取材料表数据
+func 获取材料表(mat_id: String) -> Dictionary:
+	_载入材料表()
+	return _材料表缓存.get(mat_id, {})
+
+# 获取所有材料表
+func 获取所有材料表() -> Dictionary:
+	_载入材料表()
+	return _材料表缓存.duplicate()
+
+# ============ S45-5 符词条池（现读真源：talisman_affix_config.csv）============
+# 类型：战力(佩戴护身符时烘焙进战力) / 修炼(弟子修炼速度聚合) / 突破(弟子突破率聚合)
+var _符词条池: Dictionary = {}
+
+func 符词条池() -> Dictionary:
+	if _符词条池.is_empty():
+		_载入符词条池()
+	return _符词条池
+
+func 符词缀数() -> Dictionary:
+	return {"凡阶":0, "灵阶":1, "宝阶":1, "王阶":2, "圣阶":2, "仙阶":3, "道阶":3}
+
+func 符词条聚合(词条: Variant) -> Dictionary:
+	var r: Dictionary = {"战力": 0.0, "修炼": 0.0, "突破": 0.0}
+	if 词条 == null:
+		return r
+	if typeof(词条) == TYPE_ARRAY:
+		for t in 词条:
+			if typeof(t) != TYPE_DICTIONARY:
+				continue
+			var k: String = str(t.get("类型", ""))
+			var v: float = float(t.get("数值", 0.0))
+			if k == "战力":
+				r["战力"] += v
+			elif k == "修炼":
+				r["修炼"] += v
+			elif k == "突破":
+				r["突破"] += v
+	return r
+
+# 佩戴护身符取器（旧档/无该字段一律返回 null，零回归）
+func _取护身符(弟子):
+	if 弟子 == null or typeof(弟子) != TYPE_OBJECT:
+		return null
+	if not is_instance_valid(弟子):
+		return null
+	if not ("护身符" in 弟子):
+		return null
+	var it = 弟子.get("护身符")
+	if it == null or typeof(it) != TYPE_OBJECT:
+		return null
+	if not is_instance_valid(it):
+		return null
+	return it
+
+# 佩戴护身符的 战力 词条（弟子战力消费方；disciple.gd 计算战力 调用）
+func 护身符战力加成(弟子) -> float:
+	var it = _取护身符(弟子)
+	if it == null:
+		return 0.0
+	return 符词条聚合(it.get("符词条", [])).get("战力", 0.0)
+
+# 佩戴护身符的 修炼 词条（弟子修炼速度消费方；disciple.gd _应用命格养成加成 调用）
+func 护身符修炼加成(弟子) -> float:
+	var it = _取护身符(弟子)
+	if it == null:
+		return 0.0
+	return 符词条聚合(it.get("符词条", [])).get("修炼", 0.0)
+
+# 佩戴护身符的 突破 词条（弟子突破率消费方；弟子突破 调用）
+func 护身符突破加成(弟子) -> float:
+	var it = _取护身符(弟子)
+	if it == null:
+		return 0.0
+	return 符词条聚合(it.get("符词条", [])).get("突破", 0.0)
+
+# 护身符佩戴 / 卸下（S45-8 UI 消费方：S45-5 建槽与战力/修炼/突破消费，此处补佩戴入口）
+func 设置护身符(弟子, 符箓物品) -> Dictionary:
+	if 弟子 == null or 符箓物品 == null:
+		return {"成功": false, "原因": "参数缺失"}
+	if not (符箓物品 is Item):
+		return {"成功": false, "原因": "非符箓物品"}
+	if str(符箓物品.类别) != "fu_lu":
+		return {"成功": false, "原因": "该物非符箓，不可为护身符"}
+	# 若已佩戴其他护身符，先归库再换
+	var 旧 = _取护身符(弟子)
+	if 旧 != null and 旧 != 符箓物品:
+		宗门库房.append(旧)
+	弟子.护身符 = 符箓物品
+	if 宗门库房.has(符箓物品):
+		宗门库房.erase(符箓物品)
+	if 弟子.has_method("计算战力"):
+		弟子.计算战力()
+	return {"成功": true, "名称": str(符箓物品.get("名称", ""))}
+
+func 卸下护身符(弟子) -> Dictionary:
+	var 旧 = _取护身符(弟子)
+	if 旧 == null:
+		return {"成功": false, "原因": "当前未佩戴护身符"}
+	宗门库房.append(旧)
+	弟子.护身符 = null
+	if 弟子.has_method("计算战力"):
+		弟子.计算战力()
+	return {"成功": true, "名称": str(旧.get("名称", ""))}
+
+func _载入符词条池() -> void:
+	if not _符词条池.is_empty():
+		return
+	var p: String = "res://config/talisman_affix_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 6:
+			continue
+		var 阶: String = row[0].strip_edges()
+		var key: String = row[1].strip_edges()
+		var 中文名: String = row[2].strip_edges()
+		var 类型: String = row[3].strip_edges()
+		var 下: float = float(row[4])
+		var 上: float = float(row[5])
+		if 阶.is_empty() or key.is_empty():
+			continue
+		if not _符词条池.has(阶):
+			_符词条池[阶] = []
+		_符词条池[阶].append({"key": key, "中文名": 中文名, "类型": 类型, "数值下限": 下, "数值上限": 上})
+	f.close()
+
+func _载入功法条词池() -> void:
+	if not _功法条词池.is_empty():
+		return
+	var p: String = "res://config/gongfa_affix_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 6:
+			continue
+		var 阶: String = row[0].strip_edges()
+		var key: String = row[1].strip_edges()
+		var 中文名: String = row[2].strip_edges()
+		var 类型: String = row[3].strip_edges()
+		var 下: float = float(row[4])
+		var 上: float = float(row[5])
+		if not _功法条词池.has(阶):
+			_功法条词池[阶] = []
+		_功法条词池[阶].append({"key": key, "中文名": 中文名, "类型": 类型, "数值下限": 下, "数值上限": 上})
+	f.close()
+
+func _载入丹词条池() -> void:
+	if not _丹词条池.is_empty():
+		return
+	var p: String = "res://config/pill_affix_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 6:
+			continue
+		var 阶: String = row[0].strip_edges()
+		var key: String = row[1].strip_edges()
+		var 中文名: String = row[2].strip_edges()
+		var 类型: String = row[3].strip_edges()
+		var 下: float = float(row[4])
+		var 上: float = float(row[5])
+		if not _丹词条池.has(阶):
+			_丹词条池[阶] = []
+		_丹词条池[阶].append({"key": key, "中文名": 中文名, "类型": 类型, "数值下限": 下, "数值上限": 上})
+	f.close()
+
 func 炼制丹药(丹方ID: String, 消耗灵石: int = 0) -> Dictionary:
 	# 查找丹方
 	var 目标丹方 = null
@@ -7009,20 +8269,47 @@ func 炼制丹药(丹方ID: String, 消耗灵石: int = 0) -> Dictionary:
 	if 灵草 < 需要灵草:
 		return {"成功": false, "原因": "灵草不足（需要%d）" % 需要灵草}
 	灵草 -= 需要灵草
+	# 高年份灵草加成（修真世界观：百年+10%，千年+25%，万年+50%）
+	var 年份加成: float = 0.0
+	var 品质加成: int = 0
+	if 灵草_万年 > 0:
+		年份加成 = 0.5
+		品质加成 = 3
+		灵草_万年 -= 1
+	elif 灵草_千年 > 0:
+		年份加成 = 0.25
+		品质加成 = 2
+		灵草_千年 -= 1
+	elif 灵草_百年 > 0:
+		年份加成 = 0.10
+		品质加成 = 1
+		灵草_百年 -= 1
 	# 计算实际成功率（可以受其他因素影响，如丹道类典籍加成）
-	var 实际成功率 = clamp(基础成功率 + 获取气运炼丹加成(), 0.05, 0.99)	# P3 气运：炼丹成功率随气运±10%
+	var 实际成功率 = clamp(基础成功率 + 炼丹成率加成(_丹堂等级()) + 年份加成, 0.05, 0.99)	# S38：气运/丹堂/炼丹师/傀儡/图谱 全并入因子网络
 	# 炼制判定
 	var 随机数 = randf()
 	if 随机数 > 实际成功率:
 		# 炼制失败，材料已消耗
 		添加纪事("庶务", "炼制丹药", "炼制%s（%s）失败，消耗%d灵草" % [丹药名称, 丹药品阶, 需要灵草], 1)
 		return {"成功": false, "原因": "炼制失败（成功率%.0f%%）" % (实际成功率 * 100)}
-	# 炼制成功，生成丹药，添加到仓库
+	# 炼制成功，生成丹药，添加到宗门库房
 	var 新丹药 = Item.new()
+	# 品质加成（百年+1级，千年+2级，万年+3级，万年有概率出极品丹）
+	if 品质加成 > 0:
+		var 品质列表: Array = ["凡品", "良品", "上品", "极品"]
+		var 当前品质索引: int = 品质列表.find(新丹药.品阶)
+		if 当前品质索引 < 0:
+			当前品质索引 = 0
+		新丹药.品阶 = 品质列表[min(品质列表.size() - 1, 当前品质索引 + 品质加成)]
+		if 年份加成 >= 0.5 and randf() < 0.3:
+			新丹药.品阶 = "极品"
 	新丹药.名称 = 丹药名称
 	新丹药.品阶 = 丹药品阶
 	新丹药.类别 = "丹药"
 	新丹药.描述 = "炼制而成的%s" % 丹药名称
+	赋予丹纹(新丹药, 丹药品阶, _丹堂等级())
+	# S41 丹词条：炼制成功即掷（仅精炼丹路径，掉落丹走既有边界不覆盖）
+	新丹药.滚丹词条(_丹药归一品阶(丹药品阶))
 	宗门库房.append(新丹药)
 	# S1-2：炼制丹药（玩家决策，日常 daily_005 / daily_013 宝品 / 周常 weekly_009）
 	记任务进度("refine_pill", 丹药品阶)
@@ -7061,21 +8348,60 @@ func 获取可炼制丹方列表() -> Array:
 	return 可炼制列表
 
 # 批量炼制丹药
-func 批量炼制丹药(丹方ID: String, 炼制次数: int = 1) -> Dictionary:
+func 批量炼制丹药(丹方ID: String, 炼制次数: int = 1, 主持弟子: Disciple = null) -> Dictionary:
 	var 成功数量 = 0
 	var 失败数量 = 0
 	var 炼制列表 = []
+	var 丹方名称: String = ""
+	# 自动选择主持弟子：若未指定，则选丹堂中丹道等级最高者
+	var 实际主持: Disciple = 主持弟子
+	if 实际主持 == null:
+		var 最高丹道: int = 0
+		if 司职列表.has("dantang"):
+			for m in 司职列表["dantang"]["成员"]:
+				var d: Disciple = m as Disciple
+				if d != null and int(d.丹道等级 if "丹道等级" in d else 0) > 最高丹道:
+					最高丹道 = int(d.丹道等级)
+					实际主持 = d
+	var 主持名: String = 实际主持.姓名 if 实际主持 != null else "宗门长老"
+	var 主持丹道: int = int(实际主持.丹道等级 if (实际主持 != null and "丹道等级" in 实际主持) else 0)
 	for i in 炼制次数:
 		var 结果 = 炼制丹药(丹方ID, 0)
 		炼制列表.append(结果)
 		if 结果.get("成功", false):
 			成功数量 += 1
+			if 丹方名称 == "":
+				丹方名称 = str(结果.get("丹方名称", "丹药"))
 		else:
 			失败数量 += 1
 			# 如果材料不足，停止炼制
 			if "不足" in 结果.get("原因", ""):
 				break
-	return {"成功": 成功数量 > 0, "成功数量": 成功数量, "失败数量": 失败数量, "炼制列表": 炼制列表, "消息": "批量炼制完成，成功%d次，失败%d次" % [成功数量, 失败数量]}
+	# 修真化过程叙事
+	var 成丹率: float = float(成功数量) / float(成功数量 + 失败数量) if (成功数量 + 失败数量) > 0 else 0.0
+	var 过程叙事: String = ""
+	if 成丹率 >= 0.8:
+		过程叙事 = "丹香满室，丹云盖顶，炉火纯青"
+	elif 成丹率 >= 0.5:
+		过程叙事 = "丹火稳控，成丹大半"
+	elif 成丹率 > 0:
+		过程叙事 = "丹火偶有不稳，废丹颇多"
+	else:
+		过程叙事 = "丹炉炸响，尽成废丹"
+	var 主持文本: String = ""
+	if 实际主持 != null:
+		var 丹道称号: String = ""
+		match 主持丹道:
+			1: 丹道称号 = "丹徒"
+			2: 丹道称号 = "丹师"
+			3: 丹道称号 = "丹王"
+			4: 丹道称号 = "丹神"
+			_: 丹道称号 = "丹道修士"
+		主持文本 = "由%s（%s）主持丹炉" % [主持名, 丹道称号]
+	else:
+		主持文本 = "由宗门长老主持丹炉"
+	var 消息: String = "开炉连炼%d炉%s，%s，成丹%d枚，废丹%d枚。%s" % [成功数量 + 失败数量, 丹方名称, 主持文本, 成功数量, 失败数量, 过程叙事]
+	return {"成功": 成功数量 > 0, "成功数量": 成功数量, "失败数量": 失败数量, "炼制列表": 炼制列表, "消息": 消息, "主持弟子": 主持名, "主持丹道": 主持丹道}
 
 # 丹药使用统计
 var 丹药使用统计: Dictionary = {}  # 丹药名称 -> 使用次数
@@ -7368,33 +8694,54 @@ const 装备图纸库: Array = [
 ]
 
 # 获取所有装备图纸（用于图纸商店展示）
+# P0-3：优先使用equip_blueprint.csv配置，回退到硬编码装备图纸库
 func 获取所有装备图纸() -> Array:
+	# P0-3：优先使用equip_blueprint.csv配置
+	if ForgeSystem != null and ForgeSystem.has_method("加载图纸配置"):
+		var csv图纸: Array = ForgeSystem.加载图纸配置()
+		if not csv图纸.is_empty():
+			var 结果: Array = []
+			for 图纸 in csv图纸:
+				结果.append({
+					"图纸ID": str(图纸.get("blueprint_id", "")),
+					"名称": str(图纸.get("blueprint_name", "")),
+					"品阶": str(图纸.get("grade", "凡阶")),
+					"材料": str(图纸.get("target_equip_id", "")),
+					"效果": str(图纸.get("unlock_condition", "")),
+					"craft_cost": int(图纸.get("craft_cost", 0)),
+					"sell_price": int(图纸.get("sell_price", 0)),
+				})
+			return 结果
+	# 回退：使用硬编码装备图纸库
 	return 装备图纸库
 
 # 获取图纸商店列表（包含解锁状态和价格）
+# P0-3：优先使用equip_blueprint.csv配置，craft_cost作为价格
 func 获取图纸商店列表() -> Array:
 	var 商店列表 = []
-	for 图纸 in 装备图纸库:
+	var 所有图纸: Array = 获取所有装备图纸()
+	for 图纸 in 所有图纸:
 		var 已解锁 = false
 		for 已解锁图纸 in 已解锁装备图纸列表:
 			if 已解锁图纸.get("图纸ID", "") == 图纸.get("图纸ID", ""):
 				已解锁 = true
 				break
-		# 根据品阶计算价格
-		var 品阶 = 图纸.get("品阶", "凡品")
-		var 价格 = 300
-		if 品阶 == "凡品":
-			价格 = 300
-		elif 品阶 == "灵品":
-			价格 = 700
-		elif 品阶 == "宝品":
-			价格 = 1800
-		elif 品阶 == "王品":
-			价格 = 4500
-		elif 品阶 == "圣品":
-			价格 = 12000
-		elif 品阶 == "仙品":
-			价格 = 35000
+		var 品阶 = 图纸.get("品阶", "凡阶")
+		# P0-3：优先使用equip_blueprint.csv的craft_cost，回退到品阶定价
+		var 价格: int = int(图纸.get("craft_cost", 0))
+		if 价格 <= 0:
+			if 品阶 == "凡阶":
+				价格 = 300
+			elif 品阶 == "灵阶":
+				价格 = 700
+			elif 品阶 == "宝阶":
+				价格 = 1800
+			elif 品阶 == "王阶":
+				价格 = 4500
+			elif 品阶 == "圣阶":
+				价格 = 12000
+			elif 品阶 == "仙阶":
+				价格 = 35000
 		商店列表.append({
 			"图纸ID": 图纸.get("图纸ID", ""),
 			"名称": 图纸.get("名称", ""),
@@ -7505,20 +8852,58 @@ func 锻造装备(图纸ID: String, 消耗灵石: int = 0) -> Dictionary:
 	if 矿石 < 需要矿石:
 		return {"成功": false, "原因": "矿石不足（需要%d）" % 需要矿石}
 	矿石 -= 需要矿石
-	# 计算实际成功率（可以受其他因素影响，如器道类典籍加成）
-	var 实际成功率 = clamp(基础成功率 + 获取气运炼丹加成(), 0.05, 0.99)	# P3 气运：炼器成功率随气运±10%（复用炼丹加成）
+	# 计算实际成功率（S42 炼器因子网络：铸匠人因子 + 器堂等级(器胚/炉火) + 铸匠在编 + 图谱 + 气运 + 炼器等级）
+	var 器堂等级: int = 1
+	if 司职列表.has("qitang"):
+		var _qv = 司职列表["qitang"].get("等级", 1)
+		器堂等级 = int(_qv) if _qv != null else 1
+	var 铸匠 = 器堂负责人()
+	var 因子: Dictionary = 锻造因子明细(铸匠, 器堂等级)
+	var 炼器加成2: Dictionary = 获取炼器加成()
+	var 实际成功率 = clamp(基础成功率 + float(max(0, 器堂等级 - 1)) * 2.0 + float(因子.get("成率", 0.0)) + float(炼器加成2.get("成功率加成", 0.0)), 0.05, 0.99)
 	# 锻造判定
 	var 随机数 = randf()
 	if 随机数 > 实际成功率:
 		# 锻造失败，材料已消耗
 		添加纪事("庶务", "锻造装备", "锻造%s（%s）失败，消耗%d矿石" % [装备名称, 装备品阶, 需要矿石], 1)
 		return {"成功": false, "原因": "锻造失败（成功率%.0f%%）" % (实际成功率 * 100)}
-	# 锻造成功，生成装备，添加到仓库
+	# 锻造成功，生成装备，添加到宗门库房
 	var 新装备 = Item.new()
 	新装备.名称 = 装备名称
-	新装备.品阶 = 装备品阶
+	新装备.品阶 = 锻造品阶归一.get(装备品阶, 装备品阶)	# 归一：凡品→凡阶，使 滚词缀/滚极品/算战力 走 item 内部键
 	新装备.类别 = "装备"
 	新装备.描述 = "锻造而成的%s" % 装备名称
+	# S42：锻造产出补齐词缀/品质/器灵/套装，对齐掉落/配方装备（消除「裸装」假系统）
+	新装备.滚词缀()
+	新装备.滚极品()
+	# 品质掷定（受 因子.高品质 + 炼器等级.高品质加成 偏移：偏移越大越易出高品质）
+	var 品质偏移: float = clamp(float(因子.get("高品质", 0.0)) + float(炼器加成2.get("高品质加成", 0.0)), -0.5, 0.5)
+	var 品质概率表: Dictionary = ForgeSystem.品质概率.get(新装备.品阶, ForgeSystem.品质概率["凡阶"])
+	var 品质累计: float = 0.0
+	var 炼器品质: String = "普通"
+	var _r = clamp(randf() + 品质偏移, 0.0, 1.0)
+	for 品质 in ForgeSystem.品质列表:
+		品质累计 += float(品质概率表.get(品质, 0.0))
+		if _r <= 品质累计:
+			炼器品质 = 品质
+			break
+	if 炼器品质 != "普通":
+		新装备.名称 = "[%s]%s" % [炼器品质, 新装备.名称]
+	新装备.品质 = 炼器品质
+	# 战力受品质影响
+	新装备.算战力()
+	if "战力加成" in 新装备:
+		新装备.战力加成 = int(新装备.战力加成 * float(ForgeSystem.品质加成.get(炼器品质, 1.0)))
+	# 套装：宝阶及以上 15% 概率（用归一后 新装备.品阶，凡阶命名）
+	if 新装备.品阶 in ["宝阶", "王阶", "圣阶", "仙阶", "道阶"] and randf() < 0.15:
+		新装备.套装ID = Item.套装库.keys().pick_random()
+	# 器灵觉醒：宝阶及以上 5% 概率（战力+30%）
+	if 新装备.品阶 in ["宝阶", "王阶", "圣阶", "仙阶", "道阶"] and randf() < 0.05:
+		新装备.战力加成 = int(新装备.战力加成 * 1.3)
+		新装备.名称 = "【器灵】" + 新装备.名称
+	# S43 装备词条：锻造产出具名词条（战力烘焙进战力加成；修炼/突破在穿戴/突破时聚合）
+	新装备.滚装备词条(新装备.品阶)
+	新装备.战力加成 += int(装备词条聚合(新装备.装备词条).get("战力", 0.0))
 	宗门库房.append(新装备)
 	# 成就统计：累计锻造装备数自增
 	累计锻造装备数 += 1
@@ -7573,683 +8958,81 @@ func 批量锻造装备(图纸ID: String, 锻造次数: int = 1) -> Dictionary:
 				break
 	return {"成功": 成功数量 > 0, "成功数量": 成功数量, "失败数量": 失败数量, "锻造列表": 锻造列表, "消息": "批量锻造完成，成功%d次，失败%d次" % [成功数量, 失败数量]}
 
-# ============ 阵法系统：封装方法 ============
-# 初始化阵法耐久度（旧档兼容）
+# ============ 阵法管理系统（已拆分到formation_system.gd，此处为转发函数）============
 func _初始化阵法耐久度() -> void:
-	for 阵法ID in 阵法等级.keys():
-		if not 阵法耐久度.has(阵法ID):
-			var 等级: int = int(阵法等级[阵法ID])
-			阵法耐久度[阵法ID] = ZhenFaSystem.计算最大耐久度(等级)
-
-# 升级阵法（封装ZhenFaSystem.升级阵法，自动更新等级和耐久度）
+	阵法管理系统._初始化阵法耐久度()
 func 升级阵法(阵法ID: String, 阵法堂等级: int) -> Dictionary:
-	var 当前等级: int = int(阵法等级.get(阵法ID, 0))
-	var 结果: Dictionary = ZhenFaSystem.升级阵法(阵法ID, 当前等级, 阵法堂等级)
-	if 结果.get("成功", false):
-		var 新等级: int = int(结果.get("新等级", 当前等级 + 1))
-		阵法等级[阵法ID] = 新等级
-		# 升级后耐久度恢复满
-		阵法耐久度[阵法ID] = ZhenFaSystem.计算最大耐久度(新等级)
-		# S1-2：阵法由 0 级升到 1 级即「布置」（日常 daily_023）；再往上为「升级」（日常 daily_024）
-		记任务进度("deploy_zhenfa" if 当前等级 == 0 else "upgrade_zhenfa")
-	return 结果
-
-# 修复阵法（封装ZhenFaSystem.修复阵法，自动更新耐久度）
+	return 阵法管理系统.升级阵法(阵法ID, 阵法堂等级)
 func 修复阵法(阵法ID: String) -> Dictionary:
-	var 当前等级: int = int(阵法等级.get(阵法ID, 0))
-	var 当前耐久度: int = int(阵法耐久度.get(阵法ID, ZhenFaSystem.计算最大耐久度(当前等级)))
-	var 结果: Dictionary = ZhenFaSystem.修复阵法(阵法ID, 当前耐久度, 当前等级)
-	if 结果.get("成功", false):
-		阵法耐久度[阵法ID] = int(结果.get("新耐久度", 当前耐久度))
-		记任务进度("repair_zhenfa")   # S1-2：修复受损阵法（玩家决策，日常 daily_025）
-	return 结果
-
-# 获取阵法信息（包含等级、耐久度、驻守弟子）
+	return 阵法管理系统.修复阵法(阵法ID)
 func 获取阵法信息(阵法ID: String) -> Dictionary:
-	var 阵法 = ZhenFaSystem.阵法库.get(阵法ID, {})
-	if 阵法.is_empty():
-		return {}
-	var 等级: int = int(阵法等级.get(阵法ID, 0))
-	var 最大耐久度: int = ZhenFaSystem.计算最大耐久度(等级)
-	var 当前耐久度: int = int(阵法耐久度.get(阵法ID, 最大耐久度))
-	var 驻守弟子列表: Array = 阵法驻守弟子.get(阵法ID, [])
-	return {
-		"阵法ID": 阵法ID,
-		"名称": str(阵法.get("名称", "")),
-		"类型": str(阵法.get("类型", "")),
-		"等级": 等级,
-		"当前耐久度": 当前耐久度,
-		"最大耐久度": 最大耐久度,
-		"耐久度比例": float(当前耐久度) / float(max(1, 最大耐久度)),
-		"驻守弟子数": 驻守弟子列表.size() if 驻守弟子列表 != null else 0,
-		"驻守需求": int(阵法.get("驻守需求", 1)),
-		"布置位置": str(阵法.get("布置位置", "")),
-		"特殊效果": str(阵法.get("特殊效果", "")),
-		"描述": str(阵法.get("描述", "")),
-	}
-
-# 获取所有已激活阵法列表
+	return 阵法管理系统.获取阵法信息(阵法ID)
 func 获取已激活阵法列表() -> Array:
-	var 列表: Array = []
-	for 阵法ID in 阵法等级.keys():
-		var 等级: int = int(阵法等级[阵法ID])
-		if 等级 > 0:
-			列表.append(获取阵法信息(阵法ID))
-	return 列表
-
-# 计算阵法总效果（封装ZhenFaSystem.计算效果，考虑驻守弟子境界加成）
+	return 阵法管理系统.获取已激活阵法列表()
 func 计算阵法总效果() -> Dictionary:
-	# 计算驻守弟子境界加成
-	var 总加成: float = 1.0
-	var 所有驻守弟子: Array = []
-	for 阵法ID in 阵法驻守弟子.keys():
-		var 弟子ID列表 = 阵法驻守弟子[阵法ID]
-		if 弟子ID列表 != null:
-			for 弟子ID in 弟子ID列表:
-				for 弟子 in 弟子列表:
-					if 弟子 != null and str(弟子.弟子ID) == str(弟子ID):
-						所有驻守弟子.append(弟子)
-	if 所有驻守弟子.size() > 0:
-		总加成 = ZhenFaSystem.计算驻守境界加成(所有驻守弟子)
-	return ZhenFaSystem.计算效果(阵法等级, 总加成)
-
-# 阵法强化配置
-const 阵法强化配置: Dictionary = {
-	1: {"成功率": 0.9, "消耗灵石": 500, "消耗灵晶": 10, "效果提升": 0.1},
-	2: {"成功率": 0.8, "消耗灵石": 1500, "消耗灵晶": 30, "效果提升": 0.15},
-	3: {"成功率": 0.7, "消耗灵石": 4000, "消耗灵晶": 80, "效果提升": 0.2},
-	4: {"成功率": 0.6, "消耗灵石": 10000, "消耗灵晶": 200, "效果提升": 0.25},
-	5: {"成功率": 0.5, "消耗灵石": 25000, "消耗灵晶": 500, "效果提升": 0.3},
-	6: {"成功率": 0.4, "消耗灵石": 60000, "消耗灵晶": 1200, "效果提升": 0.35},
-	7: {"成功率": 0.3, "消耗灵石": 150000, "消耗灵晶": 3000, "效果提升": 0.4},
-	8: {"成功率": 0.2, "消耗灵石": 400000, "消耗灵晶": 8000, "效果提升": 0.45},
-	9: {"成功率": 0.1, "消耗灵石": 1000000, "消耗灵晶": 20000, "效果提升": 0.5},
-	10: {"成功率": 0.05, "消耗灵石": 2500000, "消耗灵晶": 50000, "效果提升": 0.6},
-}
-
-# 阵法强化等级
-var 阵法强化等级: Dictionary = {}  # 阵法ID -> 强化等级
-
-# 强化阵法
+	return 阵法管理系统.计算阵法总效果()
 func 强化阵法(阵法ID: String) -> Dictionary:
-	var 当前等级 = int(阵法等级.get(阵法ID, 0))
-	if 当前等级 <= 0:
-		return {"成功": false, "原因": "阵法未激活"}
-	var 当前强化等级 = int(阵法强化等级.get(阵法ID, 0))
-	if 当前强化等级 >= 10:
-		return {"成功": false, "原因": "阵法已达最高强化等级"}
-	var 配置 = 阵法强化配置.get(当前强化等级 + 1, {})
-	var 消耗灵石 = int(配置.get("消耗灵石", 0))
-	var 消耗灵晶 = int(配置.get("消耗灵晶", 0))
-	var 成功率 = float(配置.get("成功率", 0))
-	if 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-	if 灵晶 < 消耗灵晶:
-		return {"成功": false, "原因": "灵晶不足（需%d灵晶）" % 消耗灵晶}
-	灵石 -= 消耗灵石
-	灵晶 -= 消耗灵晶
-	var 随机值 = randf()
-	if 随机值 < 成功率:
-		阵法强化等级[阵法ID] = 当前强化等级 + 1
-		添加纪事("庶务", "强化阵法", "%s强化到+%d级" % [阵法ID, 当前强化等级 + 1], 1)
-		return {"成功": true, "阵法ID": 阵法ID, "新强化等级": 当前强化等级 + 1, "消耗灵石": 消耗灵石, "消耗灵晶": 消耗灵晶, "消息": "%s强化成功" % 阵法ID}
-	else:
-		添加纪事("庶务", "强化阵法", "%s强化失败" % 阵法ID, 1)
-		return {"成功": false, "原因": "强化失败", "消耗灵石": 消耗灵石, "消耗灵晶": 消耗灵晶, "消息": "%s强化失败" % 阵法ID}
-
-# 获取阵法强化消耗
+	return 阵法管理系统.强化阵法(阵法ID)
 func 获取阵法强化消耗(阵法ID: String) -> Dictionary:
-	var 当前等级 = int(阵法等级.get(阵法ID, 0))
-	if 当前等级 <= 0:
-		return {"已激活": false, "原因": "阵法未激活"}
-	var 当前强化等级 = int(阵法强化等级.get(阵法ID, 0))
-	if 当前强化等级 >= 10:
-		return {"已激活": true, "当前强化等级": 当前强化等级, "最大强化等级": 10, "是否可强化": false, "原因": "阵法已达最高强化等级"}
-	var 配置 = 阵法强化配置.get(当前强化等级 + 1, {})
-	return {
-		"已激活": true,
-		"当前强化等级": 当前强化等级,
-		"下一级强化等级": 当前强化等级 + 1,
-		"最大强化等级": 10,
-		"成功率": float(配置.get("成功率", 0)),
-		"消耗灵石": int(配置.get("消耗灵石", 0)),
-		"消耗灵晶": int(配置.get("消耗灵晶", 0)),
-		"效果提升": float(配置.get("效果提升", 0)),
-		"是否可强化": true,
-	}
-
-# 阵法组合效果配置
-const 阵法组合效果配置: Dictionary = {
-	"攻防一体": {"阵法": ["攻击阵", "防御阵"], "效果": "攻击+10%，防御+10%", "攻击加成": 0.1, "防御加成": 0.1},
-	"三才归元": {"阵法": ["天阵", "地阵", "人阵"], "效果": "全属性+15%", "全属性加成": 0.15},
-	"四象守护": {"阵法": ["青龙阵", "白虎阵", "朱雀阵", "玄武阵"], "效果": "防御+25%，耐久度+20%", "防御加成": 0.25, "耐久加成": 0.2},
-	"五行相生": {"阵法": ["金阵", "木阵", "水阵", "火阵", "土阵"], "效果": "修炼速度+20%，产出+20%", "修炼加成": 0.2, "产出加成": 0.2},
-}
-
-# 计算阵法组合效果
+	return 阵法管理系统.获取阵法强化消耗(阵法ID)
 func 计算阵法组合效果() -> Dictionary:
-	var 已激活阵法 = 获取已激活阵法列表()
-	var 已激活阵法ID = []
-	for 阵法 in 已激活阵法:
-		已激活阵法ID.append(阵法.get("阵法ID", ""))
-	var 组合效果 = {
-		"攻击加成": 0.0,
-		"防御加成": 0.0,
-		"全属性加成": 0.0,
-		"耐久加成": 0.0,
-		"修炼加成": 0.0,
-		"产出加成": 0.0,
-		"已激活组合": [],
-	}
-	for 组合名称 in 阵法组合效果配置.keys():
-		var 配置 = 阵法组合效果配置[组合名称]
-		var 需要阵法 = 配置.get("阵法", [])
-		var 全部激活 = true
-		for 阵法ID in 需要阵法:
-			if 阵法ID not in 已激活阵法ID:
-				全部激活 = false
-				break
-		if 全部激活:
-			组合效果["已激活组合"].append({
-				"组合名称": 组合名称,
-				"效果": 配置.get("效果", ""),
-			})
-			组合效果["攻击加成"] += float(配置.get("攻击加成", 0))
-			组合效果["防御加成"] += float(配置.get("防御加成", 0))
-			组合效果["全属性加成"] += float(配置.get("全属性加成", 0))
-			组合效果["耐久加成"] += float(配置.get("耐久加成", 0))
-			组合效果["修炼加成"] += float(配置.get("修炼加成", 0))
-			组合效果["产出加成"] += float(配置.get("产出加成", 0))
-	return 组合效果
-
-# 获取所有阵法组合列表
+	return 阵法管理系统.计算阵法组合效果()
 func 获取所有阵法组合列表() -> Array:
-	var 列表 = []
-	var 已激活阵法 = 获取已激活阵法列表()
-	var 已激活阵法ID = []
-	for 阵法 in 已激活阵法:
-		已激活阵法ID.append(阵法.get("阵法ID", ""))
-	for 组合名称 in 阵法组合效果配置.keys():
-		var 配置 = 阵法组合效果配置[组合名称]
-		var 需要阵法 = 配置.get("阵法", [])
-		var 已激活数量 = 0
-		for 阵法ID in 需要阵法:
-			if 阵法ID in 已激活阵法ID:
-				已激活数量 += 1
-		列表.append({
-			"组合名称": 组合名称,
-			"需要阵法": 需要阵法,
-			"效果": 配置.get("效果", ""),
-			"已激活数量": 已激活数量,
-			"总数量": 需要阵法.size(),
-			"是否全部激活": 已激活数量 == 需要阵法.size(),
-		})
-	return 列表
-
-# 获取所有阵法列表（包含未激活的）
+	return 阵法管理系统.获取所有阵法组合列表()
 func 获取所有阵法列表() -> Array:
-	var 列表: Array = []
-	for 阵法ID in ZhenFaSystem.阵法库.keys():
-		var 阵法 = ZhenFaSystem.阵法库[阵法ID]
-		var 等级: int = int(阵法等级.get(阵法ID, 0))
-		var 最大耐久度: int = ZhenFaSystem.计算最大耐久度(等级)
-		var 当前耐久度: int = int(阵法耐久度.get(阵法ID, 最大耐久度))
-		var 驻守弟子列表: Array = 阵法驻守弟子.get(阵法ID, [])
-		列表.append({
-			"阵法ID": 阵法ID,
-			"名称": str(阵法.get("名称", "")),
-			"类型": str(阵法.get("类型", "")),
-			"等级": 等级,
-			"已激活": 等级 > 0,
-			"当前耐久度": 当前耐久度,
-			"最大耐久度": 最大耐久度,
-			"驻守弟子数": 驻守弟子列表.size() if 驻守弟子列表 != null else 0,
-			"驻守需求": int(阵法.get("驻守需求", 1)),
-			"布置位置": str(阵法.get("布置位置", "")),
-			"特殊效果": str(阵法.get("特殊效果", "")),
-			"描述": str(阵法.get("描述", "")),
-		})
-	return 列表
-
-# 一键修复所有阵法
+	return 阵法管理系统.获取所有阵法列表()
 func 一键修复所有阵法() -> Dictionary:
-	var 修复数量 = 0
-	var 修复列表 = []
-	for 阵法ID in 阵法等级.keys():
-		var 等级: int = int(阵法等级[阵法ID])
-		if 等级 > 0:
-			var 最大耐久度: int = ZhenFaSystem.计算最大耐久度(等级)
-			var 当前耐久度: int = int(阵法耐久度.get(阵法ID, 最大耐久度))
-			if 当前耐久度 < 最大耐久度:
-				var 结果 = 修复阵法(阵法ID)
-				if 结果.get("成功", false):
-					修复数量 += 1
-					修复列表.append(结果)
-	return {"成功": 修复数量 > 0, "修复数量": 修复数量, "修复列表": 修复列表, "消息": "一键修复完成，修复%d个阵法" % 修复数量}
+	return 阵法管理系统.一键修复所有阵法()
 
-# ============ 坐骑系统（新增） ============
-# 坐骑列表（{id, 名称, 品阶, 类型, 速度加成, 战力加成, 已激活, 当前使用}）
-var 坐骑列表: Array = []
-var 当前坐骑: String = ""  # 当前使用的坐骑ID
-var 坐骑ID计数器: int = 0
-
-# 坐骑类型配置
-const 坐骑类型配置: Dictionary = {
-	"飞行": {"描述": "飞行坐骑，移动速度快", "速度加成": 0.20},
-	"陆地": {"描述": "陆地坐骑，稳定可靠", "速度加成": 0.10},
-	"水中": {"描述": "水中坐骑，水中移动快", "速度加成": 0.15},
-	"神兽": {"描述": "神兽坐骑，全属性加成", "速度加成": 0.30},
-}
-
-# 初始化默认坐骑
+# ============ 坐骑系统（已拆分到mount_system.gd，此处为转发函数）============
 func _初始化默认坐骑() -> void:
-	if 坐骑列表.is_empty():
-		坐骑列表.append({
-			"id": "mount_default",
-			"名称": "青牛",
-			"品阶": "凡品",
-			"类型": "陆地",
-			"速度加成": 0.05,
-			"战力加成": 10,
-			"已激活": true,
-			"当前使用": true,
-		})
-		当前坐骑 = "mount_default"
-		坐骑ID计数器 = 1
-
-# 获取所有坐骑列表
+	坐骑系统._初始化默认坐骑()
 func 获取所有坐骑列表() -> Array:
-	_初始化默认坐骑()
-	var 列表 = []
-	for 坐骑 in 坐骑列表:
-		列表.append({
-			"id": 坐骑.get("id", ""),
-			"名称": 坐骑.get("名称", ""),
-			"品阶": 坐骑.get("品阶", ""),
-			"类型": 坐骑.get("类型", ""),
-			"速度加成": 坐骑.get("速度加成", 0),
-			"战力加成": 坐骑.get("战力加成", 0),
-			"已激活": 坐骑.get("已激活", false),
-			"当前使用": 坐骑.get("id", "") == 当前坐骑,
-		})
-	return 列表
-
-# 获取坐骑统计
+	return 坐骑系统.获取所有坐骑列表()
 func 获取坐骑统计() -> Dictionary:
-	_初始化默认坐骑()
-	var 已激活数 = 0
-	var 总速度加成 = 0.0
-	var 总战力加成 = 0
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("已激活", false):
-			已激活数 += 1
-			总速度加成 += float(坐骑.get("速度加成", 0))
-			总战力加成 += int(坐骑.get("战力加成", 0))
-	return {
-		"总数": 坐骑列表.size(),
-		"已激活数": 已激活数,
-		"当前坐骑": 当前坐骑,
-		"总速度加成": 总速度加成,
-		"总战力加成": 总战力加成,
-	}
-
-# 激活坐骑
+	return 坐骑系统.获取坐骑统计()
 func 激活坐骑(坐骑ID: String) -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 坐骑ID:
-			if 坐骑.get("已激活", false):
-				return {"成功": false, "原因": "坐骑已激活"}
-			坐骑["已激活"] = true
-			添加纪事("庶务", "激活坐骑", "激活了%s（%s）" % [坐骑.get("名称", ""), 坐骑.get("品阶", "")], 1)
-			return {"成功": true, "坐骑": 坐骑, "消息": "激活%s成功" % 坐骑.get("名称", "")}
-	return {"成功": false, "原因": "坐骑不存在"}
-
-# 切换坐骑
+	return 坐骑系统.激活坐骑(坐骑ID)
 func 切换坐骑(坐骑ID: String) -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 坐骑ID:
-			if not 坐骑.get("已激活", false):
-				return {"成功": false, "原因": "坐骑未激活"}
-			# 取消当前坐骑的使用状态
-			for m in 坐骑列表:
-				m["当前使用"] = false
-			坐骑["当前使用"] = true
-			当前坐骑 = 坐骑ID
-			添加纪事("庶务", "切换坐骑", "切换到%s" % 坐骑.get("名称", ""), 1)
-			return {"成功": true, "坐骑": 坐骑, "消息": "切换到%s成功" % 坐骑.get("名称", "")}
-	return {"成功": false, "原因": "坐骑不存在"}
-
-# 获取当前坐骑加成
+	return 坐骑系统.切换坐骑(坐骑ID)
 func 获取当前坐骑加成() -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 当前坐骑:
-			return {
-				"速度加成": float(坐骑.get("速度加成", 0)),
-				"战力加成": int(坐骑.get("战力加成", 0)),
-				"名称": 坐骑.get("名称", ""),
-			}
-	return {"速度加成": 0.0, "战力加成": 0, "名称": "无"}
-
-# 升级坐骑（提升速度加成和战力加成）
+	return 坐骑系统.获取当前坐骑加成()
 func 升级坐骑(坐骑ID: String) -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 坐骑ID:
-			if not 坐骑.get("已激活", false):
-				return {"成功": false, "原因": "坐骑未激活"}
-			var 当前等级 = int(坐骑.get("等级", 1))
-			var 最大等级 = 10
-			if 当前等级 >= 最大等级:
-				return {"成功": false, "原因": "坐骑已达最高等级"}
-			var 消耗灵石 = 1000 * 当前等级
-			if 灵石 < 消耗灵石:
-				return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-			灵石 -= 消耗灵石
-			坐骑["等级"] = 当前等级 + 1
-			# 提升加成
-			var 原速度加成 = float(坐骑.get("速度加成", 0))
-			var 原战力加成 = int(坐骑.get("战力加成", 0))
-			坐骑["速度加成"] = 原速度加成 + 0.01
-			坐骑["战力加成"] = 原战力加成 + 10
-			添加纪事("庶务", "升级坐骑", "%s升级到%d级，速度加成+1%%，战力加成+10" % [坐骑.get("名称", ""), 当前等级 + 1], 1)
-			return {"成功": true, "坐骑": 坐骑, "消耗灵石": 消耗灵石, "消息": "%s升级成功" % 坐骑.get("名称", "")}
-	return {"成功": false, "原因": "坐骑不存在"}
-
-# 培养坐骑（提升经验，经验满后自动升级）
+	return 坐骑系统.升级坐骑(坐骑ID)
 func 培养坐骑(坐骑ID: String, 培养次数: int = 1) -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 坐骑ID:
-			if not 坐骑.get("已激活", false):
-				return {"成功": false, "原因": "坐骑未激活"}
-			var 消耗灵石 = 100 * 培养次数
-			if 灵石 < 消耗灵石:
-				return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-			灵石 -= 消耗灵石
-			var 当前经验 = int(坐骑.get("经验", 0))
-			var 升级所需经验 = 100 * int(坐骑.get("等级", 1))
-			var 获得经验 = 50 * 培养次数
-			当前经验 += 获得经验
-			var 升级次数 = 0
-			while 当前经验 >= 升级所需经验 and int(坐骑.get("等级", 1)) < 10:
-				当前经验 -= 升级所需经验
-				坐骑["等级"] = int(坐骑.get("等级", 1)) + 1
-				升级次数 += 1
-				# 提升加成
-				var 原速度加成 = float(坐骑.get("速度加成", 0))
-				var 原战力加成 = int(坐骑.get("战力加成", 0))
-				坐骑["速度加成"] = 原速度加成 + 0.01
-				坐骑["战力加成"] = 原战力加成 + 10
-				升级所需经验 = 100 * int(坐骑.get("等级", 1))
-			坐骑["经验"] = 当前经验
-			if 升级次数 > 0:
-				添加纪事("庶务", "培养坐骑", "%s培养后升级%d次" % [坐骑.get("名称", ""), 升级次数], 1)
-			return {"成功": true, "坐骑": 坐骑, "获得经验": 获得经验, "升级次数": 升级次数, "消耗灵石": 消耗灵石, "消息": "培养%s成功，获得%d经验" % [坐骑.get("名称", ""), 获得经验]}
-	return {"成功": false, "原因": "坐骑不存在"}
-
-# 获取坐骑升级消耗
+	return 坐骑系统.培养坐骑(坐骑ID, 培养次数)
 func 获取坐骑升级消耗(坐骑ID: String) -> Dictionary:
-	_初始化默认坐骑()
-	for 坐骑 in 坐骑列表:
-		if 坐骑.get("id", "") == 坐骑ID:
-			var 当前等级 = int(坐骑.get("等级", 1))
-			return {
-				"当前等级": 当前等级,
-				"最大等级": 10,
-				"升级消耗灵石": 1000 * 当前等级,
-				"培养消耗灵石": 100,
-				"培养获得经验": 50,
-				"升级所需经验": 100 * 当前等级,
-				"当前经验": int(坐骑.get("经验", 0)),
-			}
-	return {}
+	return 坐骑系统.获取坐骑升级消耗(坐骑ID)
 
-# ============ 碎片合成系统：库存管理 + 合成逻辑 ============
-# 添加碎片
+# ============ 碎片宝箱系统（已拆分到fragment_chest_system.gd，此处为转发函数）============
 func 添加碎片(碎片ID: String, 数量: int) -> void:
-	if 数量 <= 0:
-		return
-	碎片库存[碎片ID] = int(碎片库存.get(碎片ID, 0)) + 数量
-
-# 移除碎片
+	碎片宝箱系统.添加碎片(碎片ID, 数量)
 func 移除碎片(碎片ID: String, 数量: int) -> bool:
-	var 当前数量: int = int(碎片库存.get(碎片ID, 0))
-	if 当前数量 < 数量:
-		return false
-	碎片库存[碎片ID] = 当前数量 - 数量
-	if 碎片库存[碎片ID] <= 0:
-		碎片库存.erase(碎片ID)
-	return true
-
-# 获取碎片数量
+	return 碎片宝箱系统.移除碎片(碎片ID, 数量)
 func 获取碎片数量(碎片ID: String) -> int:
-	return int(碎片库存.get(碎片ID, 0))
-
-# 执行碎片合成
+	return 碎片宝箱系统.获取碎片数量(碎片ID)
 func 执行碎片合成(碎片ID: String) -> Dictionary:
-	var 数量: int = 获取碎片数量(碎片ID)
-	var 结果: Dictionary = FragmentCraftSystem.执行合成(碎片ID, 数量, 灵石)
-	if not 结果.get("成功", false):
-		return 结果
-	# 消耗碎片和灵石
-	移除碎片(碎片ID, int(结果.get("消耗碎片数", 0)))
-	灵石 -= int(结果.get("消耗灵石", 0))
-	# 产出物品（简化版本：根据产出类型添加到对应库存）
-	var 产出ID: String = str(结果.get("产出ID", ""))
-	var 产出类型: String = str(结果.get("产出类型", ""))
-	match 产出类型:
-		"碎片":
-			添加碎片(产出ID, 1)
-		"资源":
-			# 资源类型直接添加到对应变量（简化版本）
-			pass
-		_:
-			# 其他类型添加到宗门库房（简化版本）
-			pass
-	添加纪事("大事件", "碎片合成", "合成%s成功" % str(结果.get("原因", "")), 2)
-	return 结果
-
-# ============ 宝箱系统：库存管理 + 打开逻辑 ============
-# 添加宝箱
+	return 碎片宝箱系统.执行碎片合成(碎片ID)
 func 添加宝箱(宝箱ID: String, 数量: int) -> void:
-	if 数量 <= 0:
-		return
-	宝箱库存[宝箱ID] = int(宝箱库存.get(宝箱ID, 0)) + 数量
-
-# 移除宝箱
+	碎片宝箱系统.添加宝箱(宝箱ID, 数量)
 func 移除宝箱(宝箱ID: String, 数量: int) -> bool:
-	var 当前数量: int = int(宝箱库存.get(宝箱ID, 0))
-	if 当前数量 < 数量:
-		return false
-	宝箱库存[宝箱ID] = 当前数量 - 数量
-	if 宝箱库存[宝箱ID] <= 0:
-		宝箱库存.erase(宝箱ID)
-	return true
-
-# 获取宝箱数量
+	return 碎片宝箱系统.移除宝箱(宝箱ID, 数量)
 func 获取宝箱数量(宝箱ID: String) -> int:
-	return int(宝箱库存.get(宝箱ID, 0))
-
-# 打开宝箱
+	return 碎片宝箱系统.获取宝箱数量(宝箱ID)
 func 打开宝箱(宝箱ID: String) -> Dictionary:
-	if 获取宝箱数量(宝箱ID) <= 0:
-		return {"成功": false, "掉落列表": [], "原因": "宝箱数量不足"}
-	var 结果: Dictionary = ChestSystem.打开宝箱(宝箱ID)
-	if not 结果.get("成功", false):
-		return 结果
-	# 消耗宝箱
-	移除宝箱(宝箱ID, 1)
-	# 发放掉落物品（简化版本：根据物品类型添加到对应库存）
-	for 掉落 in 结果.get("掉落列表", []):
-		var 物品ID: String = str(掉落.get("物品ID", ""))
-		var 物品类型: String = str(掉落.get("物品类型", ""))
-		var 数量: int = int(掉落.get("数量", 1))
-		match 物品类型:
-			"资源":
-				match 物品ID:
-					"灵石": 灵石 += 数量
-					"灵草": 灵草 += 数量
-					"矿石": 矿石 += 数量
-					"灵气": 灵气 += 数量
-					"悟道点": 悟道点 += 数量
-					"声望": 声望 += 数量
-			"碎片":
-				添加碎片(物品ID, 数量)
-			"宝箱":
-				添加宝箱(物品ID, 数量)
-			_:
-				# 其他类型添加到宗门库房（简化版本）
-				pass
-	添加纪事("大事件", "宝箱开启", str(结果.get("原因", "")), 2)
-	return 结果
+	return 碎片宝箱系统.打开宝箱(宝箱ID)
 
-# ============ 玄榜（排行榜）系统：单机种子化虚拟对：+ 真实本宗数据 ============
-# 玄榜是跨服多人榜，单机存档无「他人」数据；以种子化虚拟对手宗门 + 真实本宗数据插位，MVP 接入（不升SAVE_VERSION）：
+# ============ 玄榜系统（已拆分到xuan_rank_system.gd，此处为转发函数）============
 func _种子化玄() -> void:
-
-	if not 玄榜虚拟宗门.is_empty():
-		return
-	# 12 个虚拟宗门：{： 战力, 境界： 功勋, 探索, 商道, 名望, 称号}
-	玄榜虚拟宗门 = [
-		{"名": "玄幽魔宗", "战力": 912300, "境界值": 7, "功勋": 84200, "探索": 61000, "商道": 55000, "名望": 72000, "称号": "魔道巨擘"},
-		{"名": "丹器师公会", "战力": 876500, "境界值": 6, "功勋": 71000, "探索": 48000, "商道": 92000, "名望": 65000, "称号": "百工之宗"},
-		{"名": "万灵古族", "战力": 712000, "境界值": 6, "功勋": 58000, "探索": 87000, "商道": 33000, "名望": 54000, "称号": "寻幽探秘"},
-		{"名": "散修同盟会", "战力": 543000, "境界值": 5, "功勋": 46000, "探索": 52000, "商道": 41000, "名望": 38000, "称号": "逍遥盟主"},
-		{"名": "正道盟", "战力": 498000, "境界值": 5, "功勋": 67000, "探索": 39000, "商道": 36000, "名望": 61000, "称号": "正道魁首"},
-		{"名": "东海商盟", "战力": 376000, "境界值": 5, "功勋": 30000, "探索": 28000, "商道": 88000, "名望": 29000, "称号": "富甲一方"},
-		{"名": "北冥剑宗", "战力": 631000, "境界值": 6, "功勋": 52000, "探索": 44000, "商道": 30000, "名望": 47000, "称号": "剑脉祖庭"},
-		{"名": "焚天谷", "战力": 689000, "境界值": 6, "功勋": 49000, "探索": 33000, "商道": 27000, "名望": 44000, "称号": "离火传承"},
-		{"名": "太虚观", "战力": 412000, "境界值": 5, "功勋": 55000, "探索": 61000, "商道": 24000, "名望": 50000, "称号": "观星望气"},
-		{"名": "百草门", "战力": 358000, "境界值": 4, "功勋": 33000, "探索": 41000, "商道": 39000, "名望": 31000, "称号": "丹道世家"},
-		{"名": "天机阁", "战力": 521000, "境界值": 5, "功勋": 60000, "探索": 47000, "商道": 46000, "名望": 56000, "称号": "推演无双"},
-		{"名": "九霄雷府", "战力": 764000, "境界值": 7, "功勋": 51000, "探索": 35000, "商道": 29000, "名望": 53000, "称号": "雷霆法脉"},
-	]
-# 取玄榜：类型("个人"/"宗门")、指：战力/境界/功勋/探索/商道/名望)、范：本服/赛区/全服)
-# 返回降序 Array[{： ： 称号, 自己}]
+	玄榜系统._种子化玄()
 func 取玄榜(类型: String, 指标: String, 范围: String) -> Array:
-
-	var 榜: Array = []
-	if 类型 == "个人":
-		榜= _取个人榜数据()
-	else:
-		榜= _取宗门榜数据()
-	var 带榜: Array = []
-	for e in 榜:
-		var 分: int = _玄榜指标(e, 指标)
-		带榜.append({"名": e.get("名") if "名" in e else "", "称号": e.get("称号") if "称号" in e else "", "自己": e.get("自己") if "自己" in e else false})
-	带榜.sort_custom(_玄榜_按值降)
-	if 范围 == "本服":
-		带榜 = _裁剪到范(带榜, 5)
-	elif 范围 == "赛区":
-		带榜 = _裁剪到范(带榜, 8)
-	return 带榜
-func _取个人榜数据() -> Array:
-
-	var 榜: Array = []
-	for d in 弟子列表:
-		if d == null:
-			continue
-		var 名: String = ""
-		if d.姓名 != "":
-			名 = "%s·%s" % [宗门名, d.姓名]
-		else:
-				名 = "%s·%s" % [宗门名, d.道号]
-		榜.append({"名": 名, "战力": int(d.战力), "境界值": Disciple.境界表.get(d.境界), "自己": false})
-	var 掌门战力: int = _宗主战力()
-	榜.append({"名": "%s·%s（你方）" % [宗门名, 宗主名], "战力": 掌门战力, "境界值": _宗主境界, "自己": true})
-	return 榜
-func _取宗门榜数据() -> Array:
-
-	var 榜: Array = []
-	for v in 玄榜虚拟宗门:
-		榜.append({"名": v.get("名") if "名" in v else "", "战力": int(v.get("战力") if "战力" in v else 0), "境界值": int(v.get("境界值") if "境界值" in v else 0),
-			"功勋": int(v.get("功勋") if "功勋" in v else 0), "探索": int(v.get("探索") if "探索" in v else 0), "商道": int(v.get("商道") if "商道" in v else 0),
-			"名望": int(v.get("名望") if "名望" in v else 0), "称号": v.get("称号") if "称号" in v else "", "自己": false})
-	var 自己战力: int = _宗门总战()
-	榜.append({"名": "%s（你方）" % 宗门名, "战力": 自己战力, "境界值": _宗主境界,
-		"功勋": 门派等级 * 8000, "探索": 门派等级 * 6000, "商道": 门派等级 * 5000, "名望": 门派等级 * 7000,
-		"称号": "正道魁首", "自己": true})
-	return 榜
-func _玄榜指标(e: Dictionary, 指标: String) -> int:
-
-	match 指标:
-		"战力":
-			return int(e.get("战力") if "战力" in e else 0)
-		"境界":
-			return int(e.get("境界值") if "境界值" in e else 0)
-		"功勋":
-			return int(e.get("功勋") if "功勋" in e else 0)
-		"探索":
-			return int(e.get("探索") if "探索" in e else 0)
-		"商道":
-			return int(e.get("商道") if "商道" in e else 0)
-		"名望":
-			return int(e.get("名望") if "名望" in e else 0)
-	return int(e.get("战力") if "战力" in e else 0)
-func _玄榜_按值降(a: Dictionary, b: Dictionary) -> bool:
-
-	return int(a.get("值") if "值" in a else 0) > int(b.get("值") if "值" in b else 0)
-func _裁剪到范(带榜: Array, n: int) -> Array:
-
-	if 带榜.size() <= n:
-		return 带榜
-	var 自己或: Dictionary = {}
-	var 含自己: bool = false
-	for e in 带榜:
-		if e.get("自己") if "自己" in e else false:
-			自己或= e
-			含自己= true
-			break
-	var 裁剪: Array = 带榜.slice(0, n)
-	if 含自己 and not 裁剪.has(自己或):
-		裁剪.append(自己或)
-	return 裁剪
-func _宗门总战() -> int:
-
-	var s: int = 0
-	for d in 弟子列表:
-		if d != null:
-			s += int(d.战力)
-	return s
-func _宗主境界() -> int:
-
-	var mx: int = 0
-	for d in 弟子列表:
-		if d != null:
-			var 境界顺序: Array = ["练气", "筑基", "金丹", "元婴", "化神", "仙阶", "道阶"]
-			var idx: int = 境界顺序.find(d.境界)
-			if idx > mx:
-				mx = idx
-	return mx
-func _宗主战力() -> int:
-
-	var mx: int = 0
-	for d in 弟子列表:
-		if d != null:
-			if int(d.战力) > mx:
-				mx = int(d.战力)
-	return mx + 门派等级 * 500
+	return 玄榜系统.取玄榜(类型, 指标, 范围)
 func 取玄榜_self(类型: String, 指标: String, 范围: String) -> Dictionary:
+	return 玄榜系统.取玄榜_self(类型, 指标, 范围)
+func _宗主境界() -> int:
+	return 玄榜系统._宗主境界()
 
-	var 榜: Array = 取玄榜(类型, 指标, 范围)
-	var rank: int = 0
-	var val: int = 0
-	for i in range(榜.size()):
-		if 榜[i].get("自己", false):
-			rank = i + 1
-			val = int(榜[i].get("境界值", 0))
-			break
-	var gap: int = 0
-	if rank > 1 and 榜.size() >= rank:
-		gap = int(榜[rank - 2].get("境界值", 0)) - val
-	var name: String = "%s（你方）" % 宗门名
-	if 类型 == "个人":
-		name = "%s·%s（你方）" % [宗门名, 宗主名]
-	return {"rank": rank, "name": name, "val": val, "gap": gap}
-# 解锁付费轨（对外「法旨特赏轨」）：扣非绑定仙玉，标记已购
+# 解锁付费轨（对外「法旨特赏轨」）：扣灵玉，标记已购
 # TODO S2 重构：迁移至 BattlePassManager.购付费轨()
 func 购战令付费轨() -> Dictionary:
 
@@ -8257,11 +9040,11 @@ func 购战令付费轨() -> Dictionary:
 		return {"ok": false, "msg": "付费轨已解锁"}
 	var 价: int = BattlePass.付费轨价
 	if 仙玉_非绑定 < 价:
-		return {"ok": false, "msg": "非绑定仙玉不足（需 %d）" % 价}
+		return {"ok": false, "msg": "灵玉不足（需 %d）" % 价}
 	仙玉_非绑定 -= 价
 	战令_已购付费轨 = true
 	return {"ok": true, "msg": "付费轨已解锁：%d 仙玉" % 价}
-# 购买仙玉商店商品：6 屏坊市）：扣非绑定仙玉，按商：rewards 发放资源/皮肤名
+# 购买灵玉商店商品：6 屏坊市）：扣灵玉，按商：rewards 发放资源/皮肤名
 # 属于 S1 竖切验证，数：PLACEHOLDER；S2 可随商业化矩阵拆分至 CommerceManager：
 func 购买仙玉商品(商品id: String) -> Dictionary:
 
@@ -8269,9 +9052,9 @@ func 购买仙玉商品(商品id: String) -> Dictionary:
 	if 商品.is_empty():
 		return {"ok": false, "msg": "无此商品"}
 	var 价: int = int(商品.get("price", 0))
-	if 仙玉_非绑定 < 价:
+	# P2优化：所有商店商品可用绑定仙玉购买（优先扣绑定），付费服务仅用非绑定
+	if not 消耗仙玉(价):
 		return {"ok": false, "msg": "仙玉不足（需 %d）" % 价}
-	仙玉_非绑定 -= 价
 	var 明细: Array = []
 	var 奖: Dictionary = 商品.get("rewards", {})
 	if 奖.has("灵石"):
@@ -8294,14 +9077,77 @@ func 购买仙玉商品(商品id: String) -> Dictionary:
 		var v: int = int(奖["声望"])
 		声望 += v
 		明细.append("声望+%d" % v)
+	if 奖.has("宗门贡献"):
+		var v: int = int(奖["宗门贡献"])
+		贡献点 += v
+		明细.append("贡献点+%d" % v)
+	if 奖.has("传承积分"):
+		var v: int = int(奖["传承积分"])
+		声望 += v * 10  # 传承积分暂用声望替代（1传承积分=10声望）
+		明细.append("声望+%d（传承积分）" % (v * 10))
+	if 奖.has("VIP经验"):
+		var v: int = int(奖["VIP经验"])
+		累充额 += v
+		明细.append("累充额+%d元（VIP经验）" % v)
+	# 符箓类（P1新增，暂用灵气替代，后续接入符箓库房）
+	if 奖.has("符箓_护身符"):
+		var v: int = int(奖["符箓_护身符"])
+		灵气 += v * 500
+		明细.append("护身符+%d（灵气+%d）" % [v, v * 500])
+	if 奖.has("符箓_攻击符"):
+		var v: int = int(奖["符箓_攻击符"])
+		灵气 += v * 500
+		明细.append("攻击符+%d（灵气+%d）" % [v, v * 500])
+	if 奖.has("符箓_治疗符"):
+		var v: int = int(奖["符箓_治疗符"])
+		灵气 += v * 800
+		明细.append("治疗符+%d（灵气+%d）" % [v, v * 800])
+	if 奖.has("符箓_遁者符"):
+		var v: int = int(奖["符箓_遁者符"])
+		灵气 += v * 1000
+		明细.append("遁者符+%d（灵气+%d）" % [v, v * 1000])
 	if 奖.has("绑定仙玉"):
 		var v: int = int(奖["绑定仙玉"])
 		仙玉_绑定 += v
-		明细.append("绑定仙玉+%d" % v)
+		明细.append("灵玉+%d" % v)
 	if 奖.has("皮肤"):
 		var skin_id: String = str(奖["皮肤"])
 		当前皮肤 = skin_id
 		明细.append("外观·%s" % skin_id)
+	# 护道人道具（P0新增）
+	if 奖.has("护道玉符"):
+		var v: int = int(奖["护道玉符"])
+		护道玉符 += v
+		明细.append("护道玉符+%d" % v)
+	if 奖.has("护道续缘符"):
+		var v: int = int(奖["护道续缘符"])
+		护道续缘符 += v
+		明细.append("护道续缘符+%d" % v)
+	if 奖.has("功德玉牌"):
+		var v: int = int(奖["功德玉牌"])
+		功德玉牌 += v
+		明细.append("功德玉牌+%d" % v)
+	if 奖.has("气运符箓"):
+		var v: int = int(奖["气运符箓"])
+		气运符箓 += v
+		明细.append("气运符箓+%d" % v)
+	if 奖.has("替死玉符"):
+		var v: int = int(奖["替死玉符"])
+		替死玉符 += v
+		明细.append("替死玉符+%d" % v)
+	# 机缘道具（P0新增）
+	if 奖.has("机缘符"):
+		var v: int = int(奖["机缘符"])
+		增加所有机缘次数(v)
+		明细.append("机缘符+%d（当日所有机缘+%d）" % [v, v])
+	if 奖.has("悟道令"):
+		var v: int = int(奖["悟道令"])
+		增加所有机缘次数(v * 3)
+		明细.append("悟道令+%d（当日所有机缘+%d）" % [v, v * 3])
+	if 奖.has("天机符"):
+		var v: int = int(奖["天机符"])
+		增加所有机缘次数(v * 10)
+		明细.append("天机符+%d（当日所有机缘+%d）" % [v, v * 10])
 	# 碎片奖励：以"frag_"开头的键
 	for 键 in 奖.keys():
 		if str(键).begins_with("frag_"):
@@ -8321,7 +9167,7 @@ func 购买仙玉商品(商品id: String) -> Dictionary:
 func 取仙玉() -> int:
 
 	return 仙玉_绑定 + 仙玉_非绑定
-# 消耗仙玉：优先扣绑定仙玉，不足部分扣非绑定；返回是否成功
+# 消耗灵玉：优先扣绑定灵玉，不足部分扣非绑定；返回是否成功
 func 消耗仙玉(数量: int) -> bool:
 
 	if 数量 <= 0:
@@ -8338,7 +9184,7 @@ func 消耗仙玉(数量: int) -> bool:
 	if 剩余 > 0:
 		仙玉_非绑定-= 剩余
 	return true
-# 消耗仙玉_付费：仅扣非绑定仙玉（付费专用，隔离免费绑定币）；不足返回 false
+# 消耗灵玉_付费：仅扣非绑定灵玉（付费专用，隔离免费绑定币）；不足返回 false
 func 消耗仙玉_付费(数量: int) -> bool:
 	if 数量 <= 0:
 		return true
@@ -8448,7 +9294,60 @@ func 领取日常(序号: int) -> Dictionary:
 	if randf() < 0.05:
 		添加宝箱("chest_common", 1)
 		额外奖励文本 += " 普通宝箱+1"
+	# 修真味：宗门差事对应能力成长
+	var 差事成长: String = _日常差事能力成长(q)
+	if 差事成长 != "":
+		额外奖励文本 += " " + 差事成长
 	return {"ok": true, "msg": "日常「%s」完成：灵石+%d 灵气+%d%s" % [q.get("quest_name") if "quest_name" in q else "", 奖, 额, 额外奖励文本]}
+
+## 日常差事能力成长（修真世界观：做什么差事涨什么能力）
+func _日常差事能力成长(q: Dictionary) -> String:
+	var 任务类型: String = str(q.get("quest_type", ""))
+	var 任务名: String = str(q.get("quest_name", ""))
+	if 弟子列表.is_empty():
+		return ""
+	# 随机选一个在宗弟子作为差事执行者
+	var 候选: Array = []
+	for d in 弟子列表:
+		if d is Disciple and str(d.状态) == "在宗" and int(d.受伤剩余) <= 0:
+			候选.append(d)
+	if 候选.is_empty():
+		return ""
+	var 执行者: Disciple = 候选[randi() % 候选.size()]
+	match 任务类型:
+		"探索":
+			执行者.战力 += max(1, int(执行者.战力 * 0.005))
+			return "%s外出历练，筋骨淬炼，战力略有精进" % 执行者.姓名
+		"经营":
+			if "炼丹" in 任务名 or "丹药" in 任务名:
+				执行者.悟道点 += 2
+				return "%s于丹房帮工，耳闻目染，于丹道有所感悟" % 执行者.姓名
+			elif "炼器" in 任务名 or "装备" in 任务名:
+				执行者.悟道点 += 2
+				return "%s于器炉扇火，观摩炼器，于器道有所心得" % 执行者.姓名
+			else:
+				执行者.贡献点 += 5
+				return "%s打理宗门产业，劳苦功高，宗门记其贡献" % 执行者.姓名
+		"互动":
+			if "巡视" in 任务名:
+				执行者.心境 += 1
+				return "%s巡山守夜，观星辰变化，心境有所打磨" % 执行者.姓名
+			else:
+				执行者.道心 = min(100, int(执行者.道心) + 1)
+				return "%s处理宗务，明辨是非，道心愈加坚定" % 执行者.姓名
+		"功法":
+			执行者.道心 = min(100, int(执行者.道心) + 2)
+			return "%s研习功法，参悟玄机，道心突飞猛进" % 执行者.姓名
+		"阵法":
+			执行者.悟道点 += 3
+			return "%s布阵修阵，推演天机，于阵道大有感悟" % 执行者.姓名
+		"社交":
+			声望 += 1
+			return "%s外出交际，广结善缘，宗门声名远播" % 执行者.姓名
+		"成就":
+			return ""
+		_:
+			return ""
 # ============ S0 周常（轻量：：：条）============
 func 刷新周常():
 
@@ -8496,7 +9395,6 @@ func 领取周常() -> Dictionary:
 		额外奖励文本 += " 灵品功法碎片+1"
 	return {"ok": true, "msg": "周常「%s」完成：灵石+%d 灵气+%d%s" % [当前周常.get("quest_name", ""), 奖, 额, 额外奖励文本]}
 # ============ 主线任务（条件达成型：后端集中判：+ 线性解锁，前端只读状态）============
-const 主线_境界序: Array= ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体"]
 # 主线任务列表（实时计算当前进度与状态，前端只读；判定全部收敛后端）
 func 取主线任务列表() -> Array:
 
@@ -8538,7 +9436,7 @@ func _主线当前进(q: Dictionary) -> int:
 		"shengwang": return int(声望)
 		"sect_level": return int(门派等级)
 		"array_count": return 已解锁单人法阵.size()
-		"beast_count": return 灵兽库存.size()
+		"beast_count": return 灵兽管理系统.灵兽库存.size()
 		"secret_count": return 已通关秘境.size()
 		"prosperity": return int(繁荣)
 		_: return 0
@@ -8579,6 +9477,8 @@ func 领取主线(quest_id: String) -> Dictionary:
 	if 额声望 > 0:
 		灵草 += 额灵草
 	主线已完成.append(quest_id)
+	# P3联动：主线任务完成 → 解锁新系统、新功能
+	_主线解锁系统(quest_id)
 	if str(cfg.get("is_key") if "is_key" in cfg else "false") == "true":
 		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": "宗门", "名称": "主线达成",
 			"文案": "宗门达成主线「%s」：%s，道途更进一层" % [cfg.get("quest_name") if "quest_name" in cfg else "", _主线奖励描述(cfg)],
@@ -8596,6 +9496,73 @@ func _主线奖励描述(q: Dictionary) -> String:
 	if 额声望 > 0: parts.append("声望+%d" % 额声望)
 	if 额灵草 > 0: parts.append("灵草+%d" % 额灵草)
 	return "·".join(parts) if not parts.is_empty() else "宗门增益"
+
+# ===== P3联动：主线任务 → 解锁新系统、新功能 =====
+# 主线任务完成后解锁对应的系统和功能
+func _主线解锁系统(quest_id: String) -> void:
+	match quest_id:
+		"main_001":
+			# 宗门建立：解锁基础功能
+			添加纪事("主线", "系统解锁", "宗门建立，解锁基础修炼、收徒、坊市功能", 0)
+		"main_005":
+			# 弟子达到10人：解锁宗门任务榜
+			添加纪事("主线", "系统解锁", "宗门初具规模，解锁宗门任务榜功能", 0)
+		"main_010":
+			# 门派等级达到3级：解锁炼丹、炼器功能
+			添加纪事("主线", "系统解锁", "宗门底蕴渐深，解锁炼丹、炼器功能", 0)
+		"main_015":
+			# 声望达到1000：解锁拍卖行功能
+			添加纪事("主线", "系统解锁", "宗门声名远播，解锁拍卖行功能", 0)
+		"main_020":
+			# 门派等级达到5级：解锁世界地图、秘境探索功能
+			添加纪事("主线", "系统解锁", "宗门势力扩张，解锁世界地图、秘境探索功能", 0)
+		"main_025":
+			# 弟子达到50人：解锁家族联姻、血脉传承功能
+			添加纪事("主线", "系统解锁", "宗门人丁兴旺，解锁家族联姻、血脉传承功能", 0)
+		"main_030":
+			# 门派等级达到7级：解锁凡人王朝、爵位册封功能
+			添加纪事("主线", "系统解锁", "宗门威震一方，解锁凡人王朝、爵位册封功能", 0)
+		"main_035":
+			# 声望达到5000：解锁跨服玄榜、阵营战功能
+			添加纪事("主线", "系统解锁", "宗门名动天下，解锁跨服玄榜、阵营战功能", 0)
+		"main_040":
+			# 门派等级达到9级：解锁飞升、先贤堂功能
+			添加纪事("主线", "系统解锁", "宗门底蕴深厚，解锁飞升、先贤堂功能", 0)
+		"main_045":
+			# 弟子达到100人：解锁宗门大战、领地争夺功能
+			添加纪事("主线", "系统解锁", "宗门兵强马壮，解锁宗门大战、领地争夺功能", 0)
+		_:
+			pass
+
+# 获取已解锁系统列表（用于UI显示）
+func 获取已解锁系统() -> Array:
+	var 已解锁: Array = ["基础修炼", "收徒", "坊市"]
+	if 主线已完成.has("main_005"):
+		已解锁.append("宗门任务榜")
+	if 主线已完成.has("main_010"):
+		已解锁.append("炼丹")
+		已解锁.append("炼器")
+	if 主线已完成.has("main_015"):
+		已解锁.append("拍卖行")
+	if 主线已完成.has("main_020"):
+		已解锁.append("世界地图")
+		已解锁.append("秘境探索")
+	if 主线已完成.has("main_025"):
+		已解锁.append("家族联姻")
+		已解锁.append("血脉传承")
+	if 主线已完成.has("main_030"):
+		已解锁.append("凡人王朝")
+		已解锁.append("爵位册封")
+	if 主线已完成.has("main_035"):
+		已解锁.append("跨服玄榜")
+		已解锁.append("阵营战")
+	if 主线已完成.has("main_040"):
+		已解锁.append("飞升")
+		已解锁.append("先贤堂")
+	if 主线已完成.has("main_045"):
+		已解锁.append("宗门大战")
+		已解锁.append("领地争夺")
+	return 已解锁
 # 差事赏赐随门派等级线性缩放（每级+10%，上：倍），避免后期赏赐形同虚：
 func 差事赏赐系数() -> float:
 
@@ -8822,7 +9789,7 @@ func _加载成就配置():
 
 	成就配置 = DestinyDataLoader._read_csv("res://config/achievement_config.csv")
 	for a in 成就配置:
-		a["已达成"] = 成就_已达成.has(a.get("achievement_id") if "achievement_id" in a else "")
+		a["已达成"] = 成就系统.成就_已达成.has(a.get("achievement_id") if "achievement_id" in a else "")
 # ============ 节奏校准（双周期评级配套：招：随机事件/奇遇/稳固：瓶颈打磨：===========
 # 全配置化：参数集中在 config/节奏校准.csv；缺失文件或缺失行时回落到各调用点的默认值，绝不崩：
 func _加载节奏校准():
@@ -9018,6 +9985,14 @@ func _置彩蛋临时增益(c: Dictionary):
 	var pct: float = float(c.get("buff_pct") if "buff_pct" in c else "0") / 100.0
 	if dim == "" or pct <= 0:
 		return
+	# P0-2：接入单条增益上限检查（彩蛋单条≤5%）
+	pct = 应用单条增益上限(pct)
+	# P0-2：彩蛋临时增益属于限时增益，受限时全局上限约束
+	var 当前限时总加成: float = 统计限时增益().get("总加成", 0.0)
+	var 剩余限时额度: float = max(0.0, (增益限时全局上限 / 100.0) - 当前限时总加成)
+	pct = min(pct, 剩余限时额度)
+	if pct <= 0:
+		return
 	彩蛋临时增益[dim] = {"pct": pct, "到期日": 累计游戏日 + 1}
 # 运行时加法管线（接入产出/修炼计算，封顶单上限兜底：
 func 彩蛋产出加成() -> float:
@@ -9032,6 +10007,212 @@ func 彩蛋修炼加成() -> float:
 	if g.is_empty() or g.get("到期日") if "到期日" in g else 0 < 累计游戏日:
 		return 0.0
 	return min(g.get("pct") if "pct" in g else 0.0, 彩蛋单上限)
+
+# ============ 称号系统 ============
+var 称号配置表: Array = []
+var _称号已加载: bool = false
+
+func _加载称号配置() -> void:
+	if _称号已加载:
+		return
+	_称号已加载 = true
+	var p: String = "res://config/title_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳过表头
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 11:
+			continue
+		称号配置表.append({
+			"title_id": str(row[0]).strip_edges(),
+			"title_name": str(row[1]).strip_edges(),
+			"quality": str(row[2]).strip_edges(),
+			"target": str(row[3]).strip_edges(),
+			"type": str(row[4]).strip_edges(),
+			"condition_type": str(row[5]).strip_edges(),
+			"condition_param": str(row[6]).strip_edges(),
+			"description": str(row[7]).strip_edges(),
+			"bonus_type": str(row[8]).strip_edges(),
+			"bonus_value": float(row[9]),
+			"sort_order": int(row[10])
+		})
+	f.close()
+
+func 获取称号详情(title_id: String) -> Dictionary:
+	_加载称号配置()
+	for t in 称号配置表:
+		if str(t.get("title_id", "")) == title_id:
+			return t.duplicate()
+	return {}
+
+func 获取称号品质颜色(quality: String) -> Color:
+	match quality:
+		"凡品": return Color(0.8, 0.8, 0.8)
+		"灵品": return Color(0.3, 0.9, 0.4)
+		"宝品": return Color(0.3, 0.6, 1.0)
+		"王品": return Color(0.8, 0.4, 1.0)
+		"帝品": return Color(1.0, 0.85, 0.2)
+		_: return Color(0.8, 0.8, 0.8)
+
+# 检查弟子是否满足称号条件
+func _检查称号条件(弟子: Disciple, title: Dictionary) -> bool:
+	var cond_type: String = str(title.get("condition_type", ""))
+	var cond_param: String = str(title.get("condition_param", ""))
+	match cond_type:
+		"境界":
+			return 弟子.境界 == cond_param
+		"职位":
+			return 弟子.身份 == cond_param
+		"丹道":
+			return int(弟子.丹道等级 if "丹道等级" in 弟子 else 0) >= int(cond_param)
+		"器道":
+			return int(弟子.器道等级 if "器道等级" in 弟子 else 0) >= int(cond_param)
+		"斩妖":
+			return int(弟子.斩妖数) >= int(cond_param)
+		"守护":
+			return int(弟子.守护宗门次数) >= int(cond_param)
+		"收徒":
+			return int(弟子.徒弟列表.size() if "徒弟列表" in 弟子 else 0) >= int(cond_param)
+		"年龄":
+			return int(弟子.年龄) >= int(cond_param)
+		"晚成":
+			return int(弟子.年龄) >= 50 and 弟子.境界 == "金丹"
+		"里程碑":
+			return true  # 里程碑称号由事件触发
+		"default":
+			return true
+	return false
+
+# 判定弟子可获得的新称号
+func 判定弟子称号(弟子: Disciple) -> Array:
+	_加载称号配置()
+	var 新称号: Array = []
+	for t in 称号配置表:
+		var tid: String = str(t.get("title_id", ""))
+		if str(t.get("target", "")) != "弟子":
+			continue
+		if tid in 弟子.已获得称号:
+			continue
+		if _检查称号条件(弟子, t):
+			弟子.已获得称号.append(tid)
+			新称号.append(t)
+			# 称号获得纪事
+			var 称号名: String = str(t.get("title_name", ""))
+			var 品质: String = str(t.get("quality", "凡品"))
+			添加纪事("人物", "道号加封", "%s 获封道号「%s」（%s），宗门上下咸知。" % [弟子.姓名, 称号名, 品质], 1)
+			# 自动装备品质最高的称号
+			if 弟子.当前称号 == "":
+				弟子.当前称号 = tid
+			else:
+				var 当前品质: String = str(获取称号详情(弟子.当前称号).get("quality", "凡品"))
+				var 新品质: String = str(t.get("quality", "凡品"))
+				var 品质顺序: Array = ["凡品", "灵品", "宝品", "王品", "帝品"]
+				if 品质顺序.find(新品质) > 品质顺序.find(当前品质):
+					弟子.当前称号 = tid
+	return 新称号
+
+# 检查宗主是否满足称号条件
+func _检查宗主称号条件(title: Dictionary) -> bool:
+	var cond_type: String = str(title.get("condition_type", ""))
+	var cond_param: String = str(title.get("condition_param", ""))
+	match cond_type:
+		"境界":
+			if 宗主 != null:
+				return 宗主.境界 == cond_param
+			return false
+		"等级":
+			return 门派等级 >= int(cond_param)
+		"声望":
+			return 声望 >= int(cond_param)
+		"弟子":
+			return 弟子列表.size() >= int(cond_param)
+		"丹道":
+			if 宗主 != null:
+				return int(宗主.丹道等级 if "丹道等级" in 宗主 else 0) >= int(cond_param)
+			return false
+		"器道":
+			if 宗主 != null:
+				return int(宗主.器道等级 if "器道等级" in 宗主 else 0) >= int(cond_param)
+			return false
+		"奇遇":
+			return true  # 奇遇称号由事件触发
+		"default":
+			return true
+	return false
+
+# 判定宗主可获得的新称号
+func 判定宗主称号() -> Array:
+	_加载称号配置()
+	var 新称号: Array = []
+	for t in 称号配置表:
+		var tid: String = str(t.get("title_id", ""))
+		if str(t.get("target", "")) != "宗主":
+			continue
+		if tid in 宗主已获得称号:
+			continue
+		if _检查宗主称号条件(t):
+			宗主已获得称号.append(tid)
+			新称号.append(t)
+			# 宗主称号获得纪事
+			var 称号名: String = str(t.get("title_name", ""))
+			var 品质: String = str(t.get("quality", "凡品"))
+			添加纪事("宗主", "道号加封", "宗主获封道号「%s」（%s），威震宗门，声名远播。" % [称号名, 品质], 2)
+			# 自动装备品质最高的称号
+			if 宗主当前称号 == "":
+				宗主当前称号 = tid
+			else:
+				var 当前品质: String = str(获取称号详情(宗主当前称号).get("quality", "凡品"))
+				var 新品质: String = str(t.get("quality", "凡品"))
+				var 品质顺序: Array = ["凡品", "灵品", "宝品", "王品", "帝品"]
+				if 品质顺序.find(新品质) > 品质顺序.find(当前品质):
+					宗主当前称号 = tid
+	return 新称号
+
+# 获取宗主称号全局buff加成
+func 获取宗主称号加成(bonus_type: String) -> float:
+	if 宗主当前称号 == "":
+		return 0.0
+	var t: Dictionary = 获取称号详情(宗主当前称号)
+	if t.is_empty():
+		return 0.0
+	var t_bonus_type: String = str(t.get("bonus_type", ""))
+	if t_bonus_type == bonus_type:
+		return float(t.get("bonus_value", 0.0))
+	if t_bonus_type == "全属性":
+		return float(t.get("bonus_value", 0.0))
+	return 0.0
+
+# 获取宗主称号显示文本（用于状态栏）
+func 获取宗主称号显示() -> String:
+	if 宗主当前称号 == "":
+		return ""
+	var t: Dictionary = 获取称号详情(宗主当前称号)
+	if t.is_empty():
+		return ""
+	return str(t.get("title_name", ""))
+
+# 获取称号属性加成
+func 获取称号加成(弟子: Disciple, bonus_type: String) -> float:
+	if 弟子.当前称号 == "":
+		return 0.0
+	var t: Dictionary = 获取称号详情(弟子.当前称号)
+	if t.is_empty():
+		return 0.0
+	if str(t.get("bonus_type", "")) == bonus_type:
+		return float(t.get("bonus_value", 0.0))
+	if str(t.get("bonus_type", "")) == "全属性":
+		return float(t.get("bonus_value", 0.0))
+	return 0.0
+
+# 批量判定所有在宗弟子称号
+func 批量判定称号() -> void:
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			判定弟子称号(d)
 func 推演至现在() -> String:
 
 	推演日志.clear()
@@ -9044,10 +10225,13 @@ func 推演至现在() -> String:
 		最后登录= 现在
 	var 流逝秒: int = 现在 - 最后登录
 	var 流失日: int = int(流逝秒 / 现实秒每游戏日)
-	流失日 = clamp(流失日, 0, 单次推演上限日)
+	# 离线收益上限：根据特权加成计算（0氪8小时，最高48小时）
+	var 离线上限小时: int = int(获取特权加成().get("离线上限小时", 8))
+	var 离线上限日: int = int(离线上限小时 * 3600 / 现实秒每游戏日)
+	流失日 = clamp(流失日, 0, min(单次推演上限日, 离线上限日))
 	var 剩余 := 流失日
 	while 剩余 > 0:
-		var 数: int = min(30, 剩余)
+		var 数: int = min(90, 剩余)  # 季度推演：每次90天
 		推演一月(数)
 		剩余 -= 数
 	最后登录= 现在
@@ -9073,99 +10257,132 @@ func 设置气运buff(修炼值: float, 产出值: float, 天数: int):
 const _灵根序: Array = ["凡品", "良品", "上品", "极品", "天品"]
 
 func _找丹药(关键词: Array) -> int:
-	for i in range(仓库.size()):
-		var it = 仓库[i]
-		if it == null:
+	# S37：优先返回【丹纹最高】的匹配丹——好丹先给弟子吃，无纹丹留给玩家卖钱或手动处理
+	# 注：宗门库房存 Item 对象，禁用 Dictionary 式 it.get(键, 默认) 两参调用（Item 无此签名 → SCRIPT ERROR）
+	var 最佳: int = -1
+	var 最佳纹: int = -1
+	for i in range(宗门库房.size()):
+		var it = 宗门库房[i]
+		if not (it is Item):
 			continue
-		if str(it.get("类别", "")) != "丹药":
+		if str(it.类别) != "丹药":
 			continue
-		var n = str(it.get("名称", ""))
+		var n: String = str(it.名称)
+		var 命中: bool = false
 		for k in 关键词:
 			if k in n:
-				return i
-	return -1
-
+				命中 = true
+				break
+		if not 命中:
+			continue
+		if int(it.丹纹) > 最佳纹:
+			最佳纹 = int(it.丹纹)
+			最佳 = i
+	return 最佳
 func _升灵根品阶(d: Object) -> void:
 	var idx = _灵根序.find(str(d.灵根品阶))
 	if idx >= 0 and idx < _灵根序.size() - 1:
 		d.灵根品阶 = _灵根序[idx + 1]
 
 # 把丹药效果实打到弟子身上（姓名子串匹配，复用既有丹药命名约定）。返回摘要文本。
-func _应用丹药效果(d: Object, 丹药名: String) -> String:
+func _应用丹药效果(d: Object, 丹药名: String, 纹: int = 0, 阶: String = "", 品级: String = "", 毒值: float = -1.0, 丹词条: Variant = []) -> String:
 	var n = 丹药名
+	var 倍: float = 丹纹药效倍率(阶, 纹) * float(丹品级配置(品级).get("effect_scale", 1.0))
+	# S41 丹词条聚合：药效乘算、心境加算（全路径生效）、减毒在毒计算处抵扣
+	var _agg: Dictionary = 丹词条聚合(丹词条)
+	倍 *= (1.0 + float(_agg["药效"]))
+	d.心境 = min(100, int(d.心境) + int(_agg["心境"]))
+	if 纹 > 0 or 阶 != "":
+		var 毒: float = 毒值 if 毒值 >= 0.0 else 丹纹丹毒变化(阶, 纹)
+		毒 = max(0.0, 毒 - float(_agg["减毒"]))
+		d.丹毒 = clamp(float(d.丹毒) + 毒, 0.0, 6.0)
 	if "清心" in n:
-		d.心魔值 = max(0, int(d.心魔值) - 20)
-		d.心境 = min(100, int(d.心境) + 5)
-		return "心魔-20、道心+5"
+		var v1: int = int(round(20.0 * 倍))
+		var v2: int = int(round(5.0 * 倍))
+		d.心魔值 = max(0, int(d.心魔值) - v1)
+		d.心境 = min(100, int(d.心境) + v2)
+		return "心魔-%d、道心+%d" % [v1, v2]
 	if "静心" in n or "道心" in n or "宁神" in n:
-		d.心境 = min(100, int(d.心境) + 15)
-		return "心境+15"
+		var v3: int = int(round(15.0 * 倍))
+		d.心境 = min(100, int(d.心境) + v3)
+		return "心境+%d" % v3
 	if "长生" in n or "延寿" in n or "驻颜" in n:
-		d.寿元 += 30
-		return "寿元+30"
+		var v4: int = int(round(30.0 * 倍))
+		d.寿元 += v4
+		return "寿元+%d" % v4
 	if "洗髓" in n:
 		_升灵根品阶(d)
 		return "灵根提升一阶"
 	if "凝金" in n or "破婴" in n or "破境" in n or "冲关" in n or "突破" in n or "破壁" in n:
-		d.心境 = min(100, int(d.心境) + 12)
-		return "突破成功率提升"
-	# 其他丹药：默认小幅心境恢复
-	d.心境 = min(100, int(d.心境) + 5)
-	return "心境+5"
-
-func _消耗仓库丹药(i: int, d: Object) -> void:
-	var 丹药名 = str(仓库[i].get("名称", "丹药"))
-	var 摘要 = _应用丹药效果(d, 丹药名)
-	仓库.remove_at(i)
-	_加推演条目("【%s】自行服用%s，%s" % [str(d.姓名), 丹药名, 摘要], ET_INFO, PRIO_TRIVIAL, {"弟子": str(d.姓名)})
-
-# 弟子自主行为入口：每推演日对每个在宗弟子按需嗑药（陨落/失踪不嗑）。
-func _弟子自动服用丹药(d: Object) -> void:
-	if d == null or 仓库 == null or 仓库.size() == 0:
+		var v5: int = int(round(12.0 * 倍))
+		d.心境 = min(100, int(d.心境) + v5)
+		return "突破成功率提升（心境+%d）" % v5
+	var v6: int = int(round(5.0 * 倍))
+	d.心境 = min(100, int(d.心境) + v6)
+	return "心境+%d" % v6
+	# ↑ S39 重写：原实现重复声明 n/倍，且未乘品级、未用锁定毒值
+func _消耗宗门库房丹药(i: int, d: Object) -> void:
+	var 药: Variant = 宗门库房[i]
+	if not (药 is Item):
 		return
-	if str(d.状态) in ["陨落", "失踪"]:
+	# Item 对象：直接取属性（禁用 Dictionary 式两参 .get）
+	var 丹药名: String = str(药.名称)
+	var 纹: int = int(药.丹纹)
+	var 阶: String = str(药.品阶)
+	var 级: String = str(药.品级)
+	var 毒值: float = float(药.丹毒值)
+	var 摘要 = _应用丹药效果(d, 丹药名, 纹, 阶, 级, 毒值, 药.丹词条)
+	# S37 丹纹：摘要补纹数，让「炼出好丹」在日志里看得见
+	if 纹 > 0:
+		摘要 += "（%s·%s）" % [丹纹名(纹), 丹纹服用摘要(阶, 纹)]
+	宗门库房.remove_at(i)
+	_加推演条目("【%s】自行服用%s，%s" % [str(d.姓名), 丹药名, 摘要], ET_INFO, PRIO_TRIVIAL, {"弟子": str(d.姓名)})
+func _弟子自动服用丹药(d: Object) -> void:
+	if d == null or 宗门库房 == null or 宗门库房.size() == 0:
+		return
+	if str(d.状态) in ["陨落", "失踪", "叛出"]:
+		return
+	# S37：丹毒缠身者暂停自动服药（药毒攻心，须先化毒）——防「每日自动吃无纹丹→毒顶格」的不可控负螺旋
+	if float(d.丹毒) >= 2.5:
 		return
 	if int(d.心魔值) > 50:
 		var i = _找丹药(["清心"])
 		if i >= 0:
-			_消耗仓库丹药(i, d)
+			_消耗宗门库房丹药(i, d)
 			return
 	if int(d.心境) < 40:
-		var 目标v: String = str(d.主目标) if ("主目标" in d) else "修成大道"
-		var 静心词: Array = ["静心", "道心", "宁神", "清心"]
-		if 目标v in ["复仇", "魔道", "权力野心", "证明自己"]:
-			静心词 = ["凝金", "破婴", "破境", "冲关", "突破", "破壁", "静心", "道心"]
-		elif 目标v in ["守护", "仁心济世", "守礼尊师"]:
-			静心词 = ["长生", "延寿", "驻颜", "静心", "道心", "宁神"]
-		elif 目标v == "问道":
-			静心词 = ["静心", "道心", "宁神", "悟道"]
+		# §4.0 目标驱动：丹药偏好改由 goal_config 驱动，覆盖全部 9 类目标
+		# 注：旧实现把「仁心济世/守礼尊师」（12 型性格名）误当目标名比对 → 永不命中，已剔除
+		var 静心词: Array = Goal.丹药关键词(Goal.弟子目标(d))
+		if 静心词.is_empty():
+			静心词 = ["静心", "道心", "宁神", "清心"]
 		var i = _找丹药(静心词)
 		if i >= 0:
-			_消耗仓库丹药(i, d)
+			_消耗宗门库房丹药(i, d)
 			return
 	if float(d.年龄) / float(d.寿元) > 0.85:
 		var i = _找丹药(["长生", "延寿", "驻颜"])
 		if i >= 0:
-			_消耗仓库丹药(i, d)
+			_消耗宗门库房丹药(i, d)
 			return
 	if int(d.层数) >= 10 and int(d.心境) < 90:
 		var i = _找丹药(["凝金", "破婴", "破境", "冲关", "突破", "破壁"])
 		if i >= 0:
-			_消耗仓库丹药(i, d)
+			_消耗宗门库房丹药(i, d)
 			return
 	if str(d.灵根品阶) not in ["天品", "极品"]:
 		var i = _找丹药(["洗髓"])
 		if i >= 0:
-			_消耗仓库丹药(i, d)
+			_消耗宗门库房丹药(i, d)
 			return
 
 # 玩家手动喂食弟子（覆盖式；复用真实效果）。
 func 弟子服用丹药(弟子ID: int, 丹药名: String) -> Dictionary:
-	if 仓库 == null or 仓库.size() == 0:
+	if 宗门库房 == null or 宗门库房.size() == 0:
 		return {"成功": false, "原因": "宗门丹药库为空"}
 	var idx = -1
-	for i in range(仓库.size()):
-		if 仓库[i] != null and str(仓库[i].get("名称", "")) == 丹药名:
+	for i in range(宗门库房.size()):
+		if 宗门库房[i] != null and str(宗门库房[i].get("名称", "")) == 丹药名:
 			idx = i
 			break
 	if idx < 0:
@@ -9173,7 +10390,7 @@ func 弟子服用丹药(弟子ID: int, 丹药名: String) -> Dictionary:
 	var d = _取弟子(弟子ID)
 	if d == null:
 		return {"成功": false, "原因": "弟子不存在"}
-	_消耗仓库丹药(idx, d)
+	_消耗宗门库房丹药(idx, d)
 	return {"成功": true, "原因": "已服用%s" % 丹药名}
 
 # ============ §4.0 目标驱动行为（弟子真人模拟核心）============
@@ -9197,7 +10414,7 @@ func _突变目标(d: Object, 新目标: String, 来源: String) -> void:
 
 # 状态+性格驱动的目标突变检查（推演月内调用）：实现"中途受其他影响改变目标"。
 func _检查目标突变(d: Object) -> void:
-	if d == null or str(d.状态) in ["陨落", "失踪"]:
+	if d == null or str(d.状态) in ["陨落", "失踪", "叛出"]:
 		return
 	if not ("主目标" in d):
 		return
@@ -9215,6 +10432,223 @@ func _检查目标突变(d: Object) -> void:
 		_突变目标(d, "问道", "偶得大机缘")
 		return
 
+	# ---- 自身状态触发源：补齐 复仇/守护/证明自己/权力野心/情劫 的自身触发 ----
+	# （此前这 5 类只能由世界事件被动写入，情劫 全仓 0 命中）
+	var 伴侣 = (_取弟子(int(d.道侣ID)) if (("道侣ID" in d) and int(d.道侣ID) >= 0) else null)
+	# 情劫：道侣在世 + 心境摇动（情深易乱）
+	if 目标v != "情劫" and 伴侣 != null and str(伴侣.状态) == "在宗" and int(d.心境) <= 60:
+		if randf() < 0.02:
+			_突变目标(d, "情劫", "道侣牵绊·情根深种")
+			return
+	# 道侣罹难：性格决定走向复仇或避世
+	if 目标v not in ["复仇", "魔道", "避世"] and 伴侣 != null and str(伴侣.状态) in ["陨落", "失踪", "叛出"]:
+		if randf() < 0.08:
+			if str(d.性格) in ["杀伐果断", "狂傲绝世", "桀骜不羁", "锐意争先"]:
+				_突变目标(d, "复仇", "道侣罹难·矢志复仇")
+			else:
+				_突变目标(d, "避世", "道侣罹难·万念俱灰")
+			return
+	# 证明自己：修为已达金丹却仍未授阶，心有不甘
+	if 目标v != "证明自己" and str(d.阶位) == "无" and Disciple.境界索引(str(d.境界)) >= Disciple.境界索引("金丹"):
+		if str(d.性格) in ["锐意争先", "狂傲绝世"] and randf() < 0.01:
+			_突变目标(d, "证明自己", "久居人下·意欲自证")
+			return
+	# 权力野心：元婴以上 + 好胜性格，觊觎权柄
+	if 目标v not in ["权力野心", "魔道"] and Disciple.境界索引(str(d.境界)) >= Disciple.境界索引("元婴"):
+		if str(d.性格) in ["锐意争先", "狂傲绝世", "桀骜不羁", "贪心逐缘"] and randf() < 0.008:
+			_突变目标(d, "权力野心", "野心滋长·图谋权柄")
+			return
+	# 守护：年长且有子嗣，重心转向护持后人
+	if 目标v != "守护" and ("子嗣列表" in d) and (d.子嗣列表 as Array).size() > 0 and float(d.年龄) >= 200.0:
+		if str(d.性格) in ["仁心济世", "守礼尊师", "豪迈仗义", "沉稳守道"] and randf() < 0.015:
+			_突变目标(d, "守护", "子嗣绕膝·转为护持")
+			return
+	# 转世执念：带前世记忆者，初入宗门便已非白纸
+	if 目标v == "修成大道" and ("前世记忆" in d) and str(d.前世记忆) != "":
+		if randf() < 0.03:
+			var 记忆: String = str(d.前世记忆)
+			if 记忆.find("冤") >= 0 or 记忆.find("仇") >= 0:
+				_突变目标(d, "复仇", "前世含冤·执念未消")
+			elif 记忆.find("未竟") >= 0 or 记忆.find("道") >= 0:
+				_突变目标(d, "问道", "前世未竟·再求证道")
+		return
+
+
+# ============ §4.0 叛离（目标驱动的离宗判定）============
+# 叛出弟子不从名册删除：留在册中以为叙事（可供后续寻回/复仇/图鉴收录），
+# 但 状态="叛出" 会被所有「在宗」白名单判点自动排除，不再参与历练/产出/双修。
+func _检查叛离(d: Object) -> void:
+	if d == null or str(d.状态) != "在宗":
+		return
+	if 弟子列表.size() > 0 and d == 弟子列表[0]:
+		return   # 宗主不叛离
+	# §4.0 查抄积怨逐月平复
+	# ⚠ 顺序铁律：必须写在叛离判定之前——下方「率<=0 或 未掷中」会提前 return，放后面永远走不到
+	if ("查抄积怨" in d) and int(d.查抄积怨) > 0:
+		d.查抄积怨 = int(d.查抄积怨) - 1
+	var 率: float = Goal.叛离月概率(d)
+	if 率 <= 0.0 or randf() >= 率:
+		return
+	_执行叛离(d)
+
+# P0：低境界弟子道心不稳离去机制（自然消耗，避免弟子只进不出）
+# 练气/筑基弟子，心境<30 或 忠诚<30，每年2%概率道心不稳，下山离去
+# 与叛离不同：离去是主动离开，不是背叛；不带走宗门贵重物品
+func _道心不稳离去判定(d: Object) -> void:
+	if d == null or str(d.状态) != "在宗":
+		return
+	if 弟子列表.size() > 0 and d == 弟子列表[0]:
+		return   # 宗主不离去
+	# 只针对练气/筑基低境界弟子
+	var 序: int = Disciple.境界索引(str(d.境界))
+	if 序 > Disciple.境界索引("筑基"):
+		return
+	# 心境<30 或 忠诚<30 才可能道心不稳
+	var 心境值: int = int(d.心境) if d.心境 != null else 50
+	var 忠诚值: int = int(d.忠诚) if d.忠诚 != null else 50
+	if 心境值 >= 30 and 忠诚值 >= 30:
+		return
+	# 每年2%概率（月度推演，所以月概率=2%/12≈0.17%）
+	var 月概率: float = 0.02 / 12.0
+	if randf() >= 月概率:
+		return
+	# 道心不稳，下山离去
+	_执行道心不稳离去(d)
+
+# 执行道心不稳离去：弟子主动下山，带走少量私人物品，宗门装备归还
+func _执行道心不稳离去(d: Object) -> void:
+	# 归还宗门装备
+	for it in d.装备.values():
+		宗门库房.append(it)
+	d.装备.clear()
+	# 背包物品：只带走私库物品，背包物品归还宗门
+	for it in d.背包:
+		宗门库房.append(it)
+	d.背包.clear()
+	# 灵兽归还御兽堂
+	if d.主宠灵兽 != null:
+		var 兽: Beast = d.主宠灵兽
+		d.主宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	if d.副宠灵兽 != null:
+		var 兽: Beast = d.副宠灵兽
+		d.副宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	# 设置状态为"离去"
+	d.状态 = "离去"
+	# 纪事与推演条目
+	_加推演条目("【%s】道心不稳，自觉仙缘浅薄，拜别宗门，下山而去" % d.姓名, ET_SECT, PRIO_NORMAL, {"弟子": d.姓名})
+	添加纪事("离去", "道心不稳", "%s 道心不稳，自觉仙缘浅薄，拜别宗门，下山而去，自此仙俗两隔" % d.姓名, 1)
+	# 断链师父离场
+	_断链_师父离场(d.弟子ID)
+	# 从弟子列表移除
+	弟子列表.erase(d)
+
+
+# === S29 收徒拜师：师徒传承 + 传功 + 断链（字段已在 Disciple 加，不升 SAVE_VERSION） ===
+func 收徒(徒ID: int, 师ID: int) -> Dictionary:
+	if 徒ID == 师ID:
+		return {"成功": false, "原因": "不可自拜为师"}
+	var 徒 = _取弟子(徒ID)
+	var 师 = _取弟子(师ID)
+	if 徒 == null or 师 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if str(徒.状态) != "在宗" or str(师.状态) != "在宗":
+		return {"成功": false, "原因": "双方须同在宗门"}
+	if int(徒.师父ID) >= 0:
+		return {"成功": false, "原因": "%s 已有师父" % str(徒.姓名)}
+	var 师阶: int = Disciple.境界序.find(str(师.境界))
+	var 徒阶: int = Disciple.境界序.find(str(徒.境界))
+	if 师阶 < 0 or 徒阶 < 0 or (师阶 - 徒阶) < 2:
+		return {"成功": false, "原因": "师父须高出至少两大境界"}
+	徒.师父ID = 师ID
+	if not 师.徒弟列表.has(徒ID):
+		师.徒弟列表.append(徒ID)
+	var 授功数: int = 0
+	for 功法 in 师.已学功法:
+		if not 功法 in 徒.已学功法:
+			徒.已学功法.append(功法)
+			授功数 += 1
+	# S30 性格相冲：师徒性格相冲 → 徒心魔涨（强度×5）
+	var 相冲强度: int = Disciple.性格相冲度(str(师.性格), str(徒.性格))
+	if 相冲强度 > 0:
+		徒.增加心魔(相冲强度 * 5)
+	_加推演条目("%s 拜 %s 为师，承传功法 %d 式" % [str(徒.姓名), str(师.姓名), 授功数], ET_SECT, PRIO_NORMAL, {"弟子": str(徒.姓名)})
+	添加纪事("收徒", "拜师入门", "%s 正式拜入 %s 门下，承蒙传授功法 %d 式，师徒之缘自此结" % [str(徒.姓名), str(师.姓名), 授功数], 1)
+	return {"成功": true, "授功数": 授功数, "师名": str(师.姓名), "徒名": str(徒.姓名)}
+
+func 逐师(徒ID: int) -> Dictionary:
+	var 徒 = _取弟子(徒ID)
+	if 徒 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if int(徒.师父ID) < 0:
+		return {"成功": false, "原因": "该弟子无师"}
+	var 师ID: int = int(徒.师父ID)
+	var 师 = _取弟子(师ID)
+	var 师名: String = str(师.姓名) if 师 != null else "故师"
+	徒.师父ID = -1
+	if 师 != null and 师.徒弟列表.has(徒ID):
+		师.徒弟列表.erase(徒ID)
+	_加推演条目("%s 已脱离 %s 门下" % [str(徒.姓名), 师名], ET_SECT, PRIO_NORMAL, {"弟子": str(徒.姓名)})
+	return {"成功": true, "师名": 师名}
+
+func _断链_师父离场(师ID: int) -> void:
+	var 师 = _取弟子(师ID)
+	if 师 == null:
+		return
+	var 受冲击徒: int = 0
+	for 徒ID in 师.徒弟列表:
+		var 徒 = _取弟子(int(徒ID))
+		if 徒 != null and int(徒.师父ID) == 师ID:
+			徒.师父ID = -1
+			if str(徒.状态) == "在宗":
+				# S30 情感冲击：师陨/师叛 → 徒弟 道心↓/忠诚↓/心境↓
+				徒.增加道心(-10)
+				徒.增加忠诚(-15)
+				徒.增加心境(-8)
+				受冲击徒 += 1
+	师.徒弟列表.clear()
+	if 受冲击徒 > 0:
+		_加推演条目("【%s】之师离场，门下 %d 徒道心动摇、忠心受挫" % [str(师.姓名), 受冲击徒], ET_SECT, PRIO_NORMAL, {})
+
+func _执行叛离(d: Object) -> void:
+
+	if d == null:
+		return
+	var 旧目标: String = str(d.主目标) if ("主目标" in d) else "修成大道"
+	d.状态 = "叛出"
+	_叛离清退司职(d)
+	# 断开道侣（双向解链，避免叛出者仍占用伴侣位）
+	if ("道侣ID" in d) and int(d.道侣ID) >= 0:
+		var 伴侣 = _取弟子(int(d.道侣ID))
+		if 伴侣 != null and int(伴侣.道侣ID) == int(d.弟子ID):
+			伴侣.道侣ID = -1
+			伴侣.道侣 = ""
+		d.道侣ID = -1
+		d.道侣 = ""
+	_断链_师父离场(d.弟子ID)   # S29：师父叛出 → 徒弟弟子失师
+	_加推演条目("【%s】心生异志，叛出宗门（原志：%s）" % [str(d.姓名), 旧目标], ET_INFO, PRIO_HIGH, {"弟子": str(d.姓名)})
+	添加纪事("叛离", "叛出宗门", "%s 因「%s」之心生变，趁夜叛出宗门，从此恩断义绝" % [str(d.姓名), 旧目标], 2)
+
+
+func _叛离清退司职(d: Object) -> void:
+	if d == null:
+		return
+	for key in 司职列表.keys():
+		var 堂: Dictionary = 司职列表[key]
+		var 成员: Array = 堂.get("成员", [])
+		if d in 成员:
+			成员.erase(d)
+			堂["成员"] = 成员
+		if 堂.get("负责人", null) == d:
+			堂["负责人"] = null
+			司职负责人存档[key] = ""
+	d.司职 = ""
+
 # ============ §12 人生线（双修/子嗣/飞升/转世）============
 # 目标：让弟子成为"真实的人"——有伴侣、有后代、有生死轮回。
 # 调用点：推演月内 each 弟子，于 _检查目标突变 之后、推进修炼 之前。
@@ -9224,10 +10658,12 @@ const _孕育达标境界: Array = ["金丹", "元婴", "化神", "炼虚", "合
 
 func _结算弟子人生线(d: Object) -> Array:
 	var 新生儿: Array = []
-	if d == null or str(d.状态) in ["陨落", "失踪"]:
+	if d == null or str(d.状态) in ["陨落", "失踪", "叛出"]:
 		return 新生儿
 	# §12.2 双修结算：道侣互链且双方均在宗 → 修炼速度+15%、心境+2
 	_结算双修(d)
+	# §12.4 飞升前兆判定：渡劫大圆满弟子提前预警
+	_飞升前兆判定(d)
 	# §12.4 飞升判定：渡劫境每月小概率白日飞升
 	_飞升判定(d)
 	# §12.3 孕育子嗣：双方互链+在宗+金丹及以上，月概率≤2%
@@ -9241,6 +10677,66 @@ func _结算弟子人生线(d: Object) -> Array:
 						新生儿.append(孩)
 	return 新生儿
 
+# §12.4 飞升前兆系统：渡劫大圆满弟子提前30游戏日预警，可举办飞升大典
+func _飞升前兆判定(d: Object) -> void:
+	if d.飞升:
+		return
+	var 序: int = Disciple.境界索引(str(d.境界))
+	if 序 < Disciple.境界索引("渡劫"):
+		return
+	# 检查是否已在前兆队列
+	for 前兆 in 飞升前兆队列:
+		if int(前兆["弟子ID"]) == int(d.弟子ID):
+			return
+	# 渡劫大圆满（层数=9）有5%概率进入飞升前兆
+	if int(d.层数) >= 9 and randf() < 0.05:
+		飞升前兆队列.append({
+			"弟子ID": d.弟子ID, "姓名": d.姓名, "境界": d.境界,
+			"预警日": 累计游戏日, "飞升日": 累计游戏日 + 30
+		})
+		_加推演条目("【%s】修为已达渡劫大圆满，天地感应，飞升之兆初现！三十日内或将历劫飞升" % d.姓名, ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": d.姓名})
+		添加纪事("飞升", "飞升前兆", "%s 修为圆满，天地感应，飞升之兆初现" % d.姓名, 2)
+
+# 检查飞升前兆队列，到期触发飞升
+func _检查飞升前兆() -> void:
+	var 到期列表: Array = []
+	for 前兆 in 飞升前兆队列:
+		if 累计游戏日 >= int(前兆["飞升日"]):
+			到期列表.append(前兆)
+	for 前兆 in 到期列表:
+		var d = _按ID找弟子(str(前兆["弟子ID"]))
+		if d != null and not d.飞升:
+			_执行飞升(d)
+		飞升前兆队列.erase(前兆)
+
+# 举办飞升大典：消耗资源，增加飞升成功率（对前兆弟子）
+func 举办飞升大典(弟子ID: int) -> Dictionary:
+	var d = _按ID找弟子(str(弟子ID))
+	if d == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	# 检查是否在飞升前兆队列
+	var 在前兆: bool = false
+	for 前兆 in 飞升前兆队列:
+		if int(前兆["弟子ID"]) == 弟子ID:
+			在前兆 = true
+			break
+	if not 在前兆:
+		return {"成功": false, "原因": "该弟子尚无飞升之兆"}
+	# 消耗资源：灵石1000+灵草100
+	if 灵石 < 1000:
+		return {"成功": false, "原因": "灵石不足（需1000）"}
+	if 灵草 < 100:
+		return {"成功": false, "原因": "灵草不足（需100）"}
+	灵石 -= 1000
+	灵草 -= 100
+	# 立即触发飞升（成功率提升至80%）
+	if randf() < 0.8:
+		_执行飞升(d)
+		return {"成功": true, "消息": "%s 在飞升大典中历劫功成，白日飞升！" % d.姓名}
+	else:
+		_加推演条目("【%s】飞升大典中渡劫失败，修为受损，需再修时日" % d.姓名, ET_INFO, PRIO_NORMAL, {"弟子": d.姓名})
+		return {"成功": false, "原因": "渡劫失败，修为受损"}
+
 # §12.2 双修结算（每月写回 d.双修加成，供推进修炼乘区使用）
 func _结算双修(d: Object) -> void:
 	var 伴侣 = (_取弟子(d.道侣ID) if d.道侣ID >= 0 else null)
@@ -9251,16 +10747,1231 @@ func _结算双修(d: Object) -> void:
 	else:
 		d.双修加成 = 0.0
 
-# §12.4 飞升判定：渡劫境弟子每月小概率历劫功成、白日飞升
+# ============ 散仙/鬼仙系统（修真世界观正确设定）============
+# 散仙：渡劫失败后兵解，舍弃肉身以元婴存活，寿元1000年，每300年一次散仙劫
+# 鬼仙：大乘期特殊情况兵解，寿元500年，每200年一次鬼仙劫
+# 散仙/鬼仙不占弟子编制，独立存储，可参与宗门防御
+# 渡过九次劫数后真正飞升，入祖师堂
+
+# 散仙/鬼仙数据存储（独立于弟子列表，不占编制）
+var 散仙列表: Array = []   # 散仙/鬼仙档案：{弟子ID,姓名,类型(散仙/鬼仙),寿元,已渡劫数,战力,功德,业力}
+
+# §12.4 飞升判定：渡劫及以上弟子每月小概率历劫功成、白日飞升
+# 大乘期不直接飞升，只有特殊情况才会兵解成为鬼仙
 func _飞升判定(d: Object) -> void:
 	if d.飞升:
 		return
-	if str(d.境界) != "渡劫":
+	var 序: int = Disciple.境界索引(str(d.境界))
+	# 大乘期特殊情况兵解→鬼仙（寿元将尽或身受重伤）
+	if 序 == Disciple.境界索引("大乘"):
+		_大乘期特殊兵解判定(d)
 		return
-	if randf() < 0.02:
-		d.飞升 = true
+	if 序 < Disciple.境界索引("渡劫"):
+		return   # 未达渡劫（含未知境界）不可能飞升
+	# 境界越高，飞升概率越大：渡劫 2% / 仙阶 5% / 道阶 10%
+	var 飞升率: float = [0.02, 0.05, 0.10][clamp(序 - Disciple.境界索引("渡劫"), 0, 2)]
+	if randf() < 飞升率:
+		_执行飞升(d)
+
+# 大乘期特殊情况兵解判定（寿元将尽或身受重伤）
+# 正常大乘期不会兵解，只有特殊情况才会
+func _大乘期特殊兵解判定(d: Object) -> void:
+	# 寿元将尽（剩余寿元<100年）且无法突破
+	var 剩余寿元: float = float(d.寿元) - float(d.年龄)
+	if 剩余寿元 > 100:
+		return
+	# 身受重伤（战力<50%）
+	var 基础战力: float = float(Disciple.境界表[str(d.境界)]["战力"])
+	if float(d.战力) > 基础战力 * 0.5:
+		return
+	# 特殊情况：寿元将尽且身受重伤，有5%概率选择兵解成为鬼仙
+	if randf() >= 0.05:
+		return
+	_执行兵解成鬼仙(d)
+
+# 执行兵解成鬼仙（大乘期特殊情况）
+func _执行兵解成鬼仙(d: Object) -> void:
+	# 归还宗门物品
+	_兵解归还物品(d)
+	# 成为鬼仙，不占弟子编制
+	var 鬼仙: Dictionary = {
+		"弟子ID": d.弟子ID, "姓名": d.姓名, "类型": "鬼仙",
+		"原境界": d.境界, "寿元": 500, "已渡劫数": 0,
+		"战力": int(float(d.战力) * 0.3),  # 鬼仙战力只有生前30%
+	"功德": int(d.功德) if d.功德 != null else 0,
+	"业力": int(d.业力) if d.业力 != null else 0,
+		"兵解日": 累计游戏日, "下次劫日": 累计游戏日 + 200
+	}
+	散仙列表.append(鬼仙)
+	# 纪事与推演条目
+	_加推演条目("【%s】寿元将尽且身受重伤，毅然兵解，舍弃肉身，以元婴成鬼仙！" % d.姓名, ET_INFO, PRIO_HIGH, {"弟子": d.姓名})
+	添加纪事("兵解", "成为鬼仙", "%s 寿元将尽且身受重伤，毅然兵解，舍弃肉身，以元婴成鬼仙，守护宗门" % d.姓名, 2)
+	# 从弟子列表移除
+	弟子列表.erase(d)
+
+# 渡劫失败兵解→散仙（在渡劫失败时调用）
+func 渡劫失败兵解成散仙(d: Object) -> void:
+	# 归还宗门物品
+	_兵解归还物品(d)
+	# 成为散仙，不占弟子编制
+	var 散仙: Dictionary = {
+		"弟子ID": d.弟子ID, "姓名": d.姓名, "类型": "散仙",
+		"原境界": d.境界, "寿元": 1000, "已渡劫数": 0,
+		"战力": int(float(d.战力) * 0.5),  # 散仙战力有生前50%
+	"功德": int(d.功德) if d.功德 != null else 0,
+	"业力": int(d.业力) if d.业力 != null else 0,
+		"兵解日": 累计游戏日, "下次劫日": 累计游戏日 + 300
+	}
+	散仙列表.append(散仙)
+	# 纪事与推演条目
+	_加推演条目("【%s】渡劫失败，兵解成仙，舍弃肉身，以元婴成散仙！" % d.姓名, ET_INFO, PRIO_HIGH, {"弟子": d.姓名})
+	添加纪事("兵解", "成为散仙", "%s 渡劫失败，兵解成仙，舍弃肉身，以元婴成散仙，隐居宗门灵脉" % d.姓名, 2)
+	# 从弟子列表移除
+	弟子列表.erase(d)
+
+# 兵解时归还宗门物品（通用函数）
+func _兵解归还物品(d: Object) -> void:
+	# 装备归还宗门
+	for it in d.装备.values():
+		宗门库房.append(it)
+	d.装备.clear()
+	# 背包归还宗门
+	for it in d.背包:
+		宗门库房.append(it)
+	d.背包.clear()
+	# 灵兽归还御兽堂
+	if d.主宠灵兽 != null:
+		var 兽: Beast = d.主宠灵兽
+		d.主宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	if d.副宠灵兽 != null:
+		var 兽: Beast = d.副宠灵兽
+		d.副宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+
+# 散仙/鬼仙月度结算（寿元消耗+劫数判定）
+func _散仙月度结算() -> void:
+	if 散仙列表.is_empty():
+		return
+	var 待移除: Array = []
+	for 仙 in 散仙列表:
+		# 寿元消耗（每月1年）
+		仙["寿元"] = int(仙["寿元"]) - 1
+		# 寿元耗尽，形神俱灭
+		if int(仙["寿元"]) <= 0:
+			待移除.append(仙)
+			_加推演条目("【%s】%s寿元耗尽，形神俱灭，惜哉！" % [仙["姓名"], 仙["类型"]], ET_INFO, PRIO_NORMAL, {})
+			添加纪事("陨落", "形神俱灭", "%s %s寿元耗尽，形神俱灭，自此世间再无此人" % [仙["姓名"], 仙["类型"]], 1)
+			continue
+		# 劫数判定
+		if 累计游戏日 >= int(仙["下次劫日"]):
+			_散仙渡劫(仙)
+	# 移除形神俱灭的散仙/鬼仙
+	for 仙 in 待移除:
+		散仙列表.erase(仙)
+
+# 散仙/鬼仙渡劫（每300/200年一次）
+func _散仙渡劫(仙: Dictionary) -> void:
+	var 劫数: int = int(仙["已渡劫数"]) + 1
+	var 类型: String = str(仙["类型"])
+	# 劫数难度递增：第N次劫成功率=80% - N*5%
+	var 成功率: float = 0.80 - float(劫数) * 0.05
+	成功率 = clamp(成功率, 0.20, 0.80)
+	if randf() < 成功率:
+		# 渡劫成功
+		仙["已渡劫数"] = 劫数
+		var 下次间隔: int = 300 if 类型 == "散仙" else 200
+		仙["下次劫日"] = 累计游戏日 + 下次间隔
+		# 战力提升
+		仙["战力"] = int(float(仙["战力"]) * 1.1)
+		_加推演条目("【%s】%s渡过第%d次劫数，战力精进！" % [仙["姓名"], 类型, 劫数], ET_INFO, PRIO_NORMAL, {})
+		# 渡过九次劫数→真正飞升
+		if 劫数 >= 9:
+			_散仙飞升(仙)
+	else:
+		# 渡劫失败，形神俱灭
+		散仙列表.erase(仙)
+		_加推演条目("【%s】%s第%d次劫数失败，形神俱灭，惜哉！" % [仙["姓名"], 类型, 劫数], ET_INFO, PRIO_HIGH, {})
+		添加纪事("陨落", "渡劫失败", "%s %s第%d次劫数失败，形神俱灭" % [仙["姓名"], 类型, 劫数], 2)
+
+# 散仙/鬼仙渡过九劫→真正飞升，入祖师堂
+func _散仙飞升(仙: Dictionary) -> void:
+	散仙列表.erase(仙)
+	# 入祖师堂
+	祖师堂.append({
+		"弟子ID": 仙["弟子ID"], "姓名": 仙["姓名"], "境界": 仙["原境界"],
+		"飞升日": 累计游戏日, "飞升路线": "散仙飞升",
+		"传承列表": ["散仙九劫飞升"], "功德": 仙["功德"], "业力": 仙["业力"],
+		"飞升方式": "散仙飞升", "散仙劫数": 9
+	})
+	# 纪事与推演条目
+	_加推演条目("【%s】%s渡过九次劫数，功德圆满，白日飞升！" % [仙["姓名"], 仙["类型"]], ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": 仙["姓名"]})
+	添加纪事("飞升", "散仙飞升", "%s %s渡过九次劫数，功德圆满，白日飞升，位列仙班" % [仙["姓名"], 仙["类型"]], 3)
+	# 飞升回馈：全宗修炼加成+1%
+	_加推演条目("【祖师堂】%s 散仙飞升，宗门气运加持，全宗修炼速度永久+1%%" % 仙["姓名"], ET_SECT, PRIO_NORMAL, {})
+
+# 获取散仙/鬼仙总战力（用于宗门防御）
+func 获取散仙总战力() -> int:
+	var 总战力: int = 0
+	for 仙 in 散仙列表:
+		总战力 += int(仙["战力"])
+	return 总战力
+
+# ============ 身外化身系统（§6.21 / §11.8.13）============
+# 元婴期解锁，消耗资源创建化身
+# 化身以散修身份游历天下，触发奇遇，所得资源反哺宗门
+# 化身实力不超过本体50%，月度价值≤宗门产出10%
+# 偏休闲+角色扮演玩法
+
+# 化身数据存储（独立于弟子列表，不占编制）
+var 化身列表: Array = []   # 化身档案：{化身ID,姓名,境界,战力,性格,道心,当前位置,游历状态,背包,人脉}
+var 化身切换冷却结束日: int = 0   # 化身切换冷却（1游戏日=240现实秒，设定1小时现实=15游戏日）
+
+# 化身创建配置
+const 化身创建消耗: Dictionary = {"灵石": 10000, "灵草": 500, "元婴丹": 1}
+const 化身解锁境界: String = "元婴"   # 元婴期解锁化身
+const 化身实力上限比例: float = 0.5   # 化身实力不超过本体50%
+const 化身月度价值上限比例: float = 0.10   # 化身月度价值≤宗门产出10%
+
+# ============ 化身皮肤/立绘系统（预留接口）============
+# 设计：化身立绘可出售，仙玉购买，高级抽奖获取
+# 皮肤品质：普通/稀有/史诗/传说/限定
+var 已拥有化身皮肤: Array = ["默认男", "默认女"]   # 已拥有的皮肤ID列表
+var 化身皮肤配置: Dictionary = {
+	# 普通皮肤（仙玉购买）
+	"青衫客": {"品质": "普通", "价格": 100, "性别": "男", "描述": "青衫磊落，江湖侠客"},
+	"白衣仙": {"品质": "普通", "价格": 100, "性别": "女", "描述": "白衣胜雪，仙子临凡"},
+	"玄衣卫": {"品质": "普通", "价格": 150, "性别": "男", "描述": "玄衣如墨，冷面寒枪"},
+	"紫霞女": {"品质": "普通", "价格": 150, "性别": "女", "描述": "紫霞绕身，剑气如虹"},
+	# 稀有皮肤（仙玉购买）
+	"剑仙": {"品质": "稀有", "价格": 500, "性别": "男", "描述": "一剑破万法，剑仙临尘"},
+	"琴魔": {"品质": "稀有", "价格": 500, "性别": "女", "描述": "琴音摄魂，魔音灌耳"},
+	"丹圣": {"品质": "稀有", "价格": 600, "性别": "男", "描述": "丹道通神，活死人肉白骨"},
+	"符仙": {"品质": "稀有", "价格": 600, "性别": "女", "描述": "符法通天，一纸定乾坤"},
+	# 史诗皮肤（抽奖获取）
+	"真龙天子": {"品质": "史诗", "价格": 0, "性别": "男", "描述": "真龙转世，九五之尊", "抽奖概率": 0.05},
+	"九天玄女": {"品质": "史诗", "价格": 0, "性别": "女", "描述": "九天玄女，战神临凡", "抽奖概率": 0.05},
+	"魔尊": {"品质": "史诗", "价格": 0, "性别": "男", "描述": "魔道至尊，君临天下", "抽奖概率": 0.03},
+	"妖皇": {"品质": "史诗", "价格": 0, "性别": "女", "描述": "万妖之皇，魅惑众生", "抽奖概率": 0.03},
+	# 传说皮肤（抽奖获取，极低概率）
+	"鸿钧老祖": {"品质": "传说", "价格": 0, "性别": "男", "描述": "鸿钧一道传三友，万仙之师", "抽奖概率": 0.01},
+	"女娲娘娘": {"品质": "传说", "价格": 0, "性别": "女", "描述": "女娲补天，造人救世", "抽奖概率": 0.01},
+}
+const 化身抽奖消耗: int = 100   # 每次抽奖消耗仙玉
+const 化身抽奖保底次数: int = 50   # 50次保底史诗以上
+
+## 购买化身皮肤
+func 购买化身皮肤(皮肤ID: String) -> Dictionary:
+	if not 化身皮肤配置.has(皮肤ID):
+		return {"成功": false, "原因": "无此皮肤"}
+	var 配置: Dictionary = 化身皮肤配置[皮肤ID]
+	if int(配置["价格"]) <= 0:
+		return {"成功": false, "原因": "此皮肤仅可通过抽奖获取"}
+	if 已拥有化身皮肤.has(皮肤ID):
+		return {"成功": false, "原因": "已拥有此皮肤"}
+	if 仙玉_绑定 < int(配置["价格"]):
+		return {"成功": false, "原因": "仙玉不足（需%d）" % int(配置["价格"])}
+	仙玉_绑定 -= int(配置["价格"])
+	已拥有化身皮肤.append(皮肤ID)
+	添加纪事("大事件", "化身皮肤", "购得化身皮肤【%s】" % 皮肤ID, 2)
+	return {"成功": true, "皮肤": 皮肤ID}
+
+## 化身皮肤抽奖
+func 化身皮肤抽奖(次数: int = 1) -> Dictionary:
+	var 消耗: int = 化身抽奖消耗 * 次数
+	if 仙玉_绑定 < 消耗:
+		return {"成功": false, "原因": "仙玉不足（需%d）" % 消耗}
+	仙玉_绑定 -= 消耗
+	var 结果: Array = []
+	for i in range(次数):
+		var 品质: String = _化身抽奖品质()
+		var 候选皮肤: Array = []
+		for 皮肤ID in 化身皮肤配置:
+			var 配置: Dictionary = 化身皮肤配置[皮肤ID]
+			if 配置["品质"] == 品质:
+				候选皮肤.append(皮肤ID)
+		if 候选皮肤.size() > 0:
+			var 获得皮肤: String = str(候选皮肤[randi() % 候选皮肤.size()])
+			结果.append(获得皮肤)
+			if not 已拥有化身皮肤.has(获得皮肤):
+				已拥有化身皮肤.append(获得皮肤)
+	添加纪事("大事件", "化身抽奖", "化身皮肤抽奖%d次，获得%s" % [次数, "、".join(结果)], 2)
+	return {"成功": true, "结果": 结果}
+
+## 抽奖品质判定
+func _化身抽奖品质() -> String:
+	var r: float = randf()
+	if r < 0.01:
+		return "传说"
+	elif r < 0.08:
+		return "史诗"
+	elif r < 0.30:
+		return "稀有"
+	else:
+		return "普通"
+
+## 装备化身皮肤
+func 装备化身皮肤(化身ID: int, 皮肤ID: String) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if not 已拥有化身皮肤.has(皮肤ID):
+		return {"成功": false, "原因": "未拥有此皮肤"}
+	var 配置: Dictionary = 化身皮肤配置.get(皮肤ID, {})
+	if 配置.has("性别") and str(配置["性别"]) != str(化身.get("性别", "男")):
+		return {"成功": false, "原因": "此皮肤为%s性，化身性别不符" % 配置["性别"]}
+	化身["皮肤"] = 皮肤ID
+	添加纪事("庶务", "化身皮肤", "化身%s装备皮肤【%s】" % [化身["姓名"], 皮肤ID], 1)
+	return {"成功": true, "化身": 化身["姓名"], "皮肤": 皮肤ID}
+
+# 游历区域配置（不同区域机缘偏向不同）
+const 游历区域: Dictionary = {
+	"蛮荒之地": {"描述": "妖兽横行，机缘偏妖兽材料", "危险度": 0.6, "奇遇概率": 0.15, "产出偏向": "妖兽材料"},
+	"仙城闹市": {"描述": "繁华仙城，机缘偏坊市商机", "危险度": 0.1, "奇遇概率": 0.20, "产出偏向": "灵石商机"},
+	"深山老林": {"描述": "隐世高人出没，机缘偏传承", "危险度": 0.3, "奇遇概率": 0.10, "产出偏向": "功法传承"},
+	"东海之滨": {"描述": "海市蜃楼，机缘偏天材地宝", "危险度": 0.4, "奇遇概率": 0.12, "产出偏向": "天材地宝"},
+	"北境雪原": {"描述": "苦寒之地，机缘偏冰属性宝物", "危险度": 0.5, "奇遇概率": 0.08, "产出偏向": "冰属性宝物"},
+	"南疆密林": {"描述": "瘴气弥漫，机缘偏毒丹灵药", "危险度": 0.45, "奇遇概率": 0.10, "产出偏向": "毒丹灵药"}
+}
+
+# 奇遇事件池（角色扮演元素）
+const 化身奇遇池: Array = [
+	{"id": "偶遇高人", "描述": "路遇隐世高人指点，道心大涨", "效果": "道心+10", "奖励": {"道心": 10}},
+	{"id": "捡获秘籍", "描述": "于山洞中捡获残破功法", "效果": "获得功法残卷", "奖励": {"功法残卷": 1}},
+	{"id": "路见不平", "描述": "出手相助被欺压的散修", "效果": "人脉+1，道心+5", "奖励": {"人脉": 1, "道心": 5}},
+	{"id": "加入商队", "描述": "加入商队护送货物，获得报酬", "效果": "灵石+500", "奖励": {"灵石": 500}},
+	{"id": "妖兽围攻", "描述": "遭遇妖兽围攻，苦战得脱", "效果": "战力+50，妖兽材料+3", "奖励": {"战力": 50, "妖兽内丹一阶": 3}},
+	{"id": "坊市捡漏", "描述": "在坊市以低价购得宝物", "效果": "灵石-200，获得天材地宝", "奖励": {"灵石": -200, "圣品灵草": 1}},
+	{"id": "闭关感悟", "描述": "寻得灵地闭关，修为精进", "效果": "修炼进度+30天", "奖励": {"修炼进度": 30}},
+	{"id": "结交道友", "描述": "与志同道合的散修结为道友", "效果": "人脉+2", "奖励": {"人脉": 2}},
+	{"id": "遭遇劫匪", "描述": "遭遇劫匪，损失部分财物", "效果": "灵石-300", "奖励": {"灵石": -300}},
+	{"id": "灵药现世", "描述": "发现千年灵药", "效果": "获得灵草+10", "奖励": {"灵草": 10}}
+]
+
+# 检查是否可以创建化身
+func 可创建化身() -> Dictionary:
+	# 检查宗主境界
+	var 宗主: Object = 弟子列表[0] if 弟子列表.size() > 0 else null
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主不存在"}
+	var 宗主境界序: int = Disciple.境界索引(str(宗主.境界))
+	if 宗主境界序 < Disciple.境界索引(化身解锁境界):
+		return {"成功": false, "原因": "宗主需达%s期方可修炼身外化身" % 化身解锁境界}
+	# 检查化身数量上限（元婴1个，化神2个，炼虚3个，合体4个，大乘5个）
+	var 化身上限: int = 1
+	if 宗主境界序 >= Disciple.境界索引("化神"):
+		化身上限 = 2
+	if 宗主境界序 >= Disciple.境界索引("炼虚"):
+		化身上限 = 3
+	if 宗主境界序 >= Disciple.境界索引("合体"):
+		化身上限 = 4
+	if 宗主境界序 >= Disciple.境界索引("大乘"):
+		化身上限 = 5
+	if 化身列表.size() >= 化身上限:
+		return {"成功": false, "原因": "已达化身数量上限（%d个）" % 化身上限}
+	# 检查资源
+	if 灵石 < 化身创建消耗["灵石"]:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 化身创建消耗["灵石"]}
+	if 灵草 < 化身创建消耗["灵草"]:
+		return {"成功": false, "原因": "灵草不足（需%d）" % 化身创建消耗["灵草"]}
+	return {"成功": true, "化身上限": 化身上限}
+
+# 创建化身（可选择性别，默认继承宗主性别）
+func 创建化身(化身姓名: String = "", 化身性别: String = "") -> Dictionary:
+	var 检查: Dictionary = 可创建化身()
+	if not 检查.get("成功", false):
+		return 检查
+	# 消耗资源
+	灵石 -= 化身创建消耗["灵石"]
+	灵草 -= 化身创建消耗["灵草"]
+	# 创建化身
+	var 宗主: Object = 弟子列表[0]
+	var 化身ID: int = randi()
+	# 性别处理：默认继承宗主性别，可手动选择
+	var 实际性别: String = 化身性别 if 化身性别 in ["男", "女"] else 宗主性别
+	var 姓名: String = 化身姓名 if 化身姓名 != "" else _随机化身姓名_按性别(实际性别)
+	var 化身: Dictionary = {
+		"化身ID": 化身ID,
+		"姓名": 姓名,
+		"性别": 实际性别,   # 化身性别（可独立选择，方便皮肤/立绘系统）
+		"境界": "练气",   # 化身从练气开始
+		"层数": 0,
+		"修炼进度": 0.0,
+		"战力": int(float(宗主.战力) * 0.1),   # 初始战力为宗主10%
+		"性格": Disciple.性格表.pick_random(),
+		"道心": 50,
+		"当前位置": "宗门附近",
+		"游历状态": "闲置",   # 闲置/游历中/闭关
+		"游历区域": "",
+		"游历结束日": 0,
+		"背包": {},   # 化身背包（临时存储，月度反哺宗门）
+		"人脉": 0,
+		"皮肤": "默认",   # 化身皮肤/立绘（预留，仙玉购买/抽奖）
+		"创建日": 累计游戏日,
+		"本月已反哺价值": 0
+	}
+	化身列表.append(化身)
+	_加推演条目("【宗主】修炼身外化身，以一缕元神分化出化身「%s」，自此可分身游历天下！" % 姓名, ET_BREAKTHROUGH, PRIO_HIGH, {})
+	添加纪事("化身", "创建化身", "宗主修炼身外化身，分化出化身「%s」，可代宗主游历天下" % 姓名, 3)
+	return {"成功": true, "化身ID": 化身ID, "姓名": 姓名}
+
+# 随机化身姓名（继承宗主性别）
+func _随机化身姓名() -> String:
+	return _随机化身姓名_按性别(宗主性别)
+
+# 派遣化身游历
+func 派遣化身游历(化身ID: int, 区域: String) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身["游历状态"]) == "游历中":
+		return {"成功": false, "原因": "化身正在游历中"}
+	if not 游历区域.has(区域):
+		return {"成功": false, "原因": "未知游历区域"}
+	化身["游历状态"] = "游历中"
+	化身["游历区域"] = 区域
+	化身["游历结束日"] = 累计游戏日 + 60   # 每次游历60游戏日=4现实小时（与红尘历练一致）
+	_加推演条目("【化身%s】前往%s游历，寻机缘求大道" % [化身["姓名"], 区域], ET_INFO, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "化身%s已前往%s游历，60日后归来" % [化身["姓名"], 区域]}
+
+# 化身月度结算（游历推进+奇遇触发+资源反哺）
+func _化身月度结算() -> void:
+	if 化身列表.is_empty():
+		return
+	for 化身 in 化身列表:
+		if str(化身["游历状态"]) != "游历中":
+			continue
+		# 检查游历是否结束
+		if 累计游戏日 >= int(化身["游历结束日"]):
+			_化身游历归来(化身)
+		else:
+			# 游历中，每月有概率触发奇遇
+			var 区域配置: Dictionary = 游历区域.get(str(化身["游历区域"]), {})
+			var 奇遇概率: float = float(区域配置.get("奇遇概率", 0.1))
+			if randf() < 奇遇概率:
+				_触发化身奇遇(化身)
+			# 游历中修炼（每月推进15天修炼进度）
+			化身["修炼进度"] = float(化身["修炼进度"]) + 15.0
+			_检查化身突破(化身)
+
+# 化身游历归来
+func _化身游历归来(化身: Dictionary) -> void:
+	化身["游历状态"] = "闲置"
+	化身["当前位置"] = "宗门附近"
+	# 游历归来，自动反哺资源
+	_化身资源反哺(化身)
+	_加推演条目("【化身%s】游历归来，带回诸多机缘" % 化身["姓名"], ET_INFO, PRIO_NORMAL, {})
+
+# 触发化身奇遇（角色扮演元素）
+func _触发化身奇遇(化身: Dictionary) -> void:
+	var 奇遇: Dictionary = 化身奇遇池.pick_random()
+	var 描述: String = str(奇遇["描述"])
+	var 奖励: Dictionary = 奇遇["奖励"]
+	# 应用奖励
+	for key in 奖励.keys():
+		var 值: int = int(奖励[key])
+		if key == "道心":
+			化身["道心"] = int(化身["道心"]) + 值
+		elif key == "人脉":
+			化身["人脉"] = int(化身["人脉"]) + 值
+		elif key == "战力":
+			化身["战力"] = int(化身["战力"]) + 值
+		elif key == "修炼进度":
+			化身["修炼进度"] = float(化身["修炼进度"]) + float(值)
+		elif key == "灵石":
+			# 灵石直接进入化身背包（月度反哺）
+			var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+			化身["背包"]["灵石"] = 当前灵石 + 值
+		elif key == "灵草":
+			var 当前灵草: int = int(化身["背包"].get("灵草", 0))
+			化身["背包"]["灵草"] = 当前灵草 + 值
+		else:
+			# 其他材料进入背包
+			var 当前: int = int(化身["背包"].get(key, 0))
+			化身["背包"][key] = 当前 + 值
+	_加推演条目("【化身%s·奇遇】%s" % [化身["姓名"], 描述], ET_INFO, PRIO_NORMAL, {})
+	# 检查突破
+	_检查化身突破(化身)
+
+# 检查化身突破
+func _检查化身突破(化身: Dictionary) -> void:
+	var 当前境界序: int = Disciple.境界索引(str(化身["境界"]))
+	var 所需日: float = float(Disciple.每层所需日_新.get(str(化身["境界"]), 30.0)) * 9.0   # 大圆满需要9层
+	if float(化身["修炼进度"]) >= 所需日:
+		# 突破到下一境界
+		var 下一境界序: int = 当前境界序 + 1
+		if 下一境界序 < Disciple.境界序.size():
+			var 下一境界: String = Disciple.境界序[下一境界序]
+			# 化身实力不超过宗主50%
+			var 宗主: Object = 弟子列表[0] if 弟子列表.size() > 0 else null
+			var 战力上限: int = int(float(宗主.战力) * 化身实力上限比例) if 宗主 != null else 999999
+			var 新战力: int = int(Disciple.境界表[下一境界]["战力"] * 0.3)   # 化身战力为同境界30%
+			新战力 = min(新战力, 战力上限)
+			化身["境界"] = 下一境界
+			化身["层数"] = 0
+			化身["修炼进度"] = 0.0
+			化身["战力"] = 新战力
+			_加推演条目("【化身%s】修为精进，突破至%s！" % [化身["姓名"], 下一境界], ET_BREAKTHROUGH, PRIO_HIGH, {})
+
+# 化身资源反哺（游历归来后自动将背包资源送回宗门）
+func _化身资源反哺(化身: Dictionary) -> void:
+	var 背包: Dictionary = 化身["背包"]
+	if 背包.is_empty():
+		return
+	# 计算本月反哺价值（上限为宗门产出10%）
+	var 反哺价值: int = 0
+	var 月度上限: int = int(_估算宗门月产出() * 化身月度价值上限比例)
+	for key in 背包.keys():
+		var 数量: int = int(背包[key])
+		var 单价: int = _获取物品单价(key)
+		反哺价值 += 数量 * 单价
+	# 如果超过上限，按比例缩减
+	if 反哺价值 > 月度上限 and 月度上限 > 0:
+		var 缩减比例: float = float(月度上限) / float(反哺价值)
+		for key in 背包.keys():
+			背包[key] = int(int(背包[key]) * 缩减比例)
+	# 反哺到宗门
+	for key in 背包.keys():
+		var 数量: int = int(背包[key])
+		if 数量 <= 0:
+			continue
+		if key == "灵石":
+			灵石 += 数量
+		elif key == "灵草":
+			灵草 += 数量
+		elif key == "妖兽内丹一阶":
+			妖兽内丹["一阶"] += 数量
+		elif key == "圣品灵草":
+			圣品灵草 += 数量
+	_加推演条目("【化身%s】将游历所得反哺宗门，共计%d份资源" % [化身["姓名"], 反哺价值], ET_SECT, PRIO_NORMAL, {})
+	# 清空背包
+	化身["背包"] = {}
+	化身["本月已反哺价值"] = 反哺价值
+
+# 估算宗门月产出（用于化身反哺上限计算）
+func _估算宗门月产出() -> int:
+	# 简化估算：弟子数量×境界平均产出
+	var 总产出: int = 0
+	for d in 弟子列表:
+		if d != null and str(d.状态) == "在宗":
+			var 境界战力: int = int(Disciple.境界表.get(str(d.境界), {}).get("战力", 100))
+			总产出 += int(境界战力 / 100)   # 每100战力月产出1单位价值
+	return max(总产出, 100)
+
+# 获取物品单价（简化）
+func _获取物品单价(物品名: String) -> int:
+	var 价格表: Dictionary = {
+		"灵石": 1, "灵草": 2, "妖兽内丹一阶": 5, "圣品灵草": 50,
+		"功法残卷": 100, "冰属性宝物": 30, "毒丹灵药": 20
+	}
+	return int(价格表.get(物品名, 10))
+
+# 获取化身
+func _获取化身(化身ID: int) -> Dictionary:
+	for 化身 in 化身列表:
+		if int(化身["化身ID"]) == 化身ID:
+			return 化身
+	return {}
+
+# ============ 红尘历练系统（化身入凡·红尘炼心）============
+# 修真世界观：化身可入凡人王朝，体验人生百态，磨练道心
+# 每甲子（60年）更换一次人生，凡人寿命约60年
+# 不同职业有不同历练效果，娶妻生子增加人生阅历
+# 红尘阅历可转化为道心加成，影响化身修炼速度
+
+# 凡人职业配置（不同职业有不同历练效果）
+const 凡人职业: Dictionary = {
+	"厨师": {"描述": "掌勺大厨，遍尝人间百味", "道心加成": 2, "人脉加成": 1, "灵石收入": 50, "阅历类型": "人间百味"},
+	"医者": {"描述": "悬壶济世，救死扶伤", "道心加成": 3, "人脉加成": 2, "灵石收入": 80, "阅历类型": "生老病死"},
+	"士兵": {"描述": "沙场征战，保家卫国", "道心加成": 2, "战力加成": 10, "灵石收入": 40, "阅历类型": "铁血沙场"},
+	"将军": {"描述": "运筹帷幄，决胜千里", "道心加成": 4, "战力加成": 30, "灵石收入": 200, "阅历类型": "权谋兵法"},
+	"书生": {"描述": "寒窗苦读，金榜题名", "道心加成": 3, "人脉加成": 2, "灵石收入": 60, "阅历类型": "诗书礼仪"},
+	"商人": {"描述": "走南闯北，富甲一方", "道心加成": 1, "人脉加成": 3, "灵石收入": 150, "阅历类型": "世态炎凉"},
+	"工匠": {"描述": "匠心独运，精益求精", "道心加成": 2, "战力加成": 5, "灵石收入": 70, "阅历类型": "匠心之道"},
+	"农夫": {"描述": "日出而作，日落而息", "道心加成": 1, "灵石收入": 30, "阅历类型": "田园之乐"},
+	"猎户": {"描述": "深山狩猎，与兽为伴", "道心加成": 2, "战力加成": 8, "灵石收入": 45, "阅历类型": "山野生存"},
+	"戏子": {"描述": "粉墨登场，演绎人生", "道心加成": 3, "人脉加成": 1, "灵石收入": 55, "阅历类型": "戏如人生"}
+}
+
+# 红尘历练事件池（角色扮演深度）
+const 红尘事件池: Array = [
+	{"id": "初入凡尘", "描述": "化身初入凡尘，对一切充满好奇", "道心": 1},
+	{"id": "人间冷暖", "描述": "见识人间冷暖，世态炎凉", "道心": 2},
+	{"id": "生离死别", "描述": "经历生离死别，感悟人生无常", "道心": 3},
+	{"id": "功成名就", "描述": "在凡人世界功成名就，体验荣华富贵", "道心": 1},
+	{"id": "穷困潦倒", "描述": "遭遇穷困潦倒，尝尽人间疾苦", "道心": 3},
+	{"id": "金榜题名", "描述": "寒窗苦读终金榜题名，喜极而泣", "道心": 2},
+	{"id": "沙场点兵", "描述": "沙场点兵，体验铁血豪情", "道心": 2},
+	{"id": "悬壶济世", "描述": "悬壶济世，救死扶伤，感悟生命可贵", "道心": 3},
+	{"id": "富甲一方", "描述": "经商致富，富甲一方，体验金钱万能", "道心": 1},
+	{"id": "看破红尘", "描述": "历经人生百态，看破红尘，道心大涨", "道心": 5}
+]
+
+# 凡人姓氏池（用于娶妻生子）
+const 凡人姓氏: Array = ["李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗"]
+const 凡人名字_男: Array = ["伟", "强", "磊", "军", "洋", "勇", "艳", "杰", "涛", "明", "超", "辉", "鹏", "华", "健", "亮", "峰", "斌", "波", "宇"]
+const 凡人名字_女: Array = ["芳", "娜", "敏", "静", "丽", "艳", "娟", "霞", "秀英", "慧", "婷", "玉", "梅", "兰", "凤", "云", "莲", "真", "环", "雪"]
+
+# 派遣化身入凡历练
+func 派遣化身入凡(化身ID: int, 职业: String = "") -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身["游历状态"]) == "游历中":
+		return {"成功": false, "原因": "化身正在游历中"}
+	if str(化身["游历状态"]) == "红尘历练中":
+		return {"成功": false, "原因": "化身正在红尘历练中"}
+	# 选择职业
+	var 选择职业: String = 职业 if 职业 != "" and 凡人职业.has(职业) else 凡人职业.keys().pick_random()
+	var 职业配置: Dictionary = 凡人职业[选择职业]
+	# 入凡（初始化轮回状态）
+	化身["游历状态"] = "红尘历练中"
+	化身["红尘职业"] = 选择职业
+	化身["红尘年龄"] = 16   # 凡人16岁成年
+	化身["红尘寿命"] = 60   # 凡人寿命60年（一甲子）
+	化身["红尘配偶"] = ""
+	化身["红尘子女"] = 0
+	化身["红尘阅历"] = 0
+	化身["红尘入凡日"] = 累计游戏日
+	化身["红尘结束日"] = 累计游戏日 + 60   # 60游戏日=60凡人年（游戏日=凡人年）
+	化身["轮回世"] = 0   # 轮回世数（第一世）
+	化身["轮回记录"] = []   # 轮回记录
+	_加推演条目("【化身%s】入凡历练，化身%s，体验红尘百态" % [化身["姓名"], 选择职业], ET_INFO, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "化身%s已入凡，化身%s，一甲子后归来" % [化身["姓名"], 选择职业]}
+
+# 红尘历练月度结算（化身历劫版：化身无寿终，凡人角色有寿终/意外）
+func _红尘历练月度结算() -> void:
+	if 化身列表.is_empty():
+		return
+	for 化身 in 化身列表:
+		if str(化身.get("游历状态", "")) != "红尘历练中":
+			continue
+		# 凡人年龄增长（每月1岁）
+		化身["红尘年龄"] = int(化身["红尘年龄"]) + 1
+		# 伤残状态影响收入
+		var 收入系数: float = 1.0
+		if 化身.has("红尘伤残") and str(化身["红尘伤残"]) != "":
+			var 伤残: String = str(化身["红尘伤残"])
+			if 伤残 == "受伤致残":
+				收入系数 = 0.5
+			elif 伤残 == "重病缠身":
+				收入系数 = 0.7
+			elif 伤残 == "眼盲耳聋":
+				收入系数 = 0.3
+		# 蒙冤入狱暂停收入
+		if 化身.has("红尘蒙冤") and int(化身.get("红尘蒙冤", 0)) > 0:
+			收入系数 = 0.0
+			化身["红尘蒙冤"] = int(化身["红尘蒙冤"]) - 1
+		# 职业收入
+		var 职业配置: Dictionary = 凡人职业.get(str(化身.get("红尘职业", "")), {})
+		var 月收入: int = int(int(职业配置.get("灵石收入", 0)) * 收入系数)
+		var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+		化身["背包"]["灵石"] = 当前灵石 + 月收入
+		# 道心磨练（每月有概率触发红尘事件，50%概率为抉择事件）
+		if randf() < 0.2:
+			if randf() < 0.5:
+				_触发红尘抉择(化身)
+			else:
+				_触发红尘事件(化身)
+		# 娶妻生子（凡人20岁后有概率娶妻，伤残/蒙冤时概率降低）
+		if int(化身["红尘年龄"]) >= 20 and str(化身.get("红尘配偶", "")) == "" and randf() < 0.1 * 收入系数:
+			_化身娶妻(化身)
+		# 生子（娶妻后每年有概率生子）
+		if str(化身.get("红尘配偶", "")) != "" and int(化身.get("红尘子女", 0)) < 3 and randf() < 0.15 * 收入系数:
+			_化身生子(化身)
+		# 意外事件判定（16岁后每年有概率遭遇意外）
+		if int(化身["红尘年龄"]) >= 16 and randf() < 0.05:
+			_触发红尘意外(化身)
+			# 如果意外死亡，结束这一世
+			if str(化身.get("游历状态", "")) != "红尘历练中":
+				continue
+		# 检查是否寿终（60岁）
+		if int(化身["红尘年龄"]) >= int(化身.get("红尘寿命", 60)):
+			_红尘一世结束(化身, "寿终正寝")
+
+# 触发红尘事件
+func _触发红尘事件(化身: Dictionary) -> void:
+	var 事件: Dictionary = 红尘事件池.pick_random()
+	var 道心加成: int = int(事件.get("道心", 1))
+	化身["道心"] = int(化身["道心"]) + 道心加成
+	化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 道心加成
+	_加推演条目("【化身%s·红尘】%s（道心+%d）" % [化身["姓名"], 事件["描述"], 道心加成], ET_INFO, PRIO_NORMAL, {})
+
+# 化身婚娶（根据性别决定娶妻/嫁夫）
+func _化身娶妻(化身: Dictionary) -> void:
+	var 化身性别: String = str(化身.get("性别", 宗主性别))
+	if 化身性别 == "女":
+		# 女化身：嫁夫
+		var 夫姓: String = 凡人姓氏.pick_random()
+		var 夫名: String = 凡人名字_男.pick_random()
+		var 夫名全称: String = 夫姓 + 夫名
+		化身["红尘配偶"] = 夫名全称
+		化身["道心"] = int(化身["道心"]) + 1
+		化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 2
+		_加推演条目("【化身%s·红尘】嫁与%s为妻，体验人间烟火" % [化身["姓名"], 夫名全称], ET_INFO, PRIO_NORMAL, {})
+	else:
+		# 男化身：娶妻
+		var 妻姓: String = 凡人姓氏.pick_random()
+		var 妻名: String = 凡人名字_女.pick_random()
+		var 妻名全称: String = 妻姓 + 妻名
+		化身["红尘配偶"] = 妻名全称
+		化身["道心"] = int(化身["道心"]) + 1
+		化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 2
+		_加推演条目("【化身%s·红尘】娶%s为妻，体验人间烟火" % [化身["姓名"], 妻名全称], ET_INFO, PRIO_NORMAL, {})
+
+# 化身生子
+func _化身生子(化身: Dictionary) -> void:
+	化身["红尘子女"] = int(化身.get("红尘子女", 0)) + 1
+	化身["道心"] = int(化身["道心"]) + 1
+	化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 1
+	var 性别: String = "儿" if randf() < 0.5 else "女"
+	_加推演条目("【化身%s·红尘】喜得贵%s，体验为人父母" % [化身["姓名"], 性别], ET_INFO, PRIO_NORMAL, {})
+
+# 红尘一世结束（寿终或意外死亡，化身进入轮回等待状态）
+func _红尘一世结束(化身: Dictionary, 结束原因: String) -> void:
+	# 计算这一世的道心加成
+	var 职业配置: Dictionary = 凡人职业.get(str(化身.get("红尘职业", "")), {})
+	var 职业道心: int = int(职业配置.get("道心加成", 1))
+	var 人生完整度: int = 0
+	if str(化身.get("红尘配偶", "")) != "":
+		人生完整度 += 1
+	if int(化身.get("红尘子女", 0)) > 0:
+		人生完整度 += 1
+	# 意外死亡有额外道心加成（大彻大悟）
+	var 意外加成: int = 0
+	if 结束原因 != "寿终正寝":
+		意外加成 = {"战乱身亡": 5, "疾病身亡": 3, "意外身亡": 2, "仇杀身亡": 4, "殉情身亡": 6}.get(结束原因, 3)
+	var 这一世道心: int = 职业道心 + 人生完整度 + 意外加成
+	# 轮回阅历+1，道心加成递增（第N世 × (1 + N×10%)）
+	var 轮回世: int = int(化身.get("轮回世", 0)) + 1
+	化身["轮回世"] = 轮回世
+	var 递增系数: float = 1.0 + float(轮回世) * 0.1
+	var 实际道心: int = int(这一世道心 * 递增系数)
+	化身["道心"] = int(化身["道心"]) + 实际道心
+	# 记录这一世
+	if not 化身.has("轮回记录"):
+		化身["轮回记录"] = []
+	化身["轮回记录"].append({
+		"世": 轮回世, "职业": 化身.get("红尘职业", ""),
+		"原因": 结束原因, "道心": 实际道心,
+		"配偶": 化身.get("红尘配偶", ""), "子女": 化身.get("红尘子女", 0)
+	})
+	# 生成人生回顾纪事
+	_生成轮回回顾(化身, 结束原因, 实际道心)
+	# 进入轮回等待状态（可选择继续轮回或回归宗门）
+	化身["游历状态"] = "轮回等待"
+	化身["当前位置"] = "轮回之中"
+	_加推演条目("【化身%s】第%d世结束：%s，道心+%d，可选择继续轮回或回归宗门" % [化身["姓名"], 轮回世, 结束原因, 实际道心], ET_BREAKTHROUGH, PRIO_HIGH, {})
+	# 清理这一世的状态（保留轮回世/轮回记录/道心/背包）
+	化身.erase("红尘职业")
+	化身.erase("红尘年龄")
+	化身.erase("红尘寿命")
+	化身.erase("红尘配偶")
+	化身.erase("红尘子女")
+	化身.erase("红尘阅历")
+	化身.erase("红尘入凡日")
+	化身.erase("红尘结束日")
+	化身.erase("红尘事件记录")
+	化身.erase("红尘伤残")
+	化身.erase("红尘蒙冤")
+
+# 继续轮回（开始新的一世）
+func 化身继续轮回(化身ID: int, 新职业: String = "") -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身.get("游历状态", "")) != "轮回等待":
+		return {"成功": false, "原因": "化身不在轮回等待状态"}
+	# 最多轮回9世（九九归一）
+	if int(化身.get("轮回世", 0)) >= 9:
+		return {"成功": false, "原因": "已达九九归一之数，必须回归宗门"}
+	# 选择新职业
+	var 选择职业: String = 新职业 if 新职业 != "" and 凡人职业.has(新职业) else 凡人职业.keys().pick_random()
+	# 开始新的一世
+	化身["游历状态"] = "红尘历练中"
+	化身["红尘职业"] = 选择职业
+	化身["红尘年龄"] = 16
+	化身["红尘寿命"] = 60
+	化身["红尘配偶"] = ""
+	化身["红尘子女"] = 0
+	化身["红尘阅历"] = 0
+	化身["红尘入凡日"] = 累计游戏日
+	化身["红尘结束日"] = 累计游戏日 + 60
+	_加推演条目("【化身%s】第%d世入凡，化身%s，再历红尘" % [化身["姓名"], int(化身.get("轮回世", 0)) + 1, 选择职业], ET_INFO, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "化身%s第%d世入凡，化身%s" % [化身["姓名"], int(化身.get("轮回世", 0)) + 1, 选择职业]}
+
+# 红尘历练回归（结束轮回，携带所得回归宗门）
+func 化身红尘回归(化身ID: int) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身.get("游历状态", "")) != "轮回等待":
+		return {"成功": false, "原因": "化身不在轮回等待状态"}
+	# 回归宗门
+	化身["游历状态"] = "闲置"
+	化身["当前位置"] = "宗门附近"
+	# 资源反哺
+	_化身资源反哺(化身)
+	var 总世: int = int(化身.get("轮回世", 0))
+	var 总道心: int = 0
+	for 记录 in 化身.get("轮回记录", []):
+		总道心 += int(记录.get("道心", 0))
+	_加推演条目("【化身%s】红尘历练圆满回归，历经%d世轮回，累计道心+%d，携所得归来" % [化身["姓名"], 总世, 总道心], ET_BREAKTHROUGH, PRIO_HIGH, {})
+	添加纪事("化身", "红尘圆满", "%s 历经%d世红尘轮回，道心大成，圆满回归" % [化身["姓名"], 总世], 3)
+	# 清理轮回状态
+	化身.erase("轮回世")
+	化身.erase("轮回记录")
+	return {"成功": true, "消息": "化身%s历经%d世轮回，圆满回归，累计道心+%d" % [化身["姓名"], 总世, 总道心]}
+
+# 触发红尘意外（意外死亡/伤残/其他意外）
+func _触发红尘意外(化身: Dictionary) -> void:
+	var 意外类型: float = randf()
+	if 意外类型 < 0.23:
+		# 意外死亡（23%概率：战乱5%+疾病8%+意外5%+仇杀3%+殉情2%）
+		var 死亡类型: float = randf()
+		var 原因: String = "意外身亡"
+		if 死亡类型 < 0.22:
+			原因 = "战乱身亡"
+		elif 死亡类型 < 0.57:
+			原因 = "疾病身亡"
+		elif 死亡类型 < 0.78:
+			原因 = "意外身亡"
+		elif 死亡类型 < 0.91:
+			原因 = "仇杀身亡"
+		else:
+			原因 = "殉情身亡"
+		_加推演条目("【化身%s·红尘意外】%s，这一世结束" % [化身["姓名"], 原因], ET_INFO, PRIO_HIGH, {})
+		_红尘一世结束(化身, 原因)
+	elif 意外类型 < 0.38:
+		# 伤残（15%概率）
+		var 伤残类型: float = randf()
+		var 伤残: String = "重病缠身"
+		if 伤残类型 < 0.33:
+			伤残 = "受伤致残"
+		elif 伤残类型 < 0.87:
+			伤残 = "重病缠身"
+		else:
+			伤残 = "眼盲耳聋"
+		化身["红尘伤残"] = 伤残
+		var 道心加成: int = {"受伤致残": 2, "重病缠身": 1, "眼盲耳聋": 4}.get(伤残, 2)
+		化身["道心"] = int(化身["道心"]) + 道心加成
+		化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 道心加成
+		_加推演条目("【化身%s·红尘意外】%s，体验人间疾苦，道心+%d" % [化身["姓名"], 伤残, 道心加成], ET_INFO, PRIO_NORMAL, {})
+	else:
+		# 其他意外（62%概率）
+		var 其他类型: float = randf()
+		if 其他类型 < 0.20:
+			# 家破人亡
+			化身["背包"]["灵石"] = 0
+			化身["红尘配偶"] = ""
+			化身["红尘子女"] = 0
+			化身["道心"] = int(化身["道心"]) + 3
+			化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 3
+			_加推演条目("【化身%s·红尘意外】家破人亡，体验世态炎凉，道心+3" % 化身["姓名"], ET_INFO, PRIO_NORMAL, {})
+		elif 其他类型 < 0.53:
+			# 破产负债
+			var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+			化身["背包"]["灵石"] = int(当前灵石 * 0.5)
+			化身["道心"] = int(化身["道心"]) + 2
+			化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 2
+			_加推演条目("【化身%s·红尘意外】经商失败，负债累累，道心+2" % 化身["姓名"], ET_INFO, PRIO_NORMAL, {})
+		elif 其他类型 < 0.73:
+			# 妻离子散
+			化身["红尘配偶"] = ""
+			化身["红尘子女"] = 0
+			化身["道心"] = int(化身["道心"]) + 4
+			化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 4
+			_加推演条目("【化身%s·红尘意外】妻离子散，体验亲情可贵，道心+4" % 化身["姓名"], ET_INFO, PRIO_NORMAL, {})
+		else:
+			# 蒙冤入狱
+			化身["红尘蒙冤"] = 10
+			化身["道心"] = int(化身["道心"]) + 5
+			化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + 5
+			_加推演条目("【化身%s·红尘意外】蒙冤入狱，体验人间冤屈，道心+5" % 化身["姓名"], ET_INFO, PRIO_NORMAL, {})
+
+# 生成轮回回顾纪事
+func _生成轮回回顾(化身: Dictionary, 原因: String, 道心: int) -> void:
+	var 职业: String = str(化身.get("红尘职业", ""))
+	var 配偶: String = str(化身.get("红尘配偶", ""))
+	var 子女: int = int(化身.get("红尘子女", 0))
+	var 世: int = int(化身.get("轮回世", 0))
+	var 化身性别: String = str(化身.get("性别", 宗主性别))
+	var 婚娶词: String = "嫁与" if 化身性别 == "女" else "娶妻"
+	var 回顾: String = "第%d世：化身%s，%s。" % [世, 职业, 原因]
+	if 配偶 != "":
+		回顾 += "%s%s，" % [婚娶词, 配偶]
+		if 子女 > 0:
+			回顾 += "育有%d子，" % 子女
+	else:
+		回顾 += "孤身一人，"
+	回顾 += "道心+%d。" % 道心
+	添加纪事("化身", "轮回回顾", 回顾, 1)
+
+# ============ P1：化身系统扩展（红尘抉择+坊市独行+功法传承+人生回顾）============
+
+# P1：红尘抉择事件池（带选择的事件，不同选择影响道心/人脉/奖励）
+const 红尘抉择事件: Array = [
+	{
+		"id": "路见不平", "描述": "路见恶霸欺压百姓，是否出手相助？",
+		"选项": [
+			{"text": "出手相助", "道心": 3, "人脉": 2, "灵石": -100, "描述": "仗义出手，虽损财物但道心大涨"},
+			{"text": "袖手旁观", "道心": -2, "人脉": 0, "灵石": 0, "描述": "明哲保身，但道心有亏"},
+			{"text": "趁火打劫", "道心": -5, "人脉": -1, "灵石": 200, "描述": "趁乱取财，虽得利但道心大损"}
+		]
+	},
+	{
+		"id": "病患求医", "描述": "遇重病患者求医，是否倾力救治？",
+		"选项": [
+			{"text": "倾力救治", "道心": 4, "人脉": 3, "灵石": -200, "描述": "悬壶济世，道心人脉双收"},
+			{"text": "收取诊金", "道心": 1, "人脉": 1, "灵石": 100, "描述": "等价交换，无功无过"},
+			{"text": "拒之门外", "道心": -3, "人脉": -2, "灵石": 0, "描述": "见死不救，道心有亏"}
+		]
+	},
+	{
+		"id": "商机现前", "描述": "发现一桩稳赚不赔的买卖，但需大笔本金",
+		"选项": [
+			{"text": "倾囊投入", "道心": 0, "人脉": 1, "灵石": 500, "描述": "胆识过人，大赚一笔"},
+			{"text": "小额试水", "道心": 0, "人脉": 0, "灵石": 100, "描述": "稳健经营，小赚一笔"},
+			{"text": "放弃机会", "道心": 1, "人脉": 0, "灵石": 0, "描述": "不贪不躁，道心微涨"}
+		]
+	},
+	{
+		"id": "权贵招揽", "描述": "当地权贵招揽你为幕僚，是否答应？",
+		"选项": [
+			{"text": "欣然应允", "道心": -1, "人脉": 3, "灵石": 300, "描述": "攀附权贵，人脉大进但道心有亏"},
+			{"text": "婉言谢绝", "道心": 2, "人脉": 0, "灵石": 0, "描述": "不慕权贵，道心坚定"},
+			{"text": "虚与委蛇", "道心": 0, "人脉": 1, "灵石": 100, "描述": "左右逢源，无功无过"}
+		]
+	},
+	{
+		"id": "故人重逢", "描述": "偶遇昔日故人，对方正遭难处",
+		"选项": [
+			{"text": "倾力相助", "道心": 3, "人脉": 2, "灵石": -150, "描述": "重情重义，道心人脉双收"},
+			{"text": "略尽绵力", "道心": 1, "人脉": 1, "灵石": -50, "描述": "量力而行，无功无过"},
+			{"text": "假装不识", "道心": -3, "人脉": -1, "灵石": 0, "描述": "忘恩负义，道心大损"}
+		]
+	},
+	{
+		"id": "秘籍现世", "描述": "偶然发现一部残缺古籍，似是功法残卷",
+		"选项": [
+			{"text": "潜心研读", "道心": 2, "人脉": 0, "灵石": 0, "功法残卷": 1, "描述": "感悟大道，获得功法残卷"},
+			{"text": "高价售卖", "道心": -1, "人脉": 0, "灵石": 300, "描述": "换得灵石，但错失机缘"},
+			{"text": "赠予有缘人", "道心": 4, "人脉": 2, "灵石": 0, "描述": "成人之美，道心大涨"}
+		]
+	},
+	{
+		"id": "沙场点兵", "描述": "敌军来犯，是否参军御敌？",
+		"选项": [
+			{"text": "奋勇杀敌", "道心": 2, "战力": 20, "灵石": 100, "描述": "保家卫国，战力大涨"},
+			{"text": "运筹帷幄", "道心": 3, "战力": 10, "灵石": 150, "描述": "智谋退敌，道心战力双收"},
+			{"text": "避战南迁", "道心": -2, "战力": 0, "灵石": -50, "描述": "苟且偷生，道心有亏"}
+		]
+	},
+	{
+		"id": "金榜题名", "描述": "科举在即，是否全力备考？",
+		"选项": [
+			{"text": "寒窗苦读", "道心": 3, "人脉": 2, "灵石": -100, "描述": "金榜题名，道心人脉双收"},
+			{"text": "敷衍了事", "道心": 0, "人脉": 0, "灵石": 0, "描述": "名落孙山，无功无过"},
+			{"text": "舞弊投机", "道心": -4, "人脉": 1, "灵石": 200, "描述": "侥幸得中，但道心大损"}
+		]
+	}
+]
+
+# P1：触发红尘抉择事件（带选择，自动选择符合化身性格的选项）
+func _触发红尘抉择(化身: Dictionary) -> void:
+	var 事件: Dictionary = 红尘抉择事件.pick_random()
+	var 性格: String = str(化身.get("性格", ""))
+	# 根据性格自动选择选项（简单AI：正义性格选正义选项，贪婪性格选利益选项）
+	var 选择索引: int = 0
+	if 性格 in ["贪婪", "自私", "狡诈"]:
+		选择索引 = 2  # 倾向利益选项
+	elif 性格 in ["正义", "善良", "仁慈", "刚正"]:
+		选择索引 = 0  # 倾向正义选项
+	else:
+		选择索引 = 1  # 中庸选项
+	var 选项: Dictionary = 事件["选项"][选择索引]
+	# 应用选择效果
+	if 选项.has("道心"):
+		化身["道心"] = int(化身["道心"]) + int(选项["道心"])
+	if 选项.has("人脉"):
+		化身["人脉"] = int(化身["人脉"]) + int(选项["人脉"])
+	if 选项.has("战力"):
+		化身["战力"] = int(化身["战力"]) + int(选项["战力"])
+	if 选项.has("灵石"):
+		var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+		化身["背包"]["灵石"] = 当前灵石 + int(选项["灵石"])
+	if 选项.has("功法残卷"):
+		var 当前残卷: int = int(化身["背包"].get("功法残卷", 0))
+		化身["背包"]["功法残卷"] = 当前残卷 + int(选项["功法残卷"])
+	# 记录事件
+	if not 化身.has("红尘事件记录"):
+		化身["红尘事件记录"] = []
+	化身["红尘事件记录"].append({"事件": 事件["id"], "选择": 选项["text"], "描述": 选项["描述"]})
+	化身["红尘阅历"] = int(化身.get("红尘阅历", 0)) + abs(int(选项.get("道心", 0))) + 1
+	_加推演条目("【化身%s·红尘抉择】%s → %s（%s）" % [化身["姓名"], 事件["描述"], 选项["text"], 选项["描述"]], ET_INFO, PRIO_NORMAL, {})
+
+# P1：坊市独行（化身游历仙城闹市时可低买高卖）
+const 坊市商品: Dictionary = {
+	"灵草": {"买入价": 5, "卖出价": 8, "波动": 0.3},
+	"灵石": {"买入价": 1, "卖出价": 1, "波动": 0.0},
+	"妖兽内丹一阶": {"买入价": 20, "卖出价": 35, "波动": 0.4},
+	"精铁": {"买入价": 15, "卖出价": 25, "波动": 0.35},
+	"灵品灵草": {"买入价": 30, "卖出价": 50, "波动": 0.4},
+	"玉石": {"买入价": 25, "卖出价": 40, "波动": 0.35}
+}
+
+# P1：化身坊市交易（低买高卖，休闲玩法）
+func 化身坊市交易(化身ID: int, 商品: String, 数量: int, 买入: bool = true) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身.get("游历状态", "")) != "游历中" or str(化身.get("游历区域", "")) != "仙城闹市":
+		return {"成功": false, "原因": "化身需在仙城闹市游历中方可交易"}
+	if not 坊市商品.has(商品):
+		return {"成功": false, "原因": "未知商品"}
+	var 商品配置: Dictionary = 坊市商品[商品]
+	var 价格: int = int(商品配置["买入价"] if 买入 else 商品配置["卖出价"])
+	# 价格波动
+	var 波动: float = float(商品配置["波动"])
+	价格 = int(价格 * (1.0 + randf_range(-波动, 波动)))
+	var 总金额: int = 价格 * 数量
+	if 买入:
+		# 买入：消耗灵石，获得商品
+		var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+		if 当前灵石 < 总金额:
+			return {"成功": false, "原因": "化身灵石不足（需%d）" % 总金额}
+		化身["背包"]["灵石"] = 当前灵石 - 总金额
+		var 当前商品: int = int(化身["背包"].get(商品, 0))
+		化身["背包"][商品] = 当前商品 + 数量
+		return {"成功": true, "消息": "买入%d份%s，花费%d灵石" % [数量, 商品, 总金额]}
+	else:
+		# 卖出：消耗商品，获得灵石
+		var 当前商品: int = int(化身["背包"].get(商品, 0))
+		if 当前商品 < 数量:
+			return {"成功": false, "原因": "化身%s不足（仅有%d）" % [商品, 当前商品]}
+		化身["背包"][商品] = 当前商品 - 数量
+		var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+		化身["背包"]["灵石"] = 当前灵石 + 总金额
+		return {"成功": true, "消息": "卖出%d份%s，获得%d灵石" % [数量, 商品, 总金额]}
+
+# P1：化身功法传承（将游历/红尘中获得的功法残卷传承回藏经阁）
+func 化身传承功法(化身ID: int) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	var 残卷数量: int = int(化身["背包"].get("功法残卷", 0))
+	if 残卷数量 <= 0:
+		return {"成功": false, "原因": "化身背包中没有功法残卷"}
+	# 传承到藏经阁（简化：增加悟道点）
+	悟道点 += 残卷数量 * 10
+	化身["背包"]["功法残卷"] = 0
+	_加推演条目("【化身%s】将游历所得功法残卷传承回藏经阁，宗门悟道点+%d" % [化身["姓名"], 残卷数量 * 10], ET_SECT, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "传承%d份功法残卷，宗门悟道点+%d" % [残卷数量, 残卷数量 * 10]}
+
+# P1：生成人生回顾纪事（化身寿终归来时）
+func _生成人生回顾(化身: Dictionary) -> void:
+	var 职业: String = str(化身.get("红尘职业", ""))
+	var 配偶: String = str(化身.get("红尘配偶", ""))
+	var 子女: int = int(化身.get("红尘子女", 0))
+	var 阅历: int = int(化身.get("红尘阅历", 0))
+	var 事件记录: Array = 化身.get("红尘事件记录", [])
+	# 生成人生回顾文本
+	var 回顾: String = "%s化身%s，" % [化身["姓名"], 职业]
+	if 配偶 != "":
+		回顾 += "娶妻%s，" % 配偶
+		if 子女 > 0:
+			回顾 += "育有%d子，" % 子女
+	else:
+		回顾 += "孤身一人，"
+	回顾 += "历经%d件红尘事，" % 事件记录.size()
+	回顾 += "红尘阅历%d点。" % 阅历
+	# 评价
+	if 阅历 >= 30:
+		回顾 += "此生波澜壮阔，看破红尘，道心大成。"
+	elif 阅历 >= 15:
+		回顾 += "此生有苦有乐，感悟颇深，道心精进。"
+	else:
+		回顾 += "此生平淡如水，虽无大起大落，亦有所得。"
+	添加纪事("化身", "人生回顾", 回顾, 2)
+	_加推演条目("【化身%s·人生回顾】%s" % [化身["姓名"], 回顾], ET_INFO, PRIO_NORMAL, {})
+
+# ============ P2：化身系统扩展（宗门客卿+人脉转化）============
+
+# P2：宗门客卿配置（化身可加入他宗做客卿）
+const 客卿宗门: Array = [
+	{"名": "青云宗", "声望": "正道大派", "待遇": 200, "道心要求": 50},
+	{"名": "合欢宗", "声望": "邪道旁门", "待遇": 300, "道心要求": 30},
+	{"名": "万剑门", "声望": "剑道正宗", "待遇": 250, "道心要求": 60},
+	{"名": "百药谷", "声望": "丹道世家", "待遇": 180, "道心要求": 40},
+	{"名": "机关城", "声望": "器道重镇", "待遇": 220, "道心要求": 35}
+]
+
+# P2：化身加入宗门客卿
+func 化身加入客卿(化身ID: int, 宗门名: String) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	if str(化身.get("游历状态", "")) != "闲置":
+		return {"成功": false, "原因": "化身需闲置时方可加入客卿"}
+	# 查找宗门
+	var 目标宗门: Dictionary = {}
+	for 宗 in 客卿宗门:
+		if 宗["名"] == 宗门名:
+			目标宗门 = 宗
+			break
+	if 目标宗门.is_empty():
+		return {"成功": false, "原因": "未知宗门"}
+	# 检查道心要求
+	if int(化身["道心"]) < int(目标宗门["道心要求"]):
+		return {"成功": false, "原因": "道心不足（需%d）" % 目标宗门["道心要求"]}
+	# 加入客卿
+	化身["游历状态"] = "客卿中"
+	化身["客卿宗门"] = 宗门名
+	化身["客卿待遇"] = int(目标宗门["待遇"])
+	化身["客卿结束日"] = 累计游戏日 + 90   # 客卿任期90游戏日
+	_加推演条目("【化身%s】加入%s做客卿，任期90日，月俸%d灵石" % [化身["姓名"], 宗门名, 目标宗门["待遇"]], ET_INFO, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "化身%s已加入%s做客卿" % [化身["姓名"], 宗门名]}
+
+# P2：客卿月度结算
+func _客卿月度结算() -> void:
+	if 化身列表.is_empty():
+		return
+	for 化身 in 化身列表:
+		if str(化身.get("游历状态", "")) != "客卿中":
+			continue
+		# 月俸
+		var 待遇: int = int(化身.get("客卿待遇", 0))
+		var 当前灵石: int = int(化身["背包"].get("灵石", 0))
+		化身["背包"]["灵石"] = 当前灵石 + 待遇
+		# 人脉增长
+		化身["人脉"] = int(化身["人脉"]) + 1
+		# 检查任期结束
+		if 累计游戏日 >= int(化身.get("客卿结束日", 0)):
+			化身["游历状态"] = "闲置"
+			化身["当前位置"] = "宗门附近"
+			_加推演条目("【化身%s】%s客卿任期结束，携所得归来" % [化身["姓名"], 化身.get("客卿宗门", "")], ET_INFO, PRIO_NORMAL, {})
+			化身.erase("客卿宗门")
+			化身.erase("客卿待遇")
+			化身.erase("客卿结束日")
+
+# P2：化身人脉转化为宗门外交关系
+func 化身人脉转化(化身ID: int) -> Dictionary:
+	var 化身: Dictionary = _获取化身(化身ID)
+	if 化身.is_empty():
+		return {"成功": false, "原因": "化身不存在"}
+	var 人脉: int = int(化身.get("人脉", 0))
+	if 人脉 <= 0:
+		return {"成功": false, "原因": "化身无人脉可转化"}
+	# 转化为宗门声望（简化：每10点人脉=1点声望）
+	var 声望增加: int = int(人脉 / 10)
+	声望 += 声望增加
+	化身["人脉"] = 人脉 % 10
+	_加推演条目("【化身%s】将游历人脉转化为宗门声望，宗门声望+%d" % [化身["姓名"], 声望增加], ET_SECT, PRIO_NORMAL, {})
+	return {"成功": true, "消息": "转化%d点人脉，宗门声望+%d" % [人脉, 声望增加]}
+
+# 执行飞升：移出列表、留下传承、入册祖师堂、持续回馈
+
+# 执行飞升：移出列表、留下传承、入册祖师堂、持续回馈
+func _执行飞升(d: Object) -> void:
+	d.飞升 = true
+	# 1. 判定飞升路线：正道飞升（功德≥500）/ 魔道飞升（业力≥500）/ 普通飞升
+	var 路线: String = "普通飞升"
+	var 功德值: int = int(d.功德) if d.功德 != null else 0
+	var 业力值: int = int(d.业力) if d.业力 != null else 0
+	if 功德值 >= 500:
+		路线 = "正道飞升"
+	elif 业力值 >= 500:
+		路线 = "魔道飞升"
+	# 2. 留下传承：功法纳入藏经阁、本命法宝归入宗门、修炼经验化为传承心得
+	var 传承列表: Array = []
+	# 功法传承：弟子已学功法有30%概率纳入藏经阁
+	if d.已学功法 != null and d.已学功法.size() > 0:
+		for 功法 in d.已学功法:
+			if randf() < 0.3:
+				传承列表.append("功法：" + str(功法))
+	# 法宝传承：装备中有50%概率留下本命法宝
+	if d.装备.size() > 0:
+		for 部位 in d.装备.keys():
+			if randf() < 0.5:
+				var 法宝 = d.装备[部位]
+				if 法宝 != null:
+					传承列表.append("法宝：" + str(法宝.名称))
+					宗门库房.append(法宝)
+		d.装备.clear()
+	# 背包/私库归还宗门
+	for it in d.背包:
+		宗门库房.append(it)
+	d.背包.clear()
+	if d.私库.size() > 0:
+		for it in d.私库:
+			宗门库房.append(it)
+		d.私库.clear()
+	# 灵兽归还御兽堂
+	if d.主宠灵兽 != null:
+		var 兽: Beast = d.主宠灵兽
+		d.主宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	if d.副宠灵兽 != null:
+		var 兽: Beast = d.副宠灵兽
+		d.副宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	# 3. 入册祖师堂（轻量存储）
+	祖师堂.append({
+		"弟子ID": d.弟子ID, "姓名": d.姓名, "境界": d.境界,
+		"飞升日": 累计游戏日, "飞升路线": 路线,
+		"传承列表": 传承列表, "功德": 功德值, "业力": 业力值
+	})
+	# 4. 纪事与推演条目
+	if 路线 == "正道飞升":
+		_加推演条目("【%s】功德圆满，九重天劫加身，历劫功成，正道飞升！" % d.姓名, ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": d.姓名})
+		添加纪事("飞升", "正道飞升", "%s 功德圆满，历九重天劫而不灭，白日飞升，位列仙班" % d.姓名, 3)
+	elif 路线 == "魔道飞升":
+		_加推演条目("【%s】以杀证道，业火焚身，历劫功成，魔道飞升！" % d.姓名, ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": d.姓名})
+		添加纪事("飞升", "魔道飞升", "%s 以杀证道，业火焚身而不灭，白日飞升，魔道称尊" % d.姓名, 3)
+	else:
 		_加推演条目("【%s】历劫功成，白日飞升！自此超脱凡尘" % d.姓名, ET_BREAKTHROUGH, PRIO_HIGH, {"弟子": d.姓名})
 		添加纪事("飞升", "白日飞升", "%s 于渡劫之境历劫功成，白日飞升，宗门共贺" % d.姓名, 2)
+	# 5. 传承事件与里程碑
+	if d.身份 == "长老":
+		_传承事件("首位长老飞升")
+	_复检里程碑()
+	_复检成就()
+	# 6. 断链师父离场
+	_断链_师父离场(d.弟子ID)
+	# 7. 从弟子列表移除
+	弟子列表.erase(d)
+	# 8. 飞升回馈：全宗修炼加成（每个飞升弟子+1%，运行时计算）
+	_加推演条目("【祖师堂】%s 飞升后留下传承，宗门气运加持，全宗修炼速度永久+1%%" % d.姓名, ET_SECT, PRIO_NORMAL, {})
+
+# 计算祖师堂气运加成（每个飞升弟子全宗修炼+1%，上限30%）
+func 祖师堂气运加成() -> float:
+	return clamp(float(祖师堂.size()) * 0.01, 0.0, 0.30)
+
+# 祖师堂定期回馈：每30游戏日，飞升弟子有概率送来仙界资源
+func _祖师堂定期回馈() -> void:
+	if 祖师堂.is_empty():
+		return
+	if 累计游戏日 % 30 != 0:
+		return
+	for 祖师 in 祖师堂:
+		if randf() < 0.1:  # 每个飞升弟子10%概率送来资源
+			var 资源类型 = ["灵石", "灵草", "矿石", "丹药"].pick_random()
+			var 数量 = randi_range(10, 50)
+			if 资源类型 == "灵石":
+				灵石 += 数量
+			elif 资源类型 == "灵草":
+				灵草 += 数量
+			elif 资源类型 == "矿石":
+				矿石 += 数量
+			_加推演条目("【祖师堂】%s 自仙界送来%s %d份，感念宗门培育之恩" % [祖师["姓名"], 资源类型, 数量], ET_SECT, PRIO_NORMAL, {})
 
 # §12.3 孕育子嗣（遗传算法：镜像 recruit 流程，父母属性加权遗传 + 小概率突变）
 func _孕育子嗣(父: Object, 母: Object) -> Object:
@@ -9319,13 +12030,26 @@ func _孕育子嗣(父: Object, 母: Object) -> Object:
 func _转世判定(d: Object) -> bool:
 	if d == null:
 		return false
-	# 资格：须有特殊命格（业力深厚者方有轮回之机）
-	if not d.有特殊命格():
+	# 转世概率：按境界分级，高境界弟子转世概率更高
+	# 练气/筑基：1%（需特殊命格）/ 金丹/元婴：5% / 化神/炼虚：10% / 合体/大乘：20% / 渡劫以上：30%
+	var 序: int = Disciple.境界索引(str(d.境界))
+	var 转世概率: float = 0.01
+	if 序 >= Disciple.境界索引("金丹") and 序 < Disciple.境界索引("化神"):
+		转世概率 = 0.05
+	elif 序 >= Disciple.境界索引("化神") and 序 < Disciple.境界索引("合体"):
+		转世概率 = 0.10
+	elif 序 >= Disciple.境界索引("合体") and 序 < Disciple.境界索引("渡劫"):
+		转世概率 = 0.20
+	elif 序 >= Disciple.境界索引("渡劫"):
+		转世概率 = 0.30
+	# 低境界需要特殊命格才能转世
+	if 序 < Disciple.境界索引("金丹") and not d.有特殊命格():
 		return false
-	if randf() >= 0.01:
+	if randf() >= 转世概率:
 		return false
 	# 重生：境界归练气、年龄归少、清空世俗牵连，保留前世记忆与弟子ID
 	var 旧名: String = d.姓名
+	var 旧境界: String = str(d.境界)
 	d.境界 = "练气"
 	d.层数 = 0
 	d.修炼进度 = 0.0
@@ -9337,9 +12061,11 @@ func _转世判定(d: Object) -> bool:
 	d.道侣 = ""
 	d.主目标 = "修成大道"
 	d.目标栈 = [{"目标": "修成大道", "来源": "转世重修", "起始日": 累计游戏日}]
-	d.前世记忆 = "曾为%s，一世修为尽付东流，唯余道心不灭。" % 旧名
+	d.前世记忆 = "曾为%s境修士%s，一世修为尽付东流，唯余道心不灭。" % [旧境界, 旧名]
 	d.状态 = "在宗"
 	d.飞升 = false
+	# 转世保留部分修炼经验：修炼速度加成（前世记忆）
+	d.转世加成 = 0.2  # 转世重修修炼速度+20%
 	_加推演条目("【%s】转世重修！前尘尽忘，唯道心不灭，再踏仙途" % 旧名, ET_INFO, PRIO_HIGH, {"弟子": 旧名})
 	添加纪事("轮回", "转世重修", "%s 身死道消之际转世重修，再入轮回，道心不灭" % 旧名, 2)
 	return true
@@ -9356,6 +12082,8 @@ func _执行方针() -> void:
 		_自动供给丹药()
 	if 方针.get("供给", {}).get("装备自动锻造", false):
 		_自动供给装备()
+	if 方针.get("供给", {}).get("符箓自动绘制", false):
+		_自动供给符箓()
 
 func _方针自动派遣() -> void:
 	if ExpeditionSystem == null:
@@ -9367,6 +12095,13 @@ func _方针自动派遣() -> void:
 			continue
 		if ExpeditionSystem._弟子是否在历练中(int(d.弟子ID)):
 			continue
+		# §4.0 目标驱动：历练意愿（避世/问道 明显少去，复仇/魔道 格外积极）
+		var 派遣目标名: String = Goal.弟子目标(d)
+		var 意愿: float = Goal.历练意愿(派遣目标名)
+		if 意愿 < 1.0 and randf() > 意愿:
+			continue
+		# §4.0 目标驱动：风险偏好与宗门方针各占一半权重 → 战力比门槛
+		var 战力门槛: float = 0.55 + clamp(风险偏好 * 0.55 + Goal.风险偏好(派遣目标名) * 0.45, 0.0, 1.25) * 0.75
 		var 候选: Array = []
 		for 关ID in ExpeditionSystem.关卡库.keys():
 			var 关 = ExpeditionSystem.关卡库[关ID]
@@ -9375,7 +12110,7 @@ func _方针自动派遣() -> void:
 			if not ExpeditionSystem._境界达标(str(d.境界), str(关["解锁境界"])):
 				continue
 			var 战力比: float = float(d.战力) / max(1.0, float(关["推荐战力"]))
-			if 战力比 < (0.6 + 风险偏好 * 0.8):
+			if 战力比 < 战力门槛:
 				continue
 			候选.append(关ID)
 		if 候选.is_empty():
@@ -9391,10 +12126,17 @@ func _方针自动派遣() -> void:
 		if 结果.get("成功", false):
 			_加推演条目("【%s】遵宗门方针，自动前往【%s】历练" % [str(d.姓名), str(ExpeditionSystem.关卡库[选定]["名称"])], ET_INFO, PRIO_TRIVIAL, {"弟子": str(d.姓名)})
 
+## 当前丹堂等级（司职列表 dantang；缺失→1）
+func _丹堂等级() -> int:
+	if 司职列表.has("dantang"):
+		var v = 司职列表["dantang"].get("等级", 1)
+		return int(v) if v != null else 1
+	return 1
+
 func _自动供给丹药() -> void:
 	var 囤积线: int = int(方针.get("供给", {}).get("丹药囤积线", 20))
 	var 现丹: int = 0
-	for it in 仓库:
+	for it in 宗门库房:
 		if it != null and str(it.get("类别", "")) == "丹药":
 			现丹 += 1
 	if 现丹 >= 囤积线:
@@ -9413,7 +12155,7 @@ func _自动供给丹药() -> void:
 func _自动供给装备() -> void:
 	var 囤积线: int = int(方针.get("供给", {}).get("装备囤积线", 10))
 	var 现装: int = 0
-	for it in 仓库:
+	for it in 宗门库房:
 		if it != null and str(it.get("类别", "")) == "装备":
 			现装 += 1
 	if 现装 >= 囤积线:
@@ -9428,6 +12170,26 @@ func _自动供给装备() -> void:
 		if r.get("成功", false):
 			_加推演条目("【器殿】遵宗门方针自动锻造%s" % str(bid), ET_INFO, PRIO_TRIVIAL, {})
 			break
+
+func _自动供给符箓() -> void:
+	var 囤积线: int = int(方针.get("供给", {}).get("符箓囤积线", 10))
+	var 现符: int = 0
+	for it in 宗门库房:
+		if it != null and str(it.get("类别", "")) == "符箓":
+			现符 += 1
+	if 现符 >= 囤积线:
+		return
+	var 符堂等级: int = 1
+	if 司职列表.has("futang"):
+		var v = 司职列表["futang"].get("等级", 1)
+		符堂等级 = int(v) if v != null else 1
+	var 常用: Array = ["tal_001", "tal_002", "tal_003", "tal_004", "tal_005"]
+	for tid in 常用:
+		var r = 执行炼符(tid, 符堂等级)
+		if r.get("成功", false):
+			_加推演条目("【符堂】遵宗门方针自动绘符%s" % str(tid), ET_INFO, PRIO_TRIVIAL, {})
+			break
+
 # ============ §10.1 世界事件引擎（设定3 总开关）+ §5.4 奏折（三国志式）============
 # 推演月内抽取月度事件：L1 静默结算、L2/L3 呈奏折；事件突变触发器接 §4.0 _突变目标。
 func _加载世界事件() -> void:
@@ -9487,14 +12249,29 @@ func 处理事件(事件: Dictionary) -> void:
 	var 层: String = str(事件.get("层", "L1"))
 	var 文本: String = str(事件.get("文本", ""))
 	var 触发: String = str(事件.get("突变触发器", ""))
+	var 事件id: String = str(事件.get("id", ""))
 	var 当事人: Object = _随机在宗弟子()
 	var 名: String = str(当事人.姓名) if 当事人 != null else "宗门"
 	var 正文: String = 文本.replace("%s", 名) if "%s" in 文本 else 文本
 	if 层 == "L1":
 		if 当事人 != null:
 			当事人.履历.append({"事件": 正文, "日": 累计游戏日})
-			if randf() < 0.5:
-				当事人.心境 = min(100, int(当事人.心境) + 2)
+			# 根据事件类型给予不同效果
+			match 事件id:
+				"ev_daily_5", "ev_daily_14", "ev_daily_15":  # 顿悟/道人授法/旧书批注
+					当事人.修炼进度 = min(1.0, 当事人.修炼进度 + 0.05)
+					当事人.心境 = min(100, int(当事人.心境) + 3)
+				"ev_daily_2", "ev_daily_9":  # 膳堂笑谈/切磋
+					当事人.心境 = min(100, int(当事人.心境) + 3)
+				"ev_daily_3", "ev_daily_7", "ev_daily_10":  # 采灵草/灵药成熟/野生灵草
+					灵草 += randi_range(5, 20)
+				"ev_daily_11":  # 坊市淘宝
+					灵石 += randi_range(20, 100)
+				"ev_daily_13":  # 丹成异香
+					灵石 += randi_range(30, 80)
+				_:  # 默认效果
+					if randf() < 0.5:
+						当事人.心境 = min(100, int(当事人.心境) + 2)
 		_加推演条目("【世事】" + 正文, ET_INFO, PRIO_TRIVIAL, {})
 	else:
 		var 选项: Array = _解析选项(str(事件.get("选项", "")))
@@ -9547,13 +12324,1399 @@ func 裁决奏折(索引: int, 选项文本: String) -> void:
 	var 折: Dictionary = 待决奏折[索引]
 	_加推演条目("【裁决·%s】%s" % [str(折.get("提议人", "")), 选项文本], ET_INFO, PRIO_NORMAL, {})
 	待决奏折.remove_at(索引)
+# ——— 异闻日志：宗门自己的因果记录（零依赖，不依赖王朝邸报）———
+# 载体：宗门纪事（纪事分类已含"异闻"）——零新增持久字段、零存档改动。
+# 与王朝邸报的关系：邸报是「世俗朝局」渠道，需王朝开启；本纪事是宗门自身渠道，
+# 任何存档都能记录，二者各自每月至多 1 条，互不阻塞。
+# 玩家读到的是传闻而非数字（文本真源在 Karma）。
+func _记录异闻_S45() -> void:
+	var 本月: int = int(累计游戏日 / 30)
+	# 月度去重：本月已记过异闻则不重复（分境/扁平都受此约束）
+	var 已记本月: bool = false
+	for r in 宗门纪事:
+		var 记: Dictionary = r as Dictionary
+		if str(记.get("分类", "")) != "异闻":
+			continue
+		if int(记.get("游戏日", -1)) / 30 == 本月:
+			已记本月 = true
+			break
+	if 已记本月:
+		return
+	# 大宗门（>=阈值）：按境界分区多条播报，标题带【境界】前缀
+	if 弟子列表.size() >= 异闻分区阈值:
+		var 候: Array = Karma.宗门异闻分区(弟子列表)
+		var 计数: int = 0
+		for c in 候:
+			var 境: String = str(c.get("境界", ""))
+			var 弟子 = c.get("弟子", null)
+			if 弟子 == null:
+				continue
+			var 键: String = "%d|%s|%d" % [本月, 境, int(弟子.弟子ID)]
+			if 异闻分区已播.has(键):
+				continue
+			异闻分区已播[键] = true
+			var 文本: String = str(c.get("文本", ""))
+			if 文本 == "":
+				continue
+			var 名前: String = str(弟子.姓名)
+			if 名前 == "":
+				名前 = "某弟子"
+			添加纪事("异闻", "【%s】%s洞府有异" % [境, 名前], 文本, 2)
+			计数 += 1
+			if 计数 >= 异闻分区月上限:
+				break
+		return
+	# 小宗门：维持旧扁平单条（无【境界】前缀）
+	var 闻: Array = Karma.宗门异闻(弟子列表)
+	if 闻.is_empty():
+		return
+	var 首: Dictionary = 闻[0] as Dictionary
+	var 文本: String = str(首.get("文本", ""))
+	var d = 首.get("弟子", null)
+	if 文本 == "" or d == null:
+		return
+	var 名前: String = str(d.姓名)
+	if 名前 == "":
+		名前 = "某弟子"
+	添加纪事("异闻", "%s洞府有异" % 名前, 文本, 2)
+
+
+# ============ S48：狩猎采药系统（入山采撷·宗主亲为+弟子自动）============
+# 设计铁则：三维度（好玩/修真世界观/玩家操作习惯）+核心玩法（仿真修仙宗门）+文案修真化+手机端流畅
+# 触屏交互：单指点按采集点、拖拽选择区域、长按蓄力（狩猎）
+# 与现有系统联动：炼丹/炼器材料来源、灵兽系统、弟子历练、坊市系统
+
+var 狩猎等级: int = 1          # 宗主狩猎等级（1-10）
+var 采药等级: int = 1          # 宗主采药等级（1-10）
+var 狩猎经验: int = 0          # 狩猎经验
+var 采药经验: int = 0          # 采药经验
+var 今日狩猎次数: int = 0      # 今日狩猎次数（现实日重置）
+var 今日采药次数: int = 0      # 今日采药次数（现实日重置）
+var 狩猎区域列表: Array = []   # 已解锁狩猎区域
+var 采药区域列表: Array = []   # 已解锁采药区域
+
+# 狩猎区域配置（修真世界观：不同区域产出不同妖兽材料）
+const 狩猎区域配置: Array = [
+	{"id": "后山浅林", "名称": "后山浅林", "等级要求": 1, "危险度": 1, "产出": ["妖兽血", "妖兽皮", "妖兽筋骨"], "稀有产出": ["狐火晶"], "描述": "宗门后山的浅林，常见低阶妖兽出没。"},
+	{"id": "黑风山脉", "名称": "黑风山脉", "等级要求": 3, "危险度": 3, "产出": ["妖兽筋骨", "妖兽皮", "狐火晶"], "稀有产出": ["鹏羽"], "描述": "黑风呼啸的山脉，中阶妖兽的栖息地。"},
+	{"id": "万兽深谷", "名称": "万兽深谷", "等级要求": 5, "危险度": 5, "产出": ["鹏羽", "狐火晶", "妖兽筋骨"], "稀有产出": ["麒麟鳞"], "描述": "万兽聚居的深谷，常有高阶妖兽踪迹。"},
+	{"id": "蛮荒古林", "名称": "蛮荒古林", "等级要求": 7, "危险度": 7, "产出": ["麒麟鳞", "鹏羽", "狐火晶"], "稀有产出": ["凤凰羽"], "描述": "蛮荒之地的古老森林，传说有神兽栖息。"},
+	{"id": "九天仙境", "名称": "九天仙境", "等级要求": 9, "危险度": 9, "产出": ["凤凰羽", "麒麟鳞", "鹏羽"], "稀有产出": ["龙鳞"], "描述": "九天之上的仙境，只有大能方可进入。"},
+]
+
+# 采药区域配置
+const 采药区域配置: Array = [
+	{"id": "药圃后山", "名称": "药圃后山", "等级要求": 1, "危险度": 1, "产出": ["凡阶灵草"], "稀有产出": ["百年灵草"], "描述": "宗门药圃后的山坡，常见低阶灵草。"},
+	{"id": "幽谷灵溪", "名称": "幽谷灵溪", "等级要求": 3, "危险度": 2, "产出": ["百年灵草", "凡阶灵草"], "稀有产出": ["三百年灵草"], "描述": "灵气氤氲的幽谷溪流，中阶灵草生长之地。"},
+	{"id": "毒瘴沼泽", "名称": "毒瘴沼泽", "等级要求": 5, "危险度": 5, "产出": ["三百年灵草", "百年灵草"], "稀有产出": ["五百年灵草"], "描述": "毒瘴弥漫的沼泽，珍稀毒草与灵药并存。"},
+	{"id": "万年药谷", "名称": "万年药谷", "等级要求": 7, "危险度": 6, "产出": ["五百年灵草", "三百年灵草"], "稀有产出": ["千年灵草"], "描述": "万年不遇的药谷，高阶灵草遍地。"},
+	{"id": "瑶池仙园", "名称": "瑶池仙园", "等级要求": 9, "危险度": 8, "产出": ["千年灵草", "五百年灵草"], "稀有产出": ["万年灵草"], "描述": "西王母的瑶池仙园，只有仙人可入。"},
+]
+
+## 获取狩猎区域列表（已解锁）
+func 获取狩猎区域列表() -> Array:
+	var 结果: Array = []
+	for 区域 in 狩猎区域配置:
+		if 狩猎等级 >= int(区域["等级要求"]):
+			结果.append(区域)
+	return 结果
+
+## 获取采药区域列表（已解锁）
+func 获取采药区域列表() -> Array:
+	var 结果: Array = []
+	for 区域 in 采药区域配置:
+		if 采药等级 >= int(区域["等级要求"]):
+			结果.append(区域)
+	return 结果
+
+## 宗主亲自狩猎
+func 宗主狩猎(区域ID: String) -> Dictionary:
+	# 查找区域
+	var 目标区域: Dictionary = {}
+	for 区域 in 狩猎区域配置:
+		if str(区域["id"]) == 区域ID:
+			目标区域 = 区域
+			break
+	if 目标区域.is_empty():
+		return {"成功": false, "原因": "未找到该狩猎区域"}
+	if 狩猎等级 < int(目标区域["等级要求"]):
+		return {"成功": false, "原因": "狩猎等级不足，需%d级" % int(目标区域["等级要求"])}
+	# 次数限制（每日10次，修真化：精力有限）
+	if 今日狩猎次数 >= 10:
+		return {"成功": false, "原因": "今日精力已竭，明日再入山狩猎"}
+	今日狩猎次数 += 1
+	# 计算收获（基于狩猎等级和区域危险度）
+	var 基础收获: int = 1 + int(狩猎等级 / 3)
+	var 危险度: int = int(目标区域["危险度"])
+	var 收获列表: Array = []
+	# 普通产出
+	for i in range(基础收获):
+		var 产出列表: Array = 目标区域["产出"]
+		var 材料名: String = str(产出列表[randi() % 产出列表.size()])
+		收获列表.append(材料名)
+		_添加材料到库房(材料名, 1)
+	# 稀有产出（概率=狩猎等级*2%）
+	if randf() < float(狩猎等级) * 0.02:
+		var 稀有列表: Array = 目标区域["稀有产出"]
+		var 稀有材料: String = str(稀有列表[randi() % 稀有列表.size()])
+		收获列表.append(稀有材料)
+		_添加材料到库房(稀有材料, 1)
+	# 增加经验
+	狩猎经验 += 危险度 * 10
+	# 升级判定
+	while 狩猎经验 >= 狩猎等级 * 100:
+		狩猎经验 -= 狩猎等级 * 100
+		狩猎等级 += 1
+		添加纪事("大事件", "狩猎精进", "宗主狩猎技艺提升至%d级" % 狩猎等级, 2)
+	# 意外事件（低概率）
+	var 意外文本: String = ""
+	if randf() < 0.05:
+		意外文本 = "狩猎时偶遇灵兽幼崽，心生怜悯将其放生，积累功德。"
+		功德 += 10
+	elif randf() < 0.03:
+		意外文本 = "狩猎时不慎被妖兽所伤，耗费些许灵力。"
+		# 轻微损失（不扣血，只减经验）
+		狩猎经验 = max(0, 狩猎经验 - 10)
+	添加纪事("庶务", "入山狩猎", "宗主前往%s狩猎，获得%s%s" % [目标区域["名称"], "、".join(收获列表), "。" + 意外文本 if 意外文本 else ""], 1)
+	return {"成功": true, "区域": 目标区域["名称"], "收获": 收获列表, "意外": 意外文本, "狩猎等级": 狩猎等级}
+
+## 宗主亲自采药
+func 宗主采药(区域ID: String) -> Dictionary:
+	var 目标区域: Dictionary = {}
+	for 区域 in 采药区域配置:
+		if str(区域["id"]) == 区域ID:
+			目标区域 = 区域
+			break
+	if 目标区域.is_empty():
+		return {"成功": false, "原因": "未找到该采药区域"}
+	if 采药等级 < int(目标区域["等级要求"]):
+		return {"成功": false, "原因": "采药等级不足，需%d级" % int(目标区域["等级要求"])}
+	if 今日采药次数 >= 10:
+		return {"成功": false, "原因": "今日精力已竭，明日再入山采药"}
+	今日采药次数 += 1
+	var 基础收获: int = 1 + int(采药等级 / 3)
+	var 危险度: int = int(目标区域["危险度"])
+	var 收获列表: Array = []
+	for i in range(基础收获):
+		var 产出列表: Array = 目标区域["产出"]
+		var 材料名: String = str(产出列表[randi() % 产出列表.size()])
+		收获列表.append(材料名)
+		_添加材料到库房(材料名, 1)
+	if randf() < float(采药等级) * 0.02:
+		var 稀有列表: Array = 目标区域["稀有产出"]
+		var 稀有材料: String = str(稀有列表[randi() % 稀有列表.size()])
+		收获列表.append(稀有材料)
+		_添加材料到库房(稀有材料, 1)
+	采药经验 += 危险度 * 10
+	while 采药经验 >= 采药等级 * 100:
+		采药经验 -= 采药等级 * 100
+		采药等级 += 1
+		添加纪事("大事件", "采药精进", "宗主采药技艺提升至%d级" % 采药等级, 2)
+	var 意外文本: String = ""
+	if randf() < 0.05:
+		意外文本 = "采药时发现一株异种灵草，欣喜之余小心翼翼采下。"
+		采药经验 += 20
+	elif randf() < 0.03:
+		意外文本 = "采药时误触毒草，手指微麻，耗费些许灵力化解。"
+		采药经验 = max(0, 采药经验 - 10)
+	添加纪事("庶务", "入山采药", "宗主前往%s采药，获得%s%s" % [目标区域["名称"], "、".join(收获列表), "。" + 意外文本 if 意外文本 else ""], 1)
+	return {"成功": true, "区域": 目标区域["名称"], "收获": 收获列表, "意外": 意外文本, "采药等级": 采药等级}
+
+## 弟子自动狩猎采药（月度推演调用）
+func _弟子自动狩猎采药_S48() -> void:
+	# 每季度，在宗弟子中选择适合的弟子自动狩猎采药
+	# 选择标准：无司职、境界在练气-金丹、性格喜好山林
+	var 狩猎弟子: Array = []
+	var 采药弟子: Array = []
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or str(d.状态) != "在宗":
+			continue
+		if str(d.司职) != "":
+			continue  # 有司职的弟子不参与
+		var 境界序: int = Disciple.境界序.find(str(d.境界))
+		if 境界序 < 0 or 境界序 > 3:  # 练气-金丹
+			continue
+		# 根据性格选择
+		if str(d.性格) in ["好动", "勇敢", "鲁莽"]:
+			狩猎弟子.append(d)
+		elif str(d.性格) in ["细心", "沉稳", "温和"]:
+			采药弟子.append(d)
+	# 狩猎弟子（每季度最多5人）
+	for i in range(min(5, 狩猎弟子.size())):
+		var d = 狩猎弟子[i]
+		var 区域列表: Array = 获取狩猎区域列表()
+		if 区域列表.size() == 0:
+			break
+		var 区域: Dictionary = 区域列表[randi() % 区域列表.size()]
+		var 产出列表: Array = 区域["产出"]
+		var 材料名: String = str(产出列表[randi() % 产出列表.size()])
+		_添加材料到库房(材料名, 1)
+		_加推演条目("%s前往%s狩猎，获得%s" % [d.姓名, 区域["名称"], 材料名], "庶务", "低")
+	# 采药弟子（每季度最多5人）
+	for i in range(min(5, 采药弟子.size())):
+		var d = 采药弟子[i]
+		var 区域列表: Array = 获取采药区域列表()
+		if 区域列表.size() == 0:
+			break
+		var 区域: Dictionary = 区域列表[randi() % 区域列表.size()]
+		var 产出列表: Array = 区域["产出"]
+		var 材料名: String = str(产出列表[randi() % 产出列表.size()])
+		_添加材料到库房(材料名, 1)
+		_加推演条目("%s前往%s采药，获得%s" % [d.姓名, 区域["名称"], 材料名], "庶务", "低")
+
+## 辅助：添加材料到库房
+func _添加材料到库房(材料名: String, 数量: int) -> void:
+	# 查找现有材料
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 材料名:
+			it.数量 += 数量
+			return
+	# 创建新材料
+	var 新材 = Item.new()
+	新材.名称 = 材料名
+	新材.类别 = "材料"
+	新材.数量 = 数量
+	新材.描述 = "狩猎采药获得的%s" % 材料名
+	宗门库房.append(新材)
+
+## 检查材料库存
+func _检查材料库存(材料名: String, 数量: int) -> bool:
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 材料名:
+			return it.数量 >= 数量
+	return false
+
+# ===== S52 弟子休闲行为系统 =====
+# 修真世界观：弟子闲暇时自主参与休闲活动，产出按设置比例上交宗门
+func _弟子休闲行为_S52() -> void:
+	# 每季度，有休闲天赋的弟子自主参与休闲活动
+	var 休闲弟子: Array = []
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or str(d.状态) != "在宗":
+			continue
+		if str(d.休闲天赋) == "无" and str(d.指定休闲) == "":
+			continue  # 无休闲天赋且未指定的弟子不主动参与
+		# 闭关/受伤/突破中的弟子不参与
+		if str(d.状态) != "在宗":
+			continue
+		休闲弟子.append(d)
+	# 每季度最多15人参与休闲（性能控制，专精弟子优先）
+	休闲弟子.sort_custom(func(a, b): return int(a.休闲专精) > int(b.休闲专精))
+	var 参与人数: int = min(15, 休闲弟子.size())
+	for i in range(参与人数):
+		var d = 休闲弟子[i]
+		# S55 P1：优先使用指定休闲，否则使用天赋
+		var 休闲类型: String = str(d.指定休闲) if str(d.指定休闲) != "" else str(d.休闲天赋)
+		# 专精弟子产出+50%
+		var 产出倍率: float = 1.5 if bool(d.休闲专精) else 1.0
+		# 根据休闲类型进行休闲活动
+		match 休闲类型:
+			"钓道":
+				_弟子钓鱼_S52(d, 产出倍率)
+			"酿道":
+				_弟子酿酒_S52(d, 产出倍率)
+			"茶道":
+				_弟子品茶_S52(d, 产出倍率)
+			"琴道":
+				_弟子弹琴_S52(d, 产出倍率)
+			"厨道":
+				_弟子烹饪_S52(d, 产出倍率)
+			"棋道":
+				_弟子弈棋_S52(d, 产出倍率)
+			"画道":
+				_弟子作画_S52(d, 产出倍率)
+		# S55 P1：休闲技能经验升级
+		_提升休闲技能_S55(d, 休闲类型)
+		# S55 P2：休闲奇遇事件（5%概率触发）
+		if randf() < 0.05:
+			_触发休闲奇遇_S55(d, 休闲类型)
+	# S55 P2：师徒休闲传承（每季度，师傅传授休闲技能给徒弟）
+	_师徒休闲传承_S55()
+
+# S55 P2：师徒休闲传承
+func _师徒休闲传承_S55() -> void:
+	# 遍历所有有徒弟的师傅
+	for 师 in 弟子列表:
+		if 师 == null or not (师 is Disciple) or str(师.状态) != "在宗":
+			continue
+		if 师.徒弟列表.size() == 0:
+			continue
+		# 师傅擅长的休闲技能（等级>=3的）
+		var 擅长技能: Array = []
+		for 类型 in ["钓道", "酿道", "茶道", "琴道", "厨道", "棋道", "画道"]:
+			if int(师.休闲技能.get(类型, 0)) >= 3:
+				擅长技能.append(类型)
+		if 擅长技能.size() == 0:
+			continue
+		# 每季度传授1-2个徒弟
+		var 传授数: int = min(2, 师.徒弟列表.size())
+		for i in range(传授数):
+			var 徒ID: int = int(师.徒弟列表[i])
+			var 徒: Disciple = _按ID找弟子(徒ID)
+			if 徒 == null or str(徒.状态) != "在宗":
+				continue
+			# 随机选择一个师傅擅长的技能传授
+			var 传授类型: String = 擅长技能[randi() % 擅长技能.size()]
+			var 师等级: int = int(师.休闲技能.get(传授类型, 0))
+			var 徒等级: int = int(徒.休闲技能.get(传授类型, 0))
+			if 徒等级 >= 师等级:
+				continue  # 徒弟等级不低于师傅，无需传授
+			# 传授经验：师傅等级×10，师徒关系加成
+			var 传授经验: int = 师等级 * 10
+			# 师徒亲密度加成（简化：忠诚越高效果越好）
+			if int(徒.忠诚) >= 80:
+				传授经验 = int(传授经验 * 1.5)
+			徒.休闲经验[传授类型] = int(徒.休闲经验.get(传授类型, 0)) + 传授经验
+			# 30%概率触发深度传承（徒弟直接升一级）
+			if randf() < 0.3 and 徒等级 < 师等级:
+				徒.休闲技能[传授类型] = 徒等级 + 1
+				_加推演条目("%s向徒弟%s深度传承%s技艺，徒弟技艺大进！" % [师.姓名, 徒.姓名, 传授类型], "机缘", "中")
+				添加纪事("休闲", "师徒传承", "%s向%s深度传承%s，徒弟技艺精进。" % [师.姓名, 徒.姓名, 传授类型], 1)
+			else:
+				_加推演条目("%s向徒弟%s传授%s技艺。" % [师.姓名, 徒.姓名, 传授类型], "庶务", "低")
+
+# S55 P2：宗门休闲大赛（每季度举办，钓鱼比赛/品酒大会/琴棋书画大赛）
+var _休闲大赛冷却: int = 0  # 冷却季度数
+func _宗门休闲大赛_S55() -> void:
+	# 每3季度举办一次大赛
+	if _休闲大赛冷却 > 0:
+		_休闲大赛冷却 -= 1
+		return
+	_休闲大赛冷却 = 3
+	# 随机选择大赛类型
+	var 大赛类型: Array = ["钓鱼大赛", "品酒大会", "琴艺大赛", "厨艺大赛", "棋艺大赛", "画艺大赛"]
+	var 类型: String = 大赛类型[randi() % 大赛类型.size()]
+	var 对应技能: Dictionary = {
+		"钓鱼大赛": "钓道",
+		"品酒大会": "酿道",
+		"琴艺大赛": "琴道",
+		"厨艺大赛": "厨道",
+		"棋艺大赛": "棋道",
+		"画艺大赛": "画道",
+	}
+	var 技能类型: String = str(对应技能.get(类型, "钓道"))
+	# 报名弟子（技能等级>=1的在宗弟子）
+	var 报名: Array = []
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or str(d.状态) != "在宗":
+			continue
+		if int(d.休闲技能.get(技能类型, 0)) >= 1:
+			报名.append(d)
+	if 报名.size() < 3:
+		_加推演条目("宗门欲举办%s，但报名弟子不足，赛事取消。" % 类型, "庶务", "低")
+		return
+	# 按技能等级排序（高到低），加入随机因素
+	报名.sort_custom(func(a, b):
+		var 分a: int = int(a.休闲技能.get(技能类型, 0)) * 10 + randi_range(0, 20)
+		var 分b: int = int(b.休闲技能.get(技能类型, 0)) * 10 + randi_range(0, 20)
+		return 分a > 分b
+	)
+	# 前三名
+	var 冠军: Disciple = 报名[0]
+	var 亚军: Disciple = 报名[1] if 报名.size() > 1 else null
+	var 季军: Disciple = 报名[2] if 报名.size() > 2 else null
+	# 奖励
+	var 冠军奖励: int = 500
+	var 亚军奖励: int = 300
+	var 季军奖励: int = 100
+	灵石 -= 冠军奖励 + (亚军奖励 if 亚军 != null else 0) + (季军奖励 if 季军 != null else 0)
+	冠军.贡献点 = int(冠军.贡献点) + 50
+	冠军.忠诚 = min(100, int(冠军.忠诚) + 5)
+	if 亚军 != null:
+		亚军.贡献点 = int(亚军.贡献点) + 30
+		亚军.忠诚 = min(100, int(亚军.忠诚) + 3)
+	if 季军 != null:
+		季军.贡献点 = int(季军.贡献点) + 10
+		季军.忠诚 = min(100, int(季军.忠诚) + 2)
+	# 所有参赛弟子获得参与奖
+	for d in 报名:
+		d.忠诚 = min(100, int(d.忠诚) + 1)
+	# 纪事和推演
+	var 结果: String = "宗门举办%s，%s技压群雄夺得冠军，获灵石%d、贡献点50。" % [类型, 冠军.姓名, 冠军奖励]
+	if 亚军 != null:
+		结果 += "%s获亚军。" % 亚军.姓名
+	if 季军 != null:
+		结果 += "%s获季军。" % 季军.姓名
+	添加纪事("休闲", "宗门大赛", 结果, 2)
+	_加推演条目(结果, "机缘", "高")
+	# 冠军技能经验大增
+	冠军.休闲经验[技能类型] = int(冠军.休闲经验.get(技能类型, 0)) + 200
+
+# S55 P1：休闲技能经验升级（基于经验值，满级10级）
+func _提升休闲技能_S55(d: Disciple, 休闲类型: String) -> void:
+	var 经验: int = int(d.休闲经验.get(休闲类型, 0))
+	var 当前等级: int = int(d.休闲技能.get(休闲类型, 0))
+	if 当前等级 >= 10:
+		return  # 已满级
+	# 升级所需经验：等级×100
+	var 升级所需: int = (当前等级 + 1) * 100
+	if 经验 >= 升级所需:
+		d.休闲技能[休闲类型] = 当前等级 + 1
+		d.休闲经验[休闲类型] = 经验 - 升级所需
+		_加推演条目("%s的%s技艺精进，已达%d级。" % [d.姓名, 休闲类型, 当前等级 + 1], "庶务", "中")
+		# 满级时特殊通知
+		if 当前等级 + 1 >= 10:
+			添加纪事("休闲", "技艺大成", "%s的%s技艺已达化境，堪称一代宗师！" % [d.姓名, 休闲类型], 2)
+
+# S55 P2：弟子休闲奇遇事件（修真小说常见桥段）
+func _触发休闲奇遇_S55(d: Disciple, 休闲类型: String) -> void:
+	var 技能等级: int = int(d.休闲技能.get(休闲类型, 0))
+	match 休闲类型:
+		"钓道":
+			# 钓鱼奇遇：钓到宝箱/古修遗物/灵龟献宝
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 钓到宝箱
+					var 宝箱灵石: int = randi_range(100, 1000) * (1 + int(技能等级 / 3))
+					灵石 += 宝箱灵石
+					添加纪事("休闲", "垂钓奇遇", "%s垂钓时钓得一只古旧宝箱，内藏%d灵石！" % [d.姓名, 宝箱灵石], 2)
+					_加推演条目("%s垂钓奇遇，钓得宝箱，获灵石%d。" % [d.姓名, 宝箱灵石], "机缘", "高")
+				1:
+					# 灵龟献宝
+					var 物品名: String = ["避水珠", "定风珠", "聚灵珠"][randi() % 3]
+					_添加灵材到库房(物品名, "宝阶", "灵龟献宝")
+					添加纪事("休闲", "灵龟献宝", "%s垂钓时遇千年灵龟，灵龟口衔%s相赠。" % [d.姓名, 物品名], 2)
+					_加推演条目("%s遇灵龟献宝，得%s。" % [d.姓名, 物品名], "机缘", "高")
+				2:
+					# 水中悟道
+					d.修炼速度 = float(d.修炼速度) * 1.05
+					添加纪事("休闲", "水中悟道", "%s垂钓时观水面涟漪，忽有所悟，修炼速度永久提升。" % d.姓名, 2)
+					_加推演条目("%s垂钓悟道，修炼速度提升。" % d.姓名, "机缘", "中")
+		"酿道":
+			# 酿酒奇遇：酿出神品/酒仙入梦/灵泉涌现
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 酿出神品
+					_添加灵材到库房("仙酿·瑶池玉液", "圣阶", "弟子神品酿造")
+					添加纪事("休闲", "神品佳酿", "%s酿酒时忽得灵感，酿出一坛瑶池玉液，堪称神品！" % d.姓名, 2)
+					_加推演条目("%s酿出神品佳酿瑶池玉液。" % d.姓名, "机缘", "高")
+				1:
+					# 酒仙入梦
+					d.休闲经验["酿道"] = int(d.休闲经验.get("酿道", 0)) + 500
+					添加纪事("休闲", "酒仙入梦", "%s梦中得酒仙指点，酿道技艺大进。" % d.姓名, 2)
+					_加推演条目("%s梦遇酒仙，酿道精进。" % d.姓名, "机缘", "中")
+				2:
+					# 灵泉涌现
+					灵石 += 500
+					添加纪事("休闲", "灵泉涌现", "%s酿酒时引动地下灵泉，宗门灵石增加500。" % d.姓名, 2)
+					_加推演条目("%s引动灵泉，宗门灵石+500。" % d.姓名, "机缘", "中")
+		"茶道":
+			# 品茶奇遇：茶圣指点/悟道/灵茶化形
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 茶圣指点
+					d.休闲经验["茶道"] = int(d.休闲经验.get("茶道", 0)) + 500
+					添加纪事("休闲", "茶圣指点", "%s品茶时似有茶圣在侧指点，茶道技艺大进。" % d.姓名, 2)
+					_加推演条目("%s得茶圣指点，茶道精进。" % d.姓名, "机缘", "中")
+				1:
+					# 品茶悟道
+					悟道点 += 20
+					添加纪事("休闲", "品茶悟道", "%s品茶时心境澄明，悟得大道，悟道点+20。" % d.姓名, 2)
+					_加推演条目("%s品茶悟道，悟道点+20。" % d.姓名, "机缘", "高")
+				2:
+					# 灵茶化形
+					_添加灵材到库房("悟道仙茶", "宝阶", "灵茶化形")
+					添加纪事("休闲", "灵茶化形", "%s培育的灵茶忽化人形，拜谢后留下一株悟道仙茶。" % d.姓名, 2)
+					_加推演条目("%s培育灵茶化形，得悟道仙茶。" % d.姓名, "机缘", "高")
+		"琴道":
+			# 弹琴奇遇：百鸟朝凤/知音相遇/琴心剑胆
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 百鸟朝凤
+					d.忠诚 = min(100, int(d.忠诚) + 10)
+					添加纪事("休闲", "百鸟朝凤", "%s抚琴一曲，引得百鸟来朝，宗门弟子忠诚提升。" % d.姓名, 2)
+					_加推演条目("%s抚琴引百鸟朝凤，弟子忠诚提升。" % d.姓名, "机缘", "中")
+				1:
+					# 知音相遇
+					添加纪事("休闲", "知音相遇", "%s抚琴时遇知音，二人结为莫逆之交。" % d.姓名, 2)
+					_加推演条目("%s抚琴遇知音。" % d.姓名, "机缘", "中")
+				2:
+					# 琴心剑胆
+					d.修炼速度 = float(d.修炼速度) * 1.03
+					添加纪事("休闲", "琴心剑胆", "%s抚琴时悟得琴心剑胆之境，修炼速度提升。" % d.姓名, 2)
+					_加推演条目("%s悟得琴心剑胆，修炼速度提升。" % d.姓名, "机缘", "中")
+		"厨道":
+			# 烹饪奇遇：食神降临/美食化灵/满汉全席
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 食神降临
+					for 弟子 in 弟子列表:
+						if 弟子 != null and 弟子 is Disciple and str(弟子.状态) == "在宗":
+							弟子.忠诚 = min(100, int(弟子.忠诚) + 5)
+					添加纪事("休闲", "食神降临", "%s烹饪时引得食神降临，全宗弟子品尝美食后忠诚大增。" % d.姓名, 2)
+					_加推演条目("%s烹饪引食神降临，全宗忠诚提升。" % d.姓名, "机缘", "高")
+				1:
+					# 美食化灵
+					_添加灵材到库房("灵食·龙肝凤髓", "宝阶", "美食化灵")
+					添加纪事("休闲", "美食化灵", "%s烹饪的美食忽化灵气，凝成一份龙肝凤髓。" % d.姓名, 2)
+					_加推演条目("%s烹饪美食化灵，得龙肝凤髓。" % d.姓名, "机缘", "高")
+				2:
+					# 厨艺大成
+					d.休闲经验["厨道"] = int(d.休闲经验.get("厨道", 0)) + 500
+					添加纪事("休闲", "厨艺大成", "%s烹饪时忽得灵感，厨艺大进。" % d.姓名, 2)
+					_加推演条目("%s厨艺大成。" % d.姓名, "机缘", "中")
+		"棋道":
+			# 弈棋奇遇：棋仙对弈/棋局悟道/珍珑棋局
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 棋仙对弈
+					d.休闲经验["棋道"] = int(d.休闲经验.get("棋道", 0)) + 500
+					悟道点 += 10
+					添加纪事("休闲", "棋仙对弈", "%s弈棋时遇棋仙下凡对弈，虽败犹荣，棋道与悟性大进。" % d.姓名, 2)
+					_加推演条目("%s遇棋仙对弈，棋道精进，悟道点+10。" % d.姓名, "机缘", "高")
+				1:
+					# 棋局悟道
+					悟道点 += 30
+					添加纪事("休闲", "棋局悟道", "%s弈棋时于棋局中悟得大道，悟道点+30。" % d.姓名, 2)
+					_加推演条目("%s棋局悟道，悟道点+30。" % d.姓名, "机缘", "高")
+				2:
+					# 珍珑棋局
+					添加纪事("休闲", "珍珑棋局", "%s弈棋时摆出珍珑棋局，引来全宗弟子围观参悟。" % d.姓名, 2)
+					_加推演条目("%s摆出珍珑棋局。" % d.姓名, "机缘", "中")
+		"画道":
+			# 作画奇遇：画龙点睛/画中仙/神来之笔
+			var 奇遇: int = randi() % 3
+			match 奇遇:
+				0:
+					# 画龙点睛
+					_添加灵材到库房("神龙图", "圣阶", "画龙点睛")
+					添加纪事("休闲", "画龙点睛", "%s作画时画龙点睛，神龙破壁而出，留下一幅神龙图。" % d.姓名, 2)
+					_加推演条目("%s画龙点睛，得神龙图。" % d.姓名, "机缘", "高")
+				1:
+					# 画中仙
+					添加纪事("休闲", "画中仙", "%s作画时画中走出一位仙子，与论道后翩然离去。" % d.姓名, 2)
+					_加推演条目("%s遇画中仙。" % d.姓名, "机缘", "高")
+				2:
+					# 神来之笔
+					d.休闲经验["画道"] = int(d.休闲经验.get("画道", 0)) + 500
+					添加纪事("休闲", "神来之笔", "%s作画时忽得神来之笔，画道大进。" % d.姓名, 2)
+					_加推演条目("%s得神来之笔，画道精进。" % d.姓名, "机缘", "中")
+
+# 弟子钓鱼（修真世界观：弟子没有宗主的机缘和资源，顶级鱼获极难获得）
+func _弟子钓鱼_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	# 有钓道天赋的弟子每季度钓1-3条鱼（专精+50%）
+	var 钓鱼数: int = int(randi_range(1, 3) * 产出倍率)
+	var 技能等级: int = int(d.休闲技能.get("钓道", 0))
+	var 上交比例: float = float(d.休闲上交比例) / 100.0
+	for i in range(钓鱼数):
+		# 弟子钓鱼品阶限制（避免玩家感情受伤）：
+		# 默认凡阶/灵阶；宝阶需技能≥5且15%概率；王阶需技能≥8且5%概率；圣阶以上基本不可能
+		var 品阶: String = "凡阶"
+		var rp: float = randf()
+		if 技能等级 >= 10 and rp < 0.01:
+			品阶 = "圣阶"  # 技能满级才有1%概率钓到圣阶
+		elif 技能等级 >= 8 and rp < 0.05:
+			品阶 = "王阶"  # 技能8级以上才有5%概率钓到王阶
+		elif 技能等级 >= 5 and rp < 0.15:
+			品阶 = "宝阶"  # 技能5级以上才有15%概率钓到宝阶
+		elif rp < 0.4:
+			品阶 = "灵阶"  # 40%概率灵阶
+		else:
+			品阶 = "凡阶"  # 其余凡阶
+		# 弟子钓不到需要特殊条件的鱼（如龙、鲛人等），只钓普通灵鱼
+		var 鱼名: String = _随机普通鱼名(品阶)
+		# 按设置比例上交宗门，其余自留
+		if randf() < 上交比例:
+			_添加灵材到库房(鱼名, 品阶, "弟子垂钓所得")
+			d.上月休闲产出["钓道"] = str(d.上月休闲产出.get("钓道", "")) + 鱼名 + "、"
+		else:
+			# 自留（简化处理，记录到弟子私库）
+			d.上月休闲产出["钓道_自留"] = int(d.上月休闲产出.get("钓道_自留", 0)) + 1
+	# 增加休闲经验
+	d.休闲经验["钓道"] = int(d.休闲经验.get("钓道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇垂钓，收获颇丰。" % d.姓名, "庶务", "低")
+
+# 弟子酿酒
+func _弟子酿酒_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	var 技能等级: int = int(d.休闲技能.get("酿道", 0))
+	var 酒名: String = _随机酒名(技能等级)
+	var 品阶: String = "凡阶"
+	if 技能等级 >= 3:
+		品阶 = "灵阶"
+	if 技能等级 >= 5:
+		品阶 = "宝阶"
+	var 上交比例: float = float(d.休闲上交比例) / 100.0
+	# 按设置比例上交宗门
+	if randf() < 上交比例:
+		_添加灵材到库房(酒名, 品阶, "弟子酿造")
+		d.上月休闲产出["酿道"] = 酒名
+	else:
+		d.上月休闲产出["酿道_自留"] = 酒名
+	# 增加休闲经验
+	d.休闲经验["酿道"] = int(d.休闲经验.get("酿道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇酿酒，酿得一壶%s。" % [d.姓名, 酒名], "庶务", "低")
+
+# 弟子品茶
+func _弟子品茶_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	# 品茶主要是心境提升，产出较少
+	var 技能等级: int = int(d.休闲技能.get("茶道", 0))
+	# 品茶提升心境，增加修炼速度（临时）
+	d.修炼速度 = float(d.修炼速度) * 1.02
+	# 增加休闲经验
+	d.休闲经验["茶道"] = int(d.休闲经验.get("茶道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇品茶，心境澄明，修炼略有精进。" % d.姓名, "庶务", "低")
+
+# 弟子弹琴
+func _弟子弹琴_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	var 技能等级: int = int(d.休闲技能.get("琴道", 0))
+	# 弹琴有概率遇到知音（结为好友/道侣）
+	if randf() < 0.05 and 技能等级 >= 3:
+		_加推演条目("%s抚琴一曲，遇知音相和，二人结为好友。" % d.姓名, "机缘", "中")
+	# 增加休闲经验
+	d.休闲经验["琴道"] = int(d.休闲经验.get("琴道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇抚琴，琴音袅袅。" % d.姓名, "庶务", "低")
+
+# 弟子烹饪
+func _弟子烹饪_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	var 技能等级: int = int(d.休闲技能.get("厨道", 0))
+	var 菜名: String = _随机菜名(技能等级)
+	var 上交比例: float = float(d.休闲上交比例) / 100.0
+	# 按设置比例上交宗门（提升全宗弟子忠诚）
+	if randf() < 上交比例:
+		# 烹饪美食提升在宗弟子忠诚
+		for 弟子 in 弟子列表:
+			if 弟子 != null and 弟子 is Disciple and str(弟子.状态) == "在宗":
+				弟子.忠诚 = min(100, int(弟子.忠诚) + 1)
+		d.上月休闲产出["厨道"] = 菜名
+	else:
+		d.上月休闲产出["厨道_自留"] = 菜名
+	# 增加休闲经验
+	d.休闲经验["厨道"] = int(d.休闲经验.get("厨道", 0)) + randi_range(10, 30)
+	_加推演条目("%s烹饪美食%s，全宗弟子品尝后皆大欢喜，忠诚提升。" % [d.姓名, 菜名], "庶务", "低")
+
+# 弟子弈棋
+func _弟子弈棋_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	# 弈棋提升悟性
+	var 技能等级: int = int(d.休闲技能.get("棋道", 0))
+	if randf() < 0.2:
+		悟道点 += 5 + 技能等级
+	# 增加休闲经验
+	d.休闲经验["棋道"] = int(d.休闲经验.get("棋道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇弈棋，于棋局中悟得道理，悟道点+%d。" % [d.姓名, 5 + 技能等级], "庶务", "低")
+
+# 弟子作画
+func _弟子作画_S52(d: Disciple, 产出倍率: float = 1.0) -> void:
+	var 技能等级: int = int(d.休闲技能.get("画道", 0))
+	var 画名: String = _随机画名(技能等级)
+	var 品阶: String = "凡阶"
+	if 技能等级 >= 3:
+		品阶 = "灵阶"
+	if 技能等级 >= 5:
+		品阶 = "宝阶"
+	var 上交比例: float = float(d.休闲上交比例) / 100.0
+	if randf() < 上交比例:
+		_添加灵材到库房(画名, 品阶, "弟子画作")
+		d.上月休闲产出["画道"] = 画名
+	else:
+		d.上月休闲产出["画道_自留"] = 画名
+	# 增加休闲经验
+	d.休闲经验["画道"] = int(d.休闲经验.get("画道", 0)) + randi_range(10, 30)
+	_加推演条目("%s闲暇作画，绘得一幅%s。" % [d.姓名, 画名], "庶务", "低")
+
+# 辅助：随机鱼名（弟子用，只有普通灵鱼，没有特殊条件鱼）
+func _随机普通鱼名(品阶: String) -> String:
+	var 鱼名池: Dictionary = {
+		"凡阶": ["灵鲫", "灵鲤", "灵鲢", "灵鲈", "灵鳅", "灵鳝"],
+		"灵阶": ["银鳞鲤", "金背鲫", "灵鳗", "灵鳝", "青鳞鱼", "赤尾鲤"],
+		"宝阶": ["玄甲鲤", "金鳞鲤", "灵龟", "灵鳖", "银龙鱼", "赤龙鱼"],
+		"王阶": ["金睛鲤", "玄水龟", "灵蛟", "碧水鲤", "紫金鳞", "天河鲫"],
+		"圣阶": ["仙鲤", "灵鳌", "神龟", "天鳞鱼", "瑶池鲫", "银河鲤"],
+	}
+	var 池: Array = 鱼名池.get(品阶, ["灵鲫"])
+	return 池[randi() % 池.size()]
+
+# 辅助：随机鱼名（宗主用，包含特殊条件鱼）
+func _随机鱼名(品阶: String) -> String:
+	var 鱼名池: Dictionary = {
+		"凡阶": ["灵鲫", "灵鲤", "灵鲢", "灵鲈"],
+		"灵阶": ["龙鲤", "凤鲤", "灵鳗", "灵鳝"],
+		"宝阶": ["蛟龙幼崽", "玄龟", "灵鲛"],
+		"王阶": ["金睛蛟龙", "北冥玄龟"],
+	}
+	var 池: Array = 鱼名池.get(品阶, ["灵鲫"])
+	return 池[randi() % 池.size()]
+
+# 辅助：随机酒名
+func _随机酒名(技能等级: int) -> String:
+	if 技能等级 >= 5:
+		return ["琼浆玉液", "蟠桃仙酿", "九天仙露"][randi() % 3]
+	elif 技能等级 >= 3:
+		return ["灵泉酿", "百花蜜酒", "松醪春"][randi() % 3]
+	else:
+		return ["米酒", "灵谷酒", "清醪"][randi() % 3]
+
+# 辅助：随机菜名
+func _随机菜名(技能等级: int) -> String:
+	if 技能等级 >= 5:
+		return ["熊掌炙", "龙肝凤髓", "蟠桃宴"][randi() % 3]
+	elif 技能等级 >= 3:
+		return ["灵鱼脍", "百禽羹", "灵米饭"][randi() % 3]
+	else:
+		return ["清炒灵蔬", "灵米粥", "烤鱼"][randi() % 3]
+
+# 辅助：随机画名
+func _随机画名(技能等级: int) -> String:
+	if 技能等级 >= 5:
+		return ["千里江山图", "百鸟朝凤图", "群仙宴饮图"][randi() % 3]
+	elif 技能等级 >= 3:
+		return ["山水图", "花鸟图", "仕女图"][randi() % 3]
+	else:
+		return ["涂鸦", "小品", "速写"][randi() % 3]
+
+# 辅助：添加灵材到库房
+func _添加灵材到库房(名称: String, 品阶: String, 描述: String) -> void:
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 名称:
+			it.数量 += 1
+			return
+	var 新材 = Item.new()
+	新材.名称 = 名称
+	新材.类别 = "ling_cai"
+	新材.品阶 = 品阶
+	新材.数量 = 1
+	新材.描述 = 描述
+	宗门库房.append(新材)
+
+## 消耗材料
+func _消耗材料(材料名: String, 数量: int) -> void:
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 材料名:
+			it.数量 -= 数量
+			if it.数量 <= 0:
+				宗门库房.erase(it)
+			return
+
+
+
+# ============ S49：灵酿酝造系统（仙家美酒·宗主亲酿+宴席外交）============
+var 酿道等级: int = 1
+var 酿道经验: int = 0
+var 今日酿酒次数: int = 0
+var 灵酿列表: Array = []  # 正在发酵的灵酿 [{名称, 配方, 开始日, 完成日}]
+
+const 灵酿配方: Array = [
+	{"id": "培元酒", "名称": "培元酒", "等级要求": 1, "材料": ["凡阶灵草", "灵米"], "发酵日": 30, "效果": "修炼速度+5%（持续90日）", "描述": "培元固本的入门灵酒，适合初入修仙者。"},
+	{"id": "百花酿", "名称": "百花酿", "等级要求": 2, "材料": ["百年灵草", "灵米"], "发酵日": 60, "效果": "弟子忠诚+5（宴席用）", "描述": "以百花灵草酿制，香气馥郁，适合宴席款待。"},
+	{"id": "清心酿", "名称": "清心酿", "等级要求": 3, "材料": ["三百年灵草", "灵米"], "发酵日": 90, "效果": "道心+10", "描述": "清心静神的灵酒，饮之可明心见性。"},
+	{"id": "合欢酒", "名称": "合欢酒", "等级要求": 4, "材料": ["三百年灵草", "百年灵草"], "发酵日": 120, "效果": "外交声望+10（馈赠用）", "描述": "增进情谊的灵酒，外交馈赠佳品。"},
+	{"id": "庆功酒", "名称": "庆功酒", "等级要求": 5, "材料": ["五百年灵草", "三百年灵草"], "发酵日": 150, "效果": "全宗士气+10（持续90日）", "描述": "庆祝大胜的灵酒，饮之士气大振。"},
+	{"id": "琼浆玉液", "名称": "琼浆玉液", "等级要求": 7, "材料": ["千年灵草", "五百年灵草"], "发酵日": 300, "效果": "修炼速度+15%（持续180日）", "描述": "仙家极品灵酒，饮之修为大进。"},
+	{"id": "猴儿酒", "名称": "猴儿酒", "等级要求": 9, "材料": ["万年灵草", "千年灵草"], "发酵日": 600, "效果": "全宗修炼+20%（持续360日）", "描述": "传说中灵猴所酿的绝世美酒，可遇不可求。"},
+]
+
+## 获取可酿造配方列表
+func 获取灵酿配方列表() -> Array:
+	var 结果: Array = []
+	for 配方 in 灵酿配方:
+		if 酿道等级 >= int(配方["等级要求"]):
+			结果.append(配方)
+	return 结果
+
+## 宗主开始酿造灵酿
+func 开始酿造灵酿(配方ID: String) -> Dictionary:
+	var 目标配方: Dictionary = {}
+	for 配方 in 灵酿配方:
+		if str(配方["id"]) == 配方ID:
+			目标配方 = 配方
+			break
+	if 目标配方.is_empty():
+		return {"成功": false, "原因": "未找到该配方"}
+	if 酿道等级 < int(目标配方["等级要求"]):
+		return {"成功": false, "原因": "酿道等级不足，需%d级" % int(目标配方["等级要求"])}
+	if 今日酿酒次数 >= 5:
+		return {"成功": false, "原因": "今日精力已竭，明日再酿"}
+	# 检查材料
+	var 材料列表: Array = 目标配方["材料"]
+	for 材料名 in 材料列表:
+		if not _检查材料库存(str(材料名), 1):
+			return {"成功": false, "原因": "材料不足：%s" % 材料名}
+	# 消耗材料
+	for 材料名 in 材料列表:
+		_消耗材料(str(材料名), 1)
+	今日酿酒次数 += 1
+	# 开始发酵
+	var 发酵日: int = int(目标配方["发酵日"])
+	灵酿列表.append({
+		"名称": 目标配方["名称"],
+		"配方ID": 配方ID,
+		"开始日": 累计游戏日,
+		"完成日": 累计游戏日 + 发酵日,
+		"效果": 目标配方["效果"]
+	})
+	酿道经验 += 10
+	while 酿道经验 >= 酿道等级 * 100:
+		酿道经验 -= 酿道等级 * 100
+		酿道等级 += 1
+	添加纪事("庶务", "酝造灵酿", "宗主开始酝造%s，需%d日方成" % [目标配方["名称"], 发酵日], 1)
+	return {"成功": true, "名称": 目标配方["名称"], "完成日": 累计游戏日 + 发酵日}
+
+## 灵酿月度结算（发酵完成）
+func _灵酿月度结算_S49() -> void:
+	var 完成列表: Array = []
+	for 酿 in 灵酿列表:
+		if 累计游戏日 >= int(酿["完成日"]):
+			完成列表.append(酿)
+	for 酿 in 完成列表:
+		灵酿列表.erase(酿)
+		# 生成灵酿物品
+		var 新酿 = Item.new()
+		新酿.名称 = str(酿["名称"])
+		新酿.类别 = "灵酿"
+		新酿.数量 = 1
+		新酿.描述 = str(酿["效果"])
+		宗门库房.append(新酿)
+		_加推演条目("酝造的%s已成，入库房待用" % 酿["名称"], "庶务", "低")
+
+## 举办灵酿宴席（消耗灵酿，增加弟子忠诚/士气）
+func 举办灵酿宴席(灵酿名称: String) -> Dictionary:
+	var 找到: bool = false
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 灵酿名称 and str(it.类别) == "灵酿":
+			it.数量 -= 1
+			if it.数量 <= 0:
+				宗门库房.erase(it)
+			找到 = true
+			break
+	if not 找到:
+		return {"成功": false, "原因": "库房无此灵酿"}
+	# 增加弟子忠诚和士气
+	for d in 弟子列表:
+		if d != null and d is Disciple and str(d.状态) == "在宗":
+			d.增加忠诚(2)
+	添加纪事("大事件", "灵酿宴席", "宗主以%s宴请全宗，弟子欢欣鼓舞，忠诚提升" % 灵酿名称, 2)
+	return {"成功": true, "效果": "全宗弟子忠诚+2"}
+
+# ============ S52：灵厨系统（仙家美食·灵食制作+临时增益）============
+# 基于灵米/灵草/妖兽材料制作灵食，效果包括临时修炼加成、突破加成、心境提升等
+# 修真世界观：高阶修士辟谷，但灵食仍可辅助修炼、提升心境
+var 厨道等级: int = 1
+var 厨道经验: int = 0
+var 今日烹饪次数: int = 0
+
+const 灵食配方: Array = [
+	{"id": "灵米饭", "名称": "灵米饭", "等级要求": 1, "材料": ["灵米"], "效果": "修炼速度+3%（持续30日）", "描述": "最基础的灵食，以灵米蒸煮而成，灵气充沛。"},
+	{"id": "百草羹", "名称": "百草羹", "等级要求": 2, "材料": ["凡阶灵草", "灵米"], "效果": "突破成功率+5%（持续30日）", "描述": "以百草灵草熬制，可辅助突破瓶颈。"},
+	{"id": "妖兽烤肉", "名称": "妖兽烤肉", "等级要求": 3, "材料": ["妖兽肉", "灵米"], "效果": "战力+5%（持续30日）", "描述": "以妖兽精肉烤制，筋骨强健，战力提升。"},
+	{"id": "清心莲子羹", "名称": "清心莲子羹", "等级要求": 4, "材料": ["百年灵草", "灵米"], "效果": "道心+5，心魔-5", "描述": "清心静神的灵食，可明心见性，驱除心魔。"},
+	{"id": "龙虎金丹汤", "名称": "龙虎金丹汤", "等级要求": 5, "材料": ["三百年灵草", "妖兽内丹"], "效果": "修炼速度+10%（持续60日）", "描述": "以龙虎之精炼制，大补元气，修为精进。"},
+	{"id": "凤髓龙肝", "名称": "凤髓龙肝", "等级要求": 7, "材料": ["五百年灵草", "高阶妖兽内丹"], "效果": "全宗修炼+8%（持续90日）", "描述": "仙家极品灵食，传说可令人脱胎换骨。"},
+	{"id": "蟠桃盛宴", "名称": "蟠桃盛宴", "等级要求": 9, "材料": ["千年灵草", "万年灵草"], "效果": "全宗修炼+15%（持续180日）", "描述": "以仙家蟠桃为主料，可遇不可求的绝世灵食。"},
+]
+
+## 获取可烹饪灵食列表
+func 获取灵食配方列表() -> Array:
+	var 结果: Array = []
+	for 配方 in 灵食配方:
+		if 厨道等级 >= int(配方["等级要求"]):
+			结果.append(配方)
+	return 结果
+
+## 宗主烹饪灵食
+func 烹饪灵食(配方ID: String) -> Dictionary:
+	var 目标配方: Dictionary = {}
+	for 配方 in 灵食配方:
+		if str(配方["id"]) == 配方ID:
+			目标配方 = 配方
+			break
+	if 目标配方.is_empty():
+		return {"成功": false, "原因": "未找到该灵食配方"}
+	if 厨道等级 < int(目标配方["等级要求"]):
+		return {"成功": false, "原因": "厨道等级不足，需%d级" % int(目标配方["等级要求"])}
+	if 今日烹饪次数 >= 5:
+		return {"成功": false, "原因": "今日精力已竭，明日再烹"}
+	# 检查材料
+	for 材料名 in 目标配方["材料"]:
+		var 有材料: bool = false
+		for it in 宗门库房:
+			if it != null and it is Item and str(it.名称) == 材料名 and int(it.数量) > 0:
+				有材料 = true
+				break
+		if not 有材料:
+			return {"成功": false, "原因": "材料不足，缺少%s" % 材料名}
+	# 消耗材料
+	for 材料名 in 目标配方["材料"]:
+		for it in 宗门库房:
+			if it != null and it is Item and str(it.名称) == 材料名 and int(it.数量) > 0:
+				it.数量 -= 1
+				if it.数量 <= 0:
+					宗门库房.erase(it)
+				break
+	今日烹饪次数 += 1
+	# 增加厨道经验
+	厨道经验 += 10
+	if 厨道经验 >= 厨道等级 * 100:
+		厨道经验 = 0
+		厨道等级 += 1
+		添加纪事("庶务", "厨道精进", "宗主厨道精进，升至%d级" % 厨道等级, 1)
+	# 生成灵食物品
+	var 新灵食 = Item.new()
+	新灵食.名称 = str(目标配方["名称"])
+	新灵食.类别 = "灵食"
+	新灵食.数量 = 1
+	新灵食.描述 = str(目标配方["描述"]) + "效果：" + str(目标配方["效果"])
+	宗门库房.append(新灵食)
+	添加纪事("庶务", "烹饪灵食", "宗主烹饪%s，入库房待用" % 目标配方["名称"], 1)
+	return {"成功": true, "灵食": 目标配方["名称"], "效果": 目标配方["效果"]}
+
+## 食用灵食（宗主或弟子食用，获得临时增益）
+func 食用灵食(灵食名称: String, 弟子ID: int = -1) -> Dictionary:
+	var 找到: bool = false
+	var 目标灵食: Item = null
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 灵食名称 and str(it.类别) == "灵食":
+			it.数量 -= 1
+			if it.数量 <= 0:
+				宗门库房.erase(it)
+			找到 = true
+			目标灵食 = it
+			break
+	if not 找到:
+		return {"成功": false, "原因": "库房无此灵食"}
+	# 应用效果（简化：根据名称匹配效果）
+	var 效果文本: String = ""
+	match 灵食名称:
+		"灵米饭":
+			设置气运buff(0.03, 0.0, 30)
+			效果文本 = "修炼速度+3%（30日）"
+		"百草羹":
+			效果文本 = "突破成功率+5%（30日）"
+		"妖兽烤肉":
+			效果文本 = "战力+5%（30日）"
+		"清心莲子羹":
+			效果文本 = "道心+5，心魔-5"
+		"龙虎金丹汤":
+			设置气运buff(0.10, 0.0, 60)
+			效果文本 = "修炼速度+10%（60日）"
+		"凤髓龙肝":
+			设置气运buff(0.08, 0.05, 90)
+			效果文本 = "全宗修炼+8%（90日）"
+		"蟠桃盛宴":
+			设置气运buff(0.15, 0.10, 180)
+			效果文本 = "全宗修炼+15%（180日）"
+	添加纪事("庶务", "食用灵食", "%s食用%s，%s" % ["宗主" if 弟子ID < 0 else "弟子", 灵食名称, 效果文本], 1)
+	return {"成功": true, "效果": 效果文本}
+
+# ============ S53：灵茶系统（仙家茶道·灵茶冲泡+悟道加成）============
+# 基于灵草/灵花制作灵茶，效果包括悟道加成、心境提升、灵感激发
+# 修真世界观：茶道与悟道相通，品茶可明心见性、激发灵感
+var 茶道等级: int = 1
+var 茶道经验: int = 0
+var 今日泡茶次数: int = 0
+
+const 灵茶配方: Array = [
+	{"id": "清心茶", "名称": "清心茶", "等级要求": 1, "材料": ["凡阶灵草"], "效果": "悟道点+5", "描述": "最基础的灵茶，可清心静神。"},
+	{"id": "悟道茶", "名称": "悟道茶", "等级要求": 2, "材料": ["百年灵草"], "效果": "悟道点+15", "描述": "辅助悟道的灵茶，饮之思路清晰。"},
+	{"id": "云雾茶", "名称": "云雾茶", "等级要求": 3, "材料": ["三百年灵草"], "效果": "道心+10", "描述": "生长于高山云雾之中，可明心见性。"},
+	{"id": "忘忧茶", "名称": "忘忧茶", "等级要求": 4, "材料": ["三百年灵草", "百年灵草"], "效果": "心魔-10", "描述": "可驱除心魔、忘却烦忧的灵茶。"},
+	{"id": "灵感茶", "名称": "灵感茶", "等级要求": 5, "材料": ["五百年灵草"], "效果": "顿悟概率+10%（持续90日）", "描述": "激发灵感的灵茶，饮之豁然开朗。"},
+	{"id": "仙露茶", "名称": "仙露茶", "等级要求": 7, "材料": ["千年灵草"], "效果": "悟道点+50，道心+20", "描述": "以仙家仙露冲泡，可遇不可求。"},
+	{"id": "道韵茶", "名称": "道韵茶", "等级要求": 9, "材料": ["万年灵草"], "效果": "全宗悟道+30（持续360日）", "描述": "蕴含大道韵律的绝世灵茶，饮之可近大道。"},
+]
+
+## 获取可冲泡灵茶列表
+func 获取灵茶配方列表() -> Array:
+	var 结果: Array = []
+	for 配方 in 灵茶配方:
+		if 茶道等级 >= int(配方["等级要求"]):
+			结果.append(配方)
+	return 结果
+
+## 宗主冲泡灵茶
+func 冲泡灵茶(配方ID: String) -> Dictionary:
+	var 目标配方: Dictionary = {}
+	for 配方 in 灵茶配方:
+		if str(配方["id"]) == 配方ID:
+			目标配方 = 配方
+			break
+	if 目标配方.is_empty():
+		return {"成功": false, "原因": "未找到该灵茶配方"}
+	if 茶道等级 < int(目标配方["等级要求"]):
+		return {"成功": false, "原因": "茶道等级不足，需%d级" % int(目标配方["等级要求"])}
+	if 今日泡茶次数 >= 5:
+		return {"成功": false, "原因": "今日精力已竭，明日再泡"}
+	# 检查材料
+	for 材料名 in 目标配方["材料"]:
+		var 有材料: bool = false
+		for it in 宗门库房:
+			if it != null and it is Item and str(it.名称) == 材料名 and int(it.数量) > 0:
+				有材料 = true
+				break
+		if not 有材料:
+			return {"成功": false, "原因": "材料不足，缺少%s" % 材料名}
+	# 消耗材料
+	for 材料名 in 目标配方["材料"]:
+		for it in 宗门库房:
+			if it != null and it is Item and str(it.名称) == 材料名 and int(it.数量) > 0:
+				it.数量 -= 1
+				if it.数量 <= 0:
+					宗门库房.erase(it)
+				break
+	今日泡茶次数 += 1
+	# 增加茶道经验
+	茶道经验 += 10
+	if 茶道经验 >= 茶道等级 * 100:
+		茶道经验 = 0
+		茶道等级 += 1
+		添加纪事("庶务", "茶道精进", "宗主茶道精进，升至%d级" % 茶道等级, 1)
+	# 生成灵茶物品
+	var 新灵茶 = Item.new()
+	新灵茶.名称 = str(目标配方["名称"])
+	新灵茶.类别 = "灵茶"
+	新灵茶.数量 = 1
+	新灵茶.描述 = str(目标配方["描述"]) + "效果：" + str(目标配方["效果"])
+	宗门库房.append(新灵茶)
+	添加纪事("庶务", "冲泡灵茶", "宗主冲泡%s，入库房待用" % 目标配方["名称"], 1)
+	return {"成功": true, "灵茶": 目标配方["名称"], "效果": 目标配方["效果"]}
+
+## 品饮灵茶（获得悟道/道心加成）
+func 品饮灵茶(灵茶名称: String) -> Dictionary:
+	var 找到: bool = false
+	for it in 宗门库房:
+		if it != null and it is Item and str(it.名称) == 灵茶名称 and str(it.类别) == "灵茶":
+			it.数量 -= 1
+			if it.数量 <= 0:
+				宗门库房.erase(it)
+			找到 = true
+			break
+	if not 找到:
+		return {"成功": false, "原因": "库房无此灵茶"}
+	# 应用效果
+	var 效果文本: String = ""
+	match 灵茶名称:
+		"清心茶":
+			悟道点 += 5
+			效果文本 = "悟道点+5"
+		"悟道茶":
+			悟道点 += 15
+			效果文本 = "悟道点+15"
+		"云雾茶":
+			效果文本 = "道心+10"
+		"忘忧茶":
+			效果文本 = "心魔-10"
+		"灵感茶":
+			设置气运buff(0.0, 0.0, 90)
+			效果文本 = "顿悟概率+10%（90日）"
+		"仙露茶":
+			悟道点 += 50
+			效果文本 = "悟道点+50，道心+20"
+		"道韵茶":
+			设置气运buff(0.0, 0.10, 360)
+			效果文本 = "全宗悟道+30（360日）"
+	添加纪事("庶务", "品饮灵茶", "宗主品饮%s，%s" % [灵茶名称, 效果文本], 1)
+	return {"成功": true, "效果": 效果文本}
+
+# ============ S50：风水堪舆系统（殿阁布局引灵脉）============
+var 堪舆等级: int = 1
+var 堪舆经验: int = 0
+var 今日堪舆次数: int = 0
+var 风水布局: Dictionary = {}  # {殿阁ID: {位置, 风水评级, 灵眼加成}}
+var 已发现灵眼: Array = []  # 已发现的灵眼位置
+
+const 殿阁列表: Array = [
+	{"id": "lingtian", "名称": "灵田", "基础位置": "东方"},
+	{"id": "kuangmai", "名称": "矿脉", "基础位置": "西方"},
+	{"id": "dantang", "名称": "丹堂", "基础位置": "南方"},
+	{"id": "qitang", "名称": "器堂", "基础位置": "北方"},
+	{"id": "futang", "名称": "符堂", "基础位置": "东南"},
+	{"id": "cangjingge", "名称": "藏经阁", "基础位置": "中央"},
+	{"id": "yushouge", "名称": "御兽阁", "基础位置": "东北"},
+	{"id": "zhentang", "名称": "阵堂", "基础位置": "西南"},
+	{"id": "xunliantang", "名称": "训练堂", "基础位置": "西北"},
+	{"id": "gongxuntang", "名称": "功勋堂", "基础位置": "正南"},
+]
+
+const 风水评级: Array = ["大凶", "凶", "平", "吉", "大吉", "上上大吉"]
+
+## 堪舆宗门地脉（发现灵眼）
+func 堪舆地脉() -> Dictionary:
+	if 今日堪舆次数 >= 3:
+		return {"成功": false, "原因": "今日精力已竭，明日再堪"}
+	今日堪舆次数 += 1
+	# 发现灵眼概率（堪舆等级越高，概率越高）
+	var 发现概率: float = 0.1 + float(堪舆等级) * 0.05
+	var 结果: Dictionary = {"成功": true, "发现灵眼": false, "灵眼位置": ""}
+	if randf() < 发现概率:
+		var 位置列表: Array = ["东方", "西方", "南方", "北方", "中央", "东南", "东北", "西南", "西北"]
+		var 灵眼位置: String = str(位置列表[randi() % 位置列表.size()])
+		if not 已发现灵眼.has(灵眼位置):
+			已发现灵眼.append(灵眼位置)
+			结果["发现灵眼"] = true
+			结果["灵眼位置"] = 灵眼位置
+			添加纪事("大事件", "堪舆得灵眼", "宗主堪舆地脉，在%s发现灵眼一处" % 灵眼位置, 2)
+	堪舆经验 += 10
+	while 堪舆经验 >= 堪舆等级 * 100:
+		堪舆经验 -= 堪舆等级 * 100
+		堪舆等级 += 1
+	return 结果
+
+## 调整殿阁布局（改变风水评级）
+func 调整殿阁布局(殿阁ID: String, 新位置: String) -> Dictionary:
+	var 目标殿阁: Dictionary = {}
+	for 殿阁 in 殿阁列表:
+		if str(殿阁["id"]) == 殿阁ID:
+			目标殿阁 = 殿阁
+			break
+	if 目标殿阁.is_empty():
+		return {"成功": false, "原因": "未找到该殿阁"}
+	# 计算风水评级（灵眼位置+50%概率大吉）
+	var 评级索引: int = 2  # 默认平
+	if 已发现灵眼.has(新位置):
+		评级索引 = 4 if randf() < 0.5 else 3  # 大吉或吉
+	else:
+		评级索引 = randi_range(1, 3)  # 凶/平/吉
+	var 评级: String = 风水评级[评级索引]
+	风水布局[殿阁ID] = {"位置": 新位置, "评级": 评级, "灵眼": 已发现灵眼.has(新位置)}
+	添加纪事("庶务", "调整布局", "将%s移至%s，风水评级：%s" % [目标殿阁["名称"], 新位置, 评级], 1)
+	return {"成功": true, "殿阁": 目标殿阁["名称"], "位置": 新位置, "评级": 评级}
+
+## 获取风水总加成（全宗修炼/产出加成）
+func 获取风水总加成() -> float:
+	var 加成: float = 0.0
+	for 殿阁ID in 风水布局:
+		var 布局: Dictionary = 风水布局[殿阁ID]
+		var 评级: String = str(布局["评级"])
+		match 评级:
+			"大凶": 加成 -= 0.05
+			"凶": 加成 -= 0.02
+			"平": pass
+			"吉": 加成 += 0.02
+			"大吉": 加成 += 0.05
+			"上上大吉": 加成 += 0.1
+	return clamp(加成, -0.2, 0.3)
+
+# ============ S51：音律抚琴系统（抚琴养性引灵潮）============
+var 琴道等级: int = 1
+var 琴道经验: int = 0
+var 今日抚琴次数: int = 0
+var 当前琴曲: String = ""
+var 琴曲熟练度: Dictionary = {}  # {琴曲名: 熟练度}
+
+const 琴曲列表: Array = [
+	{"id": "清心谱", "名称": "清心谱", "等级要求": 1, "效果": "道心+5", "描述": "清心静神的入门琴曲，抚之可平心静气。"},
+	{"id": "引灵曲", "名称": "引灵曲", "等级要求": 2, "效果": "修炼速度+3%（持续90日）", "描述": "引动天地灵气的琴曲，抚之灵气汇聚。"},
+	{"id": "高山流水", "名称": "高山流水", "等级要求": 3, "效果": "弟子好感+5", "描述": "伯牙子期所遗名曲，抚之遇知音。"},
+	{"id": "十面埋伏", "名称": "十面埋伏", "等级要求": 4, "效果": "战斗攻击+5%（持续一场）", "描述": "杀伐之音，抚之士气大振。"},
+	{"id": "广陵散", "名称": "广陵散", "等级要求": 5, "效果": "战斗防御+5%（持续一场）", "描述": "聂政刺韩王所遗曲，慷慨激昂。"},
+	{"id": "梅花三弄", "名称": "梅花三弄", "等级要求": 6, "效果": "道心+15", "描述": "咏梅之曲，抚之心神澄澈。"},
+	{"id": "阳春白雪", "名称": "阳春白雪", "等级要求": 7, "效果": "全宗修炼+5%（持续90日）", "描述": "高雅之曲，抚之如沐春风。"},
+	{"id": "天魔琴音", "名称": "天魔琴音", "等级要求": 9, "效果": "战斗全属性+10%（持续一场）", "描述": "魔道秘曲，抚之天地变色。"},
+]
+
+## 获取可弹奏琴曲列表
+func 获取琴曲列表() -> Array:
+	var 结果: Array = []
+	for 琴曲 in 琴曲列表:
+		if 琴道等级 >= int(琴曲["等级要求"]):
+			结果.append(琴曲)
+	return 结果
+
+## 宗主抚琴
+func 宗主抚琴(琴曲ID: String) -> Dictionary:
+	var 目标琴曲: Dictionary = {}
+	for 琴曲 in 琴曲列表:
+		if str(琴曲["id"]) == 琴曲ID:
+			目标琴曲 = 琴曲
+			break
+	if 目标琴曲.is_empty():
+		return {"成功": false, "原因": "未找到该琴曲"}
+	if 琴道等级 < int(目标琴曲["等级要求"]):
+		return {"成功": false, "原因": "琴道等级不足，需%d级" % int(目标琴曲["等级要求"])}
+	if 今日抚琴次数 >= 5:
+		return {"成功": false, "原因": "今日精力已竭，明日再抚"}
+	今日抚琴次数 += 1
+	当前琴曲 = str(目标琴曲["名称"])
+	# 增加熟练度
+	var 熟练度: int = int(琴曲熟练度.get(琴曲ID, 0))
+	琴曲熟练度[琴曲ID] = 熟练度 + 1
+	# 增加经验
+	琴道经验 += 10
+	while 琴道经验 >= 琴道等级 * 100:
+		琴道经验 -= 琴道等级 * 100
+		琴道等级 += 1
+	# 应用效果
+	var 效果文本: String = str(目标琴曲["效果"])
+	if "道心" in 效果文本:
+		# 宗主道心+（简化处理）
+		pass
+	添加纪事("庶务", "抚琴养性", "宗主弹奏《%s》，%s" % [目标琴曲["名称"], 效果文本], 1)
+	return {"成功": true, "琴曲": 目标琴曲["名称"], "效果": 效果文本, "熟练度": 琴曲熟练度[琴曲ID]}
+
+## 琴道知音奇遇（低概率触发）
+func _琴道知音奇遇_S51() -> void:
+	# S51：琴道知音奇遇，走统一奇遇触发接口（宗主作为Disciple传入）
+	if 宗主 == null:
+		return
+	var 事: Dictionary = _尝试触发奇遇(宗主, "琴道")
+	if not 事.is_empty():
+		# 奇遇已由_尝试触发奇遇统一处理（添加纪事、奖励等）
+		pass
+
+
 func 推演一月(月: int):
 
 	天品突破播报 = ""
+	# S1：季度内容门控——仅在跨越季界时执行经济类季度结算（原月度结算频率过高，改为季度90天）
+	var _当前季界: int = int(累计游戏日 / 90)
+	var _新季界: int = int((累计游戏日 + 月) / 90)
+	var _需月度结算: bool = _新季界 > _当前季界
 	# S2-3：香火/信徒月结产出（原 _结算香火_S1 空桩已实装）
-	_结算香火_S1()
-	# P1-3：体力部分恢复（原 S2-3 每月回满→约束失效；现每日回 60% 上限、封顶，成为有效行动闸门）
-	体力 = min(体力上限(), 体力 + int(体力上限() * 0.6))
+	if _需月度结算:
+		_结算香火_S1()
+	# §6.16 月度家族结算（资源点产出+声望变化+事件随机触发+AI托管）
+	if _需月度结算:
+		月度家族结算()
+	# P1-2 王朝奇观建造推进
+	推进奇观建造_S34(1)
+	# 异闻日志：因果征兆进宗门纪事（零依赖王朝，未开王朝同样记录）
+	if _需月度结算:
+		异闻分区已播.clear()  # 决策#3：月度刷新分境去重键
+		_记录异闻_S45()
+	# 宗门大比/论剑大会（每年举办一次）
+	if _需月度结算:
+		_宗门大比月度推进(月)
+	# 散修来访（月度概率触发）
+	if _需月度结算:
+		_散修来访月度推进(月)
+	# 宗门关系月度推进（好感度自然变化）
+	if _需月度结算:
+		_宗门关系月度推进(月)
+	# 邪修来袭月度推进（概率触发）
+	if _需月度结算:
+		_邪修来袭月度推进(月)
+	# 情劫月度推进（自然化解）
+	if _需月度结算:
+		_情劫月度推进(月)
+	# 辈分/字辈谱系推进（每百年晋升一代）
+	if _需月度结算:
+		_辈分月度推进(月)
+	# 称号系统：月度批量判定弟子称号
+	if _需月度结算:
+		批量判定称号()
+	# 称号系统：月度判定宗主称号
+	if _需月度结算:
+		判定宗主称号()
+	# 护道人系统：月度检查过期
+	if _需月度结算:
+		检查护道人过期()
+	# 占卜冷却递减
+	if 占卜冷却 > 0:
+		占卜冷却 = max(0, 占卜冷却 - int(月 * 30))
+	# 个人灵田月产出
+	if _需月度结算:
+		_灵田月度产出()
+	# 储物袋祭炼推进
+	if _需月度结算:
+		祭炼储物袋月度推进(月)
+	# 月度随机彩蛋（修真小说常见桥段）
+	if _需月度结算:
+		月度随机彩蛋(月)
+	# S56-P1：坊市闲谈月度生成（每月50%概率1-2条）
+	if _需月度结算 and randf() < 0.5:
+		var 闲谈次数: int = randi_range(1, 2)
+		for i in range(闲谈次数):
+			消息系统.随机生成坊市闲谈()
+	# S56-P1：NPC宗门聊天月度触发（每月3-8条）
+	if _需月度结算:
+		var 聊天次数: int = randi_range(3, 8)
+		for i in range(聊天次数):
+			消息系统._生成npc聊天()
+	# S56-P2：天机秘闻月度生成（每月20%概率1条）
+	if _需月度结算 and randf() < 0.2:
+		消息系统.随机生成天机秘闻()
+	# S56-P2：打探冷却递减
+	if 消息系统.打探冷却 > 0:
+		消息系统.打探冷却 = max(0, 消息系统.打探冷却 - int(月 * 30))
+	# S56-P2：卧底情报传回
+	if _需月度结算:
+		消息系统.卧底传回情报()
+	# S57：玩家交易系统每日推进（检查运输到达和被劫）- 集成到商队系统
+	商队系统.玩家交易每日推进()
+	# S59：闭关嘱托系统每日推进（离线代理）
+	闭关嘱托.每日推进()
+	# S48：弟子自动狩猎采药（无司职弟子根据性格自动入山）
+	if _需月度结算:
+		_弟子自动狩猎采药_S48()
+	# S52：弟子休闲行为（有休闲天赋的弟子自主参与休闲活动）
+	if _需月度结算:
+		_弟子休闲行为_S52()
+		# S55 P2：宗门休闲大赛（每3季度举办一次）
+		_宗门休闲大赛_S55()
+	# S54：全服玩家拍卖会推进（每游戏日推进，月度推演批量处理）
+	全服拍卖系统.推进全服拍卖(月 * 30)
+	# S49：灵酿月度结算（发酵完成）
+	if _需月度结算:
+		_灵酿月度结算_S49()
+	# S51：琴道知音奇遇
+	if _需月度结算:
+		_琴道知音奇遇_S51()
+	# 论道系统：悟性增益剩余日递减
+	if _需月度结算:
+		if 论道系统.悟性增益剩余日 > 0:
+			论道系统.悟性增益剩余日 = max(0, 论道系统.悟性增益剩余日 - 30)
+			if 论道系统.悟性增益剩余日 == 0:
+				论道系统.悟性增益幅度 = 0.0
+	# 祭祖大典：每年清明（游戏日第90天）自动举办
+	if _需月度结算:
+		var 当前年日: int = int(累计游戏日) % 360
+		if 当前年日 >= 90 and 当前年日 < 120:  # 清明前后30天内触发一次
+			# 用标记避免重复举办
+			if not has_method("_祭祖大典已举办今年") or not _祭祖大典已举办今年():
+				举办祭祖大典()
+				_标记祭祖大典已举办()
+	# 气运事件：根据气运等级概率触发机缘/灾厄事件
+	if _需月度结算:
+		_气运事件月度触发()
+	# 实时传讯：弟子历练中重大事件触发传讯（每月10%概率）
+	if _需月度结算 and randf() < 0.1:
+		_历练传讯月度触发()
+	# P2 NPC行为模拟：更新NPC状态和位置
+	_更新NPC状态(月 * 30)
+	# P2 NPC行为模拟第二阶段：推进任务进度
+	_推进NPC任务进度(月 * 30)
+	# P0 敌对生态系统：敌对势力月度行动（魔道骚扰/敌对NPC行动/阵营冲突）
+	var 敌对行动: Array = 敌对势力月度行动()
+	for act in 敌对行动:
+		_加推演条目(str(act), "敌对势力", "中")
+	# P1 敌对生态深度系统
+	# P1-1 兽潮事件：月度触发检查
+	var 兽潮结果: Dictionary = 兽潮月度触发检查()
+	if bool(兽潮结果.get("触发", false)):
+		_加推演条目("⚠️ " + str(兽潮结果.get("兽潮", {}).get("名称", "")), "兽潮", "高")
+	# P1-2 敌对NPC月度成长
+	var npc成长: Array = 敌对NPC月度成长()
+	for 成长 in npc成长:
+		_加推演条目(str(成长), "敌对NPC", "低")
+	# P1-4 阵营战争：月度检查/推进
+	if 进行中阵营战争.is_empty():
+		var 阵营战争结果: Dictionary = 阵营战争月度检查()
+		if bool(阵营战争结果.get("触发", false)):
+			_加推演条目("⚔️ 正魔大战爆发！", "阵营战争", "高")
+	else:
+		var 推进结果: Dictionary = 推进阵营战争月度()
+		if bool(推进结果.get("战争结束", false)):
+			_加推演条目(str(推进结果.get("战争结果", "")), "阵营战争", "高")
+	# P2 敌对生态高阶系统
+	# P2-1 势力兴衰：月度检查
+	var 势力兴衰事件: Array = 势力兴衰月度检查()
+	for 事件 in 势力兴衰事件:
+		_加推演条目(str(事件), "势力兴衰", "中")
+	# P2-4 稀有怪物刷新：月度检查/推进
+	if 稀有怪物刷新.is_empty():
+		var 稀有刷新结果: Dictionary = 稀有怪物月度刷新检查()
+		if bool(稀有刷新结果.get("刷新", false)):
+			_加推演条目("🌟 " + str(稀有刷新结果.get("怪物", {}).get("名称", "")) + "出现！", "稀有怪物", "高")
+	else:
+		稀有怪物月度推进()
+	# P1 多种族修炼体系：种族月度推进（妖族化形/魔族心魔/鬼族阴气/龙族龙珠）
+	_种族月度推进()
+	# P0修复：体力系统已移除，改为每日次数自动重置（跨日时检查每日次数字典）
+	# 每日次数在检查时自动重置，无需月度恢复
 	# 招募冷却每日递减
 	if 招募冷却剩余 > 0:
 		招募冷却剩余 = max(0, 招募冷却剩余 - 1)
@@ -9564,35 +13727,168 @@ func 推演一月(月: int):
 		气运到期日= 0
 	# P1：宗门加成统一加法叠加，总上限+100%（：），杜绝乘性无限叠加（境界膨胀根因：
 	var 灵脉加成pct: float = min(门派等级, 10) * 0.02
+	var 气运修炼pct: float = 0.0  # P0-2：分离气运加成，纳入限时增益全局上限
 	if 累计游戏日< 气运到期日:
-		灵脉加成pct += 气运修炼加成
+		气运修炼pct = 气运修炼加成
 	var 负责人修炼pct: float = 汇总负责人全局buff().get("修炼", 0.0)
 	var 藏经阁pct: float = max(0.0, _藏经阁修炼乘区() - 1.0)
 	var 大阵pct: float = max(0.0, _宗门大阵修炼乘区() - 1.0)
-	var 宗门加成pct: float = clamp(灵脉加成pct + 负责人修炼pct + 藏经阁pct + 彩蛋修炼加成() + 大阵pct, 0.0, 1.0)
+	var 血脉共鸣pct: float = max(0.0, 血脉共鸣修炼乘区() - 1.0)  # §6.16 血脉共鸣修炼加成
+	# §6.16 血脉加成：全宗血脉觉醒弟子的平均修炼加成
+	var 血脉pct: float = 0.0
+	var 血脉觉醒数: int = 0
+	var 血脉总加成: float = 0.0
+	var 家族秘宝pct: float = 0.0
+	var 血脉功法pct: float = 0.0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			if d.血脉觉醒:
+				var 血脉加: Dictionary = 计算血脉加成(d)
+				血脉总加成 += float(血脉加.get("修炼加成", 0.0))
+				血脉觉醒数 += 1
+			# 家族秘宝修炼加成
+			if d.家族秘宝 != "":
+				var 秘宝加: Dictionary = 计算家族秘宝加成(d)
+				家族秘宝pct += float(秘宝加.get("修炼加成", 0.0))
+			# 血脉功法修炼加成
+			if not d.血脉功法列表.is_empty():
+				var 血脉功法加: Dictionary = 计算血脉功法加成(d)
+				血脉功法pct += float(血脉功法加.get("修炼加成", 0.0))
+	if 血脉觉醒数 > 0:
+		血脉pct = min(血脉总加成 / float(血脉觉醒数), 0.015)  # 全宗血脉加成上限1.5%
+	家族秘宝pct = min(家族秘宝pct, 0.01)  # 全宗家族秘宝加成上限1%
+	血脉功法pct = min(血脉功法pct, 0.015)  # 全宗血脉功法加成上限1.5%
+	# 家族阵法修炼加成
+	var 家族阵法pct: float = 0.0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗" and d.家族ID != "":
+			var 阵法加: Dictionary = 计算家族阵法加成(d)
+			家族阵法pct += float(阵法加.get("修炼加成", 0.0))
+	家族阵法pct = min(家族阵法pct, 0.01)  # 全宗家族阵法加成上限1%
+	# 家族培养加成（学塾+资源倾斜）
+	var 家族培养pct: float = 0.0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗" and d.家族ID != "":
+			var 培养加: Dictionary = 计算家族培养加成(d)
+			家族培养pct += float(培养加.get("修炼加成", 0.0))
+	家族培养pct = min(家族培养pct, 0.01)  # 全宗家族培养加成上限1%
+	# 家族社交加成（联盟+联姻）
+	var 家族社交pct: float = 0.0
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗" and d.家族ID != "":
+			var 社交加: Dictionary = 计算家族社交加成(d)
+			家族社交pct += float(社交加.get("修炼加成", 0.0))
+	家族社交pct = min(家族社交pct, 0.01)  # 全宗家族社交加成上限1%
+		# P0-2：限时增益单独计算并应用8%全局上限（气运+彩蛋+藏书阁临时）
+	var 限时修炼pct: float = 气运修炼pct + 彩蛋修炼加成() + 获取藏书阁加成()
+	限时修炼pct = 应用限时增益上限(限时修炼pct)
+	# 基础增益（不受限时上限约束）+ 受限的限时增益
+	var 宗门加成pct: float = clamp(灵脉加成pct + 负责人修炼pct + 藏经阁pct + 大阵pct + 血脉共鸣pct + 血脉pct + 家族秘宝pct + 血脉功法pct + 家族阵法pct + 家族培养pct + 家族社交pct + 限时修炼pct, 0.0, 1.0)
 	var 修炼乘区: float = 1.0 + 宗门加成pct
 	# 1. 弟子修炼 / 升层 / 突破 / 月度事件：0层体系双轨播报）
-	_执行方针()
-	抽取月度事件()
+	if _需月度结算:
+		_执行方针()
+		抽取月度事件()
 	var 待坐化: Array[Disciple] = []
 	var 新生儿: Array = []   # §12.3 本月新孕育子嗣（循环内收集，循环外 append 避免遍历中改数组）
+	# S2：宗主独立修炼推进（不进弟子列表，独立推进）
+	if 宗主 != null and 宗主.状态 == "在宗":
+		var 闭关加成: float = 2.0 if 宗主闭关中 else 1.0  # S3：闭关期间修炼速度×2
+		# S58-P2：区域修炼加成
+		var 宗主区域修炼加成: float = 0.0
+		if 世界地图系统 != null:
+			宗主区域修炼加成 = float(世界地图系统.获取当前区域特性().get("修炼加成", 0.0))
+		宗主.推进修炼(float(月) * 闭关加成, 修炼乘区 * (1.0 + 宗主.双修加成) * _修炼风格乘区() * (1.0 + 宗主区域修炼加成), Callable(self, "构建渡劫准备"))
+		# 宗主精力每日恢复（闭关期间恢复更快）
+		var 精力恢复: int = 20 if 宗主闭关中 else 10
+		宗主精力 = min(宗主精力上限, 宗主精力 + 精力恢复)
+		if 宗主闭关中:
+			宗主闭关累计天 += 月
+		# E：宗主寿元检测
+		_检测宗主寿元(月)
 	for d in 弟子列表:
 		var 旧境界: String = d.境界
 		var 旧层数: int = d.层数
-		# 宗主管理系统：突破护法加成（金丹及以上境界突破时：
-		var 护法乘区: float = 1.0
+		# P0修复：突破护法加成正确应用到突破率（原错位乘进修炼速度）
 		if SectManager != null and d.境界 in ["筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]:
 			var 护法加成 = SectManager.获取护法成功率加成(int(d.弟子ID))
 			if 护法加成 > 0:
-				护法乘区 = 1.0 + 护法加成
+				d.临时突破护法加成 = 护法加成
 				SectManager.标记护法已处理(int(d.弟子ID))
 		# P3.2：弟子自主嗑药（拟人行为）——闭关/在宗时按需求自动服用宗门丹药库丹药
 		_弟子自动服用丹药(d)
+		# S34-P0：弟子私库物品自动使用（信息不对称核心乐趣）——先穿装备再服丹药，宗主不可见具体过程
+		d.私库自动使用()
+		# S34-P1：弟子月例发放（按境界发放灵石入私库，职位加成+50%）
+		if _需月度结算:
+			_发放弟子月例_S34(d)
+		# P2性能优化：低境界弟子（练气/筑基）跳过复杂AI行为，只保留基础修炼
+		var _弟子境界序: int = Disciple.境界索引(str(d.境界))
+		if _弟子境界序 > Disciple.境界索引("筑基"):
+			# S34-P1：弟子AI竞拍决策（自主决定是否参与拍卖行竞拍）
+			_弟子AI竞拍决策_S34(d)
+			# S34-P1：弟子委托拍卖（出售不需要的物品，所得入私库）
+			_弟子委托拍卖_S34(d)
 		# §4.0：目标驱动——按状态+性格检查人生目标是否突变（中途改变目标）
 		_检查目标突变(d)
+		# §4.0 目标驱动：叛离判定（目标叛离倾向 × 心境/心魔/道心调制）
+		_检查叛离(d)
+		# P0：低境界弟子道心不稳离去判定（自然消耗机制）
+		_道心不稳离去判定(d)
+		# P2性能优化：低境界弟子（练气）跳过任务/悬赏/功勋复杂AI
+		if _弟子境界序 > Disciple.境界索引("练气"):
+			# S27 宗门任务榜：弟子自主接取 / 主动请命（须在 _弟子月度事件 之前，该函数有 50% 早退）
+			_弟子任务榜月度(d)
+			# S28 宗门悬赏榜：弟子自主接取悬赏
+			_弟子悬赏月度(d)
+			# S28 功勋堂：弟子自主消费个人功勋（同上，须在 50% 早退之前）
+			_弟子兑换月度(d)
 		# §12 人生线：双修/孕育/飞升结算（返回本月新生子嗣，循环外统一入册）
 		新生儿.append_array(_结算弟子人生线(d))
-		d.推进修炼(修炼乘区 * 护法乘区 * (1.0 + d.双修加成) * _修炼风格乘区())
+		# §4.0 目标驱动：修炼投入（守 §4.1 通用增益 ≤25% 红线，见 Goal.修炼增益上限）
+		var 目标修炼: float = Goal.修炼投入(Goal.弟子目标(d))
+		var 弟子行为加成: float = 获取弟子行为修炼加成(d)  # P2 弟子AI行为权重：公共区偏好→修炼加成（上限3%）
+		# S58-P2：区域修炼加成（北域苦寒淬炼+20%、南疆灵气充沛+15%、中州+10%、东西域+5%）
+		var 区域修炼加成: float = 0.0
+		if 世界地图系统 != null:
+			区域修炼加成 = float(世界地图系统.获取当前区域特性().get("修炼加成", 0.0))
+		# 护道人系统：护道人修炼加成
+		var 护道人修炼加成: float = 获取护道人修炼加成(d.弟子ID)
+		# P0联动：宗主传功状态递减
+		var 传功乘区: float = 1.0
+		if d.传功剩余日 > 0:
+			传功乘区 = 1.0 + d.传功加成
+			d.传功剩余日 -= 1
+			if d.传功剩余日 <= 0:
+				d.传功加成 = 0.0
+				d.传功剩余日 = 0
+		# P0优化：灵气消耗机制（弟子修炼消耗灵气，形成资源循环）
+		var 灵气消耗表: Dictionary = {"练气":1, "筑基":3, "金丹":10, "元婴":30, "化神":100, "炼虚":200, "合体":400, "大乘":800, "渡劫":1500, "仙阶":2000, "道阶":3000}
+		var 月灵气消耗: int = int(灵气消耗表.get(d.境界, 1))
+		var 灵气不足惩罚: float = 1.0
+		if 灵气 >= 月灵气消耗:
+			灵气 -= 月灵气消耗
+		else:
+			灵气不足惩罚 = 0.5  # 灵气不足时修炼效率降低50%
+			if randf() < 0.1:  # 10%概率提示，避免刷屏
+				_加推演条目("【灵气】宗门灵气不足，%s修炼受阻，效率减半" % d.姓名, ET_SECT, PRIO_NORMAL, {})
+		# 弟子AI行为决策：大圆满弟子主动决定是否突破（性格驱动+风险评估）
+		if d.层数 >= 10 and d.瓶颈打磨值 >= 1.0 and d.突破冷却剩余 <= 0:
+			if d.AI决定是否突破():
+				# 决定突破：主动准备（服用丹药、请求护法）
+				d.AI主动准备突破()
+			else:
+				# 决定不突破：主动寻机缘（历练/闭关/论道）
+				var 行为: String = d.AI主动寻机缘()
+				if 行为 == "历练" and randf() < 0.3:
+					# 30%概率外出历练寻机缘（简化处理，实际历练由历练系统处理）
+					_加推演条目("【外出寻道】%s自觉突破时机未到，外出游历寻机缘，以求顿悟。" % d.姓名, ET_SECT, PRIO_NORMAL, {})
+		d.推进修炼(float(月), 修炼乘区 * (1.0 + d.双修加成) * _修炼风格乘区() * 目标修炼 * 万仙誓修炼乘区() * (1.0 + 弟子行为加成) * (1.0 + 祖师堂气运加成()) * (1.0 + 区域修炼加成) * (1.0 + 护道人修炼加成) * 传功乘区 * (1.0 + 获取先贤堂修炼加成()) * (1.0 + 获取活动产出加成().get("修炼加成", 0.0)) * (1.0 + 好友系统.获取道友拜访修炼加成()) * 灵气不足惩罚, Callable(self, "构建渡劫准备"))   # P0修复：原参数错位（天数位误传乘区串、乘区位写死1.0）→ 修炼恒推进约1日/次。月=游戏日，直接传月。飞升系统：祖师堂气运加成（每个飞升弟子+1%，上限30%）。护道人系统：护道人修炼加成。P0优化：灵气不足惩罚。P0联动：宗主传功乘区。P1联动：先贤堂修炼加成。P2联动：活动修炼加成。P3联动：道友拜访修炼加成
+		# 护道人系统：日常功德积累
+		护道人日常功德(d)
+		# 技能系统：条件化领悟 + AI自动兑换功法
+		_弟子自动领悟技能(d)
+		_弟子AI自动兑换功法(d)
 		var 新层数: int = d.层数
 		# 突破播报（境界变化= 大事，高优先级）
 		if d.境界 != 旧境界:
@@ -9609,7 +13905,7 @@ func 推演一月(月: int):
 			if d.灵根品阶 == "天品":
 				宗门纪事.append({"日期": 累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "天品", "名称": "天品突破", "文案": 文案表["chronicle_tianpin_breakthrough"] % [d.姓名, d.境界]})
 				设置气运buff(0.02, 0.01, 3)
-				天品突破播报 += "：s】突破至%s\n" % [d.姓名, d.境界]
+				天品突破播报 += "【%s】突破至%s\n" % [d.姓名, d.境界]
 			if d.司职 != "":
 				_注册入堂(d)
 				if d.道途!= "":
@@ -9654,15 +13950,60 @@ func 推演一月(月: int):
 				_加推演条目("【%s】前来请示宗主：%s" % [随机弟子.姓名, 随机请示], ET_INFO, PRIO_NORMAL, {"弟子": 随机弟子.姓名})
 		# 终局机制 P0：寿元坐化——年龄达当前境界寿元上限则标记，循环后统一处理（移：归还+纪事：
 		if d.年龄 >= d.寿元:
+			# 护道人系统：危机救援（寿元将尽时护道人出手救援）
+			if 护道人危机救援(d):
+				_加推演条目("【%s】寿元将尽之际，护道人%s倾力相救，延寿一甲子！" % [d.姓名, 护道人列表.get(d.弟子ID, {}).get("护道人姓名", "")], ET_INFO, PRIO_HIGH, {"弟子": d.姓名})
+				continue  # 救援成功，不加入待坐化
 			if not _转世判定(d):
 				待坐化.append(d)
+		# 突破失败陨落处理（渡劫期及以上突破失败死亡）
+		if str(d.状态) == "陨落":
+			# 天才弟子陨落：留下传承（功法/资源）
+			if str(d.资质) in ["tiancai", "yaonie", "kuangshi"] or int(d.弟子ID) in 天骄弟子ID:
+				_天才陨落传承(d)
+			待坐化.append(d)  # 复用坐化处理逻辑（归还物品+先贤堂入册）
+	# S34-P1：检查关注拍品即将结束提醒
+	_检查关注提醒_S34()
+	# S34-P2：检查并触发特殊拍卖事件
+	_检查特殊事件_S34()
+	# S34-P2：推进特殊事件（减少剩余天数）
+	_推进特殊事件_S34()
 	# §12.5 转世新生儿已就地重生（_转世判定 内部改写 d 并留宗），本月新孕育子嗣统一入册
 	for nd in 新生儿:
 		弟子列表.append(nd)
 	_新手_评估后续()   # 状态型 newbie（弟子层数达标）月内预判
 	# 2. 资源殿阁产出
 	处理坐化(待坐化)   # P0 终局：寿元耗尽弟子离场（灵：装备归还宗门、纪事入册）
+	# P1优化：弟子主动申请洞府（高境界+高贡献弟子自动申请，宗门有空闲洞府则分配）
+	_弟子主动申请洞府()
+	# 飞升系统：检查飞升前兆队列
+	_检查飞升前兆()
+	# 飞升系统：祖师堂定期回馈
+	_祖师堂定期回馈()
+	# 散仙/鬼仙系统：月度结算（寿元消耗+劫数判定）
+	_散仙月度结算()
+	# 身外化身系统：月度结算（游历推进+奇遇触发+资源反哺）
+	_化身月度结算()
+	# 红尘历练系统：月度结算（凡人年龄增长+事件+娶妻生子）
+	_红尘历练月度结算()
+	# P2：客卿月度结算（月俸+人脉+任期）
+	_客卿月度结算()
 	_资源殿阁产出()
+	# P1优化：外门弟子杂役产出
+	var 外门产出: Dictionary = 外门弟子杂役产出()
+	if 外门产出.get("灵石", 0) > 0:
+		添加纪事("庶务", "外门杂役", "外门弟子杂役产出：灵石+%d，灵草+%d，矿石+%d" % [外门产出.get("灵石", 0), 外门产出.get("灵草", 0), 外门产出.get("矿石", 0)], 0)
+	# P2优化：排行榜每周结算（每7游戏日结算一次）
+	var 排行结算: Dictionary = 玄榜系统.每周结算(累计游戏日)
+	if 排行结算.get("已结算", false) and 排行结算.get("排名", 0) > 0:
+		var 排名: int = int(排行结算.get("排名", 0))
+		var 灵石奖: int = int(排行结算.get("灵石", 0))
+		var 声望奖: int = int(排行结算.get("声望", 0))
+		var 称号奖: String = str(排行结算.get("称号", ""))
+		if 称号奖 != "":
+			添加纪事("玄榜", "周榜结算", "玄榜周榜结算：贵宗位列第%d名，获得「%s」称号，灵石+%d，声望+%d" % [排名, 称号奖, 灵石奖, 声望奖], 0)
+		else:
+			添加纪事("玄榜", "周榜结算", "玄榜周榜结算：贵宗位列第%d名，灵石+%d，声望+%d" % [排名, 灵石奖, 声望奖], 0)
 	# P2-12：殿阁产出感知（缓解「产出感知弱」；把本周期殿阁真实产出写入纪事，玩家回看推演日志可见 +N）
 	if _本月灵田产出 > 0 or _本月矿脉产出 > 0 or _本月丹堂产出 > 0 or _本月器殿产出 > 0:
 		添加纪事("庶务", "殿阁产出", "灵田+%d 灵草｜矿脉+%d 矿石｜丹堂+%d｜器殿+%d" % [_本月灵田产出, _本月矿脉产出, _本月丹堂产出, _本月器殿产出], 0)
@@ -9671,9 +14012,13 @@ func 推演一月(月: int):
 	if 司职列表.has("cangjing"):
 		藏经阁等级= int(司职列表["cangjing"].get("等级", 1))
 	var 月产出 = GongFaSystem.计算月产出(藏经阁等级)
+	# 宗主称号全宗悟道加成
+	var 宗主悟道加成: float = 获取宗主称号加成("全宗悟道")
+	if 宗主悟道加成 > 0:
+		月产出 = int(月产出 * (1.0 + 宗主悟道加成))
 	悟道点 += 月产出
 	# 灵气月度产出（基于宗门等：灵脉：
-	var 灵气月产值= 50 + max(0, 门派等级 - 1) * 20
+	var 灵气月产值= 30 + 灵脉等级 * 20  # S1：灵气产出基于灵脉等级（原基于门派等级）
 	灵气 += 灵气月产值
 	_复检里程碑()   # WAVE-D #8：月度复检阈：状态里程碑（声：繁荣/弟子/灵兽/秘境增长：
 	_复检成就()       # S1 ：：月度复检阈值成就（与里程碑同步触发：
@@ -9695,20 +14040,35 @@ func 推演一月(月: int):
 		_加声望(5)
 	# 4. 育英堂常驻自动招收（练气候补）：由原「月：30%」改为「季度触发」，基础概率 + 门派等级缩放
 	#   按本次推演跨越的月份逐月判定，兼容：30/365/7 等不同粒度（度假式快进不漏触发）
-	var 招徒周期: int = _校准("招徒周期", 3)
+	var 招徒周期: int = _校准("招徒周期", 2)  # P1优化：从3月缩短到2月，弥补高突破死亡率
 	var 招徒起月: int = int(累计游戏日/ 30)
 	var 招徒止月: int = int((累计游戏日 + 月) / 30)
 	for 招徒月 in range(招徒起月, 招徒止月):
 		if 招徒月% 招徒周期 != 0:
 			continue
-		var 招徒概率: float = _校准("招徒基础概率", 0.75) + (门派等级 - 1) * _校准("招徒等级缩放", 0.02)
+		var 招徒概率: float = _校准("招徒基础概率", 0.8) + (门派等级 - 1) * _校准("招徒等级缩放", 0.02)  # P1优化：基础概率从0.75提高到0.8
 		招徒概率 = clamp(招徒概率, 0.0, _校准("招徒概率上限", 0.95))
-		if randf() < 招徒概率:
-			var n: int = 1 + (1 if randf() < 0.3 else 0)
+		if randf() < 招徒概率 and not 是否超编():
+			var n: int = 1 + (1 if randf() < 0.4 else 0) + (1 if randf() < 0.1 else 0)  # P1优化：1-3人（40%概率2人，10%概率3人）
 			for i in n:
+				if 是否超编():
+					break
 				var nd := Disciple.new()
 				nd.司职 = "yuying"   # 育英堂候补
+				_分配弟子故乡郡(nd)   # P1-4 弟子-凡间情感绑定：随机分配故乡郡
 				弟子列表.append(nd)
+		# P1优化：超编惩罚（修真世界观：洞府不足、灵气短缺、资源难以为继）
+		if 是否超编():
+			var 超编数: int = 在宗弟子数() - 宗门编制上限()
+			# 灵气短缺：每超编1人，灵气额外消耗
+			灵气 = max(0, 灵气 - 超编数 * 5)
+			# 弟子忠诚下降：超编导致资源紧张，弟子心生不满
+			for d in 弟子列表:
+				if d != null and randf() < 0.1:
+					d.忠诚 = max(0, int(d.忠诚) - 1)
+			# 推演条目通知（每季度一次，避免刷屏）
+			if 招徒起月 % 3 == 0:
+				_加推演条目("【宗门预警】宗门灵脉承载力已达极限，洞府不足、灵气短缺、资源难以为继。当前超编%d人，需提升门派等级、升级灵脉或扩建大阵以增加承载力。" % 超编数, ET_SECT, PRIO_NORMAL, {})
 	# 4.5 随机事件（半年触发，单次赏赐放大 系数 倍；原月度触发已移至此，按跨越月份逐月判定：
 	var 事件周期: int = _校准("随机事件周期", 6)
 	var 事件累计快照: int = 累计游戏日
@@ -9725,16 +14085,26 @@ func 推演一月(月: int):
 	# 6. 更新门派
 	更新门派()
 	# === S1 扩展端口（当前空操作，S1 赛季实现；见 S1-S2功能储备与扩展端口清：md：==
-	_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
-	_结算运维成本_S1()        # D1 宗门运维成本（刚性耗），接：global_cost_rate 阀门
-	_结算负面事件_S1()        # D3 负面影响经济侧（S1-P0 批次三）：negative_event.csv + 经济阀：csv neg_*
-	_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
-	_确保字派_S1()            # S1 ：-B：旧档首次进入自动生成字派序列并持久：
-	_检查正邪解锁_S1()         # S1 ：-C：正邪路线解锁检测（空桩，当前仅读门派等：七载大考标记）
-	_结算大阵耐久_S1()    # S1 ：-A：宗门大阵耐久月度结算（当前空桩，[PLACEHOLDER]：
-	累计游戏日+= 1
+	if _需月度结算:
+		_结算俸禄_S1()            # 俸禄/福利按月发放，扣公库
+		_结算灵米消耗_S1()        # S1：灵米消耗，弟子日常吃食
+		_洞府拥挤惩罚_S1()        # S1：洞府拥挤惩罚
+		_结算运维成本_S1()        # D1 宗门运维成本（刚性耗），接：global_cost_rate 阀门
+		_结算宗门领地_S1()       # S31 宣战/领地战：占领领地按月产出（灵石/声望/灵材）
+		_结算王朝_S34()                    # S34 凡人王朝：国祚涨跌/阶段推进/改朝换代
+		_刷新宣战周期_S32()      # S32 现实周/赛季跨越检测（周结算+守成+赛季结算）
+		_结算负面事件_S1()        # D3 负面影响经济侧（S1-P0 批次三）：negative_event.csv + 经济阀门.csv neg_*
+		_可能触发特殊登门_S1()    # 声望阈值→特殊弟子主动投奔
+		_确保字派_S1()            # S1 ：-B：旧档首次进入自动生成字派序列并持久：
+		_检查正邪解锁_S1()         # S1 ：-C：正邪路线解锁检测（空桩，当前仅读门派等：七载大考标记）
+		_结算大阵耐久_S1()    # S1 ：-A：宗门大阵耐久月度结算（当前空桩，[PLACEHOLDER]：
+	累计游戏日 += 月  # S1：修复离线1/30，按实际推进日数增加
 	# 商队系统：每日更新商队状态，结算返回的商：
 	更新商队状态()
+	# S27 宗门任务榜：到期任务结算（与商队共用月度推演挂点）
+	_结算到期宗门任务()
+	# S28 宗门悬赏榜：到期悬赏结算
+	_结算到期悬赏()
 	# 历练系统：检查并结算到期历练，每日重置日常，：日重置秘：
 	if ExpeditionSystem != null:
 		var 结算列表 = ExpeditionSystem.检查并结算历练()
@@ -9749,28 +14119,83 @@ func 推演一月(月: int):
 					记任务进度("clear_stage")            # 秘境通关（日常 daily_011 · 无参键）
 				else:
 					记任务进度("expedition")              # 野外/境界历练（日常 daily_003）
-				_加推演条目("【历练：s 完成，评：s" % [结果.get("关卡名称",""), 结果.get("评级","")], ET_LOOT, PRIO_NORMAL)
+				_加推演条目("【历练：%s 完成，评：%s】" % [结果.get("关卡名称",""), 结果.get("评级","")], ET_LOOT, PRIO_NORMAL)
 			else:
-				_加推演条目("【历练：s 失败" % 结果.get("关卡名称",""), ET_INFO, PRIO_TRIVIAL)
+				_加推演条目("【历练：%s 失败】" % 结果.get("关卡名称",""), ET_INFO, PRIO_TRIVIAL)
+		# P0-1历练优化：每日触发进行中历练的奇遇事件（玩家可在UI中做选择）
+		ExpeditionSystem.每日触发奇遇()
 		ExpeditionSystem.每日重置()
 		if 累计游戏日% 7 == 0:
 			ExpeditionSystem.每周重置()
 	_宗门集市_日推进(1)     # WAVE-C #7：宗门集市窗口进：退出刷新（仅刷新规则，零经济）
 	_推进差事系统()        # S0：每日刷日常 / ：日刷周常 / 月度随机概率事件
-	# P1：年结周期评分（游戏日= 365 日）；支持单次大跨度推演结算多年
+	# P1：年结周期评分（累计游戏日= 365 日）；支持单次大跨度推演结算多年
 	while (累计游戏日- 上次结算年>= 365):
 		上次结算年+= 365
 		_年结评分()
 # P1：年结评分（：推演一月：365 日边界触发）
+	# ===== 五大系统全面优化：月度自动结算 =====
+	# 拍卖行月度结算
+	if _需月度结算:
+		var _拍卖行结算: Dictionary = 结算拍卖行()
+		if _拍卖行结算.get("结算记录", []).size() > 0:
+			添加纪事("拍卖行", "月度结算", "拍卖行月度结算完成，进行中%d场" % int(_拍卖行结算.get("进行中数量", 0)), 1)
+
+	# 正魔大战赛季进度（每7天一个赛季）
+	if 累计游戏日 % 7 == 0:
+		var _正魔状态: Dictionary = 获取正魔大战状态()
+		添加纪事("正魔大战", "赛季结算", "第%d赛季结算：正道%d战功 vs 魔道%d战功" % [int(_正魔状态.get("赛季", 1)), int(_正魔状态.get("正道战功", 0)), int(_正魔状态.get("魔道战功", 0))], 2)
+
+	# 王朝事件随机触发（10%概率）
+	if randf() < 0.1:
+		var _王朝事件列表: Array = ["科举", "灾荒", "叛乱", "和亲", "商路", "变法", "外敌", "祥瑞"]
+		var _随机事件: String = _王朝事件列表[randi() % _王朝事件列表.size()]
+		触发王朝事件(_随机事件)
+
 func _年结评分():
 
 	var 当前总战力: int = 0
 	for d in 弟子列表:
 		当前总战力+= d.实时战力()
+	# 计算新维度数据
+	var 宗主战力增量: int = 0
+	var 宗主境界提升: int = 0
+	if 宗主 != null:
+		宗主战力增量 = int(宗主.实时战力()) - 年始宗主战力
+		if 年始宗主境界 != "" and str(宗主.境界) != 年始宗主境界:
+			宗主境界提升 = 1
+	# 技艺殿阁等级（丹殿+器殿+符堂等级之和）
+	var 技艺殿阁等级: int = 0
+	if 司职列表.has("dantang"):
+		技艺殿阁等级 += int(司职列表["dantang"].get("等级", 1))
+	if 司职列表.has("qitang"):
+		技艺殿阁等级 += int(司职列表["qitang"].get("等级", 1))
+	if 司职列表.has("futang"):
+		技艺殿阁等级 += int(司职列表["futang"].get("等级", 1))
+	# 高阶产出（宝品及以上丹药/法宝数量，简化为宗门库房中宝品及以上物品数）
+	var 高阶产出: int = 0
+	for item in 宗门库房:
+		if item != null and str(item.get("品阶", "")) in ["宝品", "王品", "圣品", "仙品"]:
+			高阶产出 += 1
+	# 洞府数量（有洞府的弟子数量）
+	var 洞府数量: int = 0
+	var 灵田等级总和: int = 0
+	for d in 弟子列表:
+		if d != null:
+			if "洞府等级" in d and int(d.洞府等级) > 0:
+				洞府数量 += 1
+			if "个人灵田等级" in d:
+				灵田等级总和 += int(d.个人灵田等级)
 	var 局: Dictionary = 周期评分.结算(门派等级, {
 		"资源产能": 预估月产出,
 		"灵石增量": 灵石 - 年始灵石,
 		"总战力增量": 当前总战力 - 年始总战力,
+		"宗主战力增量": 宗主战力增量,
+		"宗主境界提升": 宗主境界提升,
+		"技艺殿阁等级": 技艺殿阁等级,
+		"高阶产出": 高阶产出,
+		"洞府数量": 洞府数量,
+		"灵田等级": 灵田等级总和,
 	})
 	var 评级级: String = 局["评级"]
 	var 评级: Dictionary = _发放周期赏赐(评级级)
@@ -9784,6 +14209,9 @@ func _年结评分():
 		"文案": "岁末考评裁定 %sbs" % [评级级, 岁末评语], "category": "日常庶务"})
 	年始灵石 = 灵石
 	年始总战力= 当前总战力
+	if 宗主 != null:
+		年始宗主战力 = int(宗主.实时战力())
+		年始宗主境界 = str(宗主.境界)
 	# 七载双周期：：2555 日（7×365）边界触发七载大考集中结：
 	if _校准开("双周期评级启用", true):
 		var 七载周期年: int = _校准("七载周期年", 7) * 365
@@ -9818,11 +14246,126 @@ func _发放周期赏赐(评级: String) -> Dictionary:
 	_加推演条目(文案表["deduce_year_end_eval"] % [评级, 年度发, 入池], ET_SECT, PRIO_NORMAL, {})
 	if 入池 > 0:
 		七载赏赐池+= 入池
+	# 修真味奖励：根据评级赐予丹药、功法等（B级及以上才有）
+	_评级修真赏赐(评级)
 	if 等级平移 and not 弟子列表.is_empty():
 		var 物: Item = _造低阶物品("fabao", "上品")
 		七载待发掉落.append({"类型": 物.类别, "品阶": 物.品阶, "名称": 物.名称})
 		_加推演条目("【宗门】评：%s，上品法宝：%s】" % [评级, 物.名称], ET_LOOT, PRIO_HIGH, {})
 	return {"年度发": 年度发, "入池": 入池, "平移法宝": 等级平移}
+
+## 评级修真赏赐（B级及以上赐予丹药、功法等修真味奖励）
+func _评级修真赏赐(评级: String) -> void:
+	var 评级序: Array = ["D", "C", "B", "A", "A+", "S", "SS", "SSS"]
+	if not 评级序.has(评级):
+		return
+	var 评级索引: int = 评级序.find(评级)
+	# B级及以上才赐丹药
+	if 评级索引 >= 2:
+		var 丹药数: int = 评级索引 - 1  # B=1, A=2, A+=3, S=4...
+		var 丹药品阶: String = "凡品"
+		if 评级索引 >= 4:  # A+及以上
+			丹药品阶 = "灵品"
+		if 评级索引 >= 6:  # SS及以上
+			丹药品阶 = "宝品"
+		for i in range(丹药数):
+			var 丹: Item = _造低阶物品("dan", 丹药品阶)
+			宗门库房.append(丹)
+		_加推演条目("【宗门】岁末考评%s，赐%s丹药%d枚，入宗门库房。" % [获取评级修真名(评级), 丹药品阶, 丹药数], ET_LOOT, PRIO_NORMAL, {})
+	# A级及以上赐功法残卷
+	if 评级索引 >= 3:
+		var 功法数: int = 1
+		if 评级索引 >= 5:  # S及以上
+			功法数 = 2
+		for i in range(功法数):
+			var 功: Item = _造低阶物品("gongfa", "凡阶")
+			宗门库房.append(功)
+		_加推演条目("【宗门】岁末考评%s，赐功法残卷%d卷，入藏经阁。" % [获取评级修真名(评级), 功法数], ET_LOOT, PRIO_HIGH, {})
+	# S级及以上赐灵脉淬炼（直接赐予灵气）
+	if 评级索引 >= 5:
+		var 灵气赐: int = 100 * (评级索引 - 4)  # S=100, SS=200, SSS=300
+		灵气 += 灵气赐
+		_加推演条目("【宗门】岁末考评%s，灵脉得天地灵气滋养，灵气+%d。" % [获取评级修真名(评级), 灵气赐], ET_SECT, PRIO_HIGH, {})
+
+## 计算当前年度预估评级（用于UI实时显示）
+func 获取当前预估评级() -> Dictionary:
+	var 当前总战力: int = 0
+	for d in 弟子列表:
+		当前总战力 += d.实时战力()
+	var 已过天数: int = max(1, 累计游戏日 - 上次结算年)
+	var 年度进度: float = float(已过天数) / 365.0
+	# 按年度进度折算当前增量
+	var 预估灵石增量: int = int((灵石 - 年始灵石) / 年度进度)
+	var 预估战力增量: int = int((当前总战力 - 年始总战力) / 年度进度)
+	# 新维度数据
+	var 宗主战力增量: int = 0
+	var 宗主境界提升: int = 0
+	if 宗主 != null:
+		宗主战力增量 = int((int(宗主.实时战力()) - 年始宗主战力) / 年度进度)
+		if 年始宗主境界 != "" and str(宗主.境界) != 年始宗主境界:
+			宗主境界提升 = 1
+	var 技艺殿阁等级: int = 0
+	if 司职列表.has("dantang"):
+		技艺殿阁等级 += int(司职列表["dantang"].get("等级", 1))
+	if 司职列表.has("qitang"):
+		技艺殿阁等级 += int(司职列表["qitang"].get("等级", 1))
+	if 司职列表.has("futang"):
+		技艺殿阁等级 += int(司职列表["futang"].get("等级", 1))
+	var 高阶产出: int = 0
+	for item in 宗门库房:
+		if item != null and str(item.get("品阶", "")) in ["宝品", "王品", "圣品", "仙品"]:
+			高阶产出 += 1
+	var 洞府数量: int = 0
+	var 灵田等级总和: int = 0
+	for d in 弟子列表:
+		if d != null:
+			if "洞府等级" in d and int(d.洞府等级) > 0:
+				洞府数量 += 1
+			if "个人灵田等级" in d:
+				灵田等级总和 += int(d.个人灵田等级)
+	# 综合底蕴维度数据（毒道/傀儡/休闲/飞升/世界探索）
+	var 毒道境界总和: int = 0
+	var 傀儡总数: int = 0
+	var 休闲等级总和: int = 0
+	for d in 弟子列表:
+		if d != null:
+			if "毒道境界" in d and d.毒道境界 != "":
+				毒道境界总和 += 1
+			if "傀儡" in d and d.傀儡 != null:
+				傀儡总数 += 1
+			if "休闲经验" in d:
+				休闲等级总和 += int(d.休闲经验.size())
+	var 飞升弟子数: int = 0
+	# 注：GDScript 在编译期就校验 self 上是否存在该方法，has_method 保护挡不住静态检查，
+	#     故改用动态 call 调用，避免「Function not found in base self」阻断整个文件解析。
+	if has_method("获取飞升弟子数"):
+		飞升弟子数 = int(call("获取飞升弟子数"))
+	var 世界探索度: int = 0
+	if 世界地图系统 != null and 世界地图系统.has_method("获取探索进度"):
+		世界探索度 = int(世界地图系统.获取探索进度())
+	var 局: Dictionary = 周期评分.结算(门派等级, {
+		"资源产能": 预估月产出,
+		"灵石增量": 预估灵石增量,
+		"总战力增量": 预估战力增量,
+		"宗主战力增量": 宗主战力增量,
+		"宗主境界提升": 宗主境界提升,
+		"技艺殿阁等级": 技艺殿阁等级,
+		"高阶产出": 高阶产出,
+		"洞府数量": 洞府数量,
+		"灵田等级": 灵田等级总和,
+		"毒道境界": 毒道境界总和,
+		"傀儡数量": 傀儡总数,
+		"休闲等级": 休闲等级总和,
+		"飞升弟子": 飞升弟子数,
+		"世界探索度": 世界探索度,
+	})
+	return {
+		"评级": 局["评级"],
+		"修真名": 获取评级修真名(str(局["评级"])),
+		"总分": 局["总分"],
+		"年度进度": int(年度进度 * 100),
+		"距岁末": max(0, 365 - 已过天数),
+	}
 # P1：七载大典集中结算（双周期评级核心）
 # 一次性发：7 年累积的「七载赏赐池」（=7×30% 年度灵石： 历年平移的高阶法宝，
 # 并将「门派等级目标」正式生效为门派等级。全程零新增资源：
@@ -9875,6 +14418,35 @@ func _七载大典文案_默认(评级: String) -> Dictionary:
 		"SSS":   {"标题": "七载大考·道途无双", "开篇": "七载问道，道途无双，太玄宗之名，响彻修真界", "收尾": "%d七载，太玄宗立不朽之基，万世流芳", "评语": "七载大考道途无双，太玄之名响彻修真界"},
 	}
 	return 局.get(评级, 局["C"])
+
+## 评级修真名称映射（内部计算用D/C/B/A，显示用修真味名称）
+func 获取评级修真名(评级: String) -> String:
+	var 映射: Dictionary = {
+		"D": "守拙",
+		"C": "筑基",
+		"B": "兴业",
+		"A": "昌盛",
+		"A+": "隆盛",
+		"S": "鼎盛",
+		"SS": "威震一方",
+		"SSS": "道途无双",
+	}
+	return str(映射.get(评级, 评级))
+
+## 评级修真描述（用于UI tooltip）
+func 获取评级修真描述(评级: String) -> String:
+	var 映射: Dictionary = {
+		"D": "根基尚浅，然守拙归真，来日方长",
+		"C": "百事初立，稳中有进，假以时日可期大成",
+		"B": "产业渐丰，弟子用命，宗门气象一新",
+		"A": "七载经营，宗门昌盛，灵脉日盛",
+		"A+": "贤才云集，基业隆盛，已具大宗气象",
+		"S": "七载积淀，道基再固，宗门鼎盛，四海仰止",
+		"SS": "七载砥砺，威震一方，诸宗来朝，灵脉通玄",
+		"SSS": "七载问道，道途无双，太玄宗之名，响彻修真界",
+	}
+	return str(映射.get(评级, ""))
+
 func _七载大考():
 
 	var 晋升: int = 门派等级目标 if 门派等级目标 > 门派等级 else 0
@@ -9898,6 +14470,9 @@ func _七载大考():
 			"category": "宗门大事件"})
 		_加推演条目(文案表["sect_promote_notice"] % [门派等级目标, 门派等级目标 * 2], ET_SECT, PRIO_HIGH, {"宗门等级": 门派等级目标})
 		门派等级 = 门派等级目标
+		# H项：宗门晋升时更新复兴进度→色彩饱和/明度派生
+		if get_node_or_null("/root/UITheme") != null:
+			UITheme.设置复兴进度(门派等级)
 	_复检成就()  # 成就检测：宗门等级相关成就
 	if 大典灵石 > 0:
 		灵石 += 大典灵石
@@ -9917,22 +14492,129 @@ func _七载大考():
 # 入参：无（读取全局 灵石 / 弟子列表 / 宗门贡献：
 # 返回值：void；S1 实装后副作用：公库扣：+ 按身：阶位发放俸禄 + 欠薪→忠诚↓→叛逃
 # 依赖：货：贡献系统（见 §：俸禄福利）。状态：空操作，零副作用，八道闸门安全：
+## S1：灵米消耗结算（含辟谷机制：练气全耗、筑基半耗、金丹以上不耗）
+func _结算灵米消耗_S1() -> void:
+	var 需消耗: int = 0
+	var 辟谷数: int = 0
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or str(d.状态) != "在宗":
+			continue
+		var 境界序: int = Disciple.境界序.find(str(d.境界))
+		if 境界序 >= 2:  # 金丹及以上完全辟谷
+			辟谷数 += 1
+			continue
+		elif 境界序 == 1:  # 筑基减半消耗
+			需消耗 += 1 if randf() < 0.5 else 0
+		else:  # 练气全额消耗
+			需消耗 += 1
+	if 需消耗 == 0:
+		return
+	if 灵米 >= 需消耗:
+		灵米 -= 需消耗
+	else:
+		var 缺额: int = 需消耗 - 灵米
+		灵米 = 0
+		# 灵米不足：未辟谷弟子忠诚度下降
+		for d in 弟子列表:
+			if d == null or not (d is Disciple) or str(d.状态) != "在宗":
+				continue
+			var 境界序: int = Disciple.境界序.find(str(d.境界))
+			if 境界序 < 2:  # 只有未辟谷弟子受影响
+				d.增加忠诚(-1)
+		_加推演条目("宗门灵米告罄，低阶弟子饥肠辘辘，忠心渐失（缺%d灵米，%d名高阶弟子已辟谷）" % [缺额, 辟谷数], "庶务", "中")
+		添加纪事("庶务", "灵米不足", "宗门灵米告罄，低阶弟子食不果腹，怨声载道", 2)
+
+## S1：购买灵种（坊市）
+func 购买灵种(数量: int) -> Dictionary:
+	var 总价: int = 数量 * 灵种购买价格
+	if 灵石 < 总价:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 总价}
+	灵石 -= 总价
+	灵种 += 数量
+	_加推演条目("坊市购入灵种%d份，共耗灵石%d" % [数量, 总价], "庶务", "低")
+	return {"成功": true, "数量": 数量, "消耗": 总价}
+
+## S1：售卖灵草（坊市，单价2灵石，受坊市折扣影响）
+func 售卖灵草(数量: int) -> Dictionary:
+	if 灵草 < 数量:
+		return {"成功": false, "原因": "灵草不足（当前%d）" % 灵草}
+	var 单价: int = max(1, int(2 * 坊市折扣率()))
+	var 总价: int = 数量 * 单价
+	灵草 -= 数量
+	灵石 += 总价
+	_加推演条目("坊市售出灵草%d份，获得灵石%d" % [数量, 总价], "庶务", "低")
+	return {"成功": true, "数量": 数量, "获得": 总价}
+
+## S1：售卖灵米（坊市，单价3灵石，受坊市折扣影响）
+func 售卖灵米(数量: int) -> Dictionary:
+	if 灵米 < 数量:
+		return {"成功": false, "原因": "灵米不足（当前%d）" % 灵米}
+	var 单价: int = max(1, int(3 * 坊市折扣率()))
+	var 总价: int = 数量 * 单价
+	灵米 -= 数量
+	灵石 += 总价
+	_加推演条目("坊市售出灵米%d份，获得灵石%d" % [数量, 总价], "庶务", "低")
+	return {"成功": true, "数量": 数量, "获得": 总价}
+
+## S1：洞府拥挤惩罚（弟子无洞府可住，修炼效率下降+忠诚度下降）
+func _洞府拥挤惩罚_S1() -> void:
+	var 拥挤度: float = 洞府拥挤度()
+	if 拥挤度 <= 0.8:
+		return  # 舒适，无惩罚
+	var 惩罚系数: float = clamp((拥挤度 - 0.8) * 2.0, 0.0, 0.5)  # 最多50%惩罚
+	var 受影响: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and str(d.状态) == "在宗":
+			# 拥挤时随机部分弟子受影响（超出洞府数量的部分）
+			if randf() < (拥挤度 - 1.0) if 拥挤度 > 1.0 else 惩罚系数:
+				d.增加忠诚(-1)
+				受影响 += 1
+	if 受影响 > 0:
+		_加推演条目("洞府拥挤，%d名弟子无处可居，修炼懈怠、心生不满" % 受影响, "庶务", "中")
+
 func _结算俸禄_S1() -> void:
 
-	# 更新成就统计：累计发放俸禄次数（S1 空操作桩，统计变量先准备好）
+	# S30 完整俸禄账本：按月按(基础俸×身份倍率×境界系数)真实发放；足额→欠俸清零+忠诚微涨；不足→欠俸月数+1+忠诚↓
 	累计发放俸禄次数 += 1
-	_复检成就()  # 成就检测：俸禄发放相关成就
-	pass
+	_复检成就()
+	var 境系数表: Array = [1.0, 1.1, 1.25, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 3.0, 3.5]  # 练气→道阶
+	var 在宗俸: Array = []   # 元素 [弟子, 应发额]
+	var 应发总额: float = 0.0
+	for d in 弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		var 阶: int = Disciple.境界序.find(str(d.境界))
+		var 境系数: float = 境系数表[阶] if 阶 >= 0 and 阶 < 境系数表.size() else 1.0
+		var 应发: float = 4.5 * _身份俸禄倍率(str(d.身份)) * 境系数
+		在宗俸.append([d, 应发])
+		应发总额 += 应发
+	if 在宗俸.is_empty():
+		return
+	if 灵石 >= int(round(应发总额)):
+		for 项 in 在宗俸:
+			var d: Object = 项[0]
+			var 发: int = int(round(项[1]))
+			灵石 -= 发
+			d.欠俸月数 = 0
+			d.增加忠诚(1)
+	else:
+		for 项 in 在宗俸:
+			var d: Object = 项[0]
+			d.欠俸月数 += 1
+			d.增加忠诚(-clamp(2 + d.欠俸月数, 2, 12))
+		var 示例欠: int = int(在宗俸[0][0].欠俸月数)
+		_加推演条目("宗门灵石拮据，本月俸禄难继，弟子忠心渐失（连续欠俸 %d 月）" % [示例欠], ET_SECT, PRIO_HIGH, {})
+		添加纪事("俸禄", "欠俸", "公库空虚，本月俸禄无以为继，门下弟子渐生怨怼之心", 2)
 var _经济基线缓存: Dictionary = {}   # D1：经济基：csv 缓存（clamp 边界来源，R5 非硬编码：
 # ============ D3 负面影响经济侧（S1-P0 批次三· 数据对齐版）============
 # 轻量管理器状态（运行时瞬时，不持久化；规：design/08-功能提案/12-D3实现规格_数据对齐：md §8：
-var _经济阀门缓存: Dictionary= {}      # 经济阀：csv ：{阀门 {系数,开：说明}}（懒加载：
+var _经济阀门缓存: Dictionary= {}      # 经济阀门.csv ：{阀门 {系数,开：说明}}（懒加载：
 var _负面事件缓存: Array = []           # negative_event.csv 行缓存（懒加载）
 var _本月负面已触发: Dictionary= {}     # 本月：event_id 触发次数（月度重置）
 var _本月灵石冲击: float = 0.0          # 本月负面事件灵石冲击累计（月末截断至 62：
 var _弟子负面属性累计: Dictionary= {}   # 纯属性惩罚累计（零副作用占位；键=弟子姓名：
 var _坊市负面卖价下限: float = 1.0       # 声望外部类浅联动下限（P0 neg_reputation=0，默认不触发：
-# D3 开关缓存（：_加载负面开关_S1 ：经济阀：csv 读取；默认值对齐规：§6 默认安全态）
+# D3 开关缓存（：_加载负面开关_S1 ：经济阀门.csv 读取；默认值对齐规：§6 默认安全态）
 var _neg_global: bool = false
 var _neg_res_build: bool = false
 var _neg_disciple: bool = false
@@ -9946,17 +14628,14 @@ var _neg_grade_perm: bool = false
 func _结算运维成本_S1() -> void:
 
 	var 基线: Dictionary = _读经济基线()
-	var 下限: float = float(基线.get("标准局月耗_下限", "293"))
 	var 上限: float = float(基线.get("标准局月耗_上限", "318"))
-	var c4: float = 0.0
-	for d in 弟子列表:
-		c4 += 4.5 * _身份俸禄倍率(d.身份)   # 普：.0 / 执事1.5 / 长：.0
+	# S30 去重：C4 俸禄占位已移至 _结算俸禄_S1 真实发放（不再在此双重扣减）
 	var c5: float = 3.0 * 司职列表.size()
 	var c6: float = 0.73 * 弟子列表.size()
 	var c7: float = 0.375 * 弟子列表.size()
-	var 刚性耗: float = c4 + c5 + c6 + c7          # 标准局：05
-	# R5：clamp ：[下限, 上限]（读 CSV，非硬编码）
-	刚性耗 = clamp(刚性耗, 下限, 上限)
+	var 刚性耗: float = c5 + c6 + c7          # 运维upkeep（不含俸禄，C4已移至 _结算俸禄_S1）
+	# R5：仅封顶，不再强制 293 地板（俸禄已独立核算，避免公库虚耗）
+	刚性耗 = clamp(刚性耗, 0.0, 上限)
 	# R2 per-delta：对 -刚性：单独：平衡()（raw<0 ：×全局消耗系数，±15% 钳制：
 	var _平衡器: EconomyBalance = EconomyBalance.new()
 	var 实付: float = _平衡器.平衡(-刚性耗)             # 实付为负
@@ -9993,7 +14672,7 @@ func _读经济基线() -> Dictionary:
 	f.close()
 	return _经济基线缓存
 # ============ D3 负面影响经济侧（S1-P0 批次三）运行时管理器 ============
-# 消费 config/negative_event.csv（_读负面事件表： config/经济阀：csv（neg_* 开关簇 + event_damage_rate：
+# 消费 config/negative_event.csv（_读负面事件表： config/经济阀门.csv（neg_* 开关簇 + event_damage_rate：
 # 激：DORMANT：殿阁被动_负面事件减免（L247，仅 res_build 灵石扣除处乘 (1+本：：
 # 灵石流向：与 _结算运维成本_S1 一致（：EconomyBalance.平衡() 后扣公库；平：) 消费 event_damage_rate=1.0：
 # 规格锚：design/08-功能提案/12-D3实现规格_数据对齐：md §8 伪代码落：
@@ -10016,7 +14695,7 @@ func _读经济阀门表() -> Dictionary:
 
 	if not _经济阀门缓存.is_empty():
 		return _经济阀门缓存
-	for r in DestinyDataLoader._read_csv("res://config/经济阀：csv"):
+	for r in DestinyDataLoader._read_csv("res://config/经济阀门.csv"):
 		var 行: String = r.get("阀门") if "阀门" in r else ""
 		if 行!= "":
 			_经济阀门缓存[行] = r
@@ -10118,7 +14797,7 @@ func _负面事件结算(行: Dictionary) -> void:
 	var eid: String = 行.get("event_id", "")
 	_本月负面已触发[eid] = _本月负面已触发.get(eid, 0) + 1
 	if not 后果.is_empty():
-		_加推演条目("【负面" % [行.get("event_name", eid), "".join(后果)], ET_SECT, PRIO_NORMAL, {"事件": eid})
+		_加推演条目("【负面】%s：%s" % [str(行.get("event_name", eid)), "，".join(PackedStringArray(后果))], ET_SECT, PRIO_NORMAL, {"事件": eid})
 # —：品级权限类惩处（D4 本批：权益回收= 罢免阶位 + 治理失序罚金）—：
 func _权益回收惩处(罚金: float, 后果: Array) -> void:
 
@@ -10155,7 +14834,7 @@ func _施加弟子属性惩罚(pt: String, pv: int) -> void:
 	if not _弟子负面属性累计.has(名):
 		_弟子负面属性累计[名] = {}
 	_弟子负面属性累计[名][pt] = int(_弟子负面属性累计[名].get(pt, 0)) - pv
-# —：：经济阀：csv 加载 D3 开关簇（neg_*；event_damage_rate 由平：) 读取，本处不重复）—：
+# —：：经济阀门.csv 加载 D3 开关簇（neg_*；event_damage_rate 由平：) 读取，本处不重复）—：
 func _加载负面开关_S1() -> void:
 
 	var 阀: Dictionary = _读经济阀门表()
@@ -10170,8 +14849,26 @@ func _加载负面开关_S1() -> void:
 # 返回值：void；S1 实装后：：声望 >= 阈值：randf() 命中，生成带专属命格/特殊灵根的特殊弟子并 append ：弟子列表 + 写纪：
 # 依赖：声望系统、命格池（见 §：特殊登门事件）。状态：空操作，零副作用：
 func _可能触发特殊登门_S1() -> void:
-
-	pass
+	# 修真味：声望阈值触发特殊弟子主动投奔
+	if 特殊投奔冷却 > 0:
+		特殊投奔冷却 -= 1
+		return
+	# 声望≥500且弟子数量<编制上限时，5%概率触发
+	if 声望 >= 500 and 弟子列表.size() < 洞府数量 and randf() < 0.05:
+		var d := Disciple.new()
+		_随机弟子种族(d)
+		_确保字派_S1()
+		d.辈分序 = 0
+		# 特殊投奔弟子资质更好
+		d.灵根品阶 = ["上品", "极品", "天品"][randi() % 3]
+		d.资质 = ["良好", "优秀", "绝顶"][randi() % 3]
+		d.境界 = "练气"
+		d.层级 = randi() % 5 + 1
+		d.战力 = d.计算战力()
+		弟子列表.append(d)
+		特殊投奔冷却 = 90  # 90游戏日冷却
+		_加推演条目("【投奔】%s闻宗门声望，千里迢迢前来投奔！" % str(d.姓名), "弟子", "中")
+		弟子变动.emit()
 # === S1 ：-A：凡人香火月度结算（当前空操作桩：==
 # 调用位置：推演一：月循环（紧接 _可能触发特殊登门_S1 之后）：
 # 入参：无（读取全局 香火值/ 信徒数/ 凡人城镇）：
@@ -10181,12 +14878,18 @@ func _结算香火_S1() -> void:
 	# S2-3：补香火/信徒产出出口（原为空桩：空操作零副作用）
 	if 门派等级 <= 0:
 		门派等级 = 1
-	var 月产: int = 门派等级 * 8 + 弟子列表.size() * 2
+	# S34：香火 = 宗门基础香火（日度）+ 凡间郡县供奉（月度摊日均；感恩度 × 王朝阶段 × 国策）
+	# 基础香火（日频）：满配 门派10级+100弟子 = 50+140 = 190；+凡间供奉89 = 279 ≈ 设计锚点280
+	var 基础香火: int = 门派等级 * 5 + int(弟子列表.size() * 1.4)
+	var 供奉日均: int = int(float(_郡县供奉香火_S34()) / float(王朝月长))
+	var 信仰香火: int = _信仰香火日产_S34()
+	var 月产: int = max(0, 基础香火 + 供奉日均 + 信仰香火)
 	香火值 = max(0, 香火值 + 月产)
-	香火月产预估 = 月产
-	# 信徒随宗门规模独立累积（供晋阶消耗；不随香火绝对值回退，避免覆盖已花费的信徒）
-	信徒数 += 门派等级 + 弟子列表.size()
-	添加纪事("庶务", "香火月结", "本月香火+%d，累计%d，信徒%d人（增益：%s）" % [月产, 香火值, 信徒数, 信徒增益档], 0)
+	香火日产预估 = 月产
+	# 信徒随宗门规模 + 凡间人口累积（供晋阶消耗；不随香火绝对值回退，避免覆盖已花费的信徒）
+	信徒数 += 门派等级 + 弟子列表.size() + clamp(int(_凡间信众_S34() / 10), 0, 10)
+	添加纪事("庶务", "香火月结", "本月香火+%d（宗门%d＋凡间供奉%d），累计%d，信徒%d人（增益：%s）"
+		% [月产, 基础香火, 供奉日均, 香火值, 信徒数, 信徒增益档], 0)
 
 # S2-3：信徒增益进阶（消耗信徒数解锁更高增益档——信徒的真实消耗出口）
 func 晋阶信徒增益() -> Dictionary:
@@ -10349,7 +15052,7 @@ func 推进连锁(chain_id: String) -> Dictionary:
 
 # === 气运系统：综合香火产出速率/愿力/功德/业力，影响突破/炼丹/产出/事件/招募/历练 ===
 # 气运公式（产出速率+存量模型）：
-#   气运基础 = 香火月产预估×2.0 + 愿力×0.1 + 功德×0.5 - 业力×0.5
+#   气运基础 = 香火日产预估×2.0 + 愿力×0.1 + 功德×0.5 - 业力×0.5
 #   归一化：(基础+500)/1500*100，clamp到0-100
 # 设计要点：
 #   1. 香火用月产速率（不是存量）→ 消耗香火供奉不影响气运（解决模型倒置）
@@ -10362,7 +15065,7 @@ func 推进连锁(chain_id: String) -> Dictionary:
 func 获取气运值() -> int:
 	# 产出速率+存量模型
 	# 香火速率加软上限：弟子数无上限会让月产×2 溢出，锁到 气运香火速率上限 防止气运恒锁昌隆
-	var 香火速率: float = min(float(香火月产预估) * 2.0, 气运香火速率上限)   # 香火月产速率（软上限560）
+	var 香火速率: float = min(float(香火日产预估) * 2.0, 气运香火速率上限)   # 香火日产速率（软上限560）
 	var 愿力存量: float = float(愿力) * 0.1              # 愿力存量（低权重）
 	var 功德存量: float = float(功德) * 0.5               # 功德存量（高权重，正邪正向）
 	var 业力存量: float = float(业力) * 0.5               # 业力存量（高权重，正邪负向）
@@ -10418,6 +15121,16 @@ func 获取气运事件加成() -> float:
 	var 系数: float = 获取气运加成系数()
 	return clamp(系数 * 0.5, -0.10, 0.10)
 
+## S1：驱逐弟子（从宗门除名）
+func 驱逐弟子(弟子ID: int) -> bool:
+	for i in range(弟子列表.size()):
+		var d = 弟子列表[i]
+		if d != null and d is Disciple and int(d.弟子ID) == 弟子ID:
+			弟子列表.remove_at(i)
+			_加推演条目("【%s】被逐出宗门" % str(d.姓名), "人事", "中")
+			return true
+	return false
+
 func 获取气运招募加成() -> float:
 	# 气运对招募高品质弟子概率的加成
 	var 系数: float = 获取气运加成系数()
@@ -10443,6 +15156,7 @@ func 获取气运详情() -> Dictionary:
 		"愿力": 愿力,
 		"功德": 功德,
 		"业力": 业力,
+		"灵脉等级": 灵脉等级,
 	}
 
 # === P2-9：灵气消耗汇出（原 20+ 产点仅 1 耗点：2210，严重通胀；现玩家可主动将灵气温养为悟道点/灵石，形成消耗闸口）===
@@ -10469,7 +15183,7 @@ func _确保字派_S1() -> void:
 		return
 	var 候选池: Array = ["甲", "乙", "丙", "丁", "戊", "己", "庚"]
 	候选池.shuffle()
-	var n: int = randi_range(5, 10)
+	var n: int = randi_range(5, 候选池.size())
 	辈分字派.clear()
 	for i in n:
 		辈分字派.append(候选池[i])
@@ -10502,7 +15216,11 @@ func _弟子月度事件(d: Disciple) -> String:
 			d.获得物品(it)        # 入背：+ 自动穿戴（更优则替换，受 品阶≤境：限制：
 			文本 += " 得：%s" % it.简称
 			if it.极品 or it.特殊:
-				待抉择.append({"弟子": d, "物品": it, "文本": 文本})
+				# §4.0 弟子自主层：所得先过弟子本人这一关——瞒报私藏则直接入私库，不进待抉择队列
+				if _弟子是否私藏(d, it):
+					_弟子私藏入库(d, it)
+				else:
+					待抉择.append({"弟子": d, "物品": it, "文本": 文本})
 		if randf() < 0.05:
 			var 兽: Beast = Beast.new()
 			灵兽蛋列表.append(兽)
@@ -10798,18 +15516,18 @@ func 结算奇遇赏赐(d: Disciple, q: Dictionary):
 
 	_上次奇遇时刻 = Time.get_ticks_msec()
 	奇遇完成总数 += 1
-	if q.get("稀有度") if "稀有度" in d else "普" in ["稀有", "上品", "极品", "天品"]:
+	if q.get("稀有度") if "稀有度" in q else "普" in ["稀有", "上品", "极品", "天品"]:
 		高级奇遇完成数+= 1
-	var 摘要: String = "奇遇·" + str(q.get("稀有度") if "稀有度" in d else "普")
-	if q.get("稀有度") if "稀有度" in d else "普" in ["上品", "极品", "天品"]:   # P1：高稀有度奇遇计入周期评分
+	var 摘要: String = "奇遇·" + str(q.get("稀有度") if "稀有度" in q else "普")
+	if q.get("稀有度") if "稀有度" in q else "普" in ["上品", "极品", "天品"]:   # P1：高稀有度奇遇计入周期评分
 		周期评分.记稀有道具()
 	# Sprint-02b：宗门等级缩放赏赐（：q 有缩放字段时：
-	var base := q.get("base_value") if "base_value" in d else 0.0 as float
+	var base := q.get("base_value") if "base_value" in q else 0.0 as float
 	var 灵石赏赐 := 0
 	if base > 0.0:
-		var factor := q.get("level_factor") if "level_factor" in d else 0.15 as float
-		var min_v := q.get("min_value") if "min_value" in d else 0.0 as float
-		var max_v := q.get("max_value") if "max_value" in d else 999.0 as float
+		var factor := q.get("level_factor") if "level_factor" in q else 0.15 as float
+		var min_v := q.get("min_value") if "min_value" in q else 0.0 as float
+		var max_v := q.get("max_value") if "max_value" in q else 999.0 as float
 		var 缩放值: float = Quest._缩放入参(base, factor, min_v, max_v)
 		灵石赏赐 = int(round(缩放值))
 		if 灵石赏赐 > 0:
@@ -10831,7 +15549,7 @@ func 结算奇遇赏赐(d: Disciple, q: Dictionary):
 			d.获得物品(it)          # 入背：+ 自动穿戴（经 ADR-001 自动进战力）
 			摘要 += " 得%s·奇遇版：%s" % [it.简称, it.名称]
 	# B 部分：结构化赏赐（opt1_reward 字段，格：物品key:数量翻
-	var 赏赐文本: String = q.get("opt1_reward") if "opt1_reward" in d else ""
+	var 赏赐文本: String = q.get("opt1_reward") if "opt1_reward" in q else ""
 	if 赏赐文本.strip_edges() != "":
 		var 解析摘要: String = _解析并发放奇遇赏赐(d, 赏赐文本)
 		if 解析摘要 != "":
@@ -10839,6 +15557,22 @@ func 结算奇遇赏赐(d: Disciple, q: Dictionary):
 			宗门纪事.append({"日期": 累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": q.get("稀有度") if "稀有度" in q else "普通", "名称": q.get("event_name") if "event_name" in q else "奇遇赏赐", "文案": "获得赏赐：%s" % 解析摘要.strip_edges()})
 	# 道心值：待道心系统；：Sprint 先记 履历（ADR-002 D5）：
 	d.履历.append(摘要)
+	# 修真式领悟：奇遇机缘领悟（稀有度越高概率越大）
+	var 稀有度: String = str(q.get("稀有度") if "稀有度" in q else "普通")
+	var 奇遇概率: float = 0.0
+	match 稀有度:
+		"普通":
+			奇遇概率 = 0.0
+		"稀有":
+			奇遇概率 = 0.05
+		"上品":
+			奇遇概率 = 0.10
+		"极品":
+			奇遇概率 = 0.15
+		"天品":
+			奇遇概率 = 0.25
+	if 奇遇概率 > 0:
+		_尝试领悟技能(d, "奇遇", 奇遇概率)
 # ============ 奇遇·征伐：战斗收尾（ADR-003 D6：/ ADR-002 hook：===========
 # ：Quest.结算征伐 发起战斗（BattleManager 调用 BattleCalculator 纯逻辑）返回统一 BattleResult：
 # 本函数按胜负发放赏赐/：履历，完成「奇遇管理器」收尾（ADR-003 D6：战斗影：履历/声望）：
@@ -10916,10 +15650,10 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 	if 出战弟子.size() > 0:
 		_上次出战弟子 = 出战弟子.filter(func(d): return d is Disciple).map(func(d): return d.姓名)
 	var 节点类型: String = stage.get("node_type") if "node_type" in stage else "normal"
-	# 体力校验
-	var 耗时: int = int(stage.get("stamina_cost") if "stamina_cost" in stage else 0)
-	if 体力 < 耗时:
-		结果["error"] = "气力不足（需%d，余%d： % [耗时, 体力]"
+	# P0修复：体力系统改为每日机缘校验
+	var 机缘检查: Dictionary = 检查机缘("探秘境缘")
+	if not 机缘检查.get("足够", false):
+		结果["error"] = "今日探秘境缘已尽（%d/%d），可提升VIP等级增加机缘" % [机缘检查.get("已用", 0), 机缘检查.get("上限", 0)]
 		return 结果
 	# 精英每日次数校验
 	if 节点类型 == "elite":
@@ -10930,12 +15664,15 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 		if 上限 > 0 and 精英每日次数[今日].get(stage_id, 0) >= 上限:
 			结果["error"] = "今日精英挑战次数已用："
 			return 结果
-	# 扣体：
-	体力 = clamp(体力 - 耗时, 0, 体力上限())
+	# P0修复：体力系统改为每日机缘消耗
+	if not 消耗机缘("探秘境缘"):
+		结果["error"] = "今日探秘境缘已尽"
+		return 结果
 	# 组装敌方（CSV 驱动：
 	var 怪物: Array = StageDataLoader.build_monster_units(stage_id)
 	if 怪物.is_empty():
-		体力 = clamp(体力 + 耗时, 0, 体力上限())   # 回退
+		# P0修复：机缘回退
+		每日机缘["探秘境缘"] = max(0, int(每日机缘.get("探秘境缘", 0)) - 1)
 		结果["error"] = "秘境无怪物配置"
 		return 结果
 	# 组装我方快照（弟子：战斗属性聚合，唯一入口 get_final_combat_attr：
@@ -10944,7 +15681,8 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 		if d is Disciple:
 			我方.append(d.get_final_combat_attr())
 	if 我方.is_empty():
-		体力 = clamp(体力 + 耗时, 0, 体力上限())
+		# P0修复：机缘回退
+		每日机缘["探秘境缘"] = max(0, int(每日机缘.get("探秘境缘", 0)) - 1)
 		结果["error"] = "出战弟子属性无："
 		return 结果
 	# 结算（车轮战编排，纯逻辑：
@@ -10957,6 +15695,16 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 	结果["round_count"] = 战报.get("round_count", 0)
 	结果["remaining_hp"] = 战报.get("remaining_hp", 0)
 	结果["battle_log"] = 战报.get("battle_log", [])
+	# P1深化：临阵突破触发（修真小说常见桥段：战斗绝境中压力激发潜能）
+	# 触发条件：战斗回合数≥5（激战）+ 弟子大圆满 + 瓶颈打磨≥0.8 + 10%概率
+	var 临阵突破触发: bool = 结果["round_count"] >= 5 and randf() < 0.10
+	if 临阵突破触发:
+		for d in 出战弟子:
+			if d is Disciple and d.层数 >= 10 and d.瓶颈打磨值 >= 0.8:
+				var 突结: Dictionary = d.临阵突破("历练")
+				if 突结.get("成功", false):
+					结果["battle_log"].append("【临阵突破】%s于激战中突破至%s！" % [d.姓名, d.境界])
+				break  # 每次历练最多触发1人临阵突破
 	# 胜后处理：首：/ 精英次数 / 掉落 / 历练奇遇
 	if 结果["is_win"]:
 		# 阶段2：御兽峰被动——历练胜利时 10% 触发「灵兽相助」，本次历练收益 +10%（独：roll，不触碰核心战斗数值红线）
@@ -11016,6 +15764,18 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 			var 承载: Disciple = 出战弟子[0] if (出战弟子.size() > 0 and 出战弟子[0] is Disciple) else null
 			if 承载 != null:
 				_尝试触发奇遇(承载, "战斗胜利")
+				# 修真式领悟：激战临阵领悟
+				var 回合数: int = int(结果.get("round_count", 0))
+				if 回合数 > 5:
+					_尝试领悟技能(承载, "战斗", float(回合数 - 5) * 0.01)
+				# 修真式领悟：濒死绝境顿悟（剩余血量<30%）
+				var 剩余血: float = float(结果.get("remaining_hp", 0))
+				if 剩余血 > 0 and 剩余血 < 0.3:
+					_尝试领悟技能(承载, "濒死")
+				# 彩蛋：秘境奇遇（前人坐化/神秘传功/灵泉沐浴等）
+				if 结果.get("is_win", false):
+					var 秘境等级: int = int(stage.get("recommend_power", 1000)) / 1000
+					秘境奇遇彩蛋(承载, max(1, 秘境等级))
 	# 弟子履历
 	for d in 出战弟子:
 		if d is Disciple:
@@ -11025,7 +15785,3125 @@ func 挑战秘境(stage_id: String, 出战弟子: Array = [], mode: String = "")
 	return 结果
 func 历练结算(秘境ID: String, 出战: Array = [], 怪物列表: Array = [], mode: String = "full") -> Dictionary:
 
+	# S45-7：历练符箓加成（消耗符箓→临时提升出战弟子战力，战后还原）
+	var 历练符箓加成: float = 符箓消耗加成(3 * max(1, 出战.size()))
+	if 历练符箓加成 > 0 and not 出战.is_empty():
+		var _原战力: Array = []
+		for _d in 出战:
+			if _d is Disciple:
+				_原战力.append(int(_d.战力))
+				_d.战力 = int(float(_d.战力) * (1.0 + 历练符箓加成))
+		var _历结: Dictionary = 挑战秘境(秘境ID, 出战, mode)
+		for _i in range(_原战力.size()):
+			出战[_i].战力 = _原战力[_i]
+		return _历结
 	return 挑战秘境(秘境ID, 出战, mode)
+
+# ============ P2 高级秘境系统（secret_config.csv接入） ============
+var _高级秘境配置缓存: Array = []
+var _高级秘境配置已加载: bool = false
+
+## 加载高级秘境配置
+func _加载高级秘境配置() -> void:
+	if _高级秘境配置已加载:
+		return
+	_高级秘境配置已加载 = true
+	var 路径: String = "res://config/secret_config.csv"
+	var 文件: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if 文件 == null:
+		return
+	var 表头: Array = 文件.get_csv_line()
+	while not 文件.eof_reached():
+		var 行: Array = 文件.get_csv_line()
+		if 行.size() < 表头.size() or 行[0] == "":
+			continue
+		var 秘境: Dictionary = {}
+		for i in range(表头.size()):
+			秘境[str(表头[i])] = 行[i] if i < 行.size() else ""
+		_高级秘境配置缓存.append(秘境)
+	文件.close()
+
+## 获取所有高级秘境列表（含解锁状态）
+func 获取所有高级秘境列表() -> Array:
+	_加载高级秘境配置()
+	var 结果: Array = []
+	for 秘境 in _高级秘境配置缓存:
+		var 秘境ID: String = str(秘境.get("secret_id", ""))
+		var 名称: String = str(秘境.get("secret_name", ""))
+		var 解锁条件: String = str(秘境.get("unlock_cond", ""))
+		var 主属性: String = str(秘境.get("main_attr", ""))
+		var 体力消耗: int = int(秘境.get("stamina_cost", 20))
+		var 层数: int = int(秘境.get("layers", 3))
+		var BOSS: String = str(秘境.get("boss_info", ""))
+		var 核心掉落: String = str(秘境.get("core_drop_pool", ""))
+		var 专属事件: String = str(秘境.get("exclusive_event", ""))
+		var 通关奖励: String = str(秘境.get("clear_reward", ""))
+		# 检查解锁状态（简单判断：宗门等级≥对应境界门槛）
+		var 已解锁: bool = false
+		var 解锁提示: String = 解锁条件
+		match 秘境ID:
+			"secret_001":
+				已解锁 = 门派等级 >= 2
+				if not 已解锁:
+					解锁提示 = "需宗门等级2级（筑基圆满）+秘境钥匙"
+			"secret_002":
+				已解锁 = 门派等级 >= 3
+				if not 已解锁:
+					解锁提示 = "需宗门等级3级（金丹圆满）+秘境钥匙"
+			"secret_003":
+				已解锁 = 门派等级 >= 4
+				if not 已解锁:
+					解锁提示 = "需宗门等级4级（元婴圆满）+秘境钥匙"
+			"secret_004":
+				已解锁 = 门派等级 >= 4
+				if not 已解锁:
+					解锁提示 = "需宗门等级4级+阵营尊敬"
+		# 检查是否已通关
+		var 已通关: bool = 已通关秘境.has(秘境ID)
+		结果.append({
+			"secret_id": 秘境ID,
+			"名称": 名称,
+			"解锁条件": 解锁条件,
+			"解锁提示": 解锁提示,
+			"主属性": 主属性,
+			"体力消耗": 体力消耗,
+			"层数": 层数,
+			"BOSS": BOSS,
+			"核心掉落": 核心掉落,
+			"专属事件": 专属事件,
+			"通关奖励": 通关奖励,
+			"已解锁": 已解锁,
+			"已通关": 已通关
+		})
+	return 结果
+
+## 挑战高级秘境（多层战斗系统）
+func 挑战高级秘境(秘境ID: String, 出战弟子: Array = []) -> Dictionary:
+	var 结果: Dictionary = {"成功": false, "原因": "", "秘境ID": 秘境ID, "到达层数": 0, "总层数": 0, "掉落": [], "战报": [], "通关": false}
+	_加载高级秘境配置()
+	# 查找秘境配置
+	var 配置: Dictionary = {}
+	for s in _高级秘境配置缓存:
+		if str(s.get("secret_id", "")) == 秘境ID:
+			配置 = s
+			break
+	if 配置.is_empty():
+		结果["原因"] = "秘境不存在"
+		return 结果
+	# 检查解锁
+	var 列表: Array = 获取所有高级秘境列表()
+	var 已解锁: bool = false
+	for item in 列表:
+		if str(item.get("secret_id", "")) == 秘境ID:
+			已解锁 = bool(item.get("已解锁", false))
+			break
+	if not 已解锁:
+		结果["原因"] = "秘境未解锁"
+		return 结果
+	# 检查出战弟子
+	if 出战弟子.is_empty():
+		结果["原因"] = "未选择出战弟子"
+		return 结果
+	# P0修复：体力系统改为每日机缘校验
+	var 机缘检查: Dictionary = 检查机缘("探秘境缘")
+	if not 机缘检查.get("足够", false):
+		结果["原因"] = "今日探秘境缘已尽（%d/%d），可提升VIP等级增加机缘" % [机缘检查.get("已用", 0), 机缘检查.get("上限", 0)]
+		return 结果
+	# 扣机缘
+	if not 消耗机缘("探秘境缘"):
+		结果["原因"] = "今日探秘境缘已尽"
+		return 结果
+	# 开始多层战斗
+	var 总层数: int = int(配置.get("layers", 3))
+	结果["总层数"] = 总层数
+	var 秘境名称: String = str(配置.get("secret_name", ""))
+	var 主属性: String = str(配置.get("main_attr", "全"))
+	var BOSS信息: String = str(配置.get("boss_info", ""))
+	# 准备出战弟子的战斗属性
+	var 攻方列表: Array = []
+	for d in 出战弟子:
+		if d == null:
+			continue
+		if d.has_method("get_final_combat_attr"):
+			var 战斗属性: Dictionary = d.get_final_combat_attr()
+			# 技能系统：注入弟子已学技能
+			战斗属性["技能"] = 获取弟子技能(int(d.弟子ID))
+			攻方列表.append(战斗属性)
+		else:
+			# 简化版战斗属性
+			攻方列表.append({
+				"名称": str(d.get("姓名", "弟子")),
+				"气血": int(d.get("战力", 100)) * 10,
+				"攻击": int(d.get("战力", 100)) / 5,
+				"防御": int(d.get("战力", 100)) / 10,
+				"速度": 50,
+				"暴击率": 0.1,
+				"闪避率": 0.05,
+				"五行属性": 主属性,
+				"职业": str(d.get("道途", "道修")),
+				"技能": 获取弟子技能(int(d.弟子ID))
+			})
+	if 攻方列表.is_empty():
+		结果["原因"] = "出战弟子无效"
+		# P0修复：机缘回退
+		每日机缘["探秘境缘"] = max(0, int(每日机缘.get("探秘境缘", 0)) - 1)
+		return 结果
+	# 逐层战斗
+	var 累计奖励: Dictionary = {"灵石": 0, "悟道点": 0, "材料": []}
+	var 战斗日志: Array = []
+	var 通关: bool = true
+	for 层 in range(1, 总层数 + 1):
+		结果["到达层数"] = 层
+		# 生成本层怪物
+		var 守方列表: Array = _生成秘境怪物(秘境ID, 层, 总层数, 主属性, BOSS信息)
+		if 守方列表.is_empty():
+			战斗日志.append("第%d层：怪物生成失败，跳过" % 层)
+			continue
+		# 战斗
+		var 战斗结果: Dictionary = {}
+		if 攻方列表.size() >= 3 and 守方列表.size() >= 3:
+			战斗结果 = BattleCalculator.结算_3v3(攻方列表, 守方列表, "quick")
+		else:
+			# 1v1战斗
+			战斗结果 = BattleCalculator.结算_1v1(攻方列表[0], 守方列表[0], "quick")
+		var 胜利: bool = bool(战斗结果.get("胜利", false))
+		if 胜利:
+			# 计算本层奖励
+			var 层奖励: Dictionary = _计算秘境层奖励(秘境ID, 层, 总层数)
+			累计奖励["灵石"] += int(层奖励.get("灵石", 0))
+			累计奖励["悟道点"] += int(层奖励.get("悟道点", 0))
+			if 层奖励.has("材料"):
+				for mat in 层奖励["材料"]:
+					累计奖励["材料"].append(mat)
+			战斗日志.append("第%d层：胜利！获得灵石%d、悟道点%d" % [层, int(层奖励.get("灵石", 0)), int(层奖励.get("悟道点", 0))])
+			# 恢复部分气血（胜利后恢复30%）
+			for unit in 攻方列表:
+				unit["气血"] = int(float(unit.get("气血", 100)) * 1.3)
+		else:
+			战斗日志.append("第%d层：失败，秘境挑战结束" % 层)
+			通关 = false
+			break
+	# 发放奖励
+	if 累计奖励["灵石"] > 0:
+		灵石 += int(累计奖励["灵石"])
+	if 累计奖励["悟道点"] > 0:
+		悟道点 += int(累计奖励["悟道点"])
+	# 通关奖励
+	if 通关:
+		var 通关奖励文本: String = str(配置.get("clear_reward", ""))
+		战斗日志.append("🎉 通关%s！%s" % [秘境名称, 通关奖励文本])
+		# 额外通关奖励
+		灵石 += 总层数 * 500
+		悟道点 += 总层数 * 50
+		累计奖励["灵石"] += 总层数 * 500
+		累计奖励["悟道点"] += 总层数 * 50
+		结果["通关"] = true
+	# 记录结果
+	结果["成功"] = true
+	结果["战报"] = 战斗日志
+	结果["掉落"] = 累计奖励["材料"]
+	结果["灵石奖励"] = 累计奖励["灵石"]
+	结果["悟道点奖励"] = 累计奖励["悟道点"]
+	# 记录纪事
+	添加纪事("历练", "高级秘境", "%s挑战%s，到达%d/%d层%s" % [出战弟子[0].姓名 if 出战弟子.size() > 0 else "弟子", 秘境名称, 结果["到达层数"], 总层数, "（通关）" if 通关 else ""], 2)
+	return 结果
+
+## 生成秘境怪物（根据层数和秘境品阶）
+func _生成秘境怪物(秘境ID: String, 当前层: int, 总层数: int, 主属性: String, BOSS信息: String) -> Array:
+	var 怪物列表: Array = []
+	var 是BOSS层: bool = (当前层 == 总层数)
+	var 是精英层: bool = (当前层 == 总层数 / 2 + 1)
+	# 基础战力根据秘境和层数计算
+	var 基础战力: int = 500 + 当前层 * 300
+	if 秘境ID == "secret_002":
+		基础战力 = 1000 + 当前层 * 500
+	elif 秘境ID == "secret_003":
+		基础战力 = 2000 + 当前层 * 800
+	elif 秘境ID == "secret_004":
+		基础战力 = 3000 + 当前层 * 1000
+	if 是BOSS层:
+		基础战力 *= 3
+	elif 是精英层:
+		基础战力 *= 2
+	# 生成怪物
+	if 是BOSS层:
+		# BOSS层：1个BOSS
+		var BOSS名: String = BOSS信息.split("（")[0] if "（" in BOSS信息 else "秘境守护者"
+		怪物列表.append({
+			"名称": BOSS名,
+			"气血": 基础战力 * 15,
+			"攻击": 基础战力 / 3,
+			"防御": 基础战力 / 5,
+			"速度": 60,
+			"暴击率": 0.2,
+			"闪避率": 0.1,
+			"五行属性": 主属性,
+			"职业": "BOSS",
+			"是BOSS": true
+		})
+	elif 是精英层:
+		# 精英层：1个精英怪
+		怪物列表.append({
+			"名称": "秘境精英·%s" % 主属性,
+			"气血": 基础战力 * 10,
+			"攻击": 基础战力 / 4,
+			"防御": 基础战力 / 6,
+			"速度": 55,
+			"暴击率": 0.15,
+			"闪避率": 0.08,
+			"五行属性": 主属性,
+			"职业": "精英",
+			"是精英": true
+		})
+	else:
+		# 普通层：2-3个普通怪
+		var 怪物数: int = 2 + (当前层 % 2)
+		for i in range(怪物数):
+			怪物列表.append({
+				"名称": "%s系守卫%d" % [主属性, i + 1],
+				"气血": 基础战力 * 5,
+				"攻击": 基础战力 / 5,
+				"防御": 基础战力 / 8,
+				"速度": 50,
+				"暴击率": 0.1,
+				"闪避率": 0.05,
+				"五行属性": 主属性,
+				"职业": "守卫"
+			})
+	return 怪物列表
+
+## 计算秘境层奖励
+func _计算秘境层奖励(秘境ID: String, 当前层: int, 总层数: int) -> Dictionary:
+	var 奖励: Dictionary = {"灵石": 0, "悟道点": 0, "材料": []}
+	var 基础灵石: int = 100 + 当前层 * 50
+	var 基础悟道点: int = 10 + 当前层 * 5
+	if 秘境ID == "secret_002":
+		基础灵石 *= 2
+		基础悟道点 *= 2
+	elif 秘境ID == "secret_003":
+		基础灵石 *= 3
+		基础悟道点 *= 3
+	elif 秘境ID == "secret_004":
+		基础灵石 *= 4
+		基础悟道点 *= 4
+	# BOSS层额外奖励
+	if 当前层 == 总层数:
+		基础灵石 *= 2
+		基础悟道点 *= 2
+		# 随机材料
+		var 材料列表: Array = ["灵晶", "玄晶", "圣晶", "百年玄铁", "千年玄铁", "万年玄铁"]
+		var 随机材料: String = 材料列表[randi() % 材料列表.size()]
+		奖励["材料"].append(随机材料)
+		# 妖兽材料掉落（修真世界观：击杀BOSS妖兽，按境界掉落对应等阶的内丹/精血/骨/皮/筋/爪/毛）
+		var 秘境妖兽境界: String = "练气"
+		match 秘境ID:
+			"secret_001": 秘境妖兽境界 = "筑基" if randf() < 0.3 else "练气"
+			"secret_002": 秘境妖兽境界 = "金丹" if randf() < 0.3 else "筑基"
+			"secret_003": 秘境妖兽境界 = "元婴" if randf() < 0.3 else "金丹"
+			"secret_004": 秘境妖兽境界 = "化神" if randf() < 0.3 else "元婴"
+		var 掉落结果: Dictionary = 击杀妖兽掉落(秘境妖兽境界)
+		if 掉落结果.get("成功", false):
+			var 等阶: String = 掉落结果.get("等阶", "一阶")
+			var d: Dictionary = 掉落结果.get("掉落", {})
+			if int(d.get("内丹", 0)) > 0:
+				奖励["材料"].append("%s妖兽内丹" % 等阶)
+			if int(d.get("精血", 0)) > 0:
+				奖励["材料"].append("%s妖兽精血" % 等阶)
+			if int(d.get("骨", 0)) > 0:
+				奖励["材料"].append("%s妖兽骨" % 等阶)
+			if int(d.get("皮", 0)) > 0:
+				奖励["材料"].append("%s妖兽皮" % 等阶)
+			if int(d.get("筋", 0)) > 0:
+				奖励["材料"].append("%s妖兽筋" % 等阶)
+			if int(d.get("爪", 0)) > 0:
+				奖励["材料"].append("%s妖兽爪" % 等阶)
+			if int(d.get("毛", 0)) > 0:
+				奖励["材料"].append("%s妖兽毛" % 等阶)
+	# 普通层也有小概率掉落低阶内丹
+	else:
+		if randf() < 0.1:
+			var 普通层境界: String = "练气"
+			match 秘境ID:
+				"secret_001": 普通层境界 = "练气"
+				"secret_002": 普通层境界 = "筑基"
+				"secret_003": 普通层境界 = "金丹"
+				"secret_004": 普通层境界 = "元婴"
+			增加妖兽材料(普通层境界, 1, 0)
+	奖励["灵石"] = 基础灵石
+	奖励["悟道点"] = 基础悟道点
+	return 奖励
+
+# ============ P2 弟子AI行为权重系统（area_stay_weight.csv接入） ============
+var _弟子行为权重配置: Array = []
+var _弟子行为权重已加载: bool = false
+# 性格中文→配置ID映射
+const _性格ID映射: Dictionary = {
+	"沉稳守道": "p_steady", "锐意争先": "p_impulse", "恬淡悟道": "p_detach",
+	"桀骜不羁": "p_impulse", "仁心济世": "p_benevolent", "杀伐果断": "p_impulse",
+	"勤勉": "p_diligent", "慵懒": "p_lazy", "沉稳": "p_steady", "急躁": "p_impulse",
+	"淡泊": "p_detach", "仁厚": "p_benevolent"
+}
+# 道途中→配置ID映射
+const _道途ID映射: Dictionary = {
+	"道修": "pa_sword", "体修": "pa_sword", "法修": "pa_array",
+	"御兽师": "pa_forge", "符箓师": "pa_talis", "毒师": "pa_pill", "傀儡师": "pa_forge"
+}
+# 默认区域权重（无匹配配置时使用）
+const _默认区域权重: Dictionary = {
+	"灵田": 0.1, "丹殿": 0.2, "演武场": 0.2, "山门": 0.1, "公共区": 0.4
+}
+
+## 加载弟子行为权重配置
+func _加载弟子行为权重配置() -> void:
+	if _弟子行为权重已加载:
+		return
+	_弟子行为权重已加载 = true
+	var 路径: String = "res://config/area_stay_weight.csv"
+	var 文件: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if 文件 == null:
+		return
+	var 表头: Array = 文件.get_csv_line()
+	while not 文件.eof_reached():
+		var 行: Array = 文件.get_csv_line()
+		if 行.size() < 表头.size() or 行[0] == "":
+			continue
+		var 配置: Dictionary = {}
+		for i in range(表头.size()):
+			配置[str(表头[i])] = 行[i] if i < 行.size() else ""
+		_弟子行为权重配置.append(配置)
+	文件.close()
+
+## 获取弟子区域偏好（根据性格×道途）
+func 获取弟子区域偏好(弟子: Disciple) -> Dictionary:
+	_加载弟子行为权重配置()
+	if 弟子 == null:
+		return _默认区域权重.duplicate()
+	var 性格ID: String = _性格ID映射.get(弟子.性格, "")
+	var 道途ID: String = _道途ID映射.get(弟子.道途, "")
+	# 精确匹配性格×道途
+	for cfg in _弟子行为权重配置:
+		if str(cfg.get("personality_id", "")) == 性格ID and str(cfg.get("path_id", "")) == 道途ID:
+			return {
+				"灵田": float(cfg.get("lingtian_weight", 0.1)),
+				"丹殿": float(cfg.get("danfang_weight", 0.2)),
+				"演武场": float(cfg.get("yanwuchang_weight", 0.2)),
+				"山门": float(cfg.get("shanmen_weight", 0.1)),
+				"公共区": float(cfg.get("public_weight", 0.4))
+			}
+	# 只匹配性格
+	for cfg in _弟子行为权重配置:
+		if str(cfg.get("personality_id", "")) == 性格ID:
+			return {
+				"灵田": float(cfg.get("lingtian_weight", 0.1)),
+				"丹殿": float(cfg.get("danfang_weight", 0.2)),
+				"演武场": float(cfg.get("yanwuchang_weight", 0.2)),
+				"山门": float(cfg.get("shanmen_weight", 0.1)),
+				"公共区": float(cfg.get("public_weight", 0.4))
+			}
+	# 无匹配，使用默认
+	return _默认区域权重.duplicate()
+
+## 获取弟子本月活动区域（根据权重随机选择）
+func 获取弟子本月活动区域(弟子: Disciple) -> String:
+	var 权重: Dictionary = 获取弟子区域偏好(弟子)
+	var 总权重: float = 0.0
+	for v in 权重.values():
+		总权重 += float(v)
+	if 总权重 <= 0:
+		return "公共区"
+	var 随机值: float = randf() * 总权重
+	var 累计: float = 0.0
+	for 区域 in 权重.keys():
+		累计 += float(权重[区域])
+		if 随机值 <= 累计:
+			return str(区域)
+	return "公共区"
+
+## 弟子行为修炼加成（公共区权重越高，修炼速度略快，上限3%）
+func 获取弟子行为修炼加成(弟子: Disciple) -> float:
+	var 权重: Dictionary = 获取弟子区域偏好(弟子)
+	var 公共区权重: float = float(权重.get("公共区", 0.4))
+	# 公共区权重0.4→0%加成，0.6→3%加成，线性映射
+	var 加成: float = clamp((公共区权重 - 0.4) * 0.15, 0.0, 0.03)
+	return 加成
+
+# ============ P2 NPC系统（npc_config.csv接入） ============
+var _NPC配置缓存: Array = []
+var _NPC配置已加载: bool = false
+# 阵营ID→中文名映射
+const _阵营名映射: Dictionary = {
+	"fz_zhengdao": "正道盟", "fz_zhongli": "同盟会", "fz_danqi": "丹器公会",
+	"fz_mo": "魔宗", "fz_yaozu": "妖族古族", "neutral": "中立/宗门"
+}
+
+## 加载NPC配置
+func _加载NPC配置() -> void:
+	if _NPC配置已加载:
+		return
+	_NPC配置已加载 = true
+	var 路径: String = "res://config/npc_config.csv"
+	var 文件: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if 文件 == null:
+		return
+	var 表头: Array = 文件.get_csv_line()
+	while not 文件.eof_reached():
+		var 行: Array = 文件.get_csv_line()
+		if 行.size() < 表头.size() or 行[0] == "":
+			continue
+		var NPC: Dictionary = {}
+		for i in range(表头.size()):
+			NPC[str(表头[i])] = 行[i] if i < 行.size() else ""
+		_NPC配置缓存.append(NPC)
+	文件.close()
+
+## 获取所有阵营NPC列表（按阵营分组，含解锁状态）
+func 获取所有阵营NPC列表() -> Dictionary:
+	_加载NPC配置()
+	var 结果: Dictionary = {}
+	for NPC in _NPC配置缓存:
+		var 阵营ID: String = str(NPC.get("faction_id", "neutral"))
+		var 阵营名: String = _阵营名映射.get(阵营ID, 阵营ID)
+		if not 结果.has(阵营名):
+			结果[阵营名] = []
+		var NPCID: String = str(NPC.get("npc_id", ""))
+		var 名称: String = str(NPC.get("npc_name", ""))
+		var 身份: String = str(NPC.get("identity", ""))
+		var 核心功能: String = str(NPC.get("core_function", ""))
+		var 解锁说明: String = str(NPC.get("rep_unlock_note", ""))
+		# 判断解锁状态（中立NPC默认解锁，阵营NPC根据声望判断）
+		var 已解锁: bool = true
+		var 解锁提示: String = "常驻"
+		if 阵营ID != "neutral":
+			var 声望值: int = int(阵营声望系统.阵营声望.get(阵营ID, 0))
+			if "崇拜" in 解锁说明:
+				已解锁 = 声望值 >= 10000
+				解锁提示 = "需阵营声望崇拜（10000）"
+			elif "尊敬" in 解锁说明:
+				已解锁 = 声望值 >= 5000
+				解锁提示 = "需阵营声望尊敬（5000）"
+			elif "友善" in 解锁说明:
+				已解锁 = 声望值 >= 1000
+				解锁提示 = "需阵营声望友善（1000）"
+		结果[阵营名].append({
+			"npc_id": NPCID,
+			"名称": 名称,
+			"身份": 身份,
+			"核心功能": 核心功能,
+			"解锁说明": 解锁说明,
+			"解锁提示": 解锁提示,
+			"已解锁": 已解锁,
+			"阵营ID": 阵营ID
+		})
+	return 结果
+
+## 获取指定阵营的NPC列表
+func 获取阵营NPC列表(阵营ID: String) -> Array:
+	var 全部: Dictionary = 获取所有阵营NPC列表()
+	var 阵营名: String = _阵营名映射.get(阵营ID, 阵营ID)
+	return 全部.get(阵营名, [])
+
+# ============ 派系与权力斗争系统 P0：基础框架 ============
+
+# ===== 派系与权力斗争系统（已拆分到faction_system.gd，此处为转发函数）=====
+func _识别派系():
+	派系系统._识别派系()
+func _判断派系类型(成员列表: Array):
+	return 派系系统._判断派系类型(成员列表)
+func _生成派系名称(类型: String, 领袖: Disciple):
+	return 派系系统._生成派系名称(类型, 领袖)
+func _计算派系团结度(成员列表: Array):
+	return 派系系统._计算派系团结度(成员列表)
+func _计算派系影响力(派系: Dictionary):
+	return 派系系统._计算派系影响力(派系)
+func _计算派系关系():
+	派系系统._计算派系关系()
+func _计算派系满意度(派系: Dictionary):
+	return 派系系统._计算派系满意度(派系)
+func _月度派系更新():
+	派系系统._月度派系更新()
+func 获取派系列表():
+	return 派系系统.获取派系列表()
+func 获取派系详情(派系ID: String):
+	return 派系系统.获取派系详情(派系ID)
+func 获取派系成员详情(派系ID: String):
+	return 派系系统.获取派系成员详情(派系ID)
+func 获取弟子所属派系(弟子ID: String):
+	return 派系系统.获取弟子所属派系(弟子ID)
+func _检查职位空缺():
+	派系系统._检查职位空缺()
+func 宗主钦命职位(弟子ID: String, 职位: String):
+	return 派系系统.宗主钦命职位(弟子ID, 职位)
+func 设置资源分配(派系ID: String, 比例: float):
+	return 派系系统.设置资源分配(派系ID, 比例)
+func _月度资源分配检查():
+	派系系统._月度资源分配检查()
+func 制定宗门政策(政策名: String, 持续日: int = 365):
+	return 派系系统.制定宗门政策(政策名, 持续日)
+func _月度政策检查():
+	派系系统._月度政策检查()
+func _检查宗门内斗():
+	派系系统._检查宗门内斗()
+func _触发宗门内斗(派系: Dictionary, 严重程度: String):
+	派系系统._触发宗门内斗(派系, 严重程度)
+func 调解宗门内斗(冲突ID: String):
+	return 派系系统.调解宗门内斗(冲突ID)
+func _月度权力斗争推演():
+	派系系统._月度权力斗争推演()
+func 获取职位空缺列表():
+	return 派系系统.获取职位空缺列表()
+func 获取宗门内斗列表():
+	return 派系系统.获取宗门内斗列表()
+func 获取宗门政策列表():
+	return 派系系统.获取宗门政策列表()
+func 取消宗门政策(政策名: String):
+	return 派系系统.取消宗门政策(政策名)
+func 培养心腹(弟子ID: String):
+	return 派系系统.培养心腹(弟子ID)
+func 提升心腹等级(弟子ID: String):
+	return 派系系统.提升心腹等级(弟子ID)
+func _月度心腹培养():
+	派系系统._月度心腹培养()
+func 拉拢派系成员(弟子ID: String):
+	return 派系系统.拉拢派系成员(弟子ID)
+func 离间派系成员(弟子ID1: String, 弟子ID2: String):
+	return 派系系统.离间派系成员(弟子ID1, 弟子ID2)
+func 人事调动(弟子ID: String, 调动类型: String, 新职位: String = ""):
+	return 派系系统.人事调动(弟子ID, 调动类型, 新职位)
+func 促成派系联盟(派系ID1: String, 派系ID2: String):
+	return 派系系统.促成派系联盟(派系ID1, 派系ID2)
+func 挑起派系对抗(派系ID1: String, 派系ID2: String):
+	return 派系系统.挑起派系对抗(派系ID1, 派系ID2)
+func _月度玩家管理推演():
+	派系系统._月度玩家管理推演()
+func 获取心腹列表():
+	return 派系系统.获取心腹列表()
+func 获取派系联盟列表():
+	return 派系系统.获取派系联盟列表()
+func 获取派系对抗列表():
+	return 派系系统.获取派系对抗列表()
+func 获取人事调动记录():
+	return 派系系统.获取人事调动记录()
+func _触发派系政变(派系: Dictionary):
+	派系系统._触发派系政变(派系)
+func _触发暗杀事件(派系: Dictionary):
+	派系系统._触发暗杀事件(派系)
+func _触发叛出宗门(派系: Dictionary):
+	派系系统._触发叛出宗门(派系)
+func _触发派系合作(派系1: Dictionary, 派系2: Dictionary):
+	派系系统._触发派系合作(派系1, 派系2)
+func _触发弟子冲突():
+	派系系统._触发弟子冲突()
+func _触发领袖更替(派系: Dictionary):
+	派系系统._触发领袖更替(派系)
+func _月度派系事件触发():
+	派系系统._月度派系事件触发()
+func 获取派系事件记录(类型: String = "", 限制: int = 20):
+	return 派系系统.获取派系事件记录(类型, 限制)
+func 获取派系斗争编年史():
+	return 派系系统.获取派系斗争编年史()
+func _月度炼丹派系争夺():
+	派系系统._月度炼丹派系争夺()
+func _月度历练派系争夺():
+	派系系统._月度历练派系争夺()
+func _月度家族派系联动():
+	派系系统._月度家族派系联动()
+func _月度拍卖行派系影响():
+	派系系统._月度拍卖行派系影响()
+func _月度派系系统融入():
+	派系系统._月度派系系统融入()
+func 获取炼丹派系争夺记录():
+	return 派系系统.获取炼丹派系争夺记录()
+func 获取历练派系争夺记录():
+	return 派系系统.获取历练派系争夺记录()
+func 获取家族派系联动记录():
+	return 派系系统.获取家族派系联动记录()
+func 获取拍卖行派系影响记录():
+	return 派系系统.获取拍卖行派系影响记录()
+
+# ============ 拟真NPC系统 P0-7：关联反应系统 ============
+## 弟子叛逃连锁反应
+func _弟子叛逃连锁反应(叛逃弟子: Disciple) -> void:
+	if 叛逃弟子 == null:
+		return
+	var 反应记录: Array = []
+	
+	# 1. 道侣反应
+	if 叛逃弟子.道侣 != "":
+		var 道侣: Disciple = _按姓名找弟子(叛逃弟子.道侣)
+		if 道侣 != null:
+			var 随机: float = randf()
+			if 随机 < 0.3:
+				# 30%跟随叛逃
+				道侣.状态 = "叛逃"
+				反应记录.append("%s跟随道侣%s叛逃" % [道侣.姓名, 叛逃弟子.姓名])
+			elif 随机 < 0.8:
+				# 50%留下但悲伤
+				道侣.触发情绪("悲伤", 7)
+				道侣.心境 = max(0, 道侣.心境 - 10)
+				道侣.增加好感度(str(叛逃弟子.弟子ID), -30)
+				反应记录.append("%s因道侣%s叛逃而悲伤" % [道侣.姓名, 叛逃弟子.姓名])
+			else:
+				# 20%愤怒
+				道侣.触发情绪("愤怒", 3)
+				道侣.增加好感度(str(叛逃弟子.弟子ID), -50)
+				反应记录.append("%s因道侣%s叛逃而愤怒" % [道侣.姓名, 叛逃弟子.姓名])
+	
+	# 2. 子嗣反应
+	for 子嗣 in 通婚子嗣系统.子嗣列表:
+		if str(子嗣.get("父方ID", "")) == str(叛逃弟子.弟子ID) or str(子嗣.get("母方ID", "")) == str(叛逃弟子.弟子ID):
+			var 子嗣年龄: int = int(子嗣.get("年龄", 0))
+			var 子嗣弟子: Disciple = _按ID找弟子(str(子嗣.get("子嗣ID", "")))
+			if 子嗣弟子 == null:
+				continue
+			if 子嗣年龄 < 15:
+				# 未成年跟随叛逃
+				子嗣弟子.状态 = "叛逃"
+				反应记录.append("%s（未成年子嗣）跟随父/母%s叛逃" % [子嗣弟子.姓名, 叛逃弟子.姓名])
+			else:
+				var 随机: float = randf()
+				if 随机 < 0.2:
+					# 20%跟随叛逃
+					子嗣弟子.状态 = "叛逃"
+					反应记录.append("%s（子嗣）跟随父/母%s叛逃" % [子嗣弟子.姓名, 叛逃弟子.姓名])
+				elif 随机 < 0.7:
+					# 50%留下但心境下降
+					子嗣弟子.心境 = max(0, 子嗣弟子.心境 - 10)
+					子嗣弟子.触发情绪("悲伤", 5)
+					反应记录.append("%s（子嗣）因父/母%s叛逃而心境受损" % [子嗣弟子.姓名, 叛逃弟子.姓名])
+				else:
+					# 30%愤怒
+					子嗣弟子.触发情绪("愤怒", 3)
+					子嗣弟子.增加好感度(str(叛逃弟子.弟子ID), -30)
+					反应记录.append("%s（子嗣）因父/母%s叛逃而愤怒" % [子嗣弟子.姓名, 叛逃弟子.姓名])
+	
+	# 3. 道友反应
+	for 道友 in 叛逃弟子.道友列表:
+		var 道友ID: String = str(道友.get("弟子ID", ""))
+		var 道友弟子: Disciple = _按ID找弟子(道友ID)
+		if 道友弟子 == null or 道友弟子.状态 != "在宗":
+			continue
+		var 随机: float = randf()
+		if 随机 < 0.2:
+			# 20%跟随叛逃
+			道友弟子.状态 = "叛逃"
+			反应记录.append("%s（道友）跟随%s叛逃" % [道友弟子.姓名, 叛逃弟子.姓名])
+		elif 随机 < 0.7:
+			# 50%好感度大幅下降
+			道友弟子.增加好感度(str(叛逃弟子.弟子ID), -20)
+			道友弟子.心境 = max(0, 道友弟子.心境 - 5)
+			反应记录.append("%s（道友）因%s叛逃而好感度下降" % [道友弟子.姓名, 叛逃弟子.姓名])
+		else:
+			# 30%心境受损
+			道友弟子.心境 = max(0, 道友弟子.心境 - 5)
+			反应记录.append("%s（道友）因%s叛逃而心境受损" % [道友弟子.姓名, 叛逃弟子.姓名])
+	
+	# 4. 好友反应（好感度>60）
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or d.状态 != "在宗":
+			continue
+		if d.弟子ID == 叛逃弟子.弟子ID:
+			continue
+		var 好感度: int = d.获取好感度(str(叛逃弟子.弟子ID))
+		if 好感度 > 60 and randf() < 0.8:
+			d.增加好感度(str(叛逃弟子.弟子ID), -10)
+			d.心境 = max(0, d.心境 - 3)
+			反应记录.append("%s（好友）因%s叛逃而心境受损" % [d.姓名, 叛逃弟子.姓名])
+		elif 好感度 < 20 and randf() < 0.5:
+			# 仇人幸灾乐祸
+			d.增加好感度(str(叛逃弟子.弟子ID), 5)
+			d.触发情绪("喜悦", 1)
+			反应记录.append("%s（仇人）因%s叛逃而幸灾乐祸" % [d.姓名, 叛逃弟子.姓名])
+	
+	# 记录推演条目
+	for 记录 in 反应记录:
+		_加推演条目("💔 " + str(记录), "叛逃余波", "中")
+
+## 弟子死亡连锁反应
+func _弟子死亡连锁反应(死亡弟子: Disciple) -> void:
+	if 死亡弟子 == null:
+		return
+	var 反应记录: Array = []
+	
+	# 1. 道侣反应
+	if 死亡弟子.道侣 != "":
+		var 道侣: Disciple = _按姓名找弟子(死亡弟子.道侣)
+		if 道侣 != null and 道侣.状态 == "在宗":
+			道侣.触发情绪("悲伤", 14)
+			道侣.心境 = max(0, 道侣.心境 - 15)
+			反应记录.append("%s因道侣%s离世而悲痛欲绝" % [道侣.姓名, 死亡弟子.姓名])
+	
+	# 2. 子嗣反应
+	for 子嗣 in 通婚子嗣系统.子嗣列表:
+		if str(子嗣.get("父方ID", "")) == str(死亡弟子.弟子ID) or str(子嗣.get("母方ID", "")) == str(死亡弟子.弟子ID):
+			var 子嗣弟子: Disciple = _按ID找弟子(str(子嗣.get("子嗣ID", "")))
+			if 子嗣弟子 != null and 子嗣弟子.状态 == "在宗":
+				子嗣弟子.触发情绪("悲伤", 7)
+				子嗣弟子.心境 = max(0, 子嗣弟子.心境 - 10)
+				反应记录.append("%s因父/母%s离世而悲伤" % [子嗣弟子.姓名, 死亡弟子.姓名])
+	
+	# 3. 道友反应
+	for 道友 in 死亡弟子.道友列表:
+		var 道友弟子: Disciple = _按ID找弟子(str(道友.get("弟子ID", "")))
+		if 道友弟子 != null and 道友弟子.状态 == "在宗":
+			道友弟子.触发情绪("悲伤", 3)
+			道友弟子.心境 = max(0, 道友弟子.心境 - 5)
+			反应记录.append("%s（道友）因%s离世而悲伤" % [道友弟子.姓名, 死亡弟子.姓名])
+	
+	# 4. 好友/仇人反应
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or d.状态 != "在宗":
+			continue
+		var 好感度: int = d.获取好感度(str(死亡弟子.弟子ID))
+		if 好感度 > 60 and randf() < 0.5:
+			d.触发情绪("悲伤", 1)
+			d.心境 = max(0, d.心境 - 3)
+		elif 好感度 < 20 and randf() < 0.5:
+			d.触发情绪("喜悦", 3)
+			d.增加好感度(str(死亡弟子.弟子ID), 10)
+	
+	for 记录 in 反应记录:
+		_加推演条目("🕊️ " + str(记录), "身故余波", "中")
+
+## 化解弟子走火入魔（后端完整，UI零调用→此处封装供UI调用）
+## 方式：闭关（30%+道心加成）、丹药（60%，需清心丹）、佛法（80%，需佛门功法）
+func 化解走火入魔(弟子ID: int, 方式: String = "闭关") -> Dictionary:
+	var 目标弟子 = null
+	for d in 弟子列表:
+		if d != null and d.弟子ID == 弟子ID:
+			目标弟子 = d
+			break
+	if 目标弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if not 目标弟子.是否走火入魔():
+		return {"成功": false, "原因": "弟子未走火入魔"}
+	var 结果: Dictionary = 目标弟子.化解走火入魔(方式)
+	if 结果.get("成功", false):
+		添加纪事("庶务", "化解走火入魔", "%s通过%s化解走火入魔！" % [目标弟子.姓名, 方式], 2)
+	else:
+		添加纪事("庶务", "化解走火入魔", "%s化解走火入魔失败，仍需休养。" % 目标弟子.姓名, 1)
+	return 结果
+
+## 宗门大比/论剑大会（每年举办一次，弟子自动报名，按境界分组淘汰赛）
+var 宗门大比倒计时: int = 360  # 距离下次宗门大比的天数（每年一次）
+var 宗门大比记录: Array = []  # 历届宗门大比记录
+
+## 月度推进：宗门大比倒计时
+func _宗门大比月度推进(月: float) -> void:
+	宗门大比倒计时 -= int(月 * 30)
+	if 宗门大比倒计时 <= 0:
+		举办宗门大比()
+		宗门大比倒计时 = 360
+
+## 举办宗门大比
+func 举办宗门大比() -> void:
+	if 弟子列表.size() < 4:
+		添加纪事("庶务", "宗门大比", "宗门弟子不足4人，本届宗门大比取消。", 1)
+		return
+	# 按境界分组
+	var 分组: Dictionary = {}
+	for d in 弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		var 境: String = str(d.境界)
+		if not 分组.has(境):
+			分组[境] = []
+		分组[境].append(d)
+	# 每个境界组进行淘汰赛
+	var 总冠军: String = ""
+	var 总战力: int = 0
+	for 境 in 分组.keys():
+		var 选手: Array = 分组[境]
+		if 选手.size() < 2:
+			continue
+		# 随机配对战斗（简化版：战力高者胜，有10%爆冷）
+		选手.sort_custom(func(a, b): return a.总战力() > b.总战力())
+		var 冠军 = 选手[0]
+		var 亚军 = 选手[1] if 选手.size() > 1 else null
+		# 10%概率爆冷
+		if randf() < 0.1 and 亚军 != null:
+			var 临时 = 冠军
+			冠军 = 亚军
+			亚军 = 临时
+		# 奖励
+		贡献点 += 50
+		if 冠军 != null:
+			冠军.增加心境(5)
+			添加纪事("庶务", "宗门大比", "%s组冠军：%s（战力%d）！获得50贡献点+心境+5。" % [境, 冠军.姓名, 冠军.总战力()], 2)
+			if 冠军.总战力() > 总战力:
+				总战力 = 冠军.总战力()
+				总冠军 = 冠军.姓名
+		if 亚军 != null:
+			亚军.增加心境(2)
+	# 宗门声望提升
+	声望 += 5
+	添加纪事("庶务", "宗门大比", "本届宗门大比圆满结束！总冠军：%s。宗门声望+5。" % 总冠军, 3)
+	宗门大比记录.append({"年份": int(累计游戏日 / 360.0), "总冠军": 总冠军, "总战力": 总战力})
+
+# ============ 散修招募系统（修真世界观：游历散修来访，可招募入宗）============
+# 月度有概率有散修来访，玩家可以选择招募或拒绝
+# 散修品质随机，招募后成为宗门弟子
+var 来访散修: Array = []  # 当前来访的散修列表 [{名称, 境界, 资质, 灵根, 战力, 来访日, 要求}]
+var 散修来访冷却: int = 0  # 距离下次散修来访的天数
+
+## 月度推进：散修来访
+func _散修来访月度推进(月: float) -> void:
+	散修来访冷却 -= int(月 * 30)
+	if 散修来访冷却 <= 0 and 来访散修.size() < 3:
+		# 20%概率有散修来访
+		if randf() < 0.2:
+			_生成来访散修()
+			散修来访冷却 = 90  # 下次来访至少90游戏日后
+
+## 生成来访散修
+func _生成来访散修() -> void:
+	# 随机生成散修属性
+	var 姓名池: Array = ["青云子", "玄真子", "清风道人", "明月散人", "赤霞真人", "寒江客", "孤云野鹤", "天涯过客", "醉仙翁", "墨衣行者"]
+	var 资质列表: Array = ["凡俗", "平庸", "优良", "天才", "妖孽"]
+	var 灵根列表: Array = ["天灵根", "变异灵根", "五行灵根", "四灵根", "三灵根"]
+	var 境界列表: Array = ["练气", "筑基", "金丹", "元婴"]
+	var 散修: Dictionary = {
+		"名称": 姓名池[randi() % 姓名池.size()],
+		"境界": 境界列表[randi() % min(4, 门派等级)],
+		"资质": 资质列表[randi() % min(5, 门派等级 + 1)],
+		"灵根": 灵根列表[randi() % 5],
+		"战力": 100 + randi() % 500,
+		"来访日": 累计游戏日,
+		"要求": 100 + randi() % 500  # 招募要求的灵石
+	}
+	来访散修.append(散修)
+	添加纪事("庶务", "散修来访", "散修%s来访宗门，境界%s，资质%s。" % [散修["名称"], 散修["境界"], 散修["资质"]], 1)
+	_加推演条目("【散修来访】散修%s游历至太玄宗，境界%s，资质%s，可招募入宗。" % [散修["名称"], 散修["境界"], 散修["资质"]], ET_SECT, PRIO_NORMAL, {})
+
+## 获取来访散修列表
+func 获取来访散修() -> Array:
+	# 清理超过30天未招募的散修
+	var 有效散修: Array = []
+	for 散修 in 来访散修:
+		if 累计游戏日 - int(散修.get("来访日", 0)) <= 30:
+			有效散修.append(散修)
+	来访散修 = 有效散修
+	return 来访散修
+
+## 招募散修
+func 招募散修(散修名称: String) -> Dictionary:
+	var 目标散修: Dictionary = {}
+	for 散修 in 来访散修:
+		if str(散修.get("名称", "")) == 散修名称:
+			目标散修 = 散修
+			break
+	if 目标散修.is_empty():
+		return {"成功": false, "原因": "该散修已离开"}
+	# 检查灵石
+	var 要求灵石: int = int(目标散修.get("要求", 100))
+	if 灵石 < 要求灵石:
+		return {"成功": false, "原因": "灵石不足，招募需%d灵石" % 要求灵石}
+	# 检查弟子上限
+	if 弟子列表.size() >= 宗门编制上限():
+		return {"成功": false, "原因": "宗门弟子已满"}
+	灵石 -= 要求灵石
+	# 创建弟子
+	var 新弟子 = Disciple.new()
+	新弟子.姓名 = str(目标散修.get("名称", ""))
+	新弟子.境界 = str(目标散修.get("境界", "练气"))
+	新弟子.资质 = str(目标散修.get("资质", "平庸"))
+	新弟子.灵根 = str(目标散修.get("灵根", "五行灵根"))
+	新弟子.状态 = "在宗"
+	新弟子.忠诚 = 60  # 散修初始忠诚60
+	新弟子.年龄 = 20 + randi() % 30
+	弟子列表.append(新弟子)
+	# 从来访列表移除
+	来访散修.erase(目标散修)
+	添加纪事("庶务", "招募散修", "散修%s加入太玄宗，境界%s，资质%s。" % [新弟子.姓名, 新弟子.境界, 新弟子.资质], 2)
+	_加推演条目("【招募散修】散修%s仰慕太玄宗威名，正式加入宗门。" % 新弟子.姓名, ET_SECT, PRIO_NORMAL, {})
+	return {"成功": true, "弟子": 新弟子.姓名}
+
+## 拒绝散修
+func 拒绝散修(散修名称: String) -> void:
+	for 散修 in 来访散修:
+		if str(散修.get("名称", "")) == 散修名称:
+			来访散修.erase(散修)
+			添加纪事("庶务", "拒绝散修", "散修%s被宗门拒绝，继续游历天下。" % 散修名称, 1)
+			break
+
+# ============ 宗门外交系统（修真世界观：宗门间结盟/联姻/宣战）============
+# 简化版：显示友好/敌对宗门，可结盟/宣战
+var 宗门关系: Dictionary = {}  # {宗门名: {关系: 友好/中立/敌对, 好感度: 0-100}}
+var 已知宗门: Array = ["青云宗", "丹霞派", "万剑门", "合欢宗", "血煞门", "幽冥教"]  # 已知宗门列表
+
+## 初始化宗门关系
+func _初始化宗门关系() -> void:
+	for 宗门 in 已知宗门:
+		if not 宗门关系.has(宗门):
+			宗门关系[宗门] = {"关系": "中立", "好感度": 50}
+
+## 获取宗门关系列表
+func 获取宗门关系列表() -> Array:
+	_初始化宗门关系()
+	var 结果: Array = []
+	for 宗门 in 宗门关系.keys():
+		var 关系: Dictionary = 宗门关系[宗门]
+		结果.append({"宗门": 宗门, "关系": 关系.get("关系", "中立"), "好感度": int(关系.get("好感度", 50))})
+	return 结果
+
+## 与宗门结盟
+func 与宗门结盟(宗门名: String) -> Dictionary:
+	_初始化宗门关系()
+	if not 宗门关系.has(宗门名):
+		return {"成功": false, "原因": "未知宗门"}
+	var 关系: Dictionary = 宗门关系[宗门名]
+	if int(关系.get("好感度", 0)) < 70:
+		return {"成功": false, "原因": "好感度不足（需>=70），当前%d" % int(关系.get("好感度", 0))}
+	if str(关系.get("关系", "")) == "敌对":
+		return {"成功": false, "原因": "与该宗门处于敌对状态"}
+	# 消耗灵石
+	var 消耗灵石: int = 1000 * max(1, 门派等级)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，结盟需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	关系["关系"] = "友好"
+	关系["好感度"] = min(100, int(关系.get("好感度", 0)) + 20)
+	宗门关系[宗门名] = 关系
+	添加纪事("外交", "宗门结盟", "太玄宗与%s结为友好宗门，守望相助。" % 宗门名, 2)
+	_加推演条目("【宗门结盟】太玄宗与%s正式结盟，双方守望相助，共抗魔道。" % 宗门名, ET_SECT, PRIO_HIGH, {})
+	return {"成功": true, "效果": "与%s结为友好宗门" % 宗门名}
+
+## 与宗门宣战
+func 与宗门宣战(宗门名: String) -> Dictionary:
+	_初始化宗门关系()
+	if not 宗门关系.has(宗门名):
+		return {"成功": false, "原因": "未知宗门"}
+	var 关系: Dictionary = 宗门关系[宗门名]
+	if str(关系.get("关系", "")) == "敌对":
+		return {"成功": false, "原因": "已与该宗门处于敌对状态"}
+	关系["关系"] = "敌对"
+	关系["好感度"] = max(0, int(关系.get("好感度", 0)) - 30)
+	宗门关系[宗门名] = 关系
+	添加纪事("外交", "宗门宣战", "太玄宗向%s宣战，双方势不两立！" % 宗门名, 3)
+	_加推演条目("【宗门宣战】太玄宗正式向%s宣战，宗门大战一触即发！" % 宗门名, ET_SECT, PRIO_HIGH, {})
+	return {"成功": true, "效果": "与%s进入敌对状态" % 宗门名}
+
+## 月度推进：宗门关系自然变化
+func _宗门关系月度推进(月: float) -> void:
+	_初始化宗门关系()
+	for 宗门 in 宗门关系.keys():
+		var 关系: Dictionary = 宗门关系[宗门]
+		# 友好关系每月+1好感，敌对关系每月-1好感，中立不变
+		if str(关系.get("关系", "")) == "友好":
+			关系["好感度"] = min(100, int(关系.get("好感度", 0)) + 1)
+		elif str(关系.get("关系", "")) == "敌对":
+			关系["好感度"] = max(0, int(关系.get("好感度", 0)) - 1)
+		宗门关系[宗门] = 关系
+
+# ============ 邪修来袭系统（修真世界观：魔道邪修觊觎宗门，弟子入魔）============
+# 月度有概率触发邪修来袭，弟子迎战，心魔过高弟子有概率入魔
+var 邪修来袭冷却: int = 0  # 距离下次邪修来袭的天数
+var 历史邪修来袭: Array = []  # 历史邪修来袭记录
+
+## 月度推进：邪修来袭
+func _邪修来袭月度推进(月: float) -> void:
+	邪修来袭冷却 -= int(月 * 30)
+	if 邪修来袭冷却 <= 0:
+		# 10%概率触发邪修来袭（宗门等级越高，概率越高）
+		var 触发概率: float = 0.05 + float(门派等级) * 0.01
+		if randf() < 触发概率:
+			_触发邪修来袭()
+			邪修来袭冷却 = 180  # 下次来袭至少180游戏日后
+
+## 触发邪修来袭
+func _触发邪修来袭() -> void:
+	# 邪修实力根据宗门等级
+	var 邪修战力: int = 500 + 门派等级 * 200 + randi() % 500
+	var 邪修名称: String = ["血煞老祖", "幽冥鬼母", "合欢魔君", "万毒尊者", "噬魂老魔"][randi() % 5]
+	# 宗门迎战（取在宗弟子总战力）
+	var 宗门总战力: int = 0
+	for d in 弟子列表:
+		if d != null and d is Disciple and str(d.状态) == "在宗":
+			宗门总战力 += int(d.总战力())
+	# 战斗结果
+	var 结果: String = ""
+	if 宗门总战力 >= 邪修战力:
+		结果 = "胜利"
+		# 奖励：灵石+贡献点
+		var 灵石奖励: int = 300 * max(1, 门派等级)
+		灵石 += 灵石奖励
+		贡献点 += 100
+		添加纪事("大事件", "邪修来袭", "%s率邪修来袭，被宗门击退！获灵石%d，贡献点+100。" % [邪修名称, 灵石奖励], 3)
+		_加推演条目("【邪修来袭】%s率邪修来袭，宗门弟子齐心协力，将其击退！获灵石%d，贡献点+100。" % [邪修名称, 灵石奖励], ET_SECT, PRIO_HIGH, {})
+	else:
+		结果 = "失败"
+		# 损失：灵石+弟子受伤
+		var 灵石损失: int = min(int(灵石 * 0.1), 500 * max(1, 门派等级))
+		灵石 = max(0, 灵石 - 灵石损失)
+		# 随机弟子受伤
+		var 在宗弟子: Array = []
+		for d in 弟子列表:
+			if d != null and d is Disciple and str(d.状态) == "在宗":
+				在宗弟子.append(d)
+		if 在宗弟子.size() > 0:
+			var 受伤弟子: Disciple = 在宗弟子[randi() % 在宗弟子.size()]
+			受伤弟子.受伤剩余 = 30
+			添加纪事("大事件", "邪修来袭", "%s率邪修来袭，宗门不敌，损失灵石%d，%s受伤。" % [邪修名称, 灵石损失, 受伤弟子.姓名], 3)
+			_加推演条目("【邪修来袭】%s率邪修来袭，宗门不敌，损失灵石%d，%s受伤。宗门需加紧修炼，以报此仇！" % [邪修名称, 灵石损失, 受伤弟子.姓名], ET_SECT, PRIO_HIGH, {})
+	历史邪修来袭.append({"游戏日": 累计游戏日, "邪修": 邪修名称, "邪修战力": 邪修战力, "宗门战力": 宗门总战力, "结果": 结果})
+	# 检查弟子入魔（心魔>=80的弟子有概率入魔）
+	for d in 弟子列表:
+		if d != null and d is Disciple and str(d.状态) == "在宗" and int(d.心魔值) >= 80:
+			if randf() < 0.1:  # 10%概率入魔
+				d.状态 = "入魔"
+				添加纪事("大事件", "弟子入魔", "%s心魔难抑，堕入魔道！" % d.姓名, 3)
+				_加推演条目("【弟子入魔】%s心魔难抑，堕入魔道，叛出宗门！" % d.姓名, ET_SECT, PRIO_HIGH, {})
+
+# ============ 情劫系统（修真世界观：道侣牵绊·情根深种·影响修炼）============
+# 道侣死亡/叛逃时触发情劫，情劫影响修炼速度和突破成功率
+# 情劫可以通过时间或特殊物品化解
+var 情劫弟子: Array = []  # 正在经历情劫的弟子 [{弟子ID, 情劫日, 情劫强度}]
+
+## 月度推进：情劫系统
+func _情劫月度推进(月: float) -> void:
+	var 化解列表: Array = []
+	for 情劫 in 情劫弟子:
+		var 弟子ID: int = int(情劫.get("弟子ID", 0))
+		var 情劫日: int = int(情劫.get("情劫日", 0))
+		情劫日 += int(月 * 30)
+		情劫["情劫日"] = 情劫日
+		# 情劫持续180游戏日后自然化解
+		if 情劫日 >= 180:
+			化解列表.append(情劫)
+			# 找到弟子，恢复正常
+			for d in 弟子列表:
+				if d != null and d is Disciple and int(d.弟子ID) == 弟子ID:
+					添加纪事("庶务", "情劫化解", "%s情劫已过，道心重固。" % d.姓名, 1)
+					break
+	for 情劫 in 化解列表:
+		情劫弟子.erase(情劫)
+
+## 触发情劫（道侣死亡/叛逃时调用）
+func _触发情劫(弟子: Disciple) -> void:
+	if 弟子 == null:
+		return
+	# 检查是否已经在情劫中
+	for 情劫 in 情劫弟子:
+		if int(情劫.get("弟子ID", 0)) == int(弟子.弟子ID):
+			return
+	# 情劫强度根据心境（心境越低，情劫越强）
+	var 情劫强度: int = max(1, 10 - int(弟子.心境) / 10)
+	情劫弟子.append({"弟子ID": int(弟子.弟子ID), "情劫日": 0, "情劫强度": 情劫强度})
+	添加纪事("庶务", "情劫", "%s痛失道侣，情根深种，修炼受阻。" % 弟子.姓名, 2)
+	_加推演条目("【情劫】%s痛失道侣，情根深种，道心动摇，修炼受阻。需时日化解。" % 弟子.姓名, ET_SECT, PRIO_NORMAL, {})
+
+## 获取弟子情劫状态
+func 获取情劫状态(弟子ID: int) -> Dictionary:
+	for 情劫 in 情劫弟子:
+		if int(情劫.get("弟子ID", 0)) == 弟子ID:
+			return 情劫
+	return {}
+
+## 情劫对修炼速度的影响
+func 情劫修炼加成(弟子ID: int) -> float:
+	var 情劫: Dictionary = 获取情劫状态(弟子ID)
+	if 情劫.is_empty():
+		return 0.0
+	var 强度: int = int(情劫.get("情劫强度", 1))
+	var 日: int = int(情劫.get("情劫日", 0))
+	# 情劫前90日影响最大，之后逐渐减弱
+	var 影响: float = -0.1 * float(强度)
+	if 日 > 90:
+		影响 *= (1.0 - float(日 - 90) / 90.0)
+	return 影响
+
+# ============ 高阶修士进阶系统（神魂+法相+领域）============
+# 修真世界观：元婴修神魂，化神凝法相，炼虚辟领域
+# 神魂：元婴以上可修炼，影响战力和悟道
+# 法相：化神以上可凝聚，提供大量战力加成
+# 领域：炼虚以上可开辟，领域内修士获得加成
+
+## 修炼神魂（元婴以上修士可修炼）
+func 修炼神魂(弟子: Disciple) -> Dictionary:
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if str(弟子.境界) not in ["元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]:
+		return {"成功": false, "原因": "需元婴以上境界才能修炼神魂"}
+	if 弟子.神魂等级 >= 9:
+		return {"成功": false, "原因": "神魂已达极致（9级）"}
+	# 消耗悟道点
+	var 消耗悟道: int = 100 * (弟子.神魂等级 + 1)
+	if 悟道点 < 消耗悟道:
+		return {"成功": false, "原因": "悟道点不足，需%d" % 消耗悟道}
+	悟道点 -= 消耗悟道
+	# 增加神魂经验
+	弟子.神魂经验 += 50
+	# 升级判断
+	var 升级所需: int = 100 * (弟子.神魂等级 + 1)
+	if 弟子.神魂经验 >= 升级所需:
+		弟子.神魂经验 = 0
+		弟子.神魂等级 += 1
+		添加纪事("修炼", "神魂进阶", "%s神魂修炼至%d级，战力+%d%%，悟道+%d%%" % [弟子.姓名, 弟子.神魂等级, 弟子.神魂等级 * 5, 弟子.神魂等级 * 3], 2)
+		弟子.计算战力()
+		return {"成功": true, "升级": true, "神魂等级": 弟子.神魂等级}
+	添加纪事("修炼", "修炼神魂", "%s修炼神魂，经验+50" % 弟子.姓名, 1)
+	return {"成功": true, "升级": false, "神魂经验": 弟子.神魂经验}
+
+## 凝聚法相（化神以上修士可凝聚）
+func 凝聚法相(弟子: Disciple, 法相名: String = "") -> Dictionary:
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if str(弟子.境界) not in ["化神", "炼虚", "合体", "大乘", "渡劫"]:
+		return {"成功": false, "原因": "需化神以上境界才能凝聚法相"}
+	if 弟子.法相等级 >= 9:
+		return {"成功": false, "原因": "法相已达极致（9级）"}
+	# 消耗灵石和悟道点
+	var 消耗灵石: int = 5000 * (弟子.法相等级 + 1)
+	var 消耗悟道: int = 200 * (弟子.法相等级 + 1)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，需%d" % 消耗灵石}
+	if 悟道点 < 消耗悟道:
+		return {"成功": false, "原因": "悟道点不足，需%d" % 消耗悟道}
+	灵石 -= 消耗灵石
+	悟道点 -= 消耗悟道
+	# 首次凝聚法相
+	if 弟子.法相等级 == 0:
+		var 法相名称池: Array = ["金刚法相", "青莲法相", "剑仙法相", "雷霆法相", "烈焰法相", "玄冰法相", "菩提法相", "魔龙法相"]
+		弟子.法相名称 = 法相名 if 法相名 != "" else 法相名称池[randi() % 法相名称池.size()]
+	弟子.法相等级 += 1
+	添加纪事("修炼", "凝聚法相", "%s凝聚%s至%d级，战力+%d%%" % [弟子.姓名, 弟子.法相名称, 弟子.法相等级, 弟子.法相等级 * 10], 2)
+	弟子.计算战力()
+	return {"成功": true, "法相名称": 弟子.法相名称, "法相等级": 弟子.法相等级}
+
+## 开辟领域（炼虚以上修士可开辟）
+func 开辟领域(弟子: Disciple, 领域名: String = "") -> Dictionary:
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if str(弟子.境界) not in ["炼虚", "合体", "大乘", "渡劫"]:
+		return {"成功": false, "原因": "需炼虚以上境界才能开辟领域"}
+	if 弟子.领域等级 >= 9:
+		return {"成功": false, "原因": "领域已达极致（9级）"}
+	# 消耗灵石和悟道点
+	var 消耗灵石: int = 10000 * (弟子.领域等级 + 1)
+	var 消耗悟道: int = 500 * (弟子.领域等级 + 1)
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，需%d" % 消耗灵石}
+	if 悟道点 < 消耗悟道:
+		return {"成功": false, "原因": "悟道点不足，需%d" % 消耗悟道}
+	灵石 -= 消耗灵石
+	悟道点 -= 消耗悟道
+	# 首次开辟领域
+	if 弟子.领域等级 == 0:
+		var 领域名称池: Array = ["剑之领域", "火之领域", "冰之领域", "雷之领域", "风之领域", "土之领域", "光之领域", "暗之领域"]
+		弟子.领域名称 = 领域名 if 领域名 != "" else 领域名称池[randi() % 领域名称池.size()]
+	弟子.领域等级 += 1
+	添加纪事("修炼", "开辟领域", "%s开辟%s至%d级，战力+%d%%" % [弟子.姓名, 弟子.领域名称, 弟子.领域等级, 弟子.领域等级 * 8], 2)
+	弟子.计算战力()
+	return {"成功": true, "领域名称": 弟子.领域名称, "领域等级": 弟子.领域等级}
+
+## 获取高阶修士列表（元婴以上）
+func 获取高阶修士列表() -> Array:
+	var 结果: Array = []
+	for d in 弟子列表:
+		if d != null and d is Disciple and str(d.状态) == "在宗":
+			if str(d.境界) in ["元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]:
+				结果.append(d)
+	return 结果
+
+## 辈分/字辈谱系（修真味：宗门弟子按入门时间排辈分，道号含辈分字）
+## 太玄宗门字辈谱系（共20代，开山祖师为"太"字辈）
+const 太玄宗门字辈: Array = [
+	"太", "玄", "清", "虚", "无", "极", "道", "灵", "真", "常",
+	"明", "悟", "慧", "定", "寂", "照", "妙", "圆", "通", "化"
+]
+var 当前辈分序: int = 1  # 当前宗门辈分（0=开山，1=第二代，以此类推）
+
+## 获取当前辈分字
+func 获取当前辈分字() -> String:
+	var idx: int = 当前辈分序 % 太玄宗门字辈.size()
+	return 太玄宗门字辈[idx]
+
+## 新弟子入门时分配辈分和道号
+func _辈分月度推进(月: float) -> void:
+	# 每100年（36000游戏日）晋升一代
+	var 总日: int = int(累计游戏日 + 月 * 30)
+	var 目标辈分: int = int(总日 / 36000)
+	if 目标辈分 > 当前辈分序:
+		当前辈分序 = 目标辈分
+		添加纪事("庶务", "辈分晋升", "宗门已传承%d代，当前辈分字：%s" % [当前辈分序 + 1, 获取当前辈分字()], 2)
+
+## 占卜/天机系统（修真味：宗主消耗悟道点占卜，预测突破/事件/机缘）
+## 占卜类型：突破吉凶、近期事件、机缘方向
+var 占卜冷却: int = 0  # 占卜冷却（游戏日）
+
+## 占卜（消耗悟道点，预测未来）
+func 占卜(类型: String = "突破吉凶") -> Dictionary:
+	if 宗主 == null:
+		return {"成功": false, "原因": "宗主未初始化"}
+	if 占卜冷却 > 0:
+		return {"成功": false, "原因": "天机紊乱，需%d日后再占" % 占卜冷却}
+	# 消耗悟道点
+	var 消耗: int = 100
+	if 悟道点 < 消耗:
+		return {"成功": false, "原因": "悟道点不足（需%d）" % 消耗}
+	悟道点 -= 消耗
+	占卜冷却 = 30  # 30日冷却
+	# 占卜准确率（宗主境界+神识影响）
+	var 境界序_idx: int = Disciple.境界序.find(str(宗主.境界))
+	var 准确率: float = 0.50 + float(境界序_idx) * 0.05 + 宗主.神识生产加成()
+	准确率 = clamp(准确率, 0.50, 0.95)
+	# 占卜结果
+	var 结果: String = ""
+	var 准确: bool = randf() < 准确率
+	match 类型:
+		"突破吉凶":
+			# 随机选一个在宗弟子预测突破
+			var 在宗: Array = []
+			for d in 弟子列表:
+				if d != null and str(d.状态) == "在宗" and d.层数 >= 8:
+					在宗.append(d)
+			if 在宗.is_empty():
+				结果 = "宗门暂无弟子临近突破，天机不显。"
+			else:
+				var 目标 = 在宗[randi() % 在宗.size()]
+				var 突破率: float = 目标.突破成功率修正() / 100.0
+				if 准确:
+					if 突破率 > 0.6:
+						结果 = "%s突破可期，大吉之象，成功率约%.0f%%。" % [目标.姓名, 突破率 * 100]
+					elif 突破率 > 0.3:
+						结果 = "%s突破有阻，需谨慎行事，成功率约%.0f%%。" % [目标.姓名, 突破率 * 100]
+					else:
+						结果 = "%s突破凶险，心魔扰道，成功率约%.0f%%，建议暂缓。" % [目标.姓名, 突破率 * 100]
+				else:
+					结果 = "天机模糊，卦象难辨，仅知%s近期有关口。" % 目标.姓名
+		"近期事件":
+			if 准确:
+				var 事件: Array = ["有客来访", "灵草丰收", "矿脉异动", "妖兽出没", "高人路过", "魔道窥伺"]
+				结果 = "近期%s，宗门需留意。" % 事件[randi() % 事件.size()]
+			else:
+				结果 = "近期气运平稳，无大灾亦无大喜。"
+		"机缘方向":
+			if 准确:
+				var 方向: Array = ["东方有灵气汇聚", "南方有火焰异动", "西方有金气冲天", "北方有水汽氤氲", "中央有土德厚载"]
+				结果 = "%s，或有机缘。" % 方向[randi() % 方向.size()]
+			else:
+				结果 = "机缘天定，不可强求，顺其自然即可。"
+		_:
+			结果 = "未知占卜类型。"
+	添加纪事("庶务", "占卜", "宗主占卜【%s】：%s" % [类型, 结果], 1)
+	return {"成功": true, "结果": 结果, "准确率": 准确率, "消耗": 消耗}
+
+## 个人洞府/灵田系统（修真味：弟子有个人洞府用于闭关，灵田种植灵草）
+## 弟子主动申请洞府（月度推演调用：高境界+高贡献弟子自动申请，宗门有空闲洞府则分配）
+func _弟子主动申请洞府() -> void:
+	# 检查宗门是否有空闲洞府
+	var 已分配: int = 0
+	for d in 弟子列表:
+		if d != null and int(d.洞府等级) > 0:
+			已分配 += 1
+	if 已分配 >= 洞府数量:
+		return  # 无空闲洞府
+	# 寻找符合条件的弟子（金丹及以上、无洞府、贡献点足够）
+	var 候选弟子: Array = []
+	for d in 弟子列表:
+		if d == null or str(d.状态) != "在宗":
+			continue
+		if int(d.洞府等级) > 0:
+			continue  # 已有洞府
+		var 境界序: int = Disciple.境界序.find(str(d.境界))
+		if 境界序 < Disciple.境界序.find("金丹"):
+			continue  # 金丹以下不主动申请
+		if int(d.贡献账户) < 500:
+			continue  # 贡献点不足
+		候选弟子.append(d)
+	if 候选弟子.is_empty():
+		return
+	# 按境界+贡献排序，优先分配给高境界高贡献弟子
+	候选弟子.sort_custom(func(a, b): return int(a.贡献账户) > int(b.贡献账户))
+	# 分配洞府（最多分配3个/月，避免灵石消耗过快）
+	var 分配数: int = 0
+	for d in 候选弟子:
+		if 分配数 >= 3:
+			break
+		if 已分配 + 分配数 >= 洞府数量:
+			break
+		# 消耗弟子贡献点（500点）
+		d.贡献账户 = max(0, int(d.贡献账户) - 500)
+		d.洞府等级 = 1  # 初始1级洞府
+		分配数 += 1
+		_加推演条目("【洞府分配】%s修为已达%s，贡献卓著，主动向宗门申请洞府，获赐1级洞府，闭关修炼效率提升。" % [str(d.姓名), str(d.境界)], ET_SECT, PRIO_NORMAL, {"弟子": str(d.姓名)})
+
+## 分配洞府给弟子（消耗灵石，洞府等级1-7）
+func 分配洞府(弟子ID: int, 洞府等级: int = 1) -> Dictionary:
+	var 目标 = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	# 检查宗门洞府数量
+	var 已分配: int = 0
+	for d in 弟子列表:
+		if d != null and d.洞府等级 > 0:
+			已分配 += 1
+	if 已分配 >= 洞府数量:
+		return {"成功": false, "原因": "宗门洞府不足（已分配%d/%d），需扩建洞府" % [已分配, 洞府数量]}
+	# 消耗灵石（洞府等级×1000）
+	var 消耗: int = 洞府等级 * 1000
+	if 灵石 < 消耗:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗}
+	灵石 -= 消耗
+	目标.洞府等级 = 洞府等级
+	添加纪事("庶务", "分配洞府", "%s获得%d级洞府，修炼效率+%d%%。" % [目标.姓名, 洞府等级, int(目标.洞府修炼加成() * 100)], 1)
+	# 彩蛋：洞府遗留
+	洞府遗留彩蛋(目标, 洞府等级)
+	return {"成功": true, "原因": "分配%d级洞府" % 洞府等级, "消耗": 消耗}
+
+## 升级洞府
+func 升级洞府(弟子ID: int) -> Dictionary:
+	var 目标 = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if 目标.洞府等级 >= 7:
+		return {"成功": false, "原因": "已达最高洞府等级"}
+	if 目标.洞府等级 <= 0:
+		return {"成功": false, "原因": "弟子尚无洞府，请先分配"}
+	var 新等级: int = 目标.洞府等级 + 1
+	var 消耗: int = 新等级 * 2000
+	if 灵石 < 消耗:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗}
+	灵石 -= 消耗
+	目标.洞府等级 = 新等级
+	添加纪事("庶务", "升级洞府", "%s洞府升级至%d级，修炼效率+%d%%。" % [目标.姓名, 新等级, int(目标.洞府修炼加成() * 100)], 1)
+	# 彩蛋：洞府遗留（升级时探索新区域）
+	洞府遗留彩蛋(目标, 新等级)
+	return {"成功": true, "原因": "升级至%d级" % 新等级, "消耗": 消耗}
+
+## 个人灵田月产出（每个有灵田的弟子每月产灵草）
+func _灵田月度产出() -> void:
+	var 总产出: int = 0
+	for d in 弟子列表:
+		if d != null and d.个人灵田等级 > 0 and str(d.状态) == "在宗":
+			var 产出: int = d.灵田月产出()
+			灵草 += 产出
+			总产出 += 产出
+	if 总产出 > 0:
+		添加纪事("庶务", "灵田产出", "弟子个人灵田共产出%d株灵草。" % 总产出, 1)
+
+## 上古洞府传承系统（修真味：秘境中发现上古洞府，通过考验获得传承）
+## 上古洞府配置（品阶越高，传承越丰厚，考验越难）
+const 上古洞府配置: Array = [
+	{"名称": "炼气士洞府", "品阶": "凡阶", "门槛": "练气", "悟道点": 50, "灵石": 500, "概率": 0.10},
+	{"名称": "筑基修士洞府", "品阶": "灵阶", "门槛": "筑基", "悟道点": 100, "灵石": 1000, "概率": 0.08},
+	{"名称": "金丹真人洞府", "品阶": "宝阶", "门槛": "金丹", "悟道点": 200, "灵石": 2000, "概率": 0.06},
+	{"名称": "元婴老祖洞府", "品阶": "王阶", "门槛": "元婴", "悟道点": 400, "灵石": 4000, "概率": 0.04},
+	{"名称": "化神圣尊洞府", "品阶": "圣阶", "门槛": "化神", "悟道点": 800, "灵石": 8000, "概率": 0.02},
+	{"名称": "炼虚道君洞府", "品阶": "仙阶", "门槛": "炼虚", "悟道点": 1500, "灵石": 15000, "概率": 0.01},
+	{"名称": "大乘仙帝洞府", "品阶": "道阶", "门槛": "合体", "悟道点": 3000, "灵石": 30000, "概率": 0.005},
+]
+
+## 秘境探索时概率发现上古洞府
+func 检查上古洞府(弟子境界: String) -> Dictionary:
+	var 可进入: Array = []
+	for 洞府 in 上古洞府配置:
+		var 门槛序: int = Disciple.境界序.find(str(洞府.get("门槛", "练气")))
+		var 弟子序: int = Disciple.境界序.find(弟子境界)
+		if 弟子序 >= 门槛序 and randf() < float(洞府.get("概率", 0.01)):
+			可进入.append(洞府)
+	if 可进入.is_empty():
+		return {"发现": false}
+	# 选择品阶最高的洞府
+	可进入.sort_custom(func(a, b): return str(a.get("品阶", "")) > str(b.get("品阶", "")))
+	return {"发现": true, "洞府": 可进入[0]}
+
+## 进入上古洞府获取传承（消耗灵石开启，获得悟道点+概率获得功法/丹药）
+func 进入上古洞府(弟子: Object, 洞府: Dictionary) -> Dictionary:
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	var 消耗灵石: int = int(洞府.get("灵石", 1000))
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足（开启洞府需%d）" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 获得悟道点
+	var 悟道: int = int(洞府.get("悟道点", 100))
+	悟道点 += 悟道
+	# 概率获得功法（30%概率）
+	var 获得功法名: String = ""
+	if randf() < 0.30 and 宗主 != null:
+		var 功法列表: Array = ["吐纳术", "清心诀", "紫霞神功", "太玄经", "道德经", "黄庭经", "天道诀"]
+		获得功法名 = 功法列表[randi() % 功法列表.size()]
+		if 宗主.已学功法 == null:
+			宗主.已学功法 = []
+		if 获得功法名 not in 宗主.已学功法:
+			宗主.已学功法.append(获得功法名)
+	# 概率获得丹药（50%概率）
+	var 获得丹药: String = ""
+	if randf() < 0.50:
+		var 丹药列表: Array = ["筑基丹", "金丹", "元婴丹", "化神丹", "悟道丹"]
+		获得丹药 = 丹药列表[randi() % 丹药列表.size()]
+	添加纪事("庶务", "上古洞府", "%s发现%s（%s），获得%d悟道点%s%s！" % [
+		弟子.姓名, 洞府.get("名称", ""), 洞府.get("品阶", ""), 悟道,
+		"+《%s》" % 获得功法名 if 获得功法名 != "" else "",
+		"+%s" % 获得丹药 if 获得丹药 != "" else ""
+	], 3)
+	return {"成功": true, "悟道点": 悟道, "功法": 获得功法名, "丹药": 获得丹药, "消耗": 消耗灵石}
+
+## 布阵阵位玩法（修真味：阵法有阵位，弟子分配到对应阵位，匹配度影响威力）
+## 阵位类型定义
+const 阵位类型: Dictionary = {
+	"攻": {"名称": "攻击位", "描述": "主杀伐，适合攻伐型弟子", "匹配道途": ["道修", "刀修", "法修", "体修"]},
+	"防": {"名称": "防御位", "描述": "主守御，适合防御型弟子", "匹配道途": ["体修", "道修"]},
+	"辅": {"名称": "辅助位", "描述": "主辅助，适合辅助型弟子", "匹配道途": ["丹修", "符修", "医修"]},
+	"控": {"名称": "控制位", "描述": "主控制，适合控制型弟子", "匹配道途": ["法修", "符修"]},
+}
+
+## 各阵法的阵位配置（team类型阵法）
+const 阵法阵位配置: Dictionary = {
+	"arr_t_001": ["攻", "攻"],           # 两仪协攻阵：2攻击位
+	"arr_t_002": ["防", "防", "辅"],       # 三才守御阵：2防御+1辅助
+	"arr_t_003": ["攻", "防", "辅", "控"],  # 四象聚灵阵：各1位
+	"arr_t_004": ["防", "防", "防", "辅", "辅"],  # 五岳镇魔阵：3防御+2辅助
+	"arr_t_005": ["攻", "攻", "攻", "攻", "攻", "控", "辅"],  # 七星破阵：5攻击+1控制+1辅助
+	"arr_t_006": ["攻", "防", "辅", "控", "攻"],  # 周天同心阵：2攻击+1防御+1辅助+1控制
+}
+
+## 宗门大阵阵位分配（阵法ID -> [{弟子ID, 阵位类型}]）
+var 宗门阵位分配: Dictionary = {}
+
+## 分配弟子到阵位
+func 分配阵位(阵法ID: String, 弟子ID: int, 阵位类型: String) -> Dictionary:
+	if not 阵法阵位配置.has(阵法ID):
+		return {"成功": false, "原因": "该阵法无阵位配置"}
+	var 阵位列表: Array = 阵法阵位配置[阵法ID]
+	if 阵位类型 not in 阵位列表:
+		return {"成功": false, "原因": "该阵法无%s位" % 阵位类型}
+	# 检查弟子是否存在
+	var 目标 = null
+	for d in 弟子列表:
+		if d != null and int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	# 初始化分配
+	if not 宗门阵位分配.has(阵法ID):
+		宗门阵位分配[阵法ID] = []
+	# 检查该阵位是否已分配
+	var 已分配: Array = 宗门阵位分配[阵法ID]
+	for i in range(已分配.size()):
+		if str(已分配[i].get("阵位", "")) == 阵位类型:
+			已分配[i] = {"弟子ID": 弟子ID, "阵位": 阵位类型, "弟子名": 目标.姓名}
+			添加纪事("庶务", "阵位调整", "%s调整至%s的%s。" % [目标.姓名, 阵法ID, 阵位类型], 1)
+			return {"成功": true, "原因": "调整阵位成功"}
+	# 新分配
+	已分配.append({"弟子ID": 弟子ID, "阵位": 阵位类型, "弟子名": 目标.姓名})
+	添加纪事("庶务", "分配阵位", "%s分配至%s的%s。" % [目标.姓名, 阵法ID, 阵位类型], 1)
+	return {"成功": true, "原因": "分配阵位成功"}
+
+## 计算阵法加成（填充率+匹配度）
+func 计算阵法加成(阵法ID: String) -> Dictionary:
+	var 结果: Dictionary = {"填充率": 0.0, "匹配度": 0.0, "总加成": 0.0, "攻击加成": 0.0, "防御加成": 0.0}
+	if not 阵法阵位配置.has(阵法ID):
+		return 结果
+	var 阵位列表: Array = 阵法阵位配置[阵法ID]
+	var 已分配: Array = 宗门阵位分配.get(阵法ID, [])
+	# 填充率
+	var 填充数: int = 已分配.size()
+	结果["填充率"] = float(填充数) / float(阵位列表.size())
+	# 匹配度（弟子道途与阵位类型匹配）
+	var 匹配数: int = 0
+	for 分配 in 已分配:
+		var 弟子ID: int = int(分配.get("弟子ID", -1))
+		var 阵位: String = str(分配.get("阵位", ""))
+		var 目标 = null
+		for d in 弟子列表:
+			if d != null and int(d.弟子ID) == 弟子ID:
+				目标 = d
+				break
+		if 目标 == null:
+			continue
+		var 匹配道途: Array = 阵位类型.get(阵位, {}).get("匹配道途", [])
+		if str(目标.道途) in 匹配道途:
+			匹配数 += 1
+	结果["匹配度"] = float(匹配数) / float(max(1, 填充数))
+	# 基础加成（从阵法配置表读取）
+	var 配置: Dictionary = 阵法配置表.get(阵法ID, {})
+	var 基础加成: float = float(str(配置.get("eff_val_base", "0")).replace("%", "")) / 100.0
+	# 总加成 = 基础加成 × 填充率 × (1 + 匹配度×0.5)
+	结果["总加成"] = 基础加成 * 结果["填充率"] * (1.0 + 结果["匹配度"] * 0.5)
+	# 按阵位类型分配加成
+	var 攻位数: int = 0
+	var 防位数: int = 0
+	for 位 in 阵位列表:
+		if 位 == "攻":
+			攻位数 += 1
+		elif 位 == "防":
+			防位数 += 1
+	if 攻位数 > 0:
+		结果["攻击加成"] = 结果["总加成"] * (float(攻位数) / float(阵位列表.size()))
+	if 防位数 > 0:
+		结果["防御加成"] = 结果["总加成"] * (float(防位数) / float(阵位列表.size()))
+	return 结果
+
+## 彩蛋系统：修真小说常见桥段（洞府遗留/储物袋/秘境奇遇/坊市捡漏）
+## 储物袋配置（击败敌对NPC掉落，需祭炼抹除神识才能打开）
+const 储物袋配置: Dictionary = {
+	"凡品储物袋": {"祭炼天数": 1, "灵石范围": [10, 100], "丹药概率": 0.3, "功法概率": 0.05, "法宝概率": 0.02},
+	"灵品储物袋": {"祭炼天数": 3, "灵石范围": [50, 500], "丹药概率": 0.4, "功法概率": 0.10, "法宝概率": 0.05},
+	"宝品储物袋": {"祭炼天数": 7, "灵石范围": [200, 2000], "丹药概率": 0.5, "功法概率": 0.15, "法宝概率": 0.08},
+	"王品储物袋": {"祭炼天数": 15, "灵石范围": [500, 5000], "丹药概率": 0.6, "功法概率": 0.20, "法宝概率": 0.12},
+	"圣品储物袋": {"祭炼天数": 30, "灵石范围": [2000, 20000], "丹药概率": 0.7, "功法概率": 0.30, "法宝概率": 0.20},
+	"仙品储物袋": {"祭炼天数": 60, "灵石范围": [5000, 50000], "丹药概率": 0.8, "功法概率": 0.40, "法宝概率": 0.30},
+}
+var 储物袋列表: Array = []  # 未开启的储物袋 [{名称, 品阶, 剩余祭炼天数, 来源}]
+
+## 洞府遗留彩蛋（分配/升级洞府时触发，发现上任所有者遗留物品）
+func 洞府遗留彩蛋(弟子: Object, 洞府等级: int) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	# 概率随洞府等级提升（高级洞府上任所有者更可能有遗留）
+	var 基础概率: float = 0.05 + float(洞府等级) * 0.02
+	if randf() > 基础概率:
+		return {"触发": false}
+	# 随机遗留类型
+	var roll: float = randf()
+	if roll < 0.40:
+		# 灵石遗留
+		var 灵石数: int = randi_range(50, 500) * 洞府等级
+		灵石 += 灵石数
+		添加纪事("奇遇", "洞府遗留", "%s在洞府静室暗格中发现上任修士遗留的%d灵石！" % [弟子.姓名, 灵石数], 3)
+		return {"触发": true, "类型": "灵石", "数量": 灵石数}
+	elif roll < 0.65:
+		# 灵草遗留
+		var 灵草数: int = randi_range(3, 10) * 洞府等级
+		灵草 += 灵草数
+		添加纪事("奇遇", "洞府遗留", "%s在洞府药圃中发现上任修士遗留的%d株灵草！" % [弟子.姓名, 灵草数], 2)
+		return {"触发": true, "类型": "灵草", "数量": 灵草数}
+	elif roll < 0.85:
+		# 丹药遗留
+		var 丹药数: int = randi_range(1, 3)
+		添加纪事("奇遇", "洞府遗留", "%s在洞府丹房中发现上任修士遗留的%d瓶丹药！" % [弟子.姓名, 丹药数], 2)
+		return {"触发": true, "类型": "丹药", "数量": 丹药数}
+	elif roll < 0.95:
+		# 功法残篇
+		var 悟道: int = randi_range(20, 100) * 洞府等级
+		悟道点 += 悟道
+		添加纪事("奇遇", "洞府遗留", "%s在洞府书阁中发现上任修士遗留的功法残篇，研读后获得%d悟道点！" % [弟子.姓名, 悟道], 3)
+		return {"触发": true, "类型": "功法残篇", "悟道点": 悟道}
+	else:
+		# 上古传承（稀有彩蛋）
+		var 悟道: int = randi_range(100, 500) * 洞府等级
+		悟道点 += 悟道
+		声望 += 10
+		添加纪事("奇遇", "上古传承", "%s在洞府密室中发现上古修士坐化遗骸，旁有一部完整传承！获得%d悟道点，宗门声望+10。" % [弟子.姓名, 悟道], 4)
+		return {"触发": true, "类型": "上古传承", "悟道点": 悟道, "声望": 10}
+
+## 击败敌对NPC掉落储物袋
+func 掉落储物袋(敌对境界: String, 来源: String = "战斗") -> Dictionary:
+	var 境界序_idx: int = Disciple.境界序.find(敌对境界)
+	var 品阶: String = "凡品储物袋"
+	if 境界序_idx >= 7:
+		品阶 = "仙品储物袋"
+	elif 境界序_idx >= 5:
+		品阶 = "圣品储物袋"
+	elif 境界序_idx >= 4:
+		品阶 = "王品储物袋"
+	elif 境界序_idx >= 3:
+		品阶 = "宝品储物袋"
+	elif 境界序_idx >= 1:
+		品阶 = "灵品储物袋"
+	var 配置: Dictionary = 储物袋配置.get(品阶, 储物袋配置["凡品储物袋"])
+	var 袋: Dictionary = {
+		"名称": 品阶,
+		"品阶": 品阶.replace("储物袋", ""),
+		"剩余祭炼天数": int(配置.get("祭炼天数", 1)),
+		"总祭炼天数": int(配置.get("祭炼天数", 1)),
+		"来源": 来源,
+	}
+	储物袋列表.append(袋)
+	添加纪事("战利品", "储物袋", "击败敌人后获得%s，需祭炼%d日抹除神识后方可打开。" % [品阶, 袋["总祭炼天数"]], 2)
+	return {"成功": true, "储物袋": 袋}
+
+## 祭炼储物袋（每日推进）
+func 祭炼储物袋月度推进(月: float) -> void:
+	var 已开启: Array = []
+	for i in range(储物袋列表.size()):
+		var 袋: Dictionary = 储物袋列表[i]
+		袋["剩余祭炼天数"] = max(0, int(袋["剩余祭炼天数"]) - int(月 * 30))
+		if int(袋["剩余祭炼天数"]) <= 0:
+			已开启.append(i)
+	# 倒序移除并开启
+	for i in range(已开启.size() - 1, -1, -1):
+		var idx: int = 已开启[i]
+		var 袋: Dictionary = 储物袋列表[idx]
+		储物袋列表.remove_at(idx)
+		开启储物袋(袋)
+
+## 开启储物袋（祭炼完成后自动开启）
+func 开启储物袋(袋: Dictionary) -> Dictionary:
+	var 品阶: String = str(袋.get("品阶", "凡品"))
+	var 配置: Dictionary = 储物袋配置.get(品阶 + "储物袋", 储物袋配置["凡品储物袋"])
+	var 结果: Dictionary = {"品阶": 品阶, "物品": []}
+	# 灵石
+	var 灵石范围: Array = 配置.get("灵石范围", [10, 100])
+	var 灵石数: int = randi_range(int(灵石范围[0]), int(灵石范围[1]))
+	灵石 += 灵石数
+	结果["物品"].append("灵石×%d" % 灵石数)
+	# 丹药
+	if randf() < float(配置.get("丹药概率", 0.3)):
+		var 丹药数: int = randi_range(1, 3)
+		结果["物品"].append("丹药×%d" % 丹药数)
+	# 功法
+	if randf() < float(配置.get("功法概率", 0.05)):
+		var 悟道: int = randi_range(50, 200)
+		悟道点 += 悟道
+		结果["物品"].append("功法心得（%d悟道点）" % 悟道)
+	# 法宝
+	if randf() < float(配置.get("法宝概率", 0.02)):
+		结果["物品"].append("神秘法宝一件")
+	添加纪事("战利品", "储物袋开启", "%s祭炼完成，开启后获得：%s" % [袋.get("名称", ""), "、".join(结果["物品"])], 3)
+	return 结果
+
+## 秘境奇遇彩蛋（修真小说常见桥段：前人坐化/神秘传承/灵泉沐浴/滴血认主）
+func 秘境奇遇彩蛋(弟子: Object, 秘境等级: int = 1) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	# 基础概率5%，秘境等级越高概率越大
+	var 概率: float = 0.05 + float(秘境等级) * 0.01
+	if randf() > 概率:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.25:
+		# 前人坐化洞府
+		var 悟道: int = randi_range(50, 200) * 秘境等级
+		悟道点 += 悟道
+		添加纪事("奇遇", "前人坐化", "%s在秘境深处发现一处前人坐化洞府，遗骸旁留有一部手札，研读后获得%d悟道点！" % [弟子.姓名, 悟道], 4)
+		return {"触发": true, "类型": "前人坐化", "悟道点": 悟道}
+	elif roll < 0.45:
+		# 神秘老者传功
+		var 心境加: int = randi_range(5, 20)
+		弟子.增加心境(心境加)
+		添加纪事("奇遇", "神秘传功", "%s在秘境中偶遇一位神秘老者，老者见其根骨不俗，随手点拨几句，心境+%d！" % [弟子.姓名, 心境加], 4)
+		return {"触发": true, "类型": "神秘传功", "心境": 心境加}
+	elif roll < 0.65:
+		# 灵泉沐浴
+		var 寿元加: int = randi_range(1, 5)
+		弟子.寿元 += 寿元加
+		添加纪事("奇遇", "灵泉沐浴", "%s发现一处灵泉，入内沐浴后只觉通体舒泰，寿元+%d年！" % [弟子.姓名, 寿元加], 3)
+		return {"触发": true, "类型": "灵泉沐浴", "寿元": 寿元加}
+	elif roll < 0.80:
+		# 滴血认主
+		var 灵石数: int = randi_range(100, 500) * 秘境等级
+		灵石 += 灵石数
+		添加纪事("奇遇", "滴血认主", "%s在秘境中捡到一件蒙尘宝物，滴血认主后发现内藏%d灵石的储物空间！" % [弟子.姓名, 灵石数], 3)
+		return {"触发": true, "类型": "滴血认主", "灵石": 灵石数}
+	elif roll < 0.92:
+		# 上古洞府传承（调用已有系统）
+		var 洞府结果: Dictionary = 检查上古洞府(str(弟子.境界))
+		if bool(洞府结果.get("发现", false)):
+			进入上古洞府(弟子, 洞府结果["洞府"])
+			return {"触发": true, "类型": "上古洞府"}
+		return {"触发": false}
+	else:
+		# 捡漏（买到/捡到隐藏价值物品）
+		var 灵草数: int = randi_range(5, 20) * 秘境等级
+		灵草 += 灵草数
+		添加纪事("奇遇", "秘境捡漏", "%s在一处废弃营地中发现被人遗漏的%d株灵草！" % [弟子.姓名, 灵草数], 2)
+		return {"触发": true, "类型": "秘境捡漏", "灵草": 灵草数}
+
+## 坊市捡漏彩蛋（修真小说常见桥段：摊主不识货/隐藏价值物品/淘宝）
+func 坊市捡漏彩蛋(购买物品: String = "") -> Dictionary:
+	# 基础概率3%
+	if randf() > 0.03:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		# 摊主不识货，低价买到宝贝
+		var 灵石数: int = randi_range(50, 300)
+		灵石 += 灵石数
+		添加纪事("奇遇", "坊市捡漏", "在坊市中遇到一位不识货的摊主，低价购入的物品转手卖出，净赚%d灵石！" % 灵石数, 3)
+		return {"触发": true, "类型": "摊主不识货", "灵石": 灵石数}
+	elif roll < 0.70:
+		# 隐藏价值物品（内含储物袋）
+		var 悟道: int = randi_range(20, 100)
+		悟道点 += 悟道
+		添加纪事("奇遇", "隐藏价值", "购入的物品中竟藏有一张古旧丹方，研读后获得%d悟道点！" % 悟道, 3)
+		return {"触发": true, "类型": "隐藏价值", "悟道点": 悟道}
+	else:
+		# 遇到神秘商人
+		var 声望加: int = 5
+		声望 += 声望加
+		添加纪事("奇遇", "神秘商人", "在坊市角落遇到一位神秘商人，相谈甚欢，宗门声望+%d！" % 声望加, 2)
+		return {"触发": true, "类型": "神秘商人", "声望": 声望加}
+
+# ============ 扩展彩蛋系统：六大类修真小说常见桥段 ============
+
+## 一、路见不平类彩蛋
+## 遇到恶霸欺负人（历练/坊市/外出时触发）
+func 彩蛋_路见不平(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		var 声望加: int = randi_range(3, 10)
+		声望 += 声望加
+		var 贡献: int = randi_range(10, 30)
+		弟子.贡献点 += 贡献
+		添加纪事("奇遇", "路见不平", "%s外出时遇恶霸欺压散修，出手相助击退恶霸，散修感激涕零。宗门声望+%d，%s获得贡献点+%d。" % [弟子.姓名, 声望加, 弟子.姓名, 贡献], 3)
+		return {"触发": true, "类型": "恶霸欺压", "声望": 声望加, "贡献": 贡献}
+	elif roll < 0.70:
+		var 灵石数: int = randi_range(100, 500)
+		灵石 += 灵石数
+		添加纪事("奇遇", "救人报恩", "%s路遇被追杀的重伤修士，出手将其救下。修士伤愈后留下%d灵石作为谢礼，飘然而去。" % [弟子.姓名, 灵石数], 3)
+		return {"触发": true, "类型": "救人报恩", "灵石": 灵石数}
+	else:
+		声望 += 5
+		添加纪事("奇遇", "结下善缘", "%s救下被邪修追杀的女修，女修感激不尽，承诺日后必有厚报。宗门声望+5，结下一段善缘。" % 弟子.姓名, 3)
+		return {"触发": true, "类型": "结下善缘", "声望": 5}
+
+## 二、夺宝/黑吃黑类彩蛋
+## 拍卖会后被人盯上夺宝
+func 彩蛋_拍卖会夺宝(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.20:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.50:
+		var 境界: String = str(弟子.境界)
+		掉落储物袋(境界, "反杀夺宝")
+		添加纪事("奇遇", "反杀夺宝", "%s拍卖会结束后被人尾随夺宝，早有防备的%s反手将其击杀，获得储物袋一个！" % [弟子.姓名, 弟子.姓名], 4)
+		return {"触发": true, "类型": "反杀夺宝"}
+	elif roll < 0.80:
+		添加纪事("奇遇", "击退夺宝", "%s拍卖会结束后遭人偷袭夺宝，激战数十回合后将对方击退，对方仓皇逃窜。" % 弟子.姓名, 2)
+		return {"触发": true, "类型": "击退夺宝"}
+	else:
+		var 损失: int = min(灵石, randi_range(50, 200))
+		灵石 -= 损失
+		添加纪事("奇遇", "被夺宝", "%s拍卖会结束后遭高手偷袭，不敌对方，损失%d灵石后侥幸逃脱。" % [弟子.姓名, 损失], 3)
+		return {"触发": true, "类型": "被夺宝", "损失": 损失}
+
+## 秘境中被人背后偷袭
+func 彩蛋_秘境偷袭(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.08:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		var 境界: String = str(弟子.境界)
+		掉落储物袋(境界, "反杀偷袭")
+		添加纪事("奇遇", "反杀偷袭", "%s在秘境中遭人背后偷袭，早有防备的%s反手将其击杀，黑吃黑获得储物袋！" % [弟子.姓名, 弟子.姓名], 4)
+		return {"触发": true, "类型": "反杀偷袭"}
+	elif roll < 0.70:
+		var 受伤: int = randi_range(5, 15)
+		弟子.受伤剩余 = max(int(弟子.受伤剩余), 受伤)
+		添加纪事("奇遇", "秘境激战", "%s在秘境中遭人偷袭，激战数十回合后将对方击退，但也身受重伤，需养伤%d日。" % [弟子.姓名, 受伤], 3)
+		return {"触发": true, "类型": "秘境激战", "受伤": 受伤}
+	else:
+		var 声望加: int = randi_range(5, 15)
+		声望 += 声望加
+		添加纪事("奇遇", "制止恶行", "%s在秘境中发现有人正在杀人夺宝，出手制止了这场恶行，被救修士感恩戴德。宗门声望+%d。" % [弟子.姓名, 声望加], 3)
+		return {"触发": true, "类型": "制止恶行", "声望": 声望加}
+
+## 三、邪修/魔道类彩蛋
+## 发现邪修祭炼生魂（历练时触发）
+func 彩蛋_邪修祭炼(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.05:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		# 出手摧毁祭坛，解救生魂
+		var 功德加: int = randi_range(50, 200)
+		var 业力减: int = randi_range(20, 50)
+		弟子.功德 += 功德加
+		弟子.业力 = max(0, int(弟子.业力) - 业力减)
+		声望 += 10
+		添加纪事("奇遇", "摧毁祭坛", "%s发现邪修正在祭炼生魂，出手摧毁祭坛，解救数百生魂。功德+%d，业力-%d，宗门声望+10。" % [弟子.姓名, 功德加, 业力减], 4)
+		return {"触发": true, "类型": "摧毁祭坛", "功德": 功德加, "业力": 业力减}
+	elif roll < 0.70:
+		# 邪修太强，只能暗中破坏
+		var 功德加: int = randi_range(20, 50)
+		弟子.功德 += 功德加
+		添加纪事("奇遇", "暗中破坏", "%s发现邪修祭炼生魂的祭坛，对方实力太强只能暗中破坏，解救部分生魂后悄然离去。功德+%d。" % [弟子.姓名, 功德加], 3)
+		return {"触发": true, "类型": "暗中破坏", "功德": 功德加}
+	else:
+		# 被邪修发现，激战逃脱
+		var 受伤: int = randi_range(10, 30)
+		弟子.受伤剩余 = max(int(弟子.受伤剩余), 受伤)
+		添加纪事("奇遇", "邪修追杀", "%s发现邪修祭炼生魂时被对方察觉，激战一番后身受重伤逃脱，需养伤%d日。" % [弟子.姓名, 受伤], 3)
+		return {"触发": true, "类型": "邪修追杀", "受伤": 受伤}
+
+## 遇到魔修采补（历练时触发）
+func 彩蛋_魔修采补(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.04:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.50:
+		# 救下受害者，击杀魔修
+		var 境界: String = str(弟子.境界)
+		掉落储物袋(境界, "击杀魔修")
+		声望 += 15
+		添加纪事("奇遇", "击杀魔修", "%s撞见魔修正在采补修士，怒而出手将其击杀，救下受害者。获得储物袋，宗门声望+15。" % 弟子.姓名, 4)
+		return {"触发": true, "类型": "击杀魔修", "声望": 15}
+	else:
+		# 魔修太强，只能救下受害者逃走
+		var 功德加: int = randi_range(30, 80)
+		弟子.功德 += 功德加
+		添加纪事("奇遇", "救下受害者", "%s撞见魔修采补，对方实力太强，只能救下受害者后迅速离去。功德+%d。" % [弟子.姓名, 功德加], 3)
+		return {"触发": true, "类型": "救下受害者", "功德": 功德加}
+
+## 发现血祭阵法（历练/探索时触发）
+func 彩蛋_血祭阵法(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.03:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.50:
+		# 破阵成功，获得阵法传承
+		var 悟道: int = randi_range(100, 300)
+		悟道点 += 悟道
+		声望 += 20
+		添加纪事("奇遇", "破阵传承", "%s发现一座上古血祭大阵，耗费心力将其破去，在阵眼处获得一部阵法传承。悟道点+%d，宗门声望+20。" % [弟子.姓名, 悟道], 4)
+		return {"触发": true, "类型": "破阵传承", "悟道": 悟道, "声望": 20}
+	else:
+		# 阵法反噬，受伤撤退
+		var 受伤: int = randi_range(15, 40)
+		弟子.受伤剩余 = max(int(弟子.受伤剩余), 受伤)
+		添加纪事("奇遇", "阵法反噬", "%s尝试破解血祭大阵时遭到阵法反噬，身受重伤撤退，需养伤%d日。" % [弟子.姓名, 受伤], 3)
+		return {"触发": true, "类型": "阵法反噬", "受伤": 受伤}
+
+## 四、机缘/奇遇类彩蛋
+## 树下捡到功法（历练/外出时触发）
+func 彩蛋_树下捡功法(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.03:
+		return {"触发": false}
+	var 悟道: int = randi_range(50, 200)
+	悟道点 += 悟道
+	添加纪事("奇遇", "树下捡功", "%s在古树下休憩时，发现树洞中藏有一部古旧功法，研读后获得%d悟道点！" % [弟子.姓名, 悟道], 3)
+	return {"触发": true, "类型": "树下捡功", "悟道": 悟道}
+
+## 湖中得到传承（历练时触发）
+func 彩蛋_湖中传承(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.02:
+		return {"触发": false}
+	var 悟道: int = randi_range(150, 400)
+	var 寿元加: int = randi_range(3, 10)
+	悟道点 += 悟道
+	弟子.寿元 += 寿元加
+	添加纪事("奇遇", "湖中传承", "%s在灵湖中沐浴时，意外发现湖底有一处上古洞府，入内得到高人传承。悟道点+%d，寿元+%d年！" % [弟子.姓名, 悟道, 寿元加], 4)
+	return {"触发": true, "类型": "湖中传承", "悟道": 悟道, "寿元": 寿元加}
+
+## 悬崖下发现洞府（历练时触发）
+func 彩蛋_悬崖洞府(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.02:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.50:
+		var 灵石数: int = randi_range(500, 2000)
+		灵石 += 灵石数
+		添加纪事("奇遇", "悬崖洞府", "%s不慎跌落悬崖，却意外发现崖壁上有一处隐蔽洞府，内藏%d灵石！" % [弟子.姓名, 灵石数], 4)
+		return {"触发": true, "类型": "悬崖洞府", "灵石": 灵石数}
+	else:
+		var 悟道: int = randi_range(100, 300)
+		悟道点 += 悟道
+		添加纪事("奇遇", "悬崖传承", "%s不慎跌落悬崖，却意外发现崖壁上古修士的闭关洞府，获得一部传承。悟道点+%d！" % [弟子.姓名, 悟道], 4)
+		return {"触发": true, "类型": "悬崖传承", "悟道": 悟道}
+
+## 古战场捡漏（历练时触发）
+func 彩蛋_古战场捡漏(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.04:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		var 灵石数: int = randi_range(200, 1000)
+		灵石 += 灵石数
+		添加纪事("奇遇", "古战场捡漏", "%s在古战场遗迹中探索，从一具遗骸上找到一个未被发现的储物袋，内有%d灵石！" % [弟子.姓名, 灵石数], 3)
+		return {"触发": true, "类型": "古战场捡漏", "灵石": 灵石数}
+	elif roll < 0.70:
+		var 悟道: int = randi_range(50, 150)
+		悟道点 += 悟道
+		添加纪事("奇遇", "残碑悟道", "%s在古战场中发现一块残破石碑，上刻上古战技，研读后获得%d悟道点！" % [弟子.姓名, 悟道], 3)
+		return {"触发": true, "类型": "残碑悟道", "悟道": 悟道}
+	else:
+		var 境界: String = str(弟子.境界)
+		掉落储物袋(境界, "古战场")
+		添加纪事("奇遇", "战将遗骸", "%s在古战场深处发现一位上古战将的遗骸，其随身储物袋仍在，获得%s！" % [弟子.姓名, 境界], 4)
+		return {"触发": true, "类型": "战将遗骸"}
+
+## 五、人物互动类彩蛋
+## 遇到故人（历练/坊市时触发）
+func 彩蛋_遇到故人(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.05:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		# 遇到旧友，获得馈赠
+		var 灵石数: int = randi_range(50, 200)
+		灵石 += 灵石数
+		添加纪事("奇遇", "故人相遇", "%s在外出时偶遇多年未见的旧友，故人如今已是一方豪强，盛情款待后赠予%d灵石。" % [弟子.姓名, 灵石数], 3)
+		return {"触发": true, "类型": "故人馈赠", "灵石": 灵石数}
+	elif roll < 0.70:
+		# 遇到师门长辈，得到指点
+		var 悟道: int = randi_range(30, 100)
+		悟道点 += 悟道
+		添加纪事("奇遇", "长辈指点", "%s偶遇一位师门长辈，长辈见其修为精进，欣然指点一番。悟道点+%d。" % [弟子.姓名, 悟道], 3)
+		return {"触发": true, "类型": "长辈指点", "悟道": 悟道}
+	else:
+		# 遇到仇人，激战一场
+		var 受伤: int = randi_range(5, 20)
+		弟子.受伤剩余 = max(int(弟子.受伤剩余), 受伤)
+		添加纪事("奇遇", "仇人相遇", "%s外出时偶遇昔日仇人，双方激战一场，两败俱伤各自退去。%s需养伤%d日。" % [弟子.姓名, 弟子.姓名, 受伤], 3)
+		return {"触发": true, "类型": "仇人相遇", "受伤": 受伤}
+
+## 被人挑衅（坊市/历练时触发）
+func 彩蛋_被挑衅(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.06:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		# 轻松击败挑衅者，获得名声
+		var 声望加: int = randi_range(3, 10)
+		声望 += 声望加
+		添加纪事("奇遇", "击败挑衅", "%s在坊市被人挑衅，三招两式便将对方击败，围观修士纷纷叫好。宗门声望+%d。" % [弟子.姓名, 声望加], 2)
+		return {"触发": true, "类型": "击败挑衅", "声望": 声望加}
+	elif roll < 0.70:
+		# 对方背景不简单，结下梁子
+		添加纪事("奇遇", "结下梁子", "%s在坊市被人挑衅，出手教训了对方，却不知对方是某宗门嫡系，就此结下一段梁子。" % 弟子.姓名, 3)
+		return {"触发": true, "类型": "结下梁子"}
+	else:
+		# 隐忍不发，获得心境提升
+		var 心境加: int = randi_range(2, 8)
+		弟子.增加心境(心境加)
+		添加纪事("奇遇", "隐忍心境", "%s被人挑衅却隐忍不发，事后回想反而心境有所突破。心境+%d。" % [弟子.姓名, 心境加], 3)
+		return {"触发": true, "类型": "隐忍心境", "心境": 心境加}
+
+## 遇到隐世高人（历练时触发）
+func 彩蛋_隐世高人(弟子: Object) -> Dictionary:
+	if 弟子 == null:
+		return {"触发": false}
+	if randf() > 0.02:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.40:
+		# 高人传功
+		var 悟道: int = randi_range(200, 500)
+		悟道点 += 悟道
+		var 心境加: int = randi_range(5, 15)
+		弟子.增加心境(心境加)
+		添加纪事("奇遇", "高人传功", "%s在深山之中遇到一位隐世高人，高人见其根骨不俗，传下一段功法心得。悟道点+%d，心境+%d！" % [弟子.姓名, 悟道, 心境加], 4)
+		return {"触发": true, "类型": "高人传功", "悟道": 悟道, "心境": 心境加}
+	elif roll < 0.70:
+		# 高人赠宝
+		var 境界: String = str(弟子.境界)
+		掉落储物袋(境界, "高人赠宝")
+		添加纪事("奇遇", "高人赠宝", "%s遇到一位隐世高人，高人与其相谈甚欢，临别时赠予一个储物袋。" % 弟子.姓名, 4)
+		return {"触发": true, "类型": "高人赠宝"}
+	else:
+		# 高人指点迷津
+		var 道心加: int = randi_range(5, 20)
+		弟子.道心 = min(100, int(弟子.道心) + 道心加)
+		添加纪事("奇遇", "指点迷津", "%s遇到一位隐世高人，高人一语点破其修炼瓶颈，道心+%d！" % [弟子.姓名, 道心加], 4)
+		return {"触发": true, "类型": "指点迷津", "道心": 道心加}
+
+## 六、宗门事件类彩蛋（月度随机触发）
+## 其他宗门挑衅
+func 彩蛋_宗门挑衅() -> Dictionary:
+	if randf() > 0.03:
+		return {"触发": false}
+	var roll: float = randf()
+	if roll < 0.50:
+		# 上门切磋
+		var 声望变化: int = randi_range(-10, 10)
+		声望 = max(0, int(声望) + 声望变化)
+		if 声望变化 >= 0:
+			添加纪事("宗门", "上门切磋", "邻宗修士上门切磋，本宗弟子大胜而归，宗门声望+%d。" % 声望变化, 2)
+		else:
+			添加纪事("宗门", "上门切磋", "邻宗修士上门切磋，本宗弟子惜败，宗门声望%d。" % 声望变化, 3)
+		return {"触发": true, "类型": "上门切磋", "声望变化": 声望变化}
+	else:
+		# 索要资源
+		添加纪事("宗门", "索要资源", "邻宗派人前来索要灵脉资源，态度傲慢。宗主可选择交涉或强硬回应。", 3)
+		return {"触发": true, "类型": "索要资源"}
+
+## 散修投奔
+func 彩蛋_散修投奔() -> Dictionary:
+	if randf() > 0.05:
+		return {"触发": false}
+	# 生成一个随机散修投奔（简化为纪事提示，实际招募由招徒系统处理）
+	var 声望加: int = randi_range(2, 8)
+	声望 += 声望加
+	添加纪事("宗门", "散修投奔", "有散修慕名前来投奔，称仰慕本宗威名。宗门声望+%d，可在招徒时优先考虑。" % 声望加, 2)
+	return {"触发": true, "类型": "散修投奔", "声望": 声望加}
+
+## 魔道入侵警报
+func 彩蛋_魔道入侵() -> Dictionary:
+	if randf() > 0.02:
+		return {"触发": false}
+	var 声望加: int = randi_range(5, 20)
+	声望 += 声望加
+	添加纪事("宗门", "魔道入侵", "魔道修士在宗门附近出没，本宗弟子出手将其击退，守护了一方安宁。宗门声望+%d。" % 声望加, 3)
+	return {"触发": true, "类型": "魔道入侵", "声望": 声望加}
+
+## 月度随机彩蛋总调度（在月度推演中调用）
+func 月度随机彩蛋(月: float) -> void:
+	# 每月5%概率触发宗门级随机彩蛋
+	if randf() > 0.05:
+		return
+	var roll: float = randf()
+	if roll < 0.30:
+		彩蛋_宗门挑衅()
+	elif roll < 0.60:
+		彩蛋_散修投奔()
+	elif roll < 0.80:
+		彩蛋_魔道入侵()
+	else:
+		# 随机选一名外出弟子触发个人彩蛋
+		var 外出弟子: Array = []
+		for d in 弟子列表:
+			if d is Disciple and d.状态 == "历练":
+				外出弟子.append(d)
+		if 外出弟子.size() > 0:
+			var 幸运儿: Object = 外出弟子[randi() % 外出弟子.size()]
+			var 个人roll: float = randf()
+			if 个人roll < 0.20:
+				彩蛋_路见不平(幸运儿)
+			elif 个人roll < 0.35:
+				彩蛋_邪修祭炼(幸运儿)
+			elif 个人roll < 0.50:
+				彩蛋_树下捡功法(幸运儿)
+			elif 个人roll < 0.65:
+				彩蛋_遇到故人(幸运儿)
+			elif 个人roll < 0.80:
+				彩蛋_被挑衅(幸运儿)
+			else:
+				彩蛋_隐世高人(幸运儿)
+
+## 弟子突破连锁反应
+## 功法纳入藏经阁：宗主/弟子获得的功法可选择纳入藏经阁，全宗可参悟
+var 藏经阁功法列表: Array = []  # 藏经阁中的功法列表（含基础功法+自创功法+宗主纳入的功法）
+
+func 纳入藏经阁(功法ID: String, 功法名称: String, 功法品阶: String, 功法类型: String, 功法效果: String, 纳入者: String = "宗主") -> Dictionary:
+	# 检查是否已纳入
+	for g in 藏经阁功法列表:
+		if str(g.get("id", "")) == 功法ID:
+			return {"成功": false, "原因": "该功法已在藏经阁中"}
+	# 纳入藏经阁
+	var 新功法: Dictionary = {
+		"id": 功法ID,
+		"名称": 功法名称,
+		"品阶": 功法品阶,
+		"类型": 功法类型,
+		"效果": 功法效果,
+		"纳入者": 纳入者,
+		"纳入日": 累计游戏日,
+		"参悟次数": 0
+	}
+	藏经阁功法列表.append(新功法)
+	添加纪事("庶务", "藏经阁", "%s将《%s》（%s）纳入藏经阁，全宗弟子可参悟！" % [纳入者, 功法名称, 功法品阶], 2)
+	return {"成功": true, "功法": 新功法, "原因": "《%s》已纳入藏经阁" % 功法名称}
+
+## 自创功法系统（6.17.1）：筑基期及以上弟子突破时灵光乍现，有概率自创专属功法
+func 尝试自创功法(弟子: Disciple) -> Dictionary:
+	if 弟子 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	# 境界门槛：筑基期及以上才能自创功法
+	var 境界顺序: Array = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫"]
+	var 境界索引: int = 境界顺序.find(弟子.境界)
+	if 境界索引 < 1:  # 练气期不能自创
+		return {"成功": false, "原因": "境界不足（需筑基期及以上）"}
+	# 自创概率：境界越高概率越高（筑基1%，金丹3%，元婴5%，化神8%，炼虚12%，合体15%，大乘20%，渡劫25%）
+	var 自创概率: float = 0.01 + float(境界索引) * 0.03
+	# 道心加成：道心越高概率越高
+	var 道心加成: float = float(弟子.心境) / 100.0 * 0.05
+	自创概率 += 道心加成
+	自创概率 = min(0.3, 自创概率)  # 最高30%
+	if randf() > 自创概率:
+		return {"成功": false, "原因": "未触发灵光乍现（概率%.1f%%）" % (自创概率 * 100)}
+	# 自创成功！生成功法
+	自创功法总数 += 1
+	var 功法ID: String = "zichuang_%d_%d" % [弟子.弟子ID, 自创功法总数]
+	# 品阶：基于境界，筑基=灵品，金丹=宝品，元婴=王品，化神=圣品，炼虚+=仙品
+	var 品阶映射: Dictionary = {1: "灵品", 2: "宝品", 3: "王品", 4: "圣品", 5: "仙品", 6: "仙品", 7: "道品", 8: "道品"}
+	var 功法品阶: String = 品阶映射.get(境界索引, "灵品")
+	# 功法类型：基于弟子职业/道途
+	var 功法类型: String = "攻伐类"
+	if 弟子.道途 != "":
+		var 道途: String = str(弟子.道途)
+		if "剑" in 道途 or "刀" in 道途 or "枪" in 道途:
+			功法类型 = "攻伐类"
+		elif "体" in 道途 or "锻" in 道途:
+			功法类型 = "锻体类"
+		elif "丹" in 道途 or "器" in 道途 or "符" in 道途:
+			功法类型 = "技艺类"
+		elif "心" in 道途 or "道" in 道途:
+			功法类型 = "修心类"
+	# 功法名称：基于弟子姓名+类型
+	var 名称前缀: Array = ["玄", "紫", "太", "元", "灵", "宝", "圣", "仙", "道", "神"]
+	var 名称后缀: Dictionary = {"攻伐类": ["剑诀", "刀法", "枪法", "拳法", "掌法", "指诀"], "锻体类": ["炼体诀", "金身诀", "霸体诀", "淬体经"], "技艺类": ["丹经", "器典", "符录", "阵图"], "修心类": ["心经", "道典", "养神经", "悟道诀"], "辅助类": ["护道诀", "长生诀", "回春术", "增益法"]}
+	var 后缀列表: Array = 名称后缀.get(功法类型, ["秘法"])
+	var 功法名称: String = "%s%s%s" % [名称前缀[randi() % 名称前缀.size()], 弟子.姓名[0] if 弟子.姓名.length() > 0 else "玄", 后缀列表[randi() % 后缀列表.size()]]
+	# 功法效果：基于类型和品阶
+	var 效果值: float = {"灵品": 0.03, "宝品": 0.05, "王品": 0.08, "圣品": 0.12, "仙品": 0.18, "道品": 0.25}.get(功法品阶, 0.03)
+	var 功法效果: String = ""
+	match 功法类型:
+		"攻伐类":
+			功法效果 = "攻击+%.0f%%" % (效果值 * 100)
+		"锻体类":
+			功法效果 = "防御+%.0f%%，气血+%.0f%%" % [效果值 * 100, 效果值 * 50]
+		"技艺类":
+			功法效果 = "对应技艺成功率+%.0f%%" % (效果值 * 100)
+		"修心类":
+			功法效果 = "道心+%.0f，心魔抗性+%.0f%%" % [效果值 * 100, 效果值 * 100]
+		_:
+			功法效果 = "全属性+%.0f%%" % (效果值 * 50)
+	# 元婴以上有概率留个人道韵
+	var 有道韵: bool = (境界索引 >= 3 and randf() < 0.3)
+	# 创建功法
+	var 新功法: Dictionary = {
+		"id": 功法ID,
+		"名称": 功法名称,
+		"品阶": 功法品阶,
+		"类型": 功法类型,
+		"效果": 功法效果,
+		"效果值": 效果值,
+		"创始人ID": 弟子.弟子ID,
+		"创始人名": 弟子.姓名,
+		"创建日": 累计游戏日,
+		"道韵": 有道韵,
+		"参悟次数": 0
+	}
+	自创功法列表.append(新功法)
+	# 创始人自动学习
+	if 弟子.已学功法 == null:
+		弟子.已学功法 = []
+	弟子.已学功法.append(功法ID)
+	# 自创功法自动纳入藏经阁（全宗可参悟）
+	纳入藏经阁(功法ID, 功法名称, 功法品阶, 功法类型, 功法效果, 弟子.姓名)
+	# 记录纪事
+	添加纪事("庶务", "自创功法", "%s突破时灵光乍现，自创%s《%s》（%s）！" % [弟子.姓名, 功法品阶, 功法名称, 功法效果], 3)
+	if 有道韵:
+		添加纪事("庶务", "自创功法", "%s的《%s》留有个人道韵，后世弟子参悟可获额外加成！" % [弟子.姓名, 功法名称], 3)
+	return {"成功": true, "功法": 新功法, "原因": "%s自创《%s》成功！" % [弟子.姓名, 功法名称]}
+
+func _弟子突破连锁反应(突破弟子: Disciple) -> void:
+	if 突破弟子 == null:
+		return
+	var 反应记录: Array = []
+	
+	# 1. 道侣反应
+	if 突破弟子.道侣 != "":
+		var 道侣: Disciple = _按姓名找弟子(突破弟子.道侣)
+		if 道侣 != null and 道侣.状态 == "在宗":
+			道侣.触发情绪("喜悦", 3)
+			道侣.增加好感度(str(突破弟子.弟子ID), 5)
+			反应记录.append("%s因道侣%s突破而喜悦" % [道侣.姓名, 突破弟子.姓名])
+	
+	# 2. 子嗣反应
+	for 子嗣 in 通婚子嗣系统.子嗣列表:
+		if str(子嗣.get("父方ID", "")) == str(突破弟子.弟子ID) or str(子嗣.get("母方ID", "")) == str(突破弟子.弟子ID):
+			var 子嗣弟子: Disciple = _按ID找弟子(str(子嗣.get("子嗣ID", "")))
+			if 子嗣弟子 != null and 子嗣弟子.状态 == "在宗":
+				子嗣弟子.触发情绪("喜悦", 2)
+				子嗣弟子.心境 = min(100, 子嗣弟子.心境 + 5)
+				反应记录.append("%s因父/母%s突破而喜悦" % [子嗣弟子.姓名, 突破弟子.姓名])
+	
+	# 3. 道友反应
+	for 道友 in 突破弟子.道友列表:
+		var 道友弟子: Disciple = _按ID找弟子(str(道友.get("弟子ID", "")))
+		if 道友弟子 != null and 道友弟子.状态 == "在宗":
+			道友弟子.触发情绪("喜悦", 1)
+			道友弟子.增加好感度(str(突破弟子.弟子ID), 2)
+			反应记录.append("%s（道友）因%s突破而喜悦" % [道友弟子.姓名, 突破弟子.姓名])
+	
+	# 4. 仇人反应
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or d.状态 != "在宗":
+			continue
+		var 好感度: int = d.获取好感度(str(突破弟子.弟子ID))
+		if 好感度 < 20 and randf() < 0.3:
+			d.触发情绪("愤怒", 1)
+			d.增加好感度(str(突破弟子.弟子ID), -3)
+
+	# 5. 自创功法触发（6.17.1）：突破时灵光乍现
+	尝试自创功法(突破弟子)
+	
+	for 记录 in 反应记录:
+		_加推演条目("✨ " + str(记录), "突破之喜", "低")
+
+## 结成道侣连锁反应
+func _结成道侣连锁反应(弟子1: Disciple, 弟子2: Disciple) -> void:
+	if 弟子1 == null or 弟子2 == null:
+		return
+	var 反应记录: Array = []
+	
+	# 1. 道友祝福
+	for 道友 in 弟子1.道友列表:
+		var 道友弟子: Disciple = _按ID找弟子(str(道友.get("弟子ID", "")))
+		if 道友弟子 != null and 道友弟子.状态 == "在宗":
+			道友弟子.触发情绪("喜悦", 1)
+			道友弟子.增加好感度(str(弟子1.弟子ID), 2)
+			反应记录.append("%s祝福%s与%s结为道侣" % [道友弟子.姓名, 弟子1.姓名, 弟子2.姓名])
+	for 道友 in 弟子2.道友列表:
+		var 道友弟子: Disciple = _按ID找弟子(str(道友.get("弟子ID", "")))
+		if 道友弟子 != null and 道友弟子.状态 == "在宗":
+			道友弟子.触发情绪("喜悦", 1)
+			道友弟子.增加好感度(str(弟子2.弟子ID), 2)
+	
+	# 2. 追求者伤心（好感度>70但未婚）
+	for d in 弟子列表:
+		if d == null or not (d is Disciple) or d.状态 != "在宗":
+			continue
+		if d.弟子ID == 弟子1.弟子ID or d.弟子ID == 弟子2.弟子ID:
+			continue
+		if d.道侣 != "":
+			continue
+		var 对1好感: int = d.获取好感度(str(弟子1.弟子ID))
+		var 对2好感: int = d.获取好感度(str(弟子2.弟子ID))
+		if (对1好感 > 70 or 对2好感 > 70) and randf() < 0.5:
+			d.触发情绪("悲伤", 3)
+			if 对1好感 > 70:
+				d.增加好感度(str(弟子1.弟子ID), -10)
+			if 对2好感 > 70:
+				d.增加好感度(str(弟子2.弟子ID), -10)
+			反应记录.append("%s因心上人%s结为道侣而伤心" % [d.姓名, 弟子1.姓名])
+	
+	for 记录 in 反应记录:
+		_加推演条目("💍 " + str(记录), "道侣之喜", "低")
+
+# ============ 拟真NPC系统 P0-8：弟子关系查看数据接口 ============
+## 获取弟子关系网络（用于UI显示）
+func 获取弟子关系网络(弟子ID: String) -> Dictionary:
+	var d: Disciple = _按ID找弟子(弟子ID)
+	if d == null:
+		return {}
+	
+	var 结果: Dictionary = {
+		"弟子ID": d.弟子ID,
+		"姓名": d.姓名,
+		"道侣": d.道侣,
+		"道友列表": [],
+		"好友列表": [],
+		"仇人列表": [],
+		"子嗣列表": [],
+		"父母": []
+	}
+	
+	# 道友列表
+	for 道友 in d.道友列表:
+		var 道友ID: String = str(道友.get("弟子ID", ""))
+		var 道友弟子: Disciple = _按ID找弟子(道友ID)
+		if 道友弟子 != null:
+			结果["道友列表"].append({
+				"弟子ID": 道友ID,
+				"姓名": 道友弟子.姓名,
+				"好感度": d.获取好感度(道友ID),
+				"关系": "道友"
+			})
+	
+	# 好友/仇人列表
+	for 其他 in 弟子列表:
+		if 其他 == null or not (其他 is Disciple) or 其他.弟子ID == d.弟子ID:
+			continue
+		var 好感度: int = d.获取好感度(str(其他.弟子ID))
+		if 好感度 > 60 and not d.是道友(str(其他.弟子ID)):
+			结果["好友列表"].append({
+				"弟子ID": 其他.弟子ID,
+				"姓名": 其他.姓名,
+				"好感度": 好感度,
+				"关系": "好友"
+			})
+		elif 好感度 < 20:
+			结果["仇人列表"].append({
+				"弟子ID": 其他.弟子ID,
+				"姓名": 其他.姓名,
+				"好感度": 好感度,
+				"关系": "仇人"
+			})
+	
+	# 子嗣列表
+	for 子嗣 in 通婚子嗣系统.子嗣列表:
+		if str(子嗣.get("父方ID", "")) == str(d.弟子ID) or str(子嗣.get("母方ID", "")) == str(d.弟子ID):
+			var 子嗣弟子: Disciple = _按ID找弟子(str(子嗣.get("子嗣ID", "")))
+			var 子嗣名: String = str(子嗣.get("子嗣名", ""))
+			if 子嗣弟子 != null:
+				子嗣名 = 子嗣弟子.姓名
+			结果["子嗣列表"].append({
+				"子嗣ID": str(子嗣.get("子嗣ID", "")),
+				"姓名": 子嗣名,
+				"年龄": int(子嗣.get("年龄", 0)),
+				"血脉": str(子嗣.get("血脉", "")),
+				"品质": str(子嗣.get("品质", ""))
+			})
+	
+	return 结果
+
+## 获取弟子互动历史（最近10条）
+func 获取弟子互动历史(弟子ID: String) -> Array:
+	var d: Disciple = _按ID找弟子(弟子ID)
+	if d == null:
+		return []
+	var 结果: Array = []
+	for 记忆 in d.记忆列表:
+		结果.append({
+			"对象ID": str(记忆.get("对象ID", "")),
+			"对象名": str(记忆.get("对象名", "")),
+			"类型": str(记忆.get("类型", "")),
+			"内容": str(记忆.get("内容", "")),
+			"好感度影响": int(记忆.get("好感度影响", 0))
+		})
+	return 结果
+
+## 获取弟子印象评价（对其他弟子的总体印象）
+func 获取弟子印象评价(弟子ID: String, 对象ID: String) -> String:
+	var d: Disciple = _按ID找弟子(弟子ID)
+	if d == null:
+		return "未知"
+	return d.获取对象印象(对象ID)
+
+## 获取弟子当前心境（性格/情绪/需求）
+func 获取弟子心理状态(弟子ID: String) -> Dictionary:
+	var d: Disciple = _按ID找弟子(弟子ID)
+	if d == null:
+		return {}
+	return {
+		"性格": d.性格,
+		"情绪": d.情绪,
+		"情绪持续天数": d.情绪持续天数,
+		"需求修炼": d.需求修炼,
+		"需求社交": d.需求社交,
+		"需求休息": d.需求休息,
+		"需求安全": d.需求安全,
+		"最迫切需求": d.获取最迫切需求(),
+		"心境": d.心境,
+		"互动计数": d.互动计数
+	}
+# ============ 拟真NPC系统 P0：弟子日常互动 ============
+## 月度门下日常往来（基于需求/性格/情绪）
+func _月度弟子日常互动() -> void:
+	var 在宗弟子: Array = []
+	for d in 弟子列表:
+		if d != null and (d is Disciple) and d.状态 == "在宗":
+			在宗弟子.append(d)
+	
+	# 每个弟子需求衰减和情绪衰减
+	for d in 在宗弟子:
+		d.需求衰减()
+		d.情绪衰减()
+	
+	# 随机配对进行互动（每对弟子30%概率互动）
+	var 互动次数: int = 0
+	for i in range(在宗弟子.size()):
+		for j in range(i + 1, 在宗弟子.size()):
+			if randf() > 0.3:
+				continue
+			var d1: Disciple = 在宗弟子[i]
+			var d2: Disciple = 在宗弟子[j]
+			
+			# 根据需求和性格决定互动类型
+			var 互动类型: String = _决定互动类型(d1, d2)
+			var 结果: Dictionary = _执行弟子互动(d1, d2, 互动类型)
+			if bool(结果.get("成功", false)):
+				互动次数 += 1
+				# 重大互动记录推演条目
+				var 类型: String = str(结果.get("类型", ""))
+				if 类型 in ["论道切磋", "口角之争", "馈赠", "施以援手", "义结金兰"]:
+					_加推演条目("💬 " + str(结果.get("消息", "")), "门下往来", "低")
+	
+	# 每100个弟子最多记录1次互动摘要（避免刷屏）
+	if 互动次数 > 0 and randf() < 0.1:
+		_加推演条目("💬 本月门下弟子往来%d次" % 互动次数, "门下往来", "低")
+
+## 决定往来类型（基于需求/性格/情绪）
+func _决定互动类型(d1: Disciple, d2: Disciple) -> String:
+	# 计算双方需求
+	var d1需求: String = d1.获取最迫切需求()
+	var d2需求: String = d2.获取最迫切需求()
+	
+	# 性格偏好
+	var d1偏好: Dictionary = d1.获取性格行为偏好()
+	var d2偏好: Dictionary = d2.获取性格行为偏好()
+	
+	# 情绪效果
+	var d1情绪: Dictionary = d1.获取情绪效果()
+	var d2情绪: Dictionary = d2.获取情绪效果()
+	
+	# 好感度
+	var 好感度: int = d1.获取好感度(str(d2.弟子ID))
+	
+	# 计算各互动类型权重
+	var 权重: Dictionary = {
+		"闲谈": 30.0,
+		"论道切磋": 15.0,
+		"探讨修为": 20.0,
+		"结伴闭关": 10.0,
+		"口角之争": 10.0,
+		"馈赠": 5.0,
+		"施以援手": 10.0
+	}
+	
+	# 需求修正
+	if d1需求 == "社交" or d2需求 == "社交":
+		权重["闲谈"] = float(权重["闲谈"]) + 15
+		权重["馈赠"] = float(权重["馈赠"]) + 5
+	if d1需求 == "修炼" or d2需求 == "修炼":
+		权重["探讨修为"] = float(权重["探讨修为"]) + 10
+		权重["结伴闭关"] = float(权重["结伴闭关"]) + 10
+	if d1需求 == "休息" or d2需求 == "休息":
+		权重["闲谈"] = float(权重["闲谈"]) - 5
+		权重["论道切磋"] = float(权重["论道切磋"]) - 5
+	
+	# 性格修正
+	权重["论道切磋"] = float(权重["论道切磋"]) * (float(d1偏好.get("冲突概率", 0.08)) + float(d2偏好.get("冲突概率", 0.08))) * 5
+	if d1.性格 == "好斗" or d2.性格 == "好斗":
+		权重["口角之争"] = float(权重["口角之争"]) + 10
+	if d1.性格 == "社交" or d2.性格 == "社交":
+		权重["闲谈"] = float(权重["闲谈"]) + 10
+	if d1.性格 == "勤奋" or d2.性格 == "勤奋":
+		权重["探讨修为"] = float(权重["探讨修为"]) + 10
+	
+	# 情绪修正
+	if d1.情绪 == "愤怒" or d2.情绪 == "愤怒":
+		权重["口角之争"] = float(权重["口角之争"]) + 20
+		权重["闲谈"] = float(权重["闲谈"]) - 10
+	if d1.情绪 == "喜悦" or d2.情绪 == "喜悦":
+		权重["闲谈"] = float(权重["闲谈"]) + 10
+		权重["馈赠"] = float(权重["馈赠"]) + 5
+	if d1.情绪 == "悲伤" or d2.情绪 == "悲伤":
+		权重["施以援手"] = float(权重["施以援手"]) + 10
+	
+	# 好感度修正
+	if 好感度 > 80:
+		权重["闲谈"] = float(权重["闲谈"]) + 15
+		权重["结伴闭关"] = float(权重["结伴闭关"]) + 10
+		权重["口角之争"] = float(权重["口角之争"]) - 10
+	elif 好感度 < 20:
+		权重["口角之争"] = float(权重["口角之争"]) + 15
+		权重["闲谈"] = float(权重["闲谈"]) - 10
+		权重["馈赠"] = float(权重["馈赠"]) - 5
+	
+	# 确保所有权重>=0
+	for key in 权重:
+		权重[key] = max(0.1, float(权重[key]))
+	
+	# 加权随机选择
+	var 总权重: float = 0.0
+	for key in 权重:
+		总权重 += float(权重[key])
+	var 随机值: float = randf() * 总权重
+	var 累计: float = 0.0
+	for key in 权重:
+		累计 += float(权重[key])
+		if 随机值 <= 累计:
+			return key
+	return "闲谈"
+
+## 执行弟子互动
+func _执行弟子互动(d1: Disciple, d2: Disciple, 互动类型: String) -> Dictionary:
+	match 互动类型:
+		"闲谈":
+			return _互动聊天(d1, d2)
+		"论道切磋":
+			return _互动切磋(d1, d2)
+		"探讨修为":
+			return _互动讨论修炼(d1, d2)
+		"结伴闭关":
+			return _互动一起闭关(d1, d2)
+		"口角之争":
+			return _互动争执(d1, d2)
+		"馈赠":
+			return _互动送礼(d1, d2)
+		"施以援手":
+			return _互动帮助(d1, d2)
+	return {"成功": false, "因": "未知互动类型"}
+
+## 互动：聊天
+func _互动聊天(d1: Disciple, d2: Disciple) -> Dictionary:
+	d1.满足需求("社交", 10)
+	d2.满足需求("社交", 10)
+	var 好感增量: int = randi() % 3 + 1
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	# 添加记忆
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "与%s愉快聊天" % d2.姓名, 1)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "与%s愉快聊天" % d1.姓名, 1)
+	return {"成功": true, "类型": "闲谈", "消息": "%s与%s聊天" % [d1.姓名, d2.姓名]}
+
+## 互动：切磋
+func _互动切磋(d1: Disciple, d2: Disciple) -> Dictionary:
+	d1.满足需求("社交", 15)
+	d2.满足需求("社交", 15)
+	d1.满足需求("修炼", 5)
+	d2.满足需求("修炼", 5)
+	var 好感增量: int = randi() % 4 + 2
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	# 10%概率受伤
+	if randf() < 0.1:
+		var 受伤者: Disciple = d1 if randf() < 0.5 else d2
+		受伤者.触发情绪("愤怒", 2)
+		d1.添加记忆(str(d2.弟子ID), d2.姓名, "负面", "切磋时被%s打伤" % d2.姓名, -3)
+		d2.添加记忆(str(d1.弟子ID), d1.姓名, "负面", "切磋时打伤%s" % d1.姓名, -2)
+		return {"成功": true, "类型": "论道切磋", "消息": "%s与%s切磋，%s受伤" % [d1.姓名, d2.姓名, 受伤者.姓名]}
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "与%s切磋武艺" % d2.姓名, 2)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "与%s切磋武艺" % d1.姓名, 2)
+	return {"成功": true, "类型": "论道切磋", "消息": "%s与%s切磋武艺" % [d1.姓名, d2.姓名]}
+
+## 互动：讨论修炼
+func _互动讨论修炼(d1: Disciple, d2: Disciple) -> Dictionary:
+	d1.满足需求("修炼", 10)
+	d2.满足需求("修炼", 10)
+	d1.满足需求("社交", 5)
+	d2.满足需求("社交", 5)
+	var 好感增量: int = randi() % 3 + 1
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "与%s讨论修炼心得" % d2.姓名, 1)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "与%s讨论修炼心得" % d1.姓名, 1)
+	return {"成功": true, "类型": "探讨修为", "消息": "%s与%s讨论修炼" % [d1.姓名, d2.姓名]}
+
+## 互动：一起闭关
+func _互动一起闭关(d1: Disciple, d2: Disciple) -> Dictionary:
+	d1.满足需求("修炼", 20)
+	d2.满足需求("修炼", 20)
+	var 好感增量: int = randi() % 3 + 3
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "与%s一起闭关修炼" % d2.姓名, 3)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "与%s一起闭关修炼" % d1.姓名, 3)
+	return {"成功": true, "类型": "结伴闭关", "消息": "%s与%s一起闭关" % [d1.姓名, d2.姓名]}
+
+## 互动：争执
+func _互动争执(d1: Disciple, d2: Disciple) -> Dictionary:
+	var 好感减少: int = randi() % 8 + 3
+	d1.增加好感度(str(d2.弟子ID), -好感减少)
+	d2.增加好感度(str(d1.弟子ID), -好感减少)
+	d1.触发情绪("愤怒", 2)
+	d2.触发情绪("愤怒", 2)
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "负面", "与%s发生争执" % d2.姓名, -好感减少)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "负面", "与%s发生争执" % d1.姓名, -好感减少)
+	return {"成功": true, "类型": "口角之争", "消息": "%s与%s发生争执" % [d1.姓名, d2.姓名]}
+
+## 互动：送礼
+func _互动送礼(d1: Disciple, d2: Disciple) -> Dictionary:
+	d2.满足需求("社交", 20)
+	d2.满足需求("安全", 5)
+	var 好感增量: int = randi() % 6 + 5
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	d2.触发情绪("喜悦", 2)
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "收到%s的礼物" % d2.姓名, 好感增量)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "送给%s礼物" % d1.姓名, 好感增量)
+	return {"成功": true, "类型": "馈赠", "消息": "%s送给%s礼物" % [d1.姓名, d2.姓名]}
+
+## 互动：帮助
+func _互动帮助(d1: Disciple, d2: Disciple) -> Dictionary:
+	d2.满足需求("安全", 15)
+	d2.满足需求("社交", 10)
+	var 好感增量: int = randi() % 6 + 5
+	d1.增加好感度(str(d2.弟子ID), 好感增量)
+	d2.增加好感度(str(d1.弟子ID), 好感增量)
+	d2.触发情绪("喜悦", 3)
+	d1.添加记忆(str(d2.弟子ID), d2.姓名, "正面", "帮助了%s" % d2.姓名, 好感增量)
+	d2.添加记忆(str(d1.弟子ID), d1.姓名, "正面", "得到%s的帮助" % d1.姓名, 好感增量)
+	return {"成功": true, "类型": "施以援手", "消息": "%s帮助了%s" % [d1.姓名, d2.姓名]}
+# ============ P2 NPC行为模拟（第一阶段：日常作息+位置+简单对话） ============
+var _NPC运行时状态: Dictionary = {}  # {npc_id: {位置, 状态, 心情, 上次更新日}}
+# NPC工作地点映射（根据身份）
+const _NPC工作地点: Dictionary = {
+	"盟主": "大殿", "宗主": "大殿", "族长": "大殿", "总会长": "大殿",
+	"执法堂堂主": "山门", "器殿堂主": "器殿", "灵兽堂主": "御兽堂",
+	"百宝商人": "坊市", "暗市使者": "坊市", "坊市掌柜": "坊市",
+	"传令使": "山门", "接引弟子": "山门", "外务执事": "山门", "外使少女": "山门",
+	"公会执事": "丹殿", "内务总管": "大殿", "药堂医师": "丹殿", "器殿师傅": "器殿",
+	"神秘散修": "后山", "市井艺人": "公共区", "宗门伴侣NPC": "大殿"
+}
+# NPC状态列表
+const _NPC状态列表: Array = ["工作", "休息", "巡逻", "外出"]
+# NPC位置列表
+# NPC默认对话（根据身份）
+const _NPC默认对话: Dictionary = {
+	"盟主": ["宗门大事，需从长计议。", "你我同盟，共襄盛举。", "近日局势，你怎么看？"],
+	"宗主": ["魔道未除，我辈当自强。", "宗门兴衰，系于你我。", "修炼一途，不可懈怠。"],
+	"族长": ["古族传承，不可断绝。", "灵兽通灵，需用心培育。", "上古秘辛，你可知晓？"],
+	"总会长": ["丹器一道，殊途同归。", "好材料，才能炼出好东西。", "公会事务，繁忙得很。"],
+	"执法堂堂主": ["宗门规矩，不可逾越。", "违法者，必严惩。", "近日可有异动？"],
+	"器殿堂主": ["炼器需静心，不可急躁。", "好火，好铁，好手艺。", "你那件法器，该修修了。"],
+	"灵兽堂主": ["灵兽有灵，需以诚待之。", "这只灵兽，品相不错。", "培育灵兽，是个慢功夫。"],
+	"百宝商人": ["来来来，看看有什么好东西！", "童叟无欺，价格公道。", "这批货，可是稀罕物。"],
+	"暗市使者": ["这里的东西，不该问的别问。", "价格嘛，好商量。", "下次有好货，通知你。"],
+	"坊市掌柜": ["欢迎光临，需要点什么？", "今日特价，不容错过。", "小店薄利，还请多多关照。"],
+	"传令使": ["有消息，我会第一时间通知你。", "近日宗门有何动向？", "跑腿的活，不好干啊。"],
+	"接引弟子": ["新来的？跟我来登记。", "宗门规矩，要记牢。", "有什么不懂的，问我。"],
+	"外务执事": ["外事繁杂，需谨慎处理。", "近日外交，可有收获？", "宗门颜面，不可丢。"],
+	"外使少女": ["外面的世界，很精彩呢。", "我带了些稀罕物，你看看？", "跑了这么远，好累啊。"],
+	"公会执事": ["材料上交，有奖励哦。", "公会任务，要按时完成。", "制作加成，了解一下？"],
+	"内务总管": ["宗门事务，井井有条。", "俸禄已发放，请注意查收。", "人事安排，需慎重。"],
+	"药堂医师": ["哪里不舒服？我给你看看。", "这副药，按时服用。", "伤病宜早治，不可拖延。"],
+	"器殿师傅": ["装备坏了？拿来我修。", "锻造这门手艺，讲究火候。", "你这把武器，该升级了。"],
+	"神秘散修": ["机缘巧合，在此相遇。", "我这里有些稀罕物，你可有兴趣？", "云游四方，见多识广。"],
+	"市井艺人": ["来来来，听我讲个故事！", "话说当年，有一位仙人……", "打赏个灵石呗？"],
+	"宗门伴侣NPC": ["你来了，我等你很久了。", "宗门的事，辛苦了。", "无论何时，我都在你身边。"]
+}
+
+## 初始化NPC运行时状态
+func _初始化NPC状态() -> void:
+	_加载NPC配置()
+	for NPC in _NPC配置缓存:
+		var NPCID: String = str(NPC.get("npc_id", ""))
+		if NPCID == "":
+			continue
+		if not _NPC运行时状态.has(NPCID):
+			var 身份: String = str(NPC.get("identity", ""))
+			var 工作地点: String = _NPC工作地点.get(身份, "公共区")
+			_NPC运行时状态[NPCID] = {
+				"位置": 工作地点,
+				"状态": "工作",
+				"心情": 70,
+				"好感度": 30,  # P2 第二阶段：好感度（0-100）
+				"已接任务": "",  # P2 第二阶段：当前已接任务ID
+				"任务进度": 0,  # P2 第二阶段：任务进度
+				"上次送礼日": 0,  # P2 第二阶段：上次送礼日期（冷却）
+				"记忆": [],  # P2 第三阶段：记忆列表（最近10条交互）
+				"上次更新日": 累计游戏日
+			}
+
+## 更新NPC状态（月度推演调用）
+## 历练传讯月度触发（弟子历练中重大事件触发实时传讯）
+func _历练传讯月度触发() -> void:
+	# 找一个正在历练的弟子
+	var 历练中弟子: Array = []
+	for d in 弟子列表:
+		if d != null and str(d.状态) == "历练中":
+			历练中弟子.append(d)
+	if 历练中弟子.is_empty():
+		return
+	var 选中弟子: Object = 历练中弟子[randi() % 历练中弟子.size()]
+	# 随机事件类型
+	var 事件类型列表: Array = ["遭遇危险", "发现机缘", "获得重宝"]
+	var 事件类型: String = 事件类型列表[randi() % 事件类型列表.size()]
+	# 区域名称（简化处理）
+	var 区域列表: Array = ["蛮荒之地", "深山老林", "东海之滨", "北境雪原", "南疆密林", "仙城闹市"]
+	var 区域: String = 区域列表[randi() % 区域列表.size()]
+	# 触发传讯
+	弟子历练传讯(int(选中弟子.弟子ID), 事件类型, 区域)
+
+func _更新NPC状态(天数: int) -> void:
+	_初始化NPC状态()
+	for NPCID in _NPC运行时状态.keys():
+		var 状态: Dictionary = _NPC运行时状态[NPCID]
+		# 每30天有概率改变状态
+		if randf() < 0.3:
+			var 新状态: String = _NPC状态列表[randi() % _NPC状态列表.size()]
+			状态["状态"] = 新状态
+			# 根据状态更新位置
+			match 新状态:
+				"工作":
+					var NPC配置: Dictionary = _获取NPC配置(NPCID)
+					var 身份: String = str(NPC配置.get("identity", ""))
+					状态["位置"] = _NPC工作地点.get(身份, "公共区")
+				"休息":
+					状态["位置"] = "居所"
+				"巡逻":
+					状态["位置"] = ["山门", "公共区", "后山"][randi() % 3]
+				"外出":
+					状态["位置"] = "外出"
+		# 心情随机波动（±10）
+		var 心情变化: int = randi() % 21 - 10
+		状态["心情"] = clamp(int(状态["心情"]) + 心情变化, 20, 100)
+		状态["上次更新日"] = 累计游戏日
+		_NPC运行时状态[NPCID] = 状态
+
+## 获取NPC配置
+func _获取NPC配置(NPCID: String) -> Dictionary:
+	_加载NPC配置()
+	for NPC in _NPC配置缓存:
+		if str(NPC.get("npc_id", "")) == NPCID:
+			return NPC
+	return {}
+
+## 获取NPC当前状态
+func 获取NPC当前状态(NPCID: String) -> Dictionary:
+	_初始化NPC状态()
+	return _NPC运行时状态.get(NPCID, {"位置": "未知", "状态": "未知", "心情": 50})
+
+## 获取NPC当前位置
+func 获取NPC当前位置(NPCID: String) -> String:
+	return str(获取NPC当前状态(NPCID).get("位置", "未知"))
+
+## 获取当前在宗门内的NPC列表（可交互）
+func 获取可交互NPC列表() -> Array:
+	_初始化NPC状态()
+	var 结果: Array = []
+	for NPCID in _NPC运行时状态.keys():
+		var 状态: Dictionary = _NPC运行时状态[NPCID]
+		if str(状态.get("位置", "")) != "外出":
+			var NPC配置: Dictionary = _获取NPC配置(NPCID)
+			结果.append({
+				"npc_id": NPCID,
+				"名称": str(NPC配置.get("npc_name", "")),
+				"身份": str(NPC配置.get("identity", "")),
+				"位置": str(状态.get("位置", "")),
+				"状态": str(状态.get("状态", "")),
+				"心情": int(状态.get("心情", 50))
+			})
+	return 结果
+
+## 与NPC对话（返回对话内容）
+func 与NPC对话(NPCID: String) -> String:
+	_初始化NPC状态()
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	var 状态: Dictionary = 获取NPC当前状态(NPCID)
+	var 心情: int = int(状态.get("心情", 50))
+	var 当前状态: String = str(状态.get("状态", ""))
+	var 好感度: int = int(状态.get("好感度", 30))
+	# 获取对话列表
+	var 对话列表: Array = _NPC默认对话.get(身份, ["你好，有什么事吗？", "今日天气不错。", "宗门之事，需谨慎。"])
+	# 根据状态选择对话
+	var 状态前缀: String = ""
+	match 当前状态:
+		"工作":
+			状态前缀 = ""
+		"休息":
+			状态前缀 = "（休息中）"
+		"巡逻":
+			状态前缀 = "（巡逻中）"
+		"外出":
+			return "此人目前不在宗门内，无法对话。"
+	# P2 第二阶段：根据好感度选择对话语气
+	var 好感前缀: String = ""
+	if 好感度 >= 80:
+		好感前缀 = "（亲密）"
+	elif 好感度 >= 50:
+		好感前缀 = "（友善）"
+	elif 好感度 >= 20:
+		好感前缀 = "（冷淡）"
+	else:
+		好感前缀 = "（敌视）"
+	# 根据心情选择对话
+	var 对话索引: int = randi() % 对话列表.size()
+	if 心情 < 40:
+		return 状态前缀 + 好感前缀 + "（心情不佳）" + str(对话列表[对话索引])
+	elif 心情 > 80:
+		return 状态前缀 + 好感前缀 + "（心情愉悦）" + str(对话列表[对话索引])
+	else:
+		return 状态前缀 + 好感前缀 + str(对话列表[对话索引])
+
+# ============ P2 NPC行为模拟（第二阶段：好感度+任务+礼物+动态对话） ============
+# NPC日常任务配置（硬编码，性能友好，每个NPC1个任务）
+const _NPC日常任务: Dictionary = {
+	"盟主": {"名称": "宗门事务", "类型": "等待", "目标": 3, "奖励灵石": 500, "奖励声望": 50, "描述": "协助处理宗门事务，需3日"},
+	"宗主": {"名称": "魔道动向", "类型": "等待", "目标": 5, "奖励灵石": 800, "奖励声望": 80, "描述": "探查魔道动向，需5日"},
+	"族长": {"名称": "灵兽培育", "类型": "等待", "目标": 4, "奖励灵石": 600, "奖励声望": 60, "描述": "协助培育灵兽，需4日"},
+	"总会长": {"名称": "丹器研讨", "类型": "等待", "目标": 3, "奖励灵石": 500, "奖励声望": 50, "描述": "参与丹器研讨会，需3日"},
+	"执法堂堂主": {"名称": "巡逻任务", "类型": "等待", "目标": 2, "奖励灵石": 300, "奖励声望": 40, "描述": "协助宗门巡逻，需2日"},
+	"器殿堂主": {"名称": "法器维修", "类型": "消耗灵石", "目标": 200, "奖励灵石": 400, "奖励声望": 40, "描述": "捐赠200灵石用于法器维修"},
+	"灵兽堂主": {"名称": "灵兽饲料", "类型": "消耗灵石", "目标": 150, "奖励灵石": 300, "奖励声望": 30, "描述": "捐赠150灵石购买灵兽饲料"},
+	"百宝商人": {"名称": "商品收购", "类型": "消耗灵石", "目标": 300, "奖励灵石": 500, "奖励声望": 50, "描述": "以300灵石收购珍稀商品"},
+	"暗市使者": {"名称": "暗市情报", "类型": "等待", "目标": 3, "奖励灵石": 600, "奖励声望": 60, "描述": "获取暗市情报，需3日"},
+	"坊市掌柜": {"名称": "店铺打理", "类型": "等待", "目标": 2, "奖励灵石": 200, "奖励声望": 20, "描述": "协助打理店铺，需2日"},
+	"传令使": {"名称": "消息传递", "类型": "等待", "目标": 1, "奖励灵石": 100, "奖励声望": 20, "描述": "传递宗门消息，需1日"},
+	"接引弟子": {"名称": "新徒接待", "类型": "等待", "目标": 2, "奖励灵石": 150, "奖励声望": 20, "描述": "接待新入门弟子，需2日"},
+	"外务执事": {"名称": "外交事务", "类型": "等待", "目标": 3, "奖励灵石": 400, "奖励声望": 50, "描述": "处理外交事务，需3日"},
+	"外使少女": {"名称": "外出采购", "类型": "等待", "目标": 2, "奖励灵石": 300, "奖励声望": 30, "描述": "外出采购物资，需2日"},
+	"公会执事": {"名称": "材料上交", "类型": "消耗灵石", "目标": 100, "奖励灵石": 200, "奖励声望": 20, "描述": "上交100灵石价值的材料"},
+	"内务总管": {"名称": "俸禄核算", "类型": "等待", "目标": 1, "奖励灵石": 200, "奖励声望": 30, "描述": "协助核算俸禄，需1日"},
+	"药堂医师": {"名称": "药材采集", "类型": "消耗灵石", "目标": 150, "奖励灵石": 300, "奖励声望": 30, "描述": "捐赠150灵石购买药材"},
+	"器殿师傅": {"名称": "矿石收购", "类型": "消耗灵石", "目标": 200, "奖励灵石": 350, "奖励声望": 30, "描述": "以200灵石收购矿石"},
+	"神秘散修": {"名称": "云游见闻", "类型": "等待", "目标": 5, "奖励灵石": 800, "奖励声望": 80, "描述": "听云游散修讲述见闻，需5日"},
+	"市井艺人": {"名称": "说书表演", "类型": "等待", "目标": 1, "奖励灵石": 100, "奖励声望": 10, "描述": "听说书先生讲故事，需1日"},
+	"宗门伴侣NPC": {"名称": "相伴时光", "类型": "等待", "目标": 2, "奖励灵石": 0, "奖励声望": 0, "描述": "与伴侣相伴，需2日（好感度+10）"}
+}
+# NPC喜欢的礼物类型（硬编码，性能友好）
+const _NPC喜欢礼物: Dictionary = {
+	"盟主": "典籍", "宗主": "兵器", "族长": "灵兽", "总会长": "丹器",
+	"执法堂堂主": "兵器", "器殿堂主": "矿石", "灵兽堂主": "灵兽",
+	"百宝商人": "灵石", "暗市使者": "奇物", "坊市掌柜": "灵石",
+	"传令使": "丹药", "接引弟子": "丹药", "外务执事": "典籍",
+	"外使少女": "饰品", "公会执事": "材料", "内务总管": "典籍",
+	"药堂医师": "药材", "器殿师傅": "矿石", "神秘散修": "奇物",
+	"市井艺人": "灵石", "宗门伴侣NPC": "饰品"
+}
+
+## 获取NPC好感度
+func 获取NPC好感度(NPCID: String) -> int:
+	_初始化NPC状态()
+	var 状态: Dictionary = _NPC运行时状态.get(NPCID, {})
+	return int(状态.get("好感度", 30))
+
+## 增加NPC好感度（内部调用，性能友好）
+func _增加NPC好感度(NPCID: String, 增加量: int) -> void:
+	_初始化NPC状态()
+	if not _NPC运行时状态.has(NPCID):
+		return
+	var 状态: Dictionary = _NPC运行时状态[NPCID]
+	状态["好感度"] = clamp(int(状态.get("好感度", 30)) + 增加量, 0, 100)
+	_NPC运行时状态[NPCID] = 状态
+
+## 获取NPC任务详情
+func 获取NPC任务(NPCID: String) -> Dictionary:
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	return _NPC日常任务.get(身份, {})
+
+## 获取NPC任务状态（是否已接取/进度）
+func 获取NPC任务状态(NPCID: String) -> Dictionary:
+	_初始化NPC状态()
+	var 状态: Dictionary = _NPC运行时状态.get(NPCID, {})
+	var 任务: Dictionary = 获取NPC任务(NPCID)
+	if 任务.is_empty():
+		return {}
+	return {
+		"任务": 任务,
+		"已接取": str(状态.get("已接任务", "")) != "",
+		"进度": int(状态.get("任务进度", 0)),
+		"目标": int(任务.get("目标", 1)),
+		"可完成": int(状态.get("任务进度", 0)) >= int(任务.get("目标", 1))
+	}
+
+## 接取NPC任务
+func 接取NPC任务(NPCID: String) -> Dictionary:
+	_初始化NPC状态()
+	if not _NPC运行时状态.has(NPCID):
+		return {"ok": false, "error": "NPC不存在"}
+	var 状态: Dictionary = _NPC运行时状态[NPCID]
+	if str(状态.get("已接任务", "")) != "":
+		return {"ok": false, "error": "已有进行中的任务"}
+	var 任务: Dictionary = 获取NPC任务(NPCID)
+	if 任务.is_empty():
+		return {"ok": false, "error": "该NPC无任务"}
+	状态["已接任务"] = NPCID
+	状态["任务进度"] = 0
+	_NPC运行时状态[NPCID] = 状态
+	_增加NPC好感度(NPCID, 2)
+	return {"ok": true, "msg": "已接取任务：%s" % str(任务.get("名称", "")), "任务": 任务}
+
+## 推进NPC任务进度（月度推演调用，性能友好）
+func _推进NPC任务进度(天数: int) -> void:
+	_初始化NPC状态()
+	for NPCID in _NPC运行时状态.keys():
+		var 状态: Dictionary = _NPC运行时状态[NPCID]
+		if str(状态.get("已接任务", "")) == "":
+			continue
+		var 任务: Dictionary = 获取NPC任务(NPCID)
+		if 任务.is_empty():
+			continue
+		if str(任务.get("类型", "")) == "等待":
+			状态["任务进度"] = int(状态.get("任务进度", 0)) + 天数
+			_NPC运行时状态[NPCID] = 状态
+
+## 完成NPC任务
+func 完成NPC任务(NPCID: String) -> Dictionary:
+	_初始化NPC状态()
+	if not _NPC运行时状态.has(NPCID):
+		return {"ok": false, "error": "NPC不存在"}
+	var 状态: Dictionary = _NPC运行时状态[NPCID]
+	if str(状态.get("已接任务", "")) == "":
+		return {"ok": false, "error": "未接取任务"}
+	var 任务: Dictionary = 获取NPC任务(NPCID)
+	if int(状态.get("任务进度", 0)) < int(任务.get("目标", 1)):
+		return {"ok": false, "error": "任务未完成"}
+	# 发放奖励
+	var 奖励灵石: int = int(任务.get("奖励灵石", 0))
+	var 奖励声望: int = int(任务.get("奖励声望", 0))
+	if 奖励灵石 > 0:
+		灵石 += 奖励灵石
+	if 奖励声望 > 0:
+		声望 += 奖励声望
+	# 特殊任务：宗门伴侣NPC加好感度
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	if 身份 == "宗门伴侣NPC":
+		_增加NPC好感度(NPCID, 10)
+	else:
+		_增加NPC好感度(NPCID, 5)
+	# 重置任务状态
+	状态["已接任务"] = ""
+	状态["任务进度"] = 0
+	_NPC运行时状态[NPCID] = 状态
+	return {"ok": true, "msg": "任务完成！获得灵石%d、声望%d" % [奖励灵石, 奖励声望], "奖励灵石": 奖励灵石, "奖励声望": 奖励声望}
+
+## 给NPC送礼
+func 给NPC送礼(NPCID: String, 礼物类型: String, 礼物价值: int) -> Dictionary:
+	_初始化NPC状态()
+	if not _NPC运行时状态.has(NPCID):
+		return {"ok": false, "error": "NPC不存在"}
+	var 状态: Dictionary = _NPC运行时状态[NPCID]
+	# 送礼冷却（每日1次）
+	if int(状态.get("上次送礼日", 0)) == 累计游戏日:
+		return {"ok": false, "error": "今日已送过礼，明日再来"}
+	# 检查灵石是否足够
+	if 灵石 < 礼物价值:
+		return {"ok": false, "error": "灵石不足"}
+	# 扣除灵石
+	灵石 -= 礼物价值
+	# 计算好感度增加（喜欢的礼物×2，普通×1）
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	var 喜欢礼物: String = str(_NPC喜欢礼物.get(身份, "灵石"))
+	var 好感增加: int = int(礼物价值 / 50)  # 每50灵石价值=1好感度
+	if 礼物类型 == 喜欢礼物:
+		好感增加 *= 2  # 喜欢的礼物双倍好感度
+	好感增加 = clamp(好感增加, 1, 20)  # 单次最多+20
+	_增加NPC好感度(NPCID, 好感增加)
+	# 更新送礼日期
+	状态["上次送礼日"] = 累计游戏日
+	_NPC运行时状态[NPCID] = 状态
+	return {"ok": true, "msg": "送礼成功！%s好感度+%d" % [str(NPC配置.get("npc_name", "")), 好感增加], "好感增加": 好感增加}
+
+## 获取NPC喜欢的礼物类型
+func 获取NPC喜欢礼物(NPCID: String) -> String:
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	return str(_NPC喜欢礼物.get(身份, "灵石"))
+
+# ============ P2 NPC行为模拟（第三阶段：记忆+关系+随机事件，轻量化性能优化） ============
+# NPC关系配置（硬编码，性能友好，只记录关键关系）
+const _NPC关系: Dictionary = {
+	"npc_zq001": [{"目标": "npc_zq002", "关系": "上下级", "描述": "凌岳长老是玄清真人的得力助手"}],
+	"npc_zq002": [{"目标": "npc_zq001", "关系": "上下级", "描述": "玄清真人是凌岳长老的盟主"}],
+	"npc_zl001": [{"目标": "npc_zl002", "关系": "朋友", "描述": "酒剑仙与胡不归是多年酒友"}],
+	"npc_zl002": [{"目标": "npc_zl001", "关系": "朋友", "描述": "胡不归与酒剑仙是多年酒友"}],
+	"npc_dq001": [{"目标": "npc_dq002", "关系": "同僚", "描述": "墨玄丹尊与欧冶石同为丹器公会高层"}],
+	"npc_dq002": [{"目标": "npc_dq001", "关系": "同僚", "描述": "欧冶石与墨玄丹尊同为丹器公会高层"}],
+	"npc_mo001": [{"目标": "npc_mo002", "关系": "上下级", "描述": "幽姬是血影魔尊的暗市使者"}],
+	"npc_mo002": [{"目标": "npc_mo001", "关系": "上下级", "描述": "血影魔尊是幽姬的宗主"}],
+	"npc_yz001": [{"目标": "npc_yz002", "关系": "上下级", "描述": "鹿童长老是青鸾圣姑的灵兽堂主"}],
+	"npc_yz002": [{"目标": "npc_yz001", "关系": "上下级", "描述": "青鸾圣姑是鹿童长老的族长"}],
+	"npc_sec001": [{"目标": "npc_sec002", "关系": "长辈", "描述": "吴伯看着苏清禾长大"}],
+	"npc_sec002": [{"目标": "npc_sec001", "关系": "晚辈", "描述": "苏清禾是吴伯看着长大的"}]
+}
+# NPC随机事件配置（硬编码，性能友好，5%概率触发）
+const _NPC随机事件: Array = [
+	{"类型": "偶遇", "描述": "你在宗门内偶遇此人，对方微笑着向你点头致意。", "好感变化": 1},
+	{"类型": "求助", "描述": "此人面露难色，似乎遇到了什么困难，需要你的帮助。", "好感变化": 2},
+	{"类型": "赠礼", "描述": "此人心情不错，主动赠送给你一些小礼物。", "好感变化": 3, "奖励灵石": 50},
+	{"类型": "冲突", "描述": "你与此人发生了一些小摩擦，气氛有些尴尬。", "好感变化": -2},
+	{"类型": "指点", "描述": "此人见你修炼遇到瓶颈，主动为你指点了几句。", "好感变化": 2, "奖励声望": 20},
+	{"类型": "闲聊", "描述": "你与此人闲聊了一会儿，了解到了一些宗门趣闻。", "好感变化": 1},
+	{"类型": "论道切磋", "描述": "你与此人进行了一场友好的切磋，双方都有所收获。", "好感变化": 2, "奖励声望": 10}
+]
+
+## 记录NPC记忆（内部调用，性能友好，最多10条）
+func _记录NPC记忆(NPCID: String, 交互类型: String, 内容: String) -> void:
+	_初始化NPC状态()
+	if not _NPC运行时状态.has(NPCID):
+		return
+	var 状态: Dictionary = _NPC运行时状态[NPCID]
+	var 记忆: Array = 状态.get("记忆", [])
+	记忆.append({"类型": 交互类型, "内容": 内容, "日期": 累计游戏日})
+	# 只保留最近10条
+	if 记忆.size() > 10:
+		记忆 = 记忆.slice(记忆.size() - 10, 记忆.size())
+	状态["记忆"] = 记忆
+	_NPC运行时状态[NPCID] = 状态
+
+## 获取NPC记忆（最近10条交互）
+func 获取NPC记忆(NPCID: String) -> Array:
+	_初始化NPC状态()
+	var 状态: Dictionary = _NPC运行时状态.get(NPCID, {})
+	return 状态.get("记忆", [])
+
+## 获取NPC关系网络
+func 获取NPC关系(NPCID: String) -> Array:
+	return _NPC关系.get(NPCID, [])
+
+## 获取关系NPC的名称
+func _获取关系NPC名称(关系NPCID: String) -> String:
+	var NPC配置: Dictionary = _获取NPC配置(关系NPCID)
+	return str(NPC配置.get("npc_name", 关系NPCID))
+
+## 触发NPC随机事件（玩家交互时5%概率触发，性能友好）
+func _触发NPC随机事件(NPCID: String) -> Dictionary:
+	if randf() > 0.05:  # 5%概率
+		return {}
+	var 事件: Dictionary = _NPC随机事件[randi() % _NPC随机事件.size()]
+	var 结果: Dictionary = {
+		"类型": str(事件.get("类型", "")),
+		"描述": str(事件.get("描述", "")),
+		"好感变化": int(事件.get("好感变化", 0))
+	}
+	# 应用好感度变化
+	var 好感变化: int = int(事件.get("好感变化", 0))
+	if 好感变化 != 0:
+		_增加NPC好感度(NPCID, 好感变化)
+	# 应用奖励
+	var 奖励灵石: int = int(事件.get("奖励灵石", 0))
+	if 奖励灵石 > 0:
+		灵石 += 奖励灵石
+		结果["奖励灵石"] = 奖励灵石
+	var 奖励声望: int = int(事件.get("奖励声望", 0))
+	if 奖励声望 > 0:
+		声望 += 奖励声望
+		结果["奖励声望"] = 奖励声望
+	# 记录记忆
+	_记录NPC记忆(NPCID, "事件", str(事件.get("类型", "")) + "：" + str(事件.get("描述", "")))
+	return 结果
+
+## 与NPC对话（增强版：记录记忆+随机事件+关系引用）
+func 与NPC对话增强(NPCID: String) -> Dictionary:
+	_初始化NPC状态()
+	var NPC配置: Dictionary = _获取NPC配置(NPCID)
+	var 身份: String = str(NPC配置.get("identity", ""))
+	var 状态: Dictionary = 获取NPC当前状态(NPCID)
+	var 心情: int = int(状态.get("心情", 50))
+	var 当前状态: String = str(状态.get("状态", ""))
+	var 好感度: int = int(状态.get("好感度", 30))
+	# 获取对话列表
+	var 对话列表: Array = _NPC默认对话.get(身份, ["你好，有什么事吗？", "今日天气不错。", "宗门之事，需谨慎。"])
+	# 根据状态选择对话
+	var 状态前缀: String = ""
+	match 当前状态:
+		"工作":
+			状态前缀 = ""
+		"休息":
+			状态前缀 = "（休息中）"
+		"巡逻":
+			状态前缀 = "（巡逻中）"
+		"外出":
+			return {"对话": "此人目前不在宗门内，无法对话。", "事件": {}}
+	# 根据好感度选择对话语气
+	var 好感前缀: String = ""
+	if 好感度 >= 80:
+		好感前缀 = "（亲密）"
+	elif 好感度 >= 50:
+		好感前缀 = "（友善）"
+	elif 好感度 >= 20:
+		好感前缀 = "（冷淡）"
+	else:
+		好感前缀 = "（敌视）"
+	# 根据心情选择对话
+	var 对话索引: int = randi() % 对话列表.size()
+	var 对话内容: String = ""
+	if 心情 < 40:
+		对话内容 = 状态前缀 + 好感前缀 + "（心情不佳）" + str(对话列表[对话索引])
+	elif 心情 > 80:
+		对话内容 = 状态前缀 + 好感前缀 + "（心情愉悦）" + str(对话列表[对话索引])
+	else:
+		对话内容 = 状态前缀 + 好感前缀 + str(对话列表[对话索引])
+	# 记录记忆
+	_记录NPC记忆(NPCID, "对话", 对话内容)
+	# 触发随机事件（5%概率）
+	var 事件: Dictionary = _触发NPC随机事件(NPCID)
+	return {"对话": 对话内容, "事件": 事件}
+
 # ============ 宗门战（S1-3 接线）============
 # 架构对齐 挑战秘境：UI 只调本函数，不碰 ZongmenBattle 结算核心（ADR-003 分层）。
 # 入参：
@@ -11040,10 +18918,54 @@ func 历练结算(秘境ID: String, 出战: Array = [], 怪物列表: Array = []
 const 宗门战难度系数: Dictionary = {"宗门攻防战": 0.93, "秘境争夺战": 1.00, "妖兽围剿战": 1.01, "阵营围剿战": 0.97}
 const 宗门战难度浮动: float = 0.03
 const 宗门战敌方名池: Array = ["玄清宗", "百草门", "天机阁", "九霄雷府", "青冥剑派", "赤炎魔宗", "寒渊谷", "万妖殿"]
-func 发起宗门战(战斗类型: String, 出战队伍: Array, 增益: Dictionary = {}) -> Dictionary:
+# S31 宣战/领地战：战斗类型 → 占领领地类型；领地模板池（数据驱动，可扩展）
+const 战斗类型_领地映射: Dictionary = {"宗门攻防战": "城池", "秘境争夺战": "矿脉", "妖兽围剿战": "秘境", "阵营围剿战": "灵脉"}
+# S32 数值重算：月度结算真实频率 = 30 累计游戏日 × 240s = 每 2 现实小时（1 现实天触发 12 次），
+#   原值单块 400~1000 灵石/月 ≈ 全宗门月运维上限(318) 的 1.3~3.1 倍 → 印钞机。
+#   重算锚点：单块月产 ≈ 宗门月运维的 15%~30%，灵材由 30~60 件降至 2~3 件（原值 1 现实天进 360~720 件必爆库房）。
+const 领地模板表: Array = [
+	# [名称, 类型, 月灵石, 月灵材, 月声望, 灵材名, 防守线]
+	["青冥城", "城池", 70, 0, 2, "", 600],
+	["玄清城", "城池", 70, 0, 2, "", 600],
+	["天机城", "城池", 70, 0, 2, "", 600],
+	["太玄灵脉", "灵脉", 90, 2, 0, "灵脉结晶", 800],
+	["九霄灵脉", "灵脉", 90, 2, 0, "灵脉结晶", 800],
+	["寒渊灵脉", "灵脉", 90, 2, 0, "灵脉结晶", 800],
+	["赤铁矿脉", "矿脉", 45, 3, 0, "玄铁矿石", 400],
+	["庚金矿脉", "矿脉", 45, 3, 0, "庚金矿石", 400],
+	["紫晶矿脉", "矿脉", 45, 3, 0, "紫晶矿石", 400],
+	["上古秘境", "秘境", 35, 2, 1, "天材地宝", 500],
+	["残仙秘境", "秘境", 35, 2, 1, "天材地宝", 500],
+	["幽墟秘境", "秘境", 35, 2, 1, "天材地宝", 500],
+]
+# S32 周期常量：玩家层全部锚定现实时间（与日常 86400 / 周常 604800 同源）
+const 宣战周期秒: int = 604800          # 现实 7 天 = 一个小周期
+const 赛季周期秒: int = 2419200         # 现实 28 天 = 4 周 = 一个大周期
+const 宣战周配额基础: int = 12          # 每现实周宣战次数（月卡 +4）
+const 领地上限基础: int = 4             # 领地基础上限，门派等级每级 +1
+const 领地硬顶: int = 12                # 领地硬上限（对齐贸易 12 城）
+const 守军上限: int = 3                 # 单处领地可派驻守军人数
+const 领地失守概率_无守军: float = 0.25 # 无守军时周结算失守概率
+const 战功_胜: Dictionary = {"宗门攻防战": 60, "秘境争夺战": 50, "妖兽围剿战": 40, "阵营围剿战": 35}
+const 战功_败: int = 8                  # 战败安慰战功（不让空手而归）
+const 战功_满版图折算: int = 40         # 版图已满时胜利不占领，折算战功
+const 战功_领地月产: int = 3            # 每处领地每游戏月产战功
+const 战功_硬战倍率: float = 1.5        # 难度系数≥1.0（敌强于我）的战型，胜则战功×1.5
+const 周胜场战功阶梯: Array = [[8, 300], [5, 180], [3, 90], [1, 30]]
+const 赛季名次战功: Array = [1500, 900, 500, 300, 200]
+const 战功赛季保留率: float = 0.5       # 赛季结束战功保留比例（不全清零，避免挫伤长线玩家）
+func 发起宗门战(战斗类型: String, 出战队伍: Array, 增益: Dictionary = {}, 守方阵营: String = "") -> Dictionary:
 	var 结果: Dictionary = {"ok": false, "error": "", "战报": {}, "奖励文本": ""}
 	if not 战斗类型 in ZongmenBattle.BATTLE_TYPES:
 		结果["error"] = "未知战斗类型：%s" % 战斗类型
+		return 结果
+	# P0修复：增加征伐机缘校验
+	var 机缘检查: Dictionary = 检查机缘("征伐机缘")
+	if not 机缘检查.get("足够", false):
+		结果["error"] = "今日征伐机缘已尽（%d/%d），可提升VIP等级增加机缘" % [机缘检查.get("已用", 0), 机缘检查.get("上限", 0)]
+		return 结果
+	if not 消耗机缘("征伐机缘"):
+		结果["error"] = "今日征伐机缘已尽"
 		return 结果
 	# 1 组装我方队伍（跳过空队/非弟子）
 	var 我方队伍: Array = []
@@ -11093,16 +19015,82 @@ func 发起宗门战(战斗类型: String, 出战队伍: Array, 增益: Dictiona
 		大阵等级 = 1
 	# 大阵耐久随守方总战力缩放（约 4 回合可破），避免固定 1000 与战力规模脱钩
 	var 敌方总战力: int = 敌方单人战力 * 敌方总数
-	var 状态: Dictionary = ZongmenBattle.create_battle_state(战斗类型, 我方快照队伍, 敌方队伍, 大阵等级, int(float(敌方总战力) * 0.2))
+	# S33-4：阵营克制态势 —— 攻方标签 = 玩家立场（正道声望−魔道声望 现算，PROP_23 §5，零持久字段）；
+	#   守方标签优先取调用方显式指定（S33-5 的 faction_conflict.csv 走这条），否则按战斗类型默认值。
+	var 攻方阵营标签: String = FactionSystem.get_player_stance(阵营声望系统.阵营声望)
+	var 守方阵营标签: String = 守方阵营
+	if 守方阵营标签 == "":
+		守方阵营标签 = ZongmenBattle.resolve_defender_tag(战斗类型, 攻方阵营标签)
+	else:
+		守方阵营标签 = ZongmenBattle.normalize_faction_tag(守方阵营标签)
+	var 状态: Dictionary = ZongmenBattle.create_battle_state(战斗类型, 我方快照队伍, 敌方队伍, 大阵等级, int(float(敌方总战力) * 0.2), 攻方阵营标签, 守方阵营标签)
 	# 6 战前增益代入（PRE_BATTLE_BUFFS 常量为准，UI 侧已完成资源扣除）
 	for 名 in ZongmenBattle.PRE_BATTLE_BUFFS:
-		if bool(增益.get(名, false)):
-			状态["攻方增益"].append((ZongmenBattle.PRE_BATTLE_BUFFS[名] as Dictionary).duplicate())
+		if not bool(增益.get(名, false)):
+			continue
+		var 定义: Dictionary = ZongmenBattle.PRE_BATTLE_BUFFS[名] as Dictionary
+		# S32b 战功道具硬扣：带「消耗战功道具」的增益由后端扣库存（UI 漏扣也不会无限用），
+		#   库存不足则该增益静默不生效，不阻断开战。
+		var 道具id: String = str(定义.get("消耗战功道具", ""))
+		if 道具id != "":
+			if int(战功道具库存.get(道具id, 0)) <= 0:
+				continue
+			战功道具库存[道具id] = int(战功道具库存.get(道具id, 0)) - 1
+			if int(战功道具库存[道具id]) <= 0:
+				战功道具库存.erase(道具id)
+		状态["攻方增益"].append(定义.duplicate())
+	# S45-7：符箓战前增益（主动消费方接入；仅追加至攻方增益，零触碰 72 战斗断言）
+	var 符箓增益表: Array = 符箓战前增益(出战队伍)
+	for _b in 符箓增益表:
+		状态["攻方增益"].append(_b)
+	# 毒道：毒傀儡战前施毒（降低敌方攻防，零触碰 72 战斗断言）
+	var 毒傀儡毒伤: int = 获取毒傀儡毒伤()
+	if 毒傀儡毒伤 > 0:
+		var 毒减益: Dictionary = {"名称": "毒傀儡淬毒", "攻击加成": -0.05, "防御加成": -0.05, "持续回合": 5, "毒伤": 毒傀儡毒伤}
+		状态["守方增益"].append(毒减益)
+		添加纪事("毒道", "战前施毒", "毒傀儡战前施放淬毒，敌方攻防下降，持续5回合。", 2)
+	# 毒道：实际毒伤结算（战前施毒直接造成伤害，零触碰 72 战斗断言）
+	var 毒道境界: String = 获取毒道境界()
+	var 毒体加成: Dictionary = 获取毒体加成()
+	if 毒傀儡毒伤 > 0 or 毒道境界 != "毒道学徒":
+		var 总毒伤: int = 毒傀儡毒伤 + int(float(毒道境界表.find(毒道境界)) * 20) + int(float(毒体加成["毒伤加成"]) * 100)
+		if 总毒伤 > 0:
+			# 给敌方每个队员造成毒伤
+			var 中毒人数: int = 0
+			var 实际毒伤: int = 0
+			for 队 in 敌方队伍:
+				for 成员 in 队.get("队员", []):
+					var 最大生命: int = int(成员.get("最大生命", 100))
+					实际毒伤 = min(int(最大生命 * 0.15), 总毒伤)  # 最多扣15%最大生命
+					成员["当前生命"] = max(1, int(成员.get("当前生命", 100)) - 实际毒伤)
+					中毒人数 += 1
+			状态["战斗日志"].append("毒道·战前施毒：敌方%d人中招，每人受到%d点毒素伤害！" % [中毒人数, 实际毒伤])
+			添加纪事("毒道", "毒伤结算", "战前施毒生效，敌方%d人中招，每人受到%d点毒素伤害。" % [中毒人数, 实际毒伤], 2)
+
 	# 7 推演 + 战报
 	ZongmenBattle.simulate_battle(状态)
 	var 战报: Dictionary = ZongmenBattle.generate_battle_report(状态)
 	结果["战报"] = 战报
 	结果["ok"] = true
+	# P1深化：临阵突破触发（宗门战激战中压力激发潜能）
+	# 触发条件：总回合数≥8（大战）+ 弟子大圆满 + 瓶颈打磨≥0.8 + 15%概率
+	var 宗门战临阵突破: bool = int(战报.get("总回合数", 0)) >= 8 and randf() < 0.15
+	if 宗门战临阵突破:
+		# 注：GDScript 4 不支持 Python 式 for...else，改用标志位实现「首个符合条件者处理后即止」
+		var 已处理: bool = false
+		for 队 in 我方队伍:
+			if 已处理:
+				break
+			for d in 队:
+				if d is Disciple and d.层数 >= 10 and d.瓶颈打磨值 >= 0.8:
+					var 突结: Dictionary = d.临阵突破("战斗")
+					if 突结.get("成功", false):
+						状态["战斗日志"].append("【临阵突破】%s于宗门大战中突破至%s！" % [d.姓名, d.境界])
+					已处理 = true
+					break
+	# S32 additive：回传双方总战力（generate_battle_report 只给「剩余战力」，宣战需战前口径判硬战）
+	结果["我方总战力"] = 我方战力
+	结果["敌方总战力"] = 敌方总战力
 	# S1-2：参与宗门战（玩家只做「编制+开战」决策，战斗本身全自动推演）
 	记任务进度("zongmen_battle")
 	if 战报.get("战斗结果", "") == "攻方胜利":
@@ -11131,6 +19119,1094 @@ func 发起宗门战(战斗类型: String, 出战队伍: Array, 增益: Dictiona
 			d.履历.append("宗门战·%s %s" % [战斗类型, "胜" if 胜 else ("平" if 平 else "败")])
 	弟子变动.emit()
 	return 结果
+
+# ============ S31 宣战 / 领地战（在 发起宗门战 基础上包一层持久层）============
+# 宣战 = 发起宗门战 的持久化封装：胜则占领对应类型领地（纳入宗门领地按月产出），
+# 败则参战弟子情感冲击（联动 S30 忠诚/心境）+ 复用 受伤剩余 进入养伤。
+func 宣战(战斗类型: String, 出战队伍: Array, 增益: Dictionary = {}, 目标名: String = "") -> Dictionary:
+	# S32 周期闸门：宣战次数按现实周配额限流（原先零冷却零上限 → 可无限连点刷领地）
+	_刷新宣战周期_S32()
+	var 配额: int = 获取宣战配额()
+	if 宣战周已用 >= 配额:
+		return {"ok": false, "error": "本周宣战已用尽（%d/%d），下周重置" % [宣战周已用, 配额], "战报": {}, "奖励文本": ""}
+	var 结果: Dictionary = 发起宗门战(战斗类型, 出战队伍, 增益)
+	if not bool(结果.get("ok", false)):
+		return 结果
+	宣战周已用 += 1
+	var 战报: Dictionary = 结果.get("战报", {})
+	var 结果文本: String = str(战报.get("战斗结果", ""))
+	var 参战: Array = []
+	for 队 in 出战队伍:
+		for d in 队:
+			if d is Disciple:
+				参战.append(d)
+	if 结果文本 == "攻方胜利":
+		本周宣战胜场 += 1
+		var 功: int = int(战功_胜.get(战斗类型, 40))
+		# 硬战犒赏：敌方战前总战力高于我方（难度系数≥1.0 的战型）→ 战功×1.5
+		if int(结果.get("敌方总战力", 0)) > int(结果.get("我方总战力", 0)):
+			功 = int(round(float(功) * 战功_硬战倍率))
+		var 上限: int = 获取领地上限()
+		if 宗门领地.size() >= 上限:
+			# 版图已满：不占领，折算战功（仍鼓励开战挣战功，而非硬禁开战）
+			功 += 战功_满版图折算
+			_加推演条目("⚔ 宣战告捷，然版图已满（%d处），战果折为战功+%d" % [上限, 战功_满版图折算], ET_SECT, PRIO_NORMAL, {})
+		else:
+			var 类型: String = 战斗类型_领地映射.get(战斗类型, "城池")
+			var 模板 = _取领地模板(类型)
+			if 模板 != null:
+				var 领地: Dictionary = {"名称": 模板[0], "类型": 模板[1], "月灵石": int(模板[2]), "月灵材": int(模板[3]), "月声望": int(模板[4]), "灵材名": str(模板[5]), "防守线": int(模板[6]), "守军": [], "占领日": 累计游戏日}
+				宗门领地.append(领地)
+				_加推演条目("⚔ 宣战告捷，攻占【%s】（%s），自此岁入灵石%d、声望%d" % [str(模板[0]), str(模板[1]), int(模板[2]), int(模板[4])], ET_SECT, PRIO_HIGH, {})
+				添加纪事("宗门", "宣战占领", "攻占%s（%s），纳入版图" % [str(模板[0]), str(模板[1])], 2)
+				结果["占领领地"] = 领地
+		加战功(功)
+		结果["战功"] = 功
+	else:
+		加战功(战功_败)
+		结果["战功"] = 战功_败
+		var 养伤日: int = 30
+		for d in 参战:
+			d.增加忠诚(-3)
+			d.增加心境(-5)
+			if randf() < 0.5:
+				d.受伤剩余 = max(int(d.受伤剩余), 养伤日)
+		if 结果文本 == "守方胜利":
+			_加推演条目("⚔ 宣战失利，门下弟子折损，忠心受挫（战功+%d）" % 战功_败, ET_SECT, PRIO_HIGH, {})
+			添加纪事("宗门", "宣战失利", "出师未捷，弟子养伤", 1)
+	结果["宣战余量"] = max(0, 配额 - 宣战周已用)
+	return 结果
+
+# ============ S32 宣战周期 / 战功 / 领地守成 ============
+func 加战功(数量: int) -> void:
+	if 数量 <= 0:
+		return
+	战功 += 数量
+	赛季累计战功 += 数量
+
+func 获取宣战配额() -> int:
+	var 额: int = 宣战周配额基础
+	if 月卡有效():
+		额 += 4
+	return 额
+
+func 获取宣战余量() -> int:
+	_刷新宣战周期_S32()
+	return max(0, 获取宣战配额() - 宣战周已用)
+
+func 获取领地上限() -> int:
+	return min(领地硬顶, 领地上限基础 + max(0, 门派等级 - 1))
+
+# 现实时间周期驱动：挂 推演一月（每游戏日 = 每 240 现实秒调用一次，检测频率足够），
+# UI 打开时亦可主动调用，保证离线归来立即补算（while 累加锚点，正确处理长期离线）。
+func _刷新宣战周期_S32() -> void:
+	var 现在: int = int(Time.get_unix_time_from_system())
+	if 上次宣战周真实秒 <= 0:
+		上次宣战周真实秒 = 现在
+	if 上次赛季真实秒 <= 0:
+		上次赛季真实秒 = 现在
+	var 补周: int = 0
+	while 现在 - 上次宣战周真实秒 >= 宣战周期秒 and 补周 < 60:
+		上次宣战周真实秒 += 宣战周期秒
+		补周 += 1
+		_周结算_S32()
+	var 补季: int = 0
+	while 现在 - 上次赛季真实秒 >= 赛季周期秒 and 补季 < 24:
+		上次赛季真实秒 += 赛季周期秒
+		补季 += 1
+		_赛季结算_S32()
+
+func _周结算_S32() -> void:
+	var 赏: int = 0
+	for 档 in 周胜场战功阶梯:
+		if 本周宣战胜场 >= int(档[0]):
+			赏 = int(档[1])
+			break
+	if 赏 > 0:
+		加战功(赏)
+		_加推演条目("🎖 周战功犒赏：本周宣战%d胜，战功+%d" % [本周宣战胜场, 赏], ET_SECT, PRIO_HIGH, {})
+	_守成判定_S32()
+	宣战周已用 = 0
+	本周宣战胜场 = 0
+	阵营战役周已用 = 0   # S33-5：阵营战役与宣战同周期重置（配额分账，不相互挤占）
+
+func _领地守军战力(领地: Dictionary) -> int:
+	var 合计: int = 0
+	for 名 in (领地.get("守军", []) as Array):
+		for d in 弟子列表:
+			if d != null and str(d.姓名) == str(名):
+				合计 += int(d.总战力())
+				break
+	return 合计
+
+# 周结算守成：无守军 25% 失守；有守军但战力低于防守线 → 按缺口比例折算失守概率。
+# 失守时守军受伤（复用 受伤剩余）+ 忠诚下滑（联动 S30 情感）。
+func _守成判定_S32() -> void:
+	var 失守: Array = []
+	for i in range(宗门领地.size()):
+		var 领: Dictionary = 宗门领地[i]
+		var 守军: Array = 领.get("守军", [])
+		var 防守线: int = int(领.get("防守线", 500))
+		if 守军.is_empty():
+			if randf() < 领地失守概率_无守军:
+				失守.append(i)
+			continue
+		var 战力: int = _领地守军战力(领)
+		if 战力 < 防守线:
+			var 缺口: float = 1.0 - float(战力) / float(max(1, 防守线))
+			if randf() < 领地失守概率_无守军 * 缺口:
+				失守.append(i)
+	失守.reverse()
+	for i in 失守:
+		var 领: Dictionary = 宗门领地[i]
+		for 名 in (领.get("守军", []) as Array):
+			for d in 弟子列表:
+				if d != null and str(d.姓名) == str(名):
+					d.受伤剩余 = max(int(d.受伤剩余), 20)
+					d.增加忠诚(-2)
+					break
+		_加推演条目("⚔ 领地【%s】失守，为他宗所夺" % str(领.get("名称", "")), ET_SECT, PRIO_HIGH, {})
+		添加纪事("宗门", "领地失守", "%s易主，守军折损" % str(领.get("名称", "")), 1)
+		宗门领地.remove_at(i)
+
+func _赛季名次_S32() -> int:
+	if 赛季累计战功 >= 3000:
+		return 1
+	if 赛季累计战功 >= 1800:
+		return 2
+	if 赛季累计战功 >= 1000:
+		return 3
+	if 赛季累计战功 >= 400:
+		return 4
+	return 5
+
+# 赛季结算：先按名次定犒赏，再把存量战功折半承继，最后全额发放犒赏（犒赏不被折半）。
+func _赛季结算_S32() -> void:
+	var 名次: int = _赛季名次_S32()
+	var 赏: int = int(赛季名次战功[min(名次 - 1, 赛季名次战功.size() - 1)])
+	战功 = int(round(float(战功) * 战功赛季保留率))
+	var 旧季: int = 赛季序号
+	加战功(赏)
+	赛季序号 += 1
+	赛季累计战功 = 0
+	_加推演条目("🏆 第%d赛季落幕：名列第%d，战功犒赏+%d，余功折半承继" % [旧季, 名次, 赏], ET_SECT, PRIO_HIGH, {})
+	添加纪事("宗门", "赛季落幕", "第%d赛季名列第%d，战功+%d" % [旧季, 名次, 赏], 2)
+
+func 派驻守军(领地索引: int, d: Object) -> Dictionary:
+	if 领地索引 < 0 or 领地索引 >= 宗门领地.size():
+		return {"ok": false, "error": "领地不存在"}
+	if d == null or not (d is Disciple):
+		return {"ok": false, "error": "弟子不存在"}
+	if int(d.受伤剩余) > 0:
+		return {"ok": false, "error": "%s正在养伤，不可派驻" % str(d.姓名)}
+	for 领 in 宗门领地:
+		if str(d.姓名) in (领.get("守军", []) as Array):
+			return {"ok": false, "error": "%s已驻守【%s】" % [str(d.姓名), str(领.get("名称", ""))]}
+	var 领地: Dictionary = 宗门领地[领地索引]
+	if not 领地.has("守军"):
+		领地["守军"] = []
+	if (领地["守军"] as Array).size() >= 守军上限:
+		return {"ok": false, "error": "该处守军已满（%d人）" % 守军上限}
+	(领地["守军"] as Array).append(str(d.姓名))
+	添加纪事("宗门", "派驻守军", "%s驻守%s" % [str(d.姓名), str(领地.get("名称", ""))], 1)
+	弟子变动.emit()
+	return {"ok": true, "error": ""}
+
+func 撤回守军(领地索引: int, 姓名: String) -> Dictionary:
+	if 领地索引 < 0 or 领地索引 >= 宗门领地.size():
+		return {"ok": false, "error": "领地不存在"}
+	var 领地: Dictionary = 宗门领地[领地索引]
+	var 守军: Array = 领地.get("守军", [])
+	var idx: int = 守军.find(姓名)
+	if idx < 0:
+		return {"ok": false, "error": "该弟子未驻守此地"}
+	守军.remove_at(idx)
+	弟子变动.emit()
+	return {"ok": true, "error": ""}
+
+# ============ S33-5 阵营战役（正魔大战 P0-3，config/faction_conflict.csv 数据驱动）============
+# 与 S31 宣战的分工：宣战 = 打领地（占版图、按月产出），阵营战役 = 打阵营立场
+# （产战功 + 阵营声望，胜亦不占领地）。两者配额分账、互不挤占，且战役不能绕过
+# 领地上限刷版图。守方阵营标签直接喂 发起宗门战 第4参 → 激活 S33-4 非对称克制乘区。
+const 阵营战役表路径: String = "res://config/faction_conflict.csv"
+const 阵营战役周配额基础: int = 6      # 每现实周出征次数（月卡 +2）；6×~50 战功/周，仅及宣战路径一半，不印钵
+const 阵营战役首胜声望倍率: float = 2.0 # 每条战役首次告捷声望翻倍（一次性，鼓励打通全部战役）
+
+func _读阵营战役() -> Array:
+	if not _阵营战役缓存.is_empty():
+		return _阵营战役缓存
+	for r in DestinyDataLoader._read_csv(阵营战役表路径):
+		var 战型: String = str(r.get("battle_type", ""))
+		if not 战型 in ZongmenBattle.BATTLE_TYPES:
+			continue
+		_阵营战役缓存.append({
+			"id": str(r.get("conflict_id", "")),
+			"阵营id": str(r.get("faction_id", "")),
+			"阵营": str(r.get("faction", "")),
+			"守方阵营": str(r.get("enemy_tag", "")),
+			"名称": str(r.get("conflict_name", "")),
+			"战斗类型": 战型,
+			"门槛等级": str(r.get("unlock_reputation", "冷淡")),
+			"耗灵石": int(str(r.get("cost_lingshi", "0"))),
+			"声望奖励": int(str(r.get("reward_reputation", "0"))),
+			"说明": str(r.get("description", "")),
+		})
+	return _阵营战役缓存
+
+# 门槛以声望「等级名」配置（与 faction_quests 同口径），运行时翻译为阀值，避开 CSV 硬编码数值漂移
+func _阵营战役门槛(战役: Dictionary) -> int:
+	var 序: int = FactionSystem.REPUTATION_LEVELS.find(str(战役.get("门槛等级", "冷淡")))
+	if 序 < 0:
+		return 0
+	return int(FactionSystem.REPUTATION_THRESHOLDS[序])
+
+func 获取阵营战役配额() -> int:
+	var 额: int = 阵营战役周配额基础
+	if 月卡有效():
+		额 += 2
+	return 额
+
+func 获取阵营战役余量() -> int:
+	_刷新宣战周期_S32()
+	return max(0, 获取阵营战役配额() - 阵营战役周已用)
+
+# UI 视图：每条战役附「是否解锁/当前声望/基准战功/累计告捷」，避免 UI 自行推算规则
+func 获取阵营战役列表() -> Array:
+	var 出: Array = []
+	for c in _读阵营战役():
+		var 阵: String = str(c.get("阵营", ""))
+		var 需: int = _阵营战役门槛(c)
+		var 现: int = int(阵营声望系统.阵营声望.get(阵, 0))
+		var 项: Dictionary = c.duplicate(true)
+		项["需声望"] = 需
+		项["当前声望"] = 现
+		项["已解锁"] = 现 >= 需
+		项["基准战功"] = int(战功_胜.get(str(c.get("战斗类型", "")), 40))
+		项["告捷次数"] = int(阵营战役战绩.get(str(c.get("id", "")), 0))
+		出.append(项)
+	return 出
+
+# 出征：声望门槛 → 周配额 → 灵石硬扣（开打失败则原额退回）→ 宗门战引擎（带守方阵营标签）→ 战功/声望结算
+func 发起阵营战役(战役id: String, 出战队伍: Array, 增益: Dictionary = {}) -> Dictionary:
+	_刷新宣战周期_S32()
+	var 战役: Dictionary = {}
+	for c in _读阵营战役():
+		if str(c.get("id", "")) == 战役id:
+			战役 = c
+			break
+	if 战役.is_empty():
+		return {"ok": false, "error": "未知阵营战役：%s" % 战役id, "战报": {}, "奖励文本": ""}
+	var 阵: String = str(战役.get("阵营", ""))
+	var 需: int = _阵营战役门槛(战役)
+	if int(阵营声望系统.阵营声望.get(阵, 0)) < 需:
+		return {"ok": false, "error": "%s声望不足（%d/%d）" % [阵, int(阵营声望系统.阵营声望.get(阵, 0)), 需], "战报": {}, "奖励文本": ""}
+	var 配额: int = 获取阵营战役配额()
+	if 阵营战役周已用 >= 配额:
+		return {"ok": false, "error": "本周阵营战役已用尽（%d/%d），下周重置" % [阵营战役周已用, 配额], "战报": {}, "奖励文本": ""}
+	var 耗: int = int(战役.get("耗灵石", 0))
+	if 灵石 < 耗:
+		return {"ok": false, "error": "出征需灵石%d（现有%d）" % [耗, 灵石], "战报": {}, "奖励文本": ""}
+	# 先扣后打：战斗未能开打则原额退回（不留吞钱窗口）
+	灵石 -= 耗
+	var 结果: Dictionary = 发起宗门战(str(战役.get("战斗类型", "")), 出战队伍, 增益, str(战役.get("守方阵营", "")))
+	if not bool(结果.get("ok", false)):
+		灵石 += 耗
+		return 结果
+	阵营战役周已用 += 1
+	结果["战役id"] = 战役id
+	结果["战役名"] = str(战役.get("名称", ""))
+	结果["耗灵石"] = 耗
+	var 战报: Dictionary = 结果.get("战报", {})
+	var 参战: Array = []
+	for 队 in 出战队伍:
+		for d in 队:
+			if d is Disciple:
+				参战.append(d)
+	if str(战报.get("战斗结果", "")) == "攻方胜利":
+		var 功: int = int(战功_胜.get(str(战役.get("战斗类型", "")), 40))
+		if int(结果.get("敌方总战力", 0)) > int(结果.get("我方总战力", 0)):
+			功 = int(round(float(功) * 战功_硬战倍率))
+		加战功(功)
+		var 望: int = int(战役.get("声望奖励", 0))
+		var 首胜: bool = int(阵营战役战绩.get(战役id, 0)) <= 0
+		if 首胜:
+			望 = int(round(float(望) * 阵营战役首胜声望倍率))
+		阵营战役战绩[战役id] = int(阵营战役战绩.get(战役id, 0)) + 1
+		# 声望变动走已有 增加阵营声望（内建对立阵营 −30% 衰减）→ 正魔此消彼长自洽，零新逻辑
+		增加阵营声望(阵, 望)
+		结果["战功"] = 功
+		结果["声望奖励"] = 望
+		结果["首胜"] = 首胜
+		_加推演条目("⚔ %s告捷：战功+%d，%s声望+%d%s" % [str(战役.get("名称", "")), 功, 阵, 望, "（首捷双赏）" if 首胜 else ""], ET_SECT, PRIO_HIGH, {})
+		添加纪事("宗门", "阵营战役", "%s告捷，战功+%d、%s声望+%d" % [str(战役.get("名称", "")), 功, 阵, 望], 2)
+	else:
+		加战功(战功_败)
+		结果["战功"] = 战功_败
+		结果["声望奖励"] = 0
+		结果["首胜"] = false
+		for d in 参战:
+			d.增加忠诚(-3)
+			d.增加心境(-5)
+			if randf() < 0.5:
+				d.受伤剩余 = max(int(d.受伤剩余), 30)
+		_加推演条目("⚔ %s失利，弟子折损养伤（战功+%d）" % [str(战役.get("名称", "")), 战功_败], ET_SECT, PRIO_HIGH, {})
+		添加纪事("宗门", "阵营战役", "%s失利，弟子养伤" % str(战役.get("名称", "")), 1)
+	结果["战役余量"] = max(0, 配额 - 阵营战役周已用)
+	return 结果
+
+# ============ S32 战功商店（config/battle_merit_shop.csv 数据驱动）============
+# 丹药一律使用 AlchemySystem.丹药效果 中已存在的真名，入宗门库房后由既有
+# _应用丹药效果 / 弟子自动服用丹药 链路消费——零新逻辑，不造假功能。
+func _读战功商店() -> Array:
+	if not _战功商店缓存.is_empty():
+		return _战功商店缓存
+	var f: FileAccess = FileAccess.open("res://config/battle_merit_shop.csv", FileAccess.READ)
+	if f == null:
+		return []
+	var 首行: bool = true
+	while not f.eof_reached():
+		var line: String = f.get_line().strip_edges()
+		if line == "":
+			continue
+		if 首行:
+			首行 = false
+			continue
+		var p: PackedStringArray = line.split(",")
+		if p.size() < 7:
+			continue
+		_战功商店缓存.append({
+			"id": str(p[0]), "名称": str(p[1]), "类别": str(p[2]),
+			"价格": int(str(p[3])), "数量": int(str(p[4])),
+			"品阶": str(p[5]), "说明": str(p[6]),
+		})
+	f.close()
+	return _战功商店缓存
+
+func 兑换战功商品(商品id: String) -> Dictionary:
+	var 目: Dictionary = {}
+	for it in _读战功商店():
+		if str(it.get("id", "")) == 商品id:
+			目 = it
+			break
+	if 目.is_empty():
+		return {"ok": false, "error": "无此商品"}
+	var 价: int = int(目.get("价格", 0))
+	if 战功 < 价:
+		return {"ok": false, "error": "战功不足（%d/%d）" % [战功, 价]}
+	战功 -= 价
+	var 类别: String = str(目.get("类别", ""))
+	var 数量: int = max(1, int(目.get("数量", 1)))
+	var 名: String = str(目.get("名称", ""))
+	if 类别 == "战斗道具":
+		战功道具库存[商品id] = int(战功道具库存.get(商品id, 0)) + 数量
+	else:
+		for i in range(数量):
+			var it2: Item = Item.new()
+			it2.名称 = 名
+			it2.品阶 = str(目.get("品阶", "灵阶"))
+			it2.类别 = "丹药"
+			it2.描述 = str(目.get("说明", ""))
+			it2.功效 = str(AlchemySystem.丹药效果.get(名, {}).get("描述", ""))
+			宗门库房.append(it2)
+	添加纪事("宗门", "战功兑换", "耗战功%d兑换%s×%d" % [价, 名, 数量], 1)
+	return {"ok": true, "error": "", "名称": 名, "数量": 数量}
+
+
+func _取领地模板(类型: String) -> Variant:
+	var 候选: Array = []
+	for t in 领地模板表:
+		if str(t[1]) == 类型:
+			候选.append(t)
+	if 候选.is_empty():
+		return null
+	return 候选[randi() % 候选.size()]
+
+func _添加灵材(数量: int, 名称: String = "灵材") -> void:
+	# S31 领地矿脉/灵脉/秘境月产灵材入宗门库房（类别=材料）
+	for i in range(数量):
+		var it: Item = Item.new()
+		it.名称 = 名称
+		it.品阶 = "灵品"
+		it.类别 = "材料"
+		it.描述 = "领地开采所得灵材"
+		宗门库房.append(it)
+
+func _结算宗门领地_S1() -> void:
+	if 宗门领地.is_empty():
+		return
+	var 总灵石: int = 0
+	var 总声望: int = 0
+	for 领 in 宗门领地:
+		总灵石 += int(领.get("月灵石", 0))
+		总声望 += int(领.get("月声望", 0))
+		var 灵材数: int = int(领.get("月灵材", 0))
+		if 灵材数 > 0:
+			_添加灵材(灵材数, str(领.get("灵材名", "灵材")))
+	if 总灵石 > 0:
+		灵石 += 总灵石
+	if 总声望 > 0:
+		_加声望(总声望)
+	# S32 领地亦产战功（每处每游戏月）
+	加战功(战功_领地月产 * 宗门领地.size())
+	if 总灵石 > 0 or 总声望 > 0:
+		_加推演条目("🏯 领地岁入：灵石+%d 声望+%d（共%d处领地）" % [总灵石, 总声望, 宗门领地.size()], ET_SECT, PRIO_NORMAL, {})
+# ============================================================
+# S34 凡人王朝：王朝周期引擎（GDD: design/03-系统设计/GDD-凡人王朝.md）
+# 定位：玩家是王朝的「客卿」——影响王朝，不统治王朝（称帝建国属 S35 沙盒）
+# 三铁律①：新增持久字段必须同时改 存档 / 读档 / new_game 三处
+# ============================================================
+const 王朝国号池: Array = ["大胤", "大景", "大乾", "大晟", "大雍", "大昭", "大宁", "大梁"]
+const 王朝帝姓池: Array = ["姬", "轩辕", "南宫", "慕容", "赵", "李", "独孤", "宇文"]
+const 王朝帝名池: Array = ["昌", "煜", "珩", "玄", "熙", "瑾", "珏", "渊", "澈", "晏"]
+const 王朝性格池: Array = ["守成", "雄才", "昏聩", "多疑", "仁厚"]
+const 王朝阶段序: Array = ["开国", "盛世", "中衰", "乱世"]   # 唯一真源：国祚递降顺序
+# 配置懒加载（复用项目 CSV 解析惯例：_CSV去BOM）
+
+# ===== 凡人王朝系统（已拆分到dynasty_system.gd，此处为转发函数）=====
+func _读王朝配置():
+	return 王朝系统._读王朝配置()
+func _读王朝阶段表():
+	return 王朝系统._读王朝阶段表()
+func _读差事模板表():
+	return 王朝系统._读差事模板表()
+func _王朝阶段配置(阶段名: String):
+	return 王朝系统._王朝阶段配置(阶段名)
+func _王朝国策配置(国策名: String):
+	return 王朝系统._王朝国策配置(国策名)
+func _新王朝(朝代序: int):
+	return 王朝系统._新王朝(朝代序)
+func _初始化郡县状态_S34():
+	王朝系统._初始化郡县状态_S34()
+func _凡俗郡县数_S34():
+	return 王朝系统._凡俗郡县数_S34()
+func _新帝继位_S34(驾崩: bool):
+	王朝系统._新帝继位_S34(驾崩)
+func _生成皇子_S34():
+	王朝系统._生成皇子_S34()
+func _择储_S34(表: Array):
+	return 王朝系统._择储_S34(表)
+func 押注继承人_S34(皇子ID: String):
+	return 王朝系统.押注继承人_S34(皇子ID)
+func _结算继承押注_S34(继位ID: String):
+	王朝系统._结算继承押注_S34(继位ID)
+func _可调停民变_S34():
+	return 王朝系统._可调停民变_S34()
+func _改朝换代_S34():
+	王朝系统._改朝换代_S34()
+
+# ===== P1联动：凡人王朝 × 宗门系统 =====
+# 获取宗门爵位加成（爵位越高，王朝委托奖励越多）
+func 获取宗门爵位加成() -> float:
+	var 爵位: String = "未册封"
+	if 王朝系统.王朝 != null:
+		爵位 = str(王朝系统.王朝.get("宗门爵位", "未册封"))
+	var 爵位加成: Dictionary = {
+		"未册封": 1.0,
+		"九品": 1.1,
+		"八品": 1.2,
+		"七品": 1.3,
+		"六品": 1.4,
+		"五品": 1.5,
+		"四品": 1.6,
+		"三品": 1.8,
+		"二品": 2.0,
+		"一品": 2.5,
+	}
+	return float(爵位加成.get(爵位, 1.0))
+
+# 王朝委托完成奖励（宗门声望+资源）
+func 王朝委托完成奖励(委托ID: String, 基础奖励: Dictionary) -> Dictionary:
+	var 爵位加成: float = 获取宗门爵位加成()
+	var 声望奖励: int = int(float(基础奖励.get("声望", 100)) * 爵位加成)
+	var 灵石奖励: int = int(float(基础奖励.get("灵石", 500)) * 爵位加成)
+	var 灵气奖励: int = int(float(基础奖励.get("灵气", 50)) * 爵位加成)
+	# 发放奖励
+	声望 += 声望奖励
+	灵石 += 灵石奖励
+	灵气 += 灵气奖励
+	# 添加纪事
+	添加纪事("王朝", "委托完成", "完成王朝委托「%s」，获得声望+%d，灵石+%d，灵气+%d（爵位加成%.1f倍）" % [委托ID, 声望奖励, 灵石奖励, 灵气奖励, 爵位加成], 0)
+	_加推演条目("【王朝】完成王朝委托「%s」，宗门声望大增" % 委托ID, "王朝", "中")
+	return {"声望": 声望奖励, "灵石": 灵石奖励, "灵气": 灵气奖励, "爵位加成": 爵位加成}
+func _刷新郡县忠顺_S34():
+	王朝系统._刷新郡县忠顺_S34()
+func _推进王朝阶段_S34():
+	王朝系统._推进王朝阶段_S34()
+func _读开国表():
+	return 王朝系统._读开国表()
+func _开国配置(id: String):
+	return 王朝系统._开国配置(id)
+func _开国表(kind: String):
+	return 王朝系统._开国表(kind)
+func _开国路线缺口(配: Dictionary):
+	return 王朝系统._开国路线缺口(配)
+func 开国路线状态_S34():
+	return 王朝系统.开国路线状态_S34()
+func 开国选项_S34():
+	return 王朝系统.开国选项_S34()
+func 建立新朝_S34(答案: Dictionary):
+	return 王朝系统.建立新朝_S34(答案)
+func _开国建制系数_S34(郡: Dictionary):
+	return 王朝系统._开国建制系数_S34(郡)
+func _开国苗子系数_S34():
+	return 王朝系统._开国苗子系数_S34()
+func _开国战功系数_S34():
+	return 王朝系统._开国战功系数_S34()
+func _开国民心月修正_S34():
+	return 王朝系统._开国民心月修正_S34()
+func _读传送阵表():
+	return 王朝系统._读传送阵表()
+func _传送距离(城: Dictionary):
+	return 王朝系统._传送距离(城)
+func _传送阵补缺():
+	王朝系统._传送阵补缺()
+func 已建传送阵():
+	return 王朝系统.已建传送阵()
+func 传送阵当前档():
+	return 王朝系统.传送阵当前档()
+func 传送阵可达城邦():
+	return 王朝系统.传送阵可达城邦()
+func 传送阵建造信息():
+	return 王朝系统.传送阵建造信息()
+func 建造传送阵():
+	return 王朝系统.建造传送阵()
+func _推进传送阵建造():
+	王朝系统._推进传送阵建造()
+func _推进传送阵待机_S34(天: int):
+	王朝系统._推进传送阵待机_S34(天)
+func _物品传送重量(it):
+	return 王朝系统._物品传送重量(it)
+func _物品传送价值(it):
+	return 王朝系统._物品传送价值(it)
+func 传送调度(城市ID: String, 货物索引: Array):
+	return 王朝系统.传送调度(城市ID, 货物索引)
+func _今日序号():
+	return 王朝系统._今日序号()
+func _加朝报(类型: String, 标题: String, 正文: String = "", 重要度: int = 1):
+	王朝系统._加朝报(类型, 标题, 正文, 重要度)
+func 标记朝报已读():
+	王朝系统.标记朝报已读()
+func _读祥瑞表():
+	return 王朝系统._读祥瑞表()
+func _读朝奏表():
+	return 王朝系统._读朝奏表()
+func _随机凡俗郡():
+	return 王朝系统._随机凡俗郡()
+func _祥瑞文(模板: String, 郡id: String):
+	return 王朝系统._祥瑞文(模板, 郡id)
+func _郡键(英文: String):
+	return 王朝系统._郡键(英文)
+func _推进祥瑞_S34():
+	王朝系统._推进祥瑞_S34()
+func _施加祥瑞效果(配: Dictionary, 郡id: String):
+	return 王朝系统._施加祥瑞效果(配, 郡id)
+func _生成朝奏_S34():
+	王朝系统._生成朝奏_S34()
+func _推进朝奏_S34():
+	王朝系统._推进朝奏_S34()
+func 应对朝奏_S34(索引: int):
+	return 王朝系统.应对朝奏_S34(索引)
+func _施加朝奏效果(编码: String, 郡id: String):
+	return 王朝系统._施加朝奏效果(编码, 郡id)
+func _保底邸报_S34():
+	王朝系统._保底邸报_S34()
+func _读表_香火庙():
+	return 王朝系统._读表_香火庙()
+func _读表_异端():
+	return 王朝系统._读表_异端()
+func _读表_国教():
+	return 王朝系统._读表_国教()
+func _香火庙档(等级: int):
+	return 王朝系统._香火庙档(等级)
+func _国教配置():
+	return 王朝系统._国教配置()
+func _异端配置(id: String):
+	return 王朝系统._异端配置(id)
+func _香火庙信息(郡id: String):
+	return 王朝系统._香火庙信息(郡id)
+func _郡信仰取(郡id: String):
+	return 王朝系统._郡信仰取(郡id)
+func 香火庙等级(郡id: String):
+	return 王朝系统.香火庙等级(郡id)
+func _香火庙覆盖人口(郡id: String):
+	return 王朝系统._香火庙覆盖人口(郡id)
+func 香火庙建造信息(郡id: String):
+	return 王朝系统.香火庙建造信息(郡id)
+func 建造香火庙(郡id: String):
+	return 王朝系统.建造香火庙(郡id)
+func _推进香火庙建造():
+	王朝系统._推进香火庙建造()
+func _香火庙维护总额_S34():
+	return 王朝系统._香火庙维护总额_S34()
+func _抽异端主():
+	return 王朝系统._抽异端主()
+func _推进信仰_S34():
+	王朝系统._推进信仰_S34()
+func _信仰供奉系数_S34(郡: Dictionary):
+	return 王朝系统._信仰供奉系数_S34(郡)
+func _信仰苗子系数_S34(郡id: String):
+	return 王朝系统._信仰苗子系数_S34(郡id)
+func _信仰香火日产_S34():
+	return 王朝系统._信仰香火日产_S34()
+func _信仰愿力月产_S34():
+	return 王朝系统._信仰愿力月产_S34()
+func _信仰民心月修正_S34():
+	return 王朝系统._信仰民心月修正_S34()
+func 信仰总览_S34():
+	return 王朝系统.信仰总览_S34()
+func _信仰补缺():
+	王朝系统._信仰补缺()
+func _结算王朝_S34():
+	王朝系统._结算王朝_S34()
+func _取弟子_S34(弟子ID: String):
+	return 王朝系统._取弟子_S34(弟子ID)
+func _分配弟子故乡郡(弟子: Disciple):
+	王朝系统._分配弟子故乡郡(弟子)
+func 决策办差奇遇(索引: int, 选项索引: int):
+	return 王朝系统.决策办差奇遇(索引, 选项索引)
+func _弟子在故乡办差(弟子: Disciple, 郡id: String):
+	return 王朝系统._弟子在故乡办差(弟子, 郡id)
+func _刷新凡间差事榜_S34():
+	王朝系统._刷新凡间差事榜_S34()
+func 接取凡间差事_S34(差事ID: String, 弟子ID: String):
+	return 王朝系统.接取凡间差事_S34(差事ID, 弟子ID)
+func _推进凡间差事_S34(天: int):
+	王朝系统._推进凡间差事_S34(天)
+func 获取所有奇观列表():
+	return 王朝系统.获取所有奇观列表()
+func 开始建造奇观(奇观ID: String):
+	return 王朝系统.开始建造奇观(奇观ID)
+func 推进奇观建造_S34(月数: int):
+	王朝系统.推进奇观建造_S34(月数)
+func _检查奇观里程碑(奇观ID: String):
+	王朝系统._检查奇观里程碑(奇观ID)
+func 获取奇观总效果():
+	return 王朝系统.获取奇观总效果()
+func _检查王朝里程碑():
+	王朝系统._检查王朝里程碑()
+func _结算凡间差事_S34(差事ID: String):
+	王朝系统._结算凡间差事_S34(差事ID)
+func _寻访灵根得苗子_S34(郡id: String):
+	王朝系统._寻访灵根得苗子_S34(郡id)
+func _尝试王朝事件_S34():
+	王朝系统._尝试王朝事件_S34()
+func _王朝补缺_S34():
+	王朝系统._王朝补缺_S34()
+func _读反制配置():
+	return 王朝系统._读反制配置()
+func _反制配置(反制ID: String):
+	return 王朝系统._反制配置(反制ID)
+func _供奉月收入_S34():
+	return 王朝系统._供奉月收入_S34()
+func _反制成本_S34(配: Dictionary):
+	return 王朝系统._反制成本_S34(配)
+func _解析转化效果_S34(文本: String):
+	return 王朝系统._解析转化效果_S34(文本)
+func _施加转化效果_S34(效: Array, 郡id: String):
+	王朝系统._施加转化效果_S34(效, 郡id)
+func _反制触发判定_S34(配: Dictionary, 郡id: String):
+	return 王朝系统._反制触发判定_S34(配, 郡id)
+func _反制预警判定_S34(配: Dictionary, 郡id: String):
+	return 王朝系统._反制预警判定_S34(配, 郡id)
+func _读委托模板表():
+	return 王朝系统._读委托模板表()
+func _须应征调_S34():
+	return 王朝系统._须应征调_S34()
+func _结算王朝委托_S34():
+	王朝系统._结算王朝委托_S34()
+func _推进委托_S34(天: int):
+	王朝系统._推进委托_S34(天)
+func 应对王朝委托_S34(实例ID: String, 选择: String, 弟子ID: String = ""):
+	return 王朝系统.应对王朝委托_S34(实例ID, 选择, 弟子ID)
+func _结算委托后果_S34(项: Dictionary, 模式: String):
+	王朝系统._结算委托后果_S34(项, 模式)
+func _移除委托(项: Dictionary):
+	王朝系统._移除委托(项)
+func _读拍卖配置表():
+	return 王朝系统._读拍卖配置表()
+func _拍卖配置浮(param: String, 默认: float):
+	return 王朝系统._拍卖配置浮(param, 默认)
+func _读拍卖AI表():
+	return 王朝系统._读拍卖AI表()
+func _拍卖当前等级():
+	return 王朝系统._拍卖当前等级()
+func _拍卖当前佣金率():
+	return 王朝系统._拍卖当前佣金率()
+func _拍卖增加声望(金额: int):
+	return 王朝系统._拍卖增加声望(金额)
+func _拍卖等级名称(等级: int):
+	return 王朝系统._拍卖等级名称(等级)
+func _新拍卖会():
+	return 王朝系统._新拍卖会()
+func _拍卖会补缺():
+	return 王朝系统._拍卖会补缺()
+func _拍卖品阶基准(品阶: String):
+	return 王朝系统._拍卖品阶基准(品阶)
+func _基准估值(it):
+	return 王朝系统._基准估值(it)
+func _造拍卖物品(目标品阶集: Array):
+	return 王朝系统._造拍卖物品(目标品阶集)
+func _生成单个拍品_S34(场次: String):
+	return 王朝系统._生成单个拍品_S34(场次)
+func _生成常驻拍品_S34():
+	return 王朝系统._生成常驻拍品_S34()
+func _生成大拍拍品_S34():
+	return 王朝系统._生成大拍拍品_S34()
+func _推进拍卖会_S34(天: int):
+	return 王朝系统._推进拍卖会_S34(天)
+func 拍卖会确保就绪_S34():
+	return 王朝系统.拍卖会确保就绪_S34()
+func 设置拍卖交付_S34(交付: Dictionary):
+	return 王朝系统.设置拍卖交付_S34(交付)
+func 玩家竞拍出价_S34(lot_id: String, 出价: int, 交付: Dictionary):
+	return 王朝系统.玩家竞拍出价_S34(lot_id, 出价, 交付)
+func _AI应价_S34(lot: Dictionary):
+	return 王朝系统._AI应价_S34(lot)
+func _结算单个拍品_S34(lot: Dictionary):
+	return 王朝系统._结算单个拍品_S34(lot)
+func 设置委托竞拍_S34(lot_id: String, 委托价: int):
+	return 王朝系统.设置委托竞拍_S34(lot_id, 委托价)
+func 取消委托竞拍_S34(lot_id: String):
+	return 王朝系统.取消委托竞拍_S34(lot_id)
+func _取消委托竞拍内部_S34(lot_id: String):
+	return 王朝系统._取消委托竞拍内部_S34(lot_id)
+func _处理委托出价_S34(lot: Dictionary):
+	return 王朝系统._处理委托出价_S34(lot)
+func _查找拍品_S34(lot_id: String):
+	return 王朝系统._查找拍品_S34(lot_id)
+func _延时结算检查_S34(lot: Dictionary):
+	return 王朝系统._延时结算检查_S34(lot)
+func _添加结算通知_S34(通知: Dictionary):
+	return 王朝系统._添加结算通知_S34(通知)
+func 获取结算通知_S34():
+	return 王朝系统.获取结算通知_S34()
+func 清除结算通知_S34():
+	return 王朝系统.清除结算通知_S34()
+func _发放弟子月例_S34(d: Disciple):
+	return 王朝系统._发放弟子月例_S34(d)
+func _弟子AI竞拍决策_S34(d: Disciple):
+	return 王朝系统._弟子AI竞拍决策_S34(d)
+func _计算弟子拍品兴趣_S34(d: Disciple, lot: Dictionary):
+	return 王朝系统._计算弟子拍品兴趣_S34(d, lot)
+func _设置弟子委托_S34(d: Disciple, lot: Dictionary, 兴趣值: int):
+	return 王朝系统._设置弟子委托_S34(d, lot, 兴趣值)
+func _弟子委托拍卖_S34(d: Disciple):
+	return 王朝系统._弟子委托拍卖_S34(d)
+func 设置弟子拍卖权限_S34(弟子ID: int, 允许: bool):
+	return 王朝系统.设置弟子拍卖权限_S34(弟子ID, 允许)
+func 设置弟子拍卖预算_S34(弟子ID: int, 预算: int):
+	return 王朝系统.设置弟子拍卖预算_S34(弟子ID, 预算)
+func 玩家寄售物品_S34(物品索引: int, 起拍价: int, 时长类型: String = "7日"):
+	return 王朝系统.玩家寄售物品_S34(物品索引, 起拍价, 时长类型)
+func 获取拍卖行回放_S34():
+	return 王朝系统.获取拍卖行回放_S34()
+func 发布求购_S34(物品类别: String, 品阶: String, 最高出价: int):
+	return 王朝系统.发布求购_S34(物品类别, 品阶, 最高出价)
+func 取消求购_S34(求购ID: String):
+	return 王朝系统.取消求购_S34(求购ID)
+func 关注拍品_S34(拍品ID: String):
+	return 王朝系统.关注拍品_S34(拍品ID)
+func 取消关注_S34(拍品ID: String):
+	return 王朝系统.取消关注_S34(拍品ID)
+func _检查关注提醒_S34():
+	return 王朝系统._检查关注提醒_S34()
+func _获取当前拍卖师_S34(大拍: bool):
+	return 王朝系统._获取当前拍卖师_S34(大拍)
+func _拍卖师话术_S34(拍卖师: Dictionary):
+	return 王朝系统._拍卖师话术_S34(拍卖师)
+func 创建暗拍拍品_S34(物品: Item, 起拍价: int, 时长日: int):
+	return 王朝系统.创建暗拍拍品_S34(物品, 起拍价, 时长日)
+func 暗拍出价_S34(拍品ID: String, 出价: int):
+	return 王朝系统.暗拍出价_S34(拍品ID, 出价)
+func _暗拍结算_S34(lot: Dictionary):
+	return 王朝系统._暗拍结算_S34(lot)
+func 创建未知拍品_S34(基础品阶: String, 鉴定费: int):
+	return 王朝系统.创建未知拍品_S34(基础品阶, 鉴定费)
+func 鉴定拍品_S34(拍品ID: String):
+	return 王朝系统.鉴定拍品_S34(拍品ID)
+func _检查特殊事件_S34():
+	王朝系统._检查特殊事件_S34()
+func _推进特殊事件_S34():
+	王朝系统._推进特殊事件_S34()
+func 获取当前特殊事件_S34():
+	return 王朝系统.获取当前特殊事件_S34()
+func _结算王朝反制_S34():
+	王朝系统._结算王朝反制_S34()
+func _反制_办差失利_S34(郡id: String):
+	王朝系统._反制_办差失利_S34(郡id)
+func 应对王朝反制_S34(实例ID: String, 选择: String):
+	return 王朝系统.应对王朝反制_S34(实例ID, 选择)
+func _执行反制后果_S34(项: Dictionary, 选择: String):
+	王朝系统._执行反制后果_S34(项, 选择)
+func _营救判定_S34(郡id: String):
+	return 王朝系统._营救判定_S34(郡id)
+func _打郡标记_S34(郡id: String, 标记: String):
+	王朝系统._打郡标记_S34(郡id, 标记)
+func _移除郡标记_S34(郡id: String, 标记: String):
+	王朝系统._移除郡标记_S34(郡id, 标记)
+func _郡有标记_S34(郡id: String, 标记: String):
+	return 王朝系统._郡有标记_S34(郡id, 标记)
+func _断供郡数_S34():
+	return 王朝系统._断供郡数_S34()
+func _弟子被扣押中_S34(弟子ID: String):
+	return 王朝系统._弟子被扣押中_S34(弟子ID)
+func _推进被扣押弟子_S34():
+	王朝系统._推进被扣押弟子_S34()
+func _爵位门槛_S34():
+	return 王朝系统._爵位门槛_S34()
+func _爵位生效中_S34():
+	return 王朝系统._爵位生效中_S34()
+func _结算爵位停权_S34():
+	王朝系统._结算爵位停权_S34()
+func _读派系配置():
+	return 王朝系统._读派系配置()
+func _读爵位配置():
+	return 王朝系统._读爵位配置()
+func _派系配置(派系名: String):
+	return 王朝系统._派系配置(派系名)
+func _爵位配置(位阶: String):
+	return 王朝系统._爵位配置(位阶)
+func _派系初值数组_S34():
+	return 王朝系统._派系初值数组_S34()
+func _初始化派系_S34():
+	王朝系统._初始化派系_S34()
+func _取派系项_S34(派系名: String):
+	return 王朝系统._取派系项_S34(派系名)
+func _权重最高派系_S34():
+	return 王朝系统._权重最高派系_S34()
+func _刷新掌权派系_S34(静默: bool):
+	王朝系统._刷新掌权派系_S34(静默)
+func _新朝气象_S34(新掌权: String):
+	王朝系统._新朝气象_S34(新掌权)
+func _掌权派系_S34():
+	return 王朝系统._掌权派系_S34()
+func _派系清算_S34(新掌权: String, 旧掌权: String):
+	王朝系统._派系清算_S34(新掌权, 旧掌权)
+func _结算派系零和_S34():
+	王朝系统._结算派系零和_S34()
+func _结算派系_S34():
+	王朝系统._结算派系_S34()
+func _派系系数_S34(列名: String):
+	return 王朝系统._派系系数_S34(列名)
+func _派系供奉系数_S34():
+	return 王朝系统._派系供奉系数_S34()
+func _派系苗子系数_S34():
+	return 王朝系统._派系苗子系数_S34()
+func _派系危机系数_S34():
+	return 王朝系统._派系危机系数_S34()
+func _派系战功系数_S34():
+	return 王朝系统._派系战功系数_S34()
+func _爵位差事榜上限_S34():
+	return 王朝系统._爵位差事榜上限_S34()
+func _爵位供奉加成_S34():
+	return 王朝系统._爵位供奉加成_S34()
+func 荐举派系_S34(派系名: String):
+	return 王朝系统.荐举派系_S34(派系名)
+func 扶持派系_S34(派系名: String):
+	return 王朝系统.扶持派系_S34(派系名)
+func _扶持资源足够_S34(派系名: String):
+	return 王朝系统._扶持资源足够_S34(派系名)
+func _扶持类型中文(类型: String):
+	return 王朝系统._扶持类型中文(类型)
+func _扣除扶持资源_S34(派系名: String):
+	王朝系统._扣除扶持资源_S34(派系名)
+func _库房丹药数_S34():
+	return 王朝系统._库房丹药数_S34()
+func _消耗库房丹药_S34(数量: int):
+	return 王朝系统._消耗库房丹药_S34(数量)
+func _感恩达标郡数_S34(门槛: int):
+	return 王朝系统._感恩达标郡数_S34(门槛)
+
+
+# ===== 爵位、皇权、外戚相关函数（已拆分到dynasty_system.gd）=====
+func _爵位门槛达成_S34(位阶: String):
+	return 王朝系统._爵位门槛达成_S34(位阶)
+func 可受封爵位_S34():
+	return 王朝系统.可受封爵位_S34()
+func 受封爵位_S34(位阶: String):
+	return 王朝系统.受封爵位_S34(位阶)
+func 辞去爵位_S34():
+	return 王朝系统.辞去爵位_S34()
+func _结算爵位义务_S34():
+	王朝系统._结算爵位义务_S34()
+func _结算监国摄政义务_S34(位阶: String):
+	王朝系统._结算监国摄政义务_S34(位阶)
+func 废立皇帝_S34(新帝名: String = ""):
+	return 王朝系统.废立皇帝_S34(新帝名)
+func 操控国策_S34(国策名: String):
+	return 王朝系统.操控国策_S34(国策名)
+func 自立为王_S34():
+	return 王朝系统.自立为王_S34()
+func _改朝换代爵位后果_S34(旧位阶: String):
+	王朝系统._改朝换代爵位后果_S34(旧位阶)
+func _可送走弟子_S34():
+	return 王朝系统._可送走弟子_S34()
+func _外戚索弟子_S34(强制: bool = false):
+	王朝系统._外戚索弟子_S34(强制)
+func 应对外戚索要_S34(答应: bool):
+	return 王朝系统.应对外戚索要_S34(答应)
+func _加派系权重_S34(派系名: String, 增量: int):
+	王朝系统._加派系权重_S34(派系名, 增量)
+
+func _送弟子入赘_S34(弟子ID: int) -> Dictionary:
+	var 目标 = null
+	for d in 弟子列表:
+		if int(d.弟子ID) == 弟子ID:
+			目标 = d
+			break
+	if 目标 == null:
+		return {"成功": false, "原因": "该弟子已不在宗"}
+	# ① 资产归还宗门（抄 处理坐化：灵兽归栏、装备背包入库房）
+	if 目标.主宠灵兽 != null:
+		var 兽: Beast = 目标.主宠灵兽
+		目标.主宠灵兽 = null
+		兽.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽):
+			灵兽管理系统.灵兽库存.append(兽)
+	if 目标.副宠灵兽 != null:
+		var 兽2: Beast = 目标.副宠灵兽
+		目标.副宠灵兽 = null
+		兽2.取消出战()
+		if not 灵兽管理系统.灵兽库存.has(兽2):
+			灵兽管理系统.灵兽库存.append(兽2)
+	for it in 目标.装备.values():
+		宗门库房.append(it)
+	目标.装备.clear()
+	for it in 目标.背包:
+		宗门库房.append(it)
+	目标.背包.clear()
+	# ② 同门人心浮动（先记名，再断链，避免目标自身被误伤）
+	var 至亲: Array = []
+	for d in 弟子列表:
+		if int(d.弟子ID) == 弟子ID:
+			continue
+		if d.状态 == "失踪" or d.状态 == "陨落" or d.状态 == "叛出":
+			continue
+		var 至: bool = false
+		if int(d.师父ID) == 弟子ID or int(目标.师父ID) == int(d.弟子ID):
+			至 = true
+		if int(d.道侣ID) == 弟子ID:
+			至 = true
+		if 至:
+			至亲.append(d)
+			d.忠诚 = clamp(int(d.忠诚) - 王朝系统.入赘至亲忠诚罚, 0, 100)
+		else:
+			d.忠诚 = clamp(int(d.忠诚) - 王朝系统.入赘同门忠诚罚, 0, 100)
+	# ③ 清退司职 + 断道侣 + 断师徒链（复用 S29 既有断链，保证不残留悬挂引用）
+	_叛离清退司职(目标)
+	if int(目标.道侣ID) >= 0:
+		var 伴侣 = _取弟子_S34(str(目标.道侣ID))
+		if 伴侣 != null and int(伴侣.道侣ID) == 弟子ID:
+			伴侣.道侣ID = -1
+			伴侣.道侣 = ""
+	目标.道侣ID = -1
+	目标.道侣 = ""
+	_断链_师父离场(弟子ID)
+	# ④ 留档 + 移出弟子列表
+	var 姓名: String = str(目标.姓名)
+	var 资质: String = str(Disciple.资质显示.get(目标.资质, "?"))
+	var 境界: String = str(目标.境界)
+	王朝系统.入赘名录.append({
+		"名": 姓名,
+		"资质": 资质,
+		"境界": 境界,
+		"去向": "外戚府",
+		"日": 累计游戏日,
+	})
+	目标.状态 = "入赘"
+	弟子列表.erase(目标)
+	添加纪事("王朝", "弟子入赘", "%s（%s·%s）应外戚之请入赘，脱离宗门。至亲%d人心绪不宁"
+		% [姓名, 境界, 资质, 至亲.size()], 2)
+	_加推演条目("💔 %s 入赘外戚府，自此脱离宗门" % 姓名, ET_SECT, PRIO_HIGH, {"弟子": 姓名})
+	return {"成功": true, "消息": "%s 已入赘外戚府，%d 名至亲忠诚下滑" % [姓名, 至亲.size()]}
+
+# 郡县月香火 / 月灵石基准（按城邦等级；对齐 GDD §4.3 等级表）
+# 凡间郡县供奉基准【日频实加】—— 项目「月产」命名全部误导，实为每次推演(1累计游戏日)全额加
+# 满版图(9凡俗城)盛世×崇道 ≈ 2700/30 日均89；配基础香火190 → 合计279 ≈ 设计锚点280
+# （280×2 = 560 = 气运香火速率软上限，刚好卡住不满溢）
+const 郡县月香火: Dictionary = {1: 130, 2: 220, 3: 350, 4: 530}
+const 王朝月长: int = 30              # 1 王朝月 = 30 游戏日（推演一月 每次推进 1 游戏日）
+const 王朝差事榜上限: int = 4         # 凡间差事榜同时悬挂条数
+# 凡间郡县供奉灵石基准【日频实加】，对齐 S32 领地月灵石 与 运维封顶 318 的同口径
+# 满版图盛世×崇道 ≈ 79（运维封顶318 的 24.5%，落在 S32 的 11%~28% 区间内）
+# 乱世×崇道 ≈ 12、灭法国策 = 0 —— 供奉随王朝阶段断崖，玩家才有理由经营王朝
+const 郡县月灵石: Dictionary = {1: 4, 2: 7, 3: 11, 4: 14}
+# 感恩系数：感恩0 → 0.4 倍，感恩100 → 1.0 倍（双轴设计：感恩度决定供奉意愿，忠顺度决定叛乱）
+const 郡县供奉感恩下限: float = 0.4
+const 郡县供奉感恩权重: float = 0.6
+# S34 批次 3 地基：对宗门关系进入供奉公式。
+#   原实现供奉 = 感恩 × 阶段 × 国策 × 派系 × 爵位，唯独不含关系；而爵位只增不减
+#   → 关系是「达标即永久」的一次性门票。五种反制有三种靠「扣关系」做代价，
+#     玩家拿到帝师后拒绝任何反制都是零代价，两难根本不成立（实测结论，非推测）。
+#   关系 0 → ×0.6、50 → ×1.0（不赚不赔中枢）、100 → ×1.4
+const 王朝关系供奉下限: float = 0.6
+const 王朝关系供奉权重: float = 0.8
+# ============ S34 批次 3：王朝反制（有牙齿） ============
+# 反制决策窗口：生成待决后有 N 个王朝月可决策，逾期自动按最坏结果结算
+const 反制决策窗口: int = 2
+# 业力来源拓宽（原实现只有「择九幽邪道」一处 +10，灭法令需 200 → 永远触发不了）
+const 反制抗命业力: int = 5
+const 反制扶持叛军业力: int = 15
+const 反制迎战得胜业力: int = 10
+# 扣押弟子的三条路：赎回（灵石）/ 营救（遣弟子，胜则感恩大涨）/ 拖延（忠诚罚、数月后放回）
+const 反制等待忠诚罚: int = 20
+const 反制等待月数: int = 6
+const 反制营救成功率基: float = 0.35
+const 反制营救成功率权: float = 0.30
+# 郡县兵力 → 战力换算（GDD §4.3：L1 200 / L2 800 / L3 3000 / L4 12000 兵力；
+# 练气弟子战力基准 100 → 换算 0.1 后 L1 需 20 战力、L4 需 1200 战力，梯度合理）
+const 禁军战力换算: float = 0.10
+# 断供不归零：降至三成，留修复余地（原设计归零 → 玩家更没资源修复 → 死亡螺旋）
+const 断供供奉折损: float = 0.30
+# 每座断供郡每月拖累民心（常量化，便于校验器与仿真现读）。
+#   取 3 而非 1：民心向中值 55 回归的速率在民心 30 时为 +2.5/月，
+#   单郡 -1/月 压不过回归 → 实测 240 月民变 0 次触发（死代码）。
+const 断供民心拖累: int = 3
+# 灭法令二级条件的国祚线 / 邪道业力线
+const 灭法令国祚线: int = 30
+const 灭法令业力线: int = 100
+# ============ S34 批次3收尾：朝廷委托（护国宗不可拒征调） ============
+# 与反制对称：王朝主动点名宗门、强制接的差事。仅护国宗收，自立为王豁免。
+const 委托决策窗口: int = 3          # 生成待决后有 N 个王朝月可应征，逾期按拖延最严档结算
+const 委托生成间隔: int = 6           # 两条强制委托之间至少隔 N 个王朝月
+# 皇子系统（GDD §5：中衰期玩家焦点 = 站队、押注继承人）
+const 皇子数下限: int = 2
+const 皇子数上限: int = 4
+const 皇子生成国祚线: int = 55      # 国祚低于此值（中衰/乱世）才生皇子
+const 皇子年龄下限: int = 16
+const 皇子年龄上限: int = 40
+const 押对关系增: int = 40
+const 押对恩遇增: int = 2
+const 押错关系罚: int = 40
+const 改押关系罚: int = 5
+# 可调停民变的最低爵位（国师及以上 —— 兑现爵位表 right_desc 的承诺）
+const 调停民变爵位序: Array = ["国师", "帝师", "监国", "摄政"]
+# 皇子登基时其所属派系获得的权重增益（让押注与党争两套系统咬合）
+const 皇子继位派系增益: int = 10
+# 对宗门关系每月自然衰减基数（× 国策 attitude_decay 0.7~2.5）
+# 基准 2.0 → 崇道1.4/月（约36月见底）、重文2.0、尚武2.6、猜忌4.0、灭法5.0（约10月见底）
+# 回升通道：凡间差事成/败按 reward_gratitude / 4 折算（见 _结算凡间差事_S34）
+# TODO(S34批次3)：反制机制接入后，按「关系阈值触发朝廷打压」的实际手感回调此值
+const 王朝关系衰减基数: float = 2.0
+# 已解锁的凡俗郡县 key 列表（未解锁城市不产供奉，避免新档白拿满版图收益）
+
+# ===== 供奉相关函数（已拆分到dynasty_system.gd）=====
+func _已解锁凡俗郡_S34():
+	return 王朝系统._已解锁凡俗郡_S34()
+func _郡县供奉系数_S34(郡: Dictionary):
+	return 王朝系统._郡县供奉系数_S34(郡)
+func _郡县供奉香火_S34():
+	return 王朝系统._郡县供奉香火_S34()
+func _郡县供奉灵石_S34():
+	return 王朝系统._郡县供奉灵石_S34()
+
+func _凡间信众_S34() -> int:
+	if 王朝系统.郡县状态.is_empty():
+		return 0
+	var 人口: int = 0
+	for k in _已解锁凡俗郡_S34():
+		人口 += int((王朝系统.郡县状态[k] as Dictionary).get("人口", 0))
+	return int(人口 / 50000)
 # 敌方成员快照（仅宗门战使用；字段对齐 ZongmenBattle._execute_attack 消费口径：
 #   战力 / 暴击率 / 闪避率 / 属性{攻,防,血,速}，不触碰 BattleCalculator 72 条红线）
 # 四维口径对齐 Disciple.算属性()：练气基准「战力100 / 属性总量≈180」，中性道途权重各 25%
@@ -11175,11 +20251,15 @@ func _掉落转物品(drop: Dictionary) -> Item:
 # ============ WAVE-D #6 宗门收藏图录 ============
 # 首次获得即收录（来源：掉落物：/ 御兽孵化 / 传承事件）。匹配名 = 物品名/ 灵兽种类名/ 事件键：
 # 零经济改动：只读 图录配置 ：收藏图录_已收集：
+# P1优化：入册仪式感，首次收录添加推演条目
 func _记录图录(匹配名: String, 来源 := "") -> bool:
 
 	if 匹配名== "":
 		return false
 	var 新收录:= false
+	var 收录名称: String = ""
+	var 收录类别: String = ""
+	var 是否稀有: bool = false
 	for r in 图录配置:
 		if r.get("匹配名") if "匹配名" in r else "" == 匹配名:
 			var 类别: String = r.get("类别") if "类别" in r else ""
@@ -11188,11 +20268,22 @@ func _记录图录(匹配名: String, 来源 := "") -> bool:
 			if not 收藏图录_已收集[类别].has(匹配名):
 				收藏图录_已收集[类别].append(匹配名)
 				新收录= true
+				收录名称 = str(r.get("名称", 匹配名))
+				收录类别 = 类别
+				是否稀有 = str(r.get("是否稀有", "否")) == "是"
 				_检查图录类别集(类别)
 	if 新收录:
+		# 入册仪式感：添加推演条目
+		var 文案: String = ""
+		if 是否稀有:
+			文案 = "宗门典藏阁新入仙品异物【%s】，灵气氤氲，全宗皆惊。" % 收录名称
+		else:
+			文案 = "宗门典藏阁新入册【%s】，典藏又添一物。" % 收录名称
+		_加推演条目(文案, "典藏", "低", {"名称": 收录名称, "类别": 收录类别, "稀有": 是否稀有})
 		图录更新.emit()
 	return 新收录
 # 某类别全：匹配：是否已收录；集齐则解：产出池轴 增益（单：：%，全：：0% via clamp 兜底期
+# P1优化：集齐仪式感，添加推演条目
 func _检查图录类别集(类别: String):
 
 	var 全部: Array = []
@@ -11209,7 +20300,10 @@ func _检查图录类别集(类别: String):
 	if 增益值<= 0.0:
 		return
 	产出池加成 = clamp(产出池加成 + 增益值, 0.0, 0.30)
-	传承史册.append({"日期": 累计游戏日, "弟子": "", "名称": "图录集齐", "文案": 文案表["heritage_codex_complete"] % [类别, int(增益值* 100)], "category": "传承"})
+	# 集齐仪式感：添加推演条目
+	var 集齐文案: String = "宗门典藏阁【%s】圆满集齐，气运加持，宗门产出+%d%%。" % [类别, int(增益值* 100)]
+	_加推演条目(集齐文案, "典藏", "中", {"类别": 类别, "增益": int(增益值* 100)})
+	传承史册.append({"日期": 累计游戏日, "弟子": "", "名称": "典藏集齐", "文案": 文案表["heritage_codex_complete"] % [类别, int(增益值* 100)], "category": "传承"})
 	里程碑更新.emit()
 # ============ WAVE-D #8 宗门里程碑/ 传承：============
 # 获取所有里程碑列表
@@ -11336,7 +20430,7 @@ func 获取里程碑进度(里程碑ID: String) -> Dictionary:
 			"弟子": 当前值 = float(弟子列表.size())
 			"门派等级": 当前值 = float(门派等级)
 			"阵法": 当前值 = float(已解锁单人法阵.size())
-			"灵兽": 当前值 = float(灵兽库存.size())
+			"灵兽": 当前值 = float(灵兽管理系统.灵兽库存.size())
 			"秘境": 当前值 = float(已通关秘境.size())
 			"繁荣": 当前值 = float(繁荣)
 			"香火": 当前值 = float(香火值)
@@ -11398,7 +20492,7 @@ func _复检里程碑():
 				"弟子": 达成 = 弟子列表.size() >= v
 				"门派等级": 达成 = 门派等级 >= v
 				"阵法": 达成 = 已解锁单人法阵.size() >= v
-				"灵兽": 达成 = 灵兽库存.size() >= v
+				"灵兽": 达成 = 灵兽管理系统.灵兽库存.size() >= v
 				"秘境": 达成 = 已通关秘境.size() >= v
 				"繁荣": 达成 = 繁荣 >= v
 				"香火": 达成 = 香火值>= v
@@ -11414,7 +20508,7 @@ func _复检里程碑():
 								for gid in 弟子功法:
 									已学功法集合[gid] = true
 					达成 = 已学功法集合.size() >= v
-				"成就数量": 达成 = 成就_已达成.size() >= v
+				"成就数量": 达成 = 成就系统.成就_已达成.size() >= v
 				"里程碑数量": 达成 = 里程碑_已达成.size() >= v
 				"体修弟子":
 					var 体修数: int = 0
@@ -11457,7 +20551,7 @@ func _复检里程碑():
 					var 有体修: bool = false
 					var 有法修: bool = false
 					var 有道修: bool = false
-					var 境界顺序: Array = ["练气", "筑基", "金丹", "元婴", "化神"]
+					var 境界顺序: Array = Disciple.境界序   # 唯一真源；>=1 仍表"筑基以上"（前5阶索引不变）
 					for d in 弟子列表:
 						if d != null:
 							var 方向: String = str(d.get("修炼方向") if "修炼方向" in d else "")
@@ -11492,539 +20586,407 @@ func _达成里程碑(m: Dictionary):
 		"文案": 文案表["milestone_reached"] % [m.get("名称") if "名称" in m else "", _里程碑奖励描述(m)],
 		"category": "宗门大事件"})
 	里程碑更新.emit()
-# 获取所有成就列表
+# ============ 成就系统（已拆分到achievement_system.gd，此处为转发函数）============
 func 获取所有成就列表() -> Array:
-	_加载成就配置()
-	var 成就列表 = []
-	for 成就 in 成就配置:
-		成就列表.append({
-			"achievement_id": 成就.get("achievement_id", ""),
-			"名称": 成就.get("名称", ""),
-			"描述": 成就.get("描述", ""),
-			"稀有度": 成就.get("稀有度", "普通"),
-			"condition_type": 成就.get("condition_type", ""),
-			"condition_param": 成就.get("condition_param", 0),
-			"已达成": 成就.get("已达成", false),
-			"奖励灵石": 成就.get("奖励灵石", 0),
-			"奖励灵气": 成就.get("奖励灵气", 0),
-			"奖励声望": 成就.get("奖励声望", 0),
-		})
-	return 成就列表
-
-# 获取成就统计
+	return 成就系统.获取所有成就列表()
 func 获取成就统计() -> Dictionary:
-	var 已达成数 = 0
-	var 总数 = 成就配置.size()
-	var 总奖励灵石 = 0
-	var 总奖励灵气 = 0
-	var 总奖励声望 = 0
-	for 成就 in 成就配置:
-		if 成就.get("已达成", false):
-			已达成数 += 1
-		总奖励灵石 += int(成就.get("奖励灵石", 0))
-		总奖励灵气 += int(成就.get("奖励灵气", 0))
-		总奖励声望 += int(成就.get("奖励声望", 0))
-	return {
-		"已达成数": 已达成数,
-		"总数": 总数,
-		"完成率": float(已达成数) / float(max(1, 总数)),
-		"总奖励灵石": 总奖励灵石,
-		"总奖励灵气": 总奖励灵气,
-		"总奖励声望": 总奖励声望,
-	}
-
-# 按稀有度筛选成就
+	return 成就系统.获取成就统计()
 func 按稀有度筛选成就(稀有度: String) -> Array:
-	var 筛选列表 = []
-	for 成就 in 成就配置:
-		if 成就.get("稀有度", "") == 稀有度:
-			筛选列表.append(成就)
-	return 筛选列表
-
-# 成就分类配置
-const 成就分类配置: Dictionary = {
-	"经营": {"描述": "宗门经营相关成就", "图标": "🏪"},
-	"成长": {"描述": "弟子成长相关成就", "图标": "📈"},
-	"战斗": {"描述": "战斗历练相关成就", "图标": "⚔️"},
-	"收集": {"描述": "收集图鉴相关成就", "图标": "📚"},
-	"社交": {"描述": "社交互动相关成就", "图标": "👥"},
-	"探索": {"描述": "探索秘境相关成就", "图标": "🗺️"},
-	"特殊": {"描述": "特殊隐藏成就", "图标": "✨"},
-}
-
-# 按分类筛选成就
+	return 成就系统.按稀有度筛选成就(稀有度)
 func 按分类筛选成就(分类: String) -> Array:
-	var 筛选列表 = []
-	for 成就 in 成就配置:
-		if 成就.get("分类", "") == 分类:
-			筛选列表.append(成就)
-	return 筛选列表
-
-# 获取成就分类统计
+	return 成就系统.按分类筛选成就(分类)
 func 获取成就分类统计() -> Dictionary:
-	var 分类统计 = {}
-	for 分类 in 成就分类配置.keys():
-		分类统计[分类] = {
-			"总数": 0,
-			"已达成数": 0,
-			"完成率": 0.0,
-		}
-	for 成就 in 成就配置:
-		var 分类 = str(成就.get("分类", "特殊"))
-		if 分类 not in 分类统计:
-			分类统计[分类] = {"总数": 0, "已达成数": 0, "完成率": 0.0}
-		分类统计[分类]["总数"] += 1
-		if 成就.get("已达成", false):
-			分类统计[分类]["已达成数"] += 1
-	for 分类 in 分类统计.keys():
-		var 统计 = 分类统计[分类]
-		统计["完成率"] = float(统计["已达成数"]) / float(max(1, 统计["总数"]))
-	return 分类统计
-
-# 获取成就进度（未达成成就的当前进度）
+	return 成就系统.获取成就分类统计()
 func 获取成就进度(成就ID: String) -> Dictionary:
-	var 目标成就 = null
-	for 成就 in 成就配置:
-		if 成就.get("achievement_id", "") == 成就ID:
-			目标成就 = 成就
-			break
-	if 目标成就 == null:
-		return {"成功": false, "原因": "成就不存在"}
-	if 目标成就.get("已达成", false):
-		return {"成功": true, "已达成": true, "进度": 1.0, "当前值": 目标成就.get("condition_param", 0), "目标值": 目标成就.get("condition_param", 0)}
-	# 根据条件类型计算当前进度
-	var 条件类型 = str(目标成就.get("condition_type", ""))
-	var 目标值 = float(目标成就.get("condition_param", 0))
-	var 当前值 = 0.0
-	match 条件类型:
-		"弟子数量":
-			当前值 = float(弟子列表.size())
-		"门派等级":
-			当前值 = float(门派等级)
-		"声望":
-			当前值 = float(声望)
-		"累计灵石":
-			当前值 = float(累计灵石收入)
-		"累计丹药":
-			当前值 = float(累计炼制丹药数)
-		"累计装备":
-			当前值 = float(累计锻造装备数)
-		"灵兽数量":
-			当前值 = float(灵兽库存.size())
-		"秘境通关":
-			当前值 = float(已通关秘境.size())
-		"阵法数量":
-			当前值 = float(已解锁单人法阵.size())
-		"功法数量":
-			var 已学功法集合 = {}
-			for d in 弟子列表:
-				if d != null:
-					var 弟子功法 = d.get("已学功法") if "已学功法" in d else []
-					if 弟子功法 != null:
-						for 功法 in 弟子功法:
-							已学功法集合[功法.get("功法ID", "")] = true
-			当前值 = float(已学功法集合.size())
-		_:
-			当前值 = 0.0
-	var 进度 = 0.0
-	if 目标值 > 0:
-		进度 = min(1.0, 当前值 / 目标值)
-	return {
-		"成功": true,
-		"已达成": false,
-		"成就ID": 成就ID,
-		"名称": 目标成就.get("名称", ""),
-		"条件类型": 条件类型,
-		"当前值": 当前值,
-		"目标值": 目标值,
-		"进度": 进度,
-		"剩余": max(0, 目标值 - 当前值),
-	}
-
-# 获取所有未达成成就的进度
+	return 成就系统.获取成就进度(成就ID)
 func 获取所有未达成成就进度() -> Array:
-	var 进度列表 = []
-	for 成就 in 成就配置:
-		if not 成就.get("已达成", false):
-			var 进度 = 获取成就进度(成就.get("achievement_id", ""))
-			if 进度.get("成功", false):
-				进度列表.append(进度)
-	# 按进度从高到低排序
-	进度列表.sort_custom(func(a, b): return (a.get("进度") if "进度" in a else 0) > (b.get("进度") if "进度" in b else 0))
-	return 进度列表
-
-# 领取成就奖励
+	return 成就系统.获取所有未达成成就进度()
 func 领取成就奖励(成就ID: String) -> Dictionary:
-	var 目标成就 = null
-	for 成就 in 成就配置:
-		if 成就.get("achievement_id", "") == 成就ID:
-			目标成就 = 成就
-			break
-	if 目标成就 == null:
-		return {"成功": false, "原因": "成就不存在"}
-	if not 目标成就.get("已达成", false):
-		return {"成功": false, "原因": "成就未达成"}
-	# 检查是否已领取奖励
-	var 已领取成就奖励 = 已领取成就奖励 if "已领取成就奖励" in self else []
-	if 成就ID in 已领取成就奖励:
-		return {"成功": false, "原因": "奖励已领取"}
-	# 发放奖励
-	var 奖励灵石 = int(目标成就.get("奖励灵石", 0))
-	var 奖励灵气 = int(目标成就.get("奖励灵气", 0))
-	var 奖励声望 = int(目标成就.get("奖励声望", 0))
-	灵石 += 奖励灵石
-	灵气 += 奖励灵气
-	if 奖励声望 > 0:
-		_加声望(奖励声望)
-	# 记录已领取
-	if "已领取成就奖励" not in self:
-		self.已领取成就奖励 = []
-	已领取成就奖励.append(成就ID)
-	添加纪事("成就", "领取奖励", "领取成就【%s】奖励：灵石+%d，灵气+%d，声望+%d" % [目标成就.get("名称", ""), 奖励灵石, 奖励灵气, 奖励声望], 1)
-	return {"成功": true, "成就": 目标成就, "奖励灵石": 奖励灵石, "奖励灵气": 奖励灵气, "奖励声望": 奖励声望, "消息": "领取奖励成功"}
-
-# 已领取成就奖励列表
-var 已领取成就奖励: Array = []
-
-# 里程碑奖励描述（文案拼接，不新增文案字段）：声望+30 / 产出：2%
-func _里程碑奖励描述(m: Dictionary) -> String:
-
-	var t: String = str(m.get("赏赐增益类型") if "赏赐增益类型" in m else "")
-	var v: float = float(m.get("赏赐增益值") if "赏赐增益值" in m else 0)
-	if t == "声望":
-		return "声望+%d" % int(v)
-	elif t == "产出":
-		return "产出：%d%%" % int(v * 100)
-	return "宗门增益"
-# ============ S1 ： 成就系统（核心骨：安全子集：===========
-# 13 condition_type ：int 阈值；19 ：S1 接线（成：经营： 145 ：placeholder 容错跳过
-# 奖励：优先读 3 个标准资源字段（灵石/灵气/声望），：reward_id 发奖逻辑 S1 注释掉（S2 待启用）
-# 稀有及以上：宗门纪事 category="宗门大事件（与里程碑范式同构）
+	return 成就系统.领取成就奖励(成就ID)
 func _复检成就():
-
-	for a in 成就配置:
-		if a.get("已达成") if "已达成" in a else false:
-			continue
-		var t: String = a.get("condition_type") if "condition_type" in a else "placeholder"
-		if t == "placeholder":
-			continue   # S2 待回填，命中即跳：
-		var p: int = int(a.get("condition_param") if "condition_param" in a else 0)
-		var extra: String = a.get("condition_extra") if "condition_extra" in a else ""
-		var 达成 := false
-		match t:
-			"sect_level":
-				达成 = 门派等级 >= p
-			"disciple_count":
-				达成 = 弟子列表.size() >= p
-			"disciple_realm_count":
-				var cnt: int = 0
-				for d in 弟子列表:
-					if d != null and d.境界 == extra:
-						cnt += 1
-				达成 = cnt >= p
-			"disciple_all_realm":
-				# 全宗弟子境界：：extra（境界序复用 主线_境界序）
-				if 弟子列表.size() > 0:
-					var 境界顺序: Array = ["练气", "筑基", "金丹", "元婴", "化神", "仙阶", "道阶"]
-					var 目标值: int = 境界顺序.find(extra)
-					if 目标值>= 0:
-						var 全达成:= true
-						for d in 弟子列表:
-							if d == null or 境界顺序.find(d.境界) < 目标值:
-								全达成= false
-								break
-						达成 = 全达成
-			"disciple_linggen":
-				var cnt2: int = 0
-				for d in 弟子列表:
-					if d != null and d.灵根品阶 == extra:
-						cnt2 += 1
-				达成 = cnt2 >= p
-			"master_realm":
-				达成 = _宗主境界() >= p
-			"beast_count":
-				达成 = 灵兽库存.size() >= p
-			"building_level":
-				var lv: int = int(司职列表.get(extra, {}).get("等级", 1))
-				达成 = lv >= p
-			"building_any_level":
-				var any_ok := false
-				for k in 司职列表.keys():
-					if int(司职列表[k].get("等级", 1)) >= p:
-						any_ok = true
-						break
-				达成 = any_ok
-			"building_total_level":
-				var total: int = 0
-				for k in 司职列表.keys():
-					total += int(司职列表[k].get("等级", 1))
-				达成 = total >= p
-			"reputation":
-				达成 = 声望 >= p
-			"prosperity":
-				达成 = 繁荣 >= p
-			# ===== S1 新增 condition_type（2026-08-30 成就系统完善第二阶段）=====
-			"zhenfa_count":
-				# 已解锁阵法数量
-				var 已解锁阵法: Dictionary = 宗门大阵.get("已解锁", {})
-				达成 = 已解锁阵法.size() >= p
-			"zhenfa_level":
-				# 特定阵法等级（extra=阵法ID）
-				var 阵法等级表: Dictionary = 宗门大阵.get("等级", {})
-				var 某阵法等级: int = int(阵法等级表.get(extra, 0))
-				达成 = 某阵法等级 >= p
-			"daily_checkin_streak":
-				# 连续领取日供天数
-				达成 = 连续理事天数 >= p
-			"daily_checkin_total":
-				# 累计领取日供次数
-				达成 = 日供_总领取次数 >= p
-			"achievement_count":
-				# 已达成成就数量
-				达成 = 成就_已达成.size() >= p
-			"game_days":
-				# 累计游戏天数
-				达成 = 累计游戏日 >= p
-			# ===== S1 新增 condition_type（2026-08-30 第三阶段）=====
-			"total_pill_refined":
-				# 累计炼制丹药数量
-				达成 = 累计炼制丹药数 >= p
-			"total_equipment_forged":
-				# 累计锻造装备数量
-				达成 = 累计锻造装备数 >= p
-			"total_lingjing_income":
-				# 累计灵石收入
-				达成 = 累计灵石收入 >= p
-			"total_disciple_recruited":
-				# 累计招募弟子数量
-				达成 = 累计招募弟子数 >= p
-			"total_breakthrough_count":
-				# 累计弟子突破次数
-				达成 = 累计弟子突破次数 >= p
-			"total_market_trades":
-				# 累计坊市交易次数
-				达成 = 累计坊市交易次数 >= p
-			"gongfa_collected":
-				# 功法收集数量（所有弟子学习的不同功法总数）
-				var 已学功法集合: Dictionary = {}
-				for d in 弟子列表:
-					if d != null:
-						var 弟子功法 = d.get("已学功法") if "已学功法" in d else []
-						if 弟子功法 != null:
-							for gid in 弟子功法:
-								已学功法集合[gid] = true
-				达成 = 已学功法集合.size() >= p
-			"forge_level":
-				# 炼器等级
-				达成 = 获取炼器等级() >= p
-			# ===== S1 新增 condition_type（2026-08-30 第四阶段）=====
-			"total_lingtian_output":
-				# 累计灵田产出数量
-				达成 = 累计灵田产出 >= p
-			"total_kuangchang_output":
-				# 累计矿场产出数量
-				达成 = 累计矿场产出 >= p
-			"total_linggen_upgrade":
-				# 累计提升灵根次数
-				达成 = 累计提升灵根次数 >= p
-			"total_xinjing_upgrade":
-				# 累计提升心境次数
-				达成 = 累计提升心境次数 >= p
-			"total_shouyuan_extend":
-				# 累计延长寿元次数
-				达成 = 累计延长寿元次数 >= p
-			"total_daoshang_repair":
-				# 累计修复道伤次数
-				达成 = 累计修复道伤次数 >= p
-			"disciple_max_xinjing":
-				# 弟子最高心境值
-				var 最高心境: int = 0
-				for d in 弟子列表:
-					if d != null:
-						var 心境值: int = int(d.get("心境") if "心境" in d else 0)
-						if 心境值 > 最高心境:
-							最高心境 = 心境值
-				达成 = 最高心境 >= p
-			"disciple_tixiu_count":
-				# 体修弟子数量
-				var 体修数: int = 0
-				for d in 弟子列表:
-					if d != null and d.get("修炼方向") if "修炼方向" in d else "" == "体修":
-						体修数 += 1
-				达成 = 体修数 >= p
-			"disciple_faxiu_count":
-				# 法修弟子数量
-				var 法修数: int = 0
-				for d in 弟子列表:
-					if d != null and d.get("修炼方向") if "修炼方向" in d else "" == "法修":
-						法修数 += 1
-				达成 = 法修数 >= p
-			"disciple_daoxiu_count":
-				# 道修弟子数量
-				var 道修数: int = 0
-				for d in 弟子列表:
-					if d != null and d.get("修炼方向") if "修炼方向" in d else "" == "道修":
-						道修数 += 1
-				达成 = 道修数 >= p
-			"disciple_three_cultivation":
-				# 同时拥有三类高阶弟子（体修/法修/道修各至少1名达到特定境界）
-				var 有体修: bool = false
-				var 有法修: bool = false
-				var 有道修: bool = false
-				var 境界顺序: Array = ["练气", "筑基", "金丹", "元婴", "化神"]
-				var 目标境界索引: int = 1  # 筑基期以上算高阶
-				for d in 弟子列表:
-					if d != null:
-						var 方向: String = str(d.get("修炼方向") if "修炼方向" in d else "")
-						var 境界索引: int = 境界顺序.find(d.境界)
-						if 境界索引 >= 目标境界索引:
-							if 方向 == "体修":
-								有体修 = true
-							elif 方向 == "法修":
-								有法修 = true
-							elif 方向 == "道修":
-								有道修 = true
-				达成 = 有体修 and 有法修 and 有道修
-			"disciple_max_realm":
-				# 弟子最高境界（p=境界索引，0=练气，1=筑基，2=金丹...）
-				var 最高境界索引: int = -1
-				var 境界顺序2: Array = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体"]
-				for d in 弟子列表:
-					if d != null:
-						var idx: int = 境界顺序2.find(d.境界)
-						if idx > 最高境界索引:
-							最高境界索引 = idx
-				达成 = 最高境界索引 >= p
-			"disciple_dajingjie_count":
-				# 达到大境界（筑基及以上）的弟子数量
-				var 大境界数: int = 0
-				var 境界顺序3: Array = ["练气", "筑基", "金丹", "元婴", "化神"]
-				for d in 弟子列表:
-					if d != null:
-						var idx: int = 境界顺序3.find(d.境界)
-						if idx >= 1:  # 筑基及以上算大境界
-							大境界数 += 1
-				达成 = 大境界数 >= p
-			# ===== S1 新增 condition_type（2026-08-30 第五阶段）=====
-			"total_puppet_made":
-				# 累计制作傀儡数量
-				达成 = 累计制作傀儡数 >= p
-			"total_salary_paid":
-				# 累计发放俸禄次数
-				达成 = 累计发放俸禄次数 >= p
-			"library_book_count":
-				# 藏书阁收录典籍数量
-				达成 = 藏书阁收录数 >= p
-			"medicine_garden_plots":
-				# 药园已解锁地块数量
-				达成 = 药园已解锁地块 >= p
-			"unlocked_pill_formula_count":
-				# 已解锁丹方数量
-				达成 = 已解锁丹方数 >= p
-			"unlocked_equipment_blueprint_count":
-				# 已解锁装备图纸数量
-				达成 = 已解锁装备图纸数 >= p
-			"all_factions_worship":
-				# 五大阵营声望全部达到崇拜（崇敬）
-				var 全部崇拜: bool = true
-				for 阵营 in 阵营列表:
-					var 声望值: int = int(阵营声望.get(阵营, 0))
-					if 声望值 < 5000:  # 崇敬阈值
-						全部崇拜 = false
-						break
-				达成 = 全部崇拜
-			"pill_and_equipment_all":
-				# 集齐全部丹药配方与装备图纸
-				达成 = (已解锁丹方数 >= p) and (已解锁装备图纸数 >= p)
-			_:
-				达成 = false   # 未知 condition_type 视为不达成，安全容错
-		if 达成:
-			_达成成就(a)
+	成就系统._复检成就()
 func _达成成就(a: Dictionary):
-
-	a["已达成"] = true
-	记任务进度("achievement_unlock")   # S1-2：达成成就（自动产出，日常 daily_035）
-	var id: String = a.get("achievement_id") if "achievement_id" in a else ""
-	if id != "" and not 成就_已达成.has(id):
-		成就_已达成.append(id)
-	# 奖励：优先读 3 个标准资源字段（q-1 拍板：灵：灵气/声望；功勋非标准资源，不发）
-	var rls: int = int(a.get("reward_lingshi") if "reward_lingshi" in a else 0)
-	var rlq: int = int(a.get("reward_lingqi") if "reward_lingqi" in a else 0)
-	var rsw: int = int(a.get("reward_shengwang") if "reward_shengwang" in a else 0)
-	if rls > 0:
-		灵石 += rls
-	if rlq > 0:
-		灵气 += rlq
-	if rsw > 0:
-		_加声望(rsw)   # 复用现有 声望 变量与乘区（_功勋阁声望乘区）
-	# ：reward_id 发奖逻辑 S1 注释掉（q-1 拍板：S2 待启用；130 悬空 reward_id 容错跳过：
-	var rid: String = a.get("reward_id") if "reward_id" in a else ""
-	if rid != "" and rls == 0 and rlq == 0 and rsw == 0:
-		print("[成就] 悬空奖励跳过: id=%s reward_type=%s reward_id=%s S2 待启用" % [id, a.get("reward_type") if "reward_type" in a else "", rid])
-	# 稀有及以上成就额外奖励：碎片和宝箱
-	var grade: String = a.get("grade") if "grade" in a else ""
-	if grade == "稀有":
-		# 稀有成就：普通宝箱×1 + 凡品装备碎片×3
-		添加宝箱("chest_common", 1)
-		添加碎片("frag_equip_common", 3)
-	elif grade == "史诗":
-		# 史诗成就：稀有宝箱×1 + 灵品装备碎片×3
-		添加宝箱("chest_rare", 1)
-		添加碎片("frag_equip_rare", 3)
-	elif grade == "传说":
-		# 传说成就：史诗宝箱×1 + 宝品装备碎片×3 + 灵品功法碎片×2
-		添加宝箱("chest_epic", 1)
-		添加碎片("frag_equip_epic", 3)
-		添加碎片("frag_gongfa_rare", 2)
-	# 稀有及以上：宗门纪事 category="宗门大事件（拍板结论：与里程碑联动同构：
-	if grade == "稀有" or grade == "史诗" or grade == "传说":
-		宗门纪事.append({"日期": 累计游戏日, "弟子": "", "稀有度": grade, "名称": a.get("ach_name") if "ach_name" in grade else "",
-			"文案": "宗门达成%s】，道统更进一步" % a.get("ach_name") if "ach_name" in grade else "",
-			"category": "宗门大事件"})
-	成就更新.emit()
+	成就系统._达成成就(a)
+func _里程碑奖励描述(m: Dictionary) -> String:
+	return 成就系统._里程碑奖励描述(m)
 func _存在已筑基弟子() -> bool:
-
-	for d in 弟子列表:
-		if d.境界 != "练气":
-			return true
-	return false
+	return 成就系统._存在已筑基弟子()
 func _存在长老() -> bool:
-
-	for d in 弟子列表:
-		if d.身份 == "长老":
-			return true
-	return false
+	return 成就系统._存在长老()
 func _存在长寿弟子() -> bool:
-	for d in 弟子列表:
-		if d.年龄 >= 100:
-			return true
-	return false
+	return 成就系统._存在长寿弟子()
+
 # WAVE-D #6：稀有藏品捐赠藏宝库 ：声望（复用现：声望，不落凝聚力：
 func 捐赠图录(图录ID: String) -> Dictionary:
 
 	var res: Dictionary = {"ok": false, "msg": ""}
 	if 捐赠记录.has(图录ID):
-		res["msg"] = "该藏品已捐赠"
+		res["msg"] = "该仙品已供奉藏宝阁"
 		return res
 	for r in 图录配置:
 		if r.get("图录ID") if "图录ID" in r else "" == 图录ID:
 			if r.get("是否稀有") if "是否稀有" in r else "否" != "是":
-				res["msg"] = "非稀有藏品，不可捐赠"
+				res["msg"] = "非仙品异物，不可供奉"
 				return res
 			var 声望值: int = int(r.get("捐赠声望") if "捐赠声望" in r else 0)
+			var 名称: String = str(r.get("名称", ""))
 			if 声望值> 0:
 				_加声望(声望值)
 				捐赠记录[图录ID] = true
+				# 供奉仪式感：添加推演条目
+				var 供奉文案: String = "宗门将仙品【%s】供奉于藏宝阁，灵气冲天，宗门声望+%d。" % [名称, 声望值]
+				_加推演条目(供奉文案, "典藏", "中", {"名称": 名称, "声望": 声望值})
 			res["ok"] = true
-			res["msg"] = "捐赠成功，声望+%d" % 声望值
+			res["msg"] = "供奉成功，宗门声望+%d" % 声望值
+			# S55：宗门典藏入册弹窗
+			AchievementPopup.show_achievement("宗门典藏", "%s 入册藏宝阁" % 名称, "仙品【%s】供奉于藏宝阁，灵气冲天，宗门声望+%d。" % [名称, 声望值], Color(0.2, 0.7, 0.9))
 			图录更新.emit()
 			return res
 	res["msg"] = "未找到该藏品"
 	return res
 # 体力上限：初：50，门派每：1 ：+5
-func 体力上限() -> int:
+# P0修复：移除体力系统，改为每日机缘+VIP加成
+# 修真化文案：每日次数→机缘，不同类型有不同修真名称
+const 每日机缘配置: Dictionary = {
+	"探秘境缘": {"基础": 3, "描述": "探索秘境的机缘"},
+	"游历机缘": {"基础": 2, "描述": "宗主外出游历的机缘"},
+	"历练机缘": {"基础": 5, "描述": "弟子外出历练的机缘"},
+	"征伐机缘": {"基础": 3, "描述": "宗门征伐的机缘"},
+	"入山机缘": {"基础": 5, "描述": "入山狩猎采药的机缘"},
+}
 
-	return 50 + (门派等级 - 1) * 5
+## 获取机缘上限（基础次数 + VIP梯度加成）
+## VIP加成：VIP9+20%，VIP11+50%（避免VIP12比VIP0多5倍差距）
+func 获取机缘上限(类型: String) -> int:
+	var 配置: Dictionary = 每日机缘配置.get(类型, {"基础": 3})
+	var 基础: int = int(配置.get("基础", 3))
+	var VIP加成: float = _计算机缘加成()
+	return int(基础 * (1.0 + VIP加成))
+
+## 检查机缘是否足够
+func 检查机缘(类型: String) -> Dictionary:
+	# 跨日重置
+	if int(每日机缘.get("日期", -1)) != 累计游戏日:
+		每日机缘 = {"日期": 累计游戏日}
+	var 已用: int = int(每日机缘.get(类型, 0))
+	var 上限: int = 获取机缘上限(类型)
+	return {"足够": 已用 < 上限, "已用": 已用, "上限": 上限, "剩余": max(0, 上限 - 已用)}
+
+## 消耗机缘
+func 消耗机缘(类型: String) -> bool:
+	var 检查: Dictionary = 检查机缘(类型)
+	if not 检查.get("足够", false):
+		return false
+	每日机缘[类型] = int(每日机缘.get(类型, 0)) + 1
+	return true
+
+## 增加机缘（使用道具时调用）
+func 增加机缘(类型: String, 数量: int = 1) -> void:
+	每日机缘[类型] = max(0, int(每日机缘.get(类型, 0)) - 数量)  # 减少已用=增加剩余
+
+## 使用机缘符（增加指定类型机缘1次）
+## 机缘符类型：探秘境缘符、游历机缘符、历练机缘符、征伐机缘符、入山机缘符
+func 使用机缘符(符类型: String) -> Dictionary:
+	var 类型映射: Dictionary = {
+		"探秘境缘符": "探秘境缘",
+		"游历机缘符": "游历机缘",
+		"历练机缘符": "历练机缘",
+		"征伐机缘符": "征伐机缘",
+		"入山机缘符": "入山机缘",
+	}
+	var 机缘类型: String = 类型映射.get(符类型, "")
+	if 机缘类型 == "":
+		return {"成功": false, "原因": "未知机缘符类型"}
+	# 检查库房是否有该符
+	if not _库房有物品(符类型, 1):
+		return {"成功": false, "原因": "库房无%s" % 符类型}
+	# 扣除道具
+	_库房移除物品(符类型, 1)
+	# 增加机缘
+	增加机缘(机缘类型, 1)
+	var 检查: Dictionary = 检查机缘(机缘类型)
+	添加纪事("机缘", "使用机缘符", "使用%s，%s剩余%d/%d" % [符类型, 每日机缘配置.get(机缘类型, {}).get("描述", 机缘类型), 检查.get("剩余", 0), 检查.get("上限", 0)], 1)
+	return {"成功": true, "原因": "使用%s成功，%s剩余%d/%d" % [符类型, 每日机缘配置.get(机缘类型, {}).get("描述", 机缘类型), 检查.get("剩余", 0), 检查.get("上限", 0)]}
+
+## 使用悟道令（增加所有类型机缘1次）
+func 使用悟道令() -> Dictionary:
+	if not _库房有物品("悟道令", 1):
+		return {"成功": false, "原因": "库房无悟道令"}
+	_库房移除物品("悟道令", 1)
+	# 增加所有类型机缘
+	for 类型 in 每日机缘配置:
+		增加机缘(类型, 1)
+	添加纪事("机缘", "使用悟道令", "使用悟道令，所有机缘各+1", 2)
+	return {"成功": true, "原因": "使用悟道令成功，所有机缘各+1"}
+
+## 增加所有机缘次数（用于仙玉商店购买机缘符/悟道令/天机符）
+func 增加所有机缘次数(次数: int) -> void:
+	for 类型 in 每日机缘配置:
+		增加机缘(类型, 次数)
+
+# ===== 护道人系统函数 =====
+## 检查弟子是否需要护道人（超潜力/亲传/嫡系）
+func 检查护道人需求(d: Disciple) -> String:
+	# 超潜力弟子：天品灵根 + 资质≥90 + 年龄<30
+	if d.灵根品阶 == "天品" and int(d.资质) >= 90 and int(d.年龄) < 30:
+		return "超潜力"
+	# 宗主亲传
+	if d.是否亲传:
+		return "宗主亲传"
+	# 核心人员嫡系血脉：检查是否有长老/峰主/堂主的血缘关系
+	if d.家族关系 != "" and d.家族关系 in ["长老之子", "峰主之女", "堂主之子", "堂主之女", "峰主之子", "长老之女"]:
+		return "嫡系血脉"
+	return ""
+
+## 自动配备护道人
+func 自动配备护道人(d: Disciple) -> Dictionary:
+	var 需求: String = 检查护道人需求(d)
+	if 需求 == "":
+		return {"成功": false, "原因": "该弟子无需护道人"}
+	# 检查是否已有护道人
+	if 护道人列表.has(d.弟子ID):
+		return {"成功": false, "原因": "该弟子已有护道人"}
+	# 根据需求类型确定护道人等级
+	var 护道等级: String = "外门护道"
+	if 需求 == "超潜力":
+		护道等级 = "长老护道"
+	elif 需求 == "宗主亲传":
+		护道等级 = "太上护道"
+	elif 需求 == "嫡系血脉":
+		护道等级 = "内门护道"
+	# 检查VIP等级是否满足
+	var 配置: Dictionary = 护道人配置.get(护道等级, {})
+	var VIP需求: int = int(配置.get("VIP需求", 0))
+	if 当前VIP等级() < VIP需求:
+		# VIP不足，降级为外门护道
+		护道等级 = "外门护道"
+	# 创建护道人
+	护道人计数器 += 1
+	var 护道人ID: int = 护道人计数器
+	var 护道人姓名: String = _生成护道人姓名()
+	护道人列表[d.弟子ID] = {
+		"护道人ID": 护道人ID,
+		"护道人等级": 护道等级,
+		"护道人姓名": 护道人姓名,
+		"功德": 0,
+		"到期日": 累计游戏日 + 365,
+		"替死玉符": false,
+		"气运加持": 0,
+	}
+	添加纪事("护道", "配备护道人", "为弟子【%s】配备%s【%s】（%s）" % [d.姓名, 护道等级, 护道人姓名, 需求], 2)
+	return {"成功": true, "护道人ID": 护道人ID, "护道人等级": 护道等级, "护道人姓名": 护道人姓名}
+
+## 生成护道人姓名
+func _生成护道人姓名() -> String:
+	var 姓氏: Array = ["李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐", "孙", "胡", "朱", "高", "林", "何", "郭", "马", "罗"]
+	var 名字: Array = ["青云", "紫霞", "玄真", "太虚", "玉清", "上清", "太清", "无极", "混元", "鸿钧", "鲲鹏", "接引", "准提", "女娲", "伏羲", "神农", "轩辕", "蚩尤", "刑天", "后羿"]
+	return 姓氏[randi() % 姓氏.size()] + 名字[randi() % 名字.size()]
+
+## 获取护道人修炼加成
+func 获取护道人修炼加成(弟子ID: int) -> float:
+	if not 护道人列表.has(弟子ID):
+		return 0.0
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	var 等级: String = str(护道人.get("护道人等级", "外门护道"))
+	var 配置: Dictionary = 护道人配置.get(等级, {})
+	var 加成: float = float(配置.get("修炼加成", 0.0))
+	# 气运加持
+	var 气运: int = int(护道人.get("气运加持", 0))
+	if 气运 > 0 and 累计游戏日 < 气运:
+		加成 *= 1.2
+	# VIP12双重护道人：效果翻倍
+	if 当前VIP等级() >= 12:
+		加成 *= 2.0
+	return 加成
+
+## 获取护道人突破加成
+func 获取护道人突破加成(弟子ID: int) -> float:
+	if not 护道人列表.has(弟子ID):
+		return 0.0
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	var 等级: String = str(护道人.get("护道人等级", "外门护道"))
+	var 配置: Dictionary = 护道人配置.get(等级, {})
+	var 加成: float = float(配置.get("突破加成", 0.0))
+	# VIP12双重护道人：效果翻倍
+	if 当前VIP等级() >= 12:
+		加成 *= 2.0
+	return 加成
+
+## 获取护道人救援概率
+func 获取护道人救援概率(弟子ID: int) -> float:
+	if not 护道人列表.has(弟子ID):
+		return 0.0
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	var 等级: String = str(护道人.get("护道人等级", "外门护道"))
+	var 配置: Dictionary = 护道人配置.get(等级, {})
+	var 概率: float = float(配置.get("救援概率", 0.0))
+	# 替死玉符确保100%救援
+	if bool(护道人.get("替死玉符", false)):
+		概率 = 1.0
+	return 概率
+
+## 护道人危机救援（返回是否救援成功）
+func 护道人危机救援(d: Disciple) -> bool:
+	if not 护道人列表.has(d.弟子ID):
+		return false
+	var 概率: float = 获取护道人救援概率(d.弟子ID)
+	var 成功: bool = randf() < 概率
+	if 成功:
+		# 增加护道人功德
+		var 护道人: Dictionary = 护道人列表[d.弟子ID]
+		护道人["功德"] = int(护道人.get("功德", 0)) + 50
+		# 如果使用了替死玉符，消耗掉
+		if bool(护道人.get("替死玉符", false)):
+			护道人["替死玉符"] = false
+		# 延寿一甲子（60年），并重置年龄避免立即再次触发
+		d.寿元 += 60
+		d.年龄 = max(0, d.年龄 - 30)  # 回退30年，避免立即再次触发
+		添加纪事("护道", "危机救援", "护道人【%s】成功救援弟子【%s】，延寿一甲子，功德+50" % [str(护道人.get("护道人姓名", "")), d.姓名], 3)
+	return 成功
+
+## 护道人功德积累（日常保护弟子）
+func 护道人日常功德(d: Disciple) -> void:
+	if not 护道人列表.has(d.弟子ID):
+		return
+	var 护道人: Dictionary = 护道人列表[d.弟子ID]
+	护道人["功德"] = int(护道人.get("功德", 0)) + 1
+	# 检查是否可以晋升
+	_检查护道人晋升(d.弟子ID)
+
+## 检查护道人晋升
+func _检查护道人晋升(弟子ID: int) -> void:
+	if not 护道人列表.has(弟子ID):
+		return
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	var 当前等级: String = str(护道人.get("护道人等级", "外门护道"))
+	var 当前功德: int = int(护道人.get("功德", 0))
+	# 晋升顺序
+	var 晋升顺序: Array = ["外门护道", "内门护道", "长老护道", "太上护道"]
+	var 当前索引: int = 晋升顺序.find(当前等级)
+	if 当前索引 < 0 or 当前索引 >= 晋升顺序.size() - 1:
+		return
+	var 下一等级: String = 晋升顺序[当前索引 + 1]
+	var 下一配置: Dictionary = 护道人配置.get(下一等级, {})
+	var 功德需求: int = int(下一配置.get("功德需求", 9999))
+	var VIP需求: int = int(下一配置.get("VIP需求", 0))
+	# 检查功德和VIP
+	if 当前功德 >= 功德需求 and 当前VIP等级() >= VIP需求:
+		护道人["护道人等级"] = 下一等级
+		护道人["功德"] = 0
+		添加纪事("护道", "护道人晋升", "护道人【%s】功德圆满，晋升为%s" % [str(护道人.get("护道人姓名", "")), 下一等级], 2)
+
+## 使用护道玉符（召唤护道人）
+func 使用护道玉符(d: Disciple, 等级: String = "外门护道") -> Dictionary:
+	if 护道玉符 <= 0:
+		return {"成功": false, "原因": "库房无护道玉符"}
+	if 护道人列表.has(d.弟子ID):
+		return {"成功": false, "原因": "该弟子已有护道人"}
+	# 检查VIP等级
+	var 配置: Dictionary = 护道人配置.get(等级, {})
+	var VIP需求: int = int(配置.get("VIP需求", 0))
+	if 当前VIP等级() < VIP需求:
+		return {"成功": false, "原因": "VIP等级不足，需要VIP%d" % VIP需求}
+	护道玉符 -= 1
+	护道人计数器 += 1
+	var 护道人ID: int = 护道人计数器
+	var 护道人姓名: String = _生成护道人姓名()
+	护道人列表[d.弟子ID] = {
+		"护道人ID": 护道人ID,
+		"护道人等级": 等级,
+		"护道人姓名": 护道人姓名,
+		"功德": 0,
+		"到期日": 累计游戏日 + 365,
+		"替死玉符": false,
+		"气运加持": 0,
+	}
+	添加纪事("护道", "使用护道玉符", "使用护道玉符，为弟子【%s】召唤%s【%s】" % [d.姓名, 等级, 护道人姓名], 2)
+	return {"成功": true, "护道人ID": 护道人ID, "护道人等级": 等级, "护道人姓名": 护道人姓名}
+
+## 使用护道续缘符（延长保护时间）
+func 使用护道续缘符(弟子ID: int) -> Dictionary:
+	if 护道续缘符 <= 0:
+		return {"成功": false, "原因": "库房无护道续缘符"}
+	if not 护道人列表.has(弟子ID):
+		return {"成功": false, "原因": "该弟子无护道人"}
+	护道续缘符 -= 1
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	护道人["到期日"] = int(护道人.get("到期日", 累计游戏日)) + 365
+	添加纪事("护道", "使用护道续缘符", "护道人【%s】续缘成功，保护期延长365日" % str(护道人.get("护道人姓名", "")), 2)
+	return {"成功": true, "原因": "续缘成功"}
+
+## 使用功德玉牌（增加护道人功德）
+func 使用功德玉牌(弟子ID: int) -> Dictionary:
+	if 功德玉牌 <= 0:
+		return {"成功": false, "原因": "库房无功德玉牌"}
+	if not 护道人列表.has(弟子ID):
+		return {"成功": false, "原因": "该弟子无护道人"}
+	功德玉牌 -= 1
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	护道人["功德"] = int(护道人.get("功德", 0)) + 200
+	_检查护道人晋升(弟子ID)
+	添加纪事("护道", "使用功德玉牌", "护道人【%s】功德+200" % str(护道人.get("护道人姓名", "")), 2)
+	return {"成功": true, "原因": "功德+200"}
+
+## 使用气运符箓（临时提升护道人效果20%，持续7天）
+func 使用气运符箓(弟子ID: int) -> Dictionary:
+	if 气运符箓 <= 0:
+		return {"成功": false, "原因": "库房无气运符箓"}
+	if not 护道人列表.has(弟子ID):
+		return {"成功": false, "原因": "该弟子无护道人"}
+	气运符箓 -= 1
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	护道人["气运加持"] = 累计游戏日 + 7
+	添加纪事("护道", "使用气运符箓", "护道人【%s】获得气运加持，效果提升20%，持续7日" % str(护道人.get("护道人姓名", "")), 2)
+	return {"成功": true, "原因": "气运加持7日"}
+
+## 使用替死玉符（确保一次危机救援成功）
+func 使用替死玉符(弟子ID: int) -> Dictionary:
+	if 替死玉符 <= 0:
+		return {"成功": false, "原因": "库房无替死玉符"}
+	if not 护道人列表.has(弟子ID):
+		return {"成功": false, "原因": "该弟子无护道人"}
+	替死玉符 -= 1
+	var 护道人: Dictionary = 护道人列表[弟子ID]
+	护道人["替死玉符"] = true
+	添加纪事("护道", "使用替死玉符", "护道人【%s】佩戴替死玉符，下次危机确保救援成功" % str(护道人.get("护道人姓名", "")), 2)
+	return {"成功": true, "原因": "替死玉符已激活"}
+
+## 检查护道人是否过期
+func 检查护道人过期() -> void:
+	var 过期列表: Array = []
+	for 弟子ID in 护道人列表.keys():
+		var 护道人: Dictionary = 护道人列表[弟子ID]
+		if 累计游戏日 > int(护道人.get("到期日", 0)):
+			过期列表.append(弟子ID)
+	for 弟子ID in 过期列表:
+		var 护道人: Dictionary = 护道人列表[弟子ID]
+		添加纪事("护道", "护道人离去", "护道人【%s】保护期满，离去云游" % str(护道人.get("护道人姓名", "")), 2)
+		护道人列表.erase(弟子ID)
+
+## 获取所有护道人列表
+func 获取所有护道人() -> Array:
+	var 结果: Array = []
+	for 弟子ID in 护道人列表.keys():
+		var 护道人: Dictionary = 护道人列表[弟子ID]
+		var d: Disciple = _按ID找弟子(int(弟子ID))
+		if d != null:
+			结果.append({
+				"弟子ID": 弟子ID,
+				"弟子姓名": d.姓名,
+				"护道人ID": 护道人.get("护道人ID", 0),
+				"护道人等级": 护道人.get("护道人等级", ""),
+				"护道人姓名": 护道人.get("护道人姓名", ""),
+				"功德": 护道人.get("功德", 0),
+				"到期日": 护道人.get("到期日", 0),
+				"剩余天数": max(0, int(护道人.get("到期日", 0)) - 累计游戏日),
+				"替死玉符": 护道人.get("替死玉符", false),
+				"气运加持": 护道人.get("气运加持", 0),
+			})
+	return 结果
+
+func 体力上限() -> int:
+	# P0修复：体力系统已移除，保留函数兼容旧调用，返回固定值
+	return 999
 # 综合能力判定（资：修为/装备/属：性格/命格：
 func _判定成败(d: Disciple) -> bool:
 
@@ -12042,7 +21004,8 @@ func _资源殿阁产出():
 	_本月矿脉产出 = 0
 	_本月丹堂产出 = 0
 	_本月器殿产出 = 0
-	var 经营基数: Dictionary = {"lingtian": 5, "kuangmai": 4, "dantang": 3, "qitang": 3, "cangjing": 2, "zhifa": 2, "gongxun": 2, "tanwei": 2, "yuying": 1, "yushou": 1, "zhenfa": 1, "xichi": 1}
+	_本月符堂产出 = 0
+	var 经营基数: Dictionary = {"lingtian": 5, "kuangmai": 6, "dantang": 3, "qitang": 3, "cangjing": 2, "zhifa": 2, "gongxun": 2, "tanwei": 2, "yuying": 1, "yushou": 1, "zhenfa": 1, "xichi": 1, "futang": 3}
 	# P0-BUILD-2：灵田负责人 ：全殿阁灵石产：+1%
 	var 产出buff: float = 汇总负责人全局buff().get("产出", 0.0)
 	var 经营加成_total: float = 0.0   # F3：全殿阁经营加成汇总池封顶 0.30（产出效率池 §4.1：
@@ -12058,7 +21021,7 @@ func _资源殿阁产出():
 			var 弟子 := m as Disciple
 			var 命格数据: Dictionary = DestinyDataLoader.get_destiny(弟子.destiny_id)
 			if 命格数据.get("类型", "") == "经营" and 命格数据.get("维度", "") == "产出":
-				经营加成 += float(命格数据.get("数量:", 0)) / 100.0
+				经营加成 += float(命格数据.get("数值", 0)) / 100.0
 		经营加成 = clamp(经营加成, 0.0, 0.20)   # F3 单殿阁经营加成封顶（产出效率池§4.1，独：clamp 不接 economy_balance：
 		经营加成_total += 经营加成
 		经营加成_total = clamp(经营加成_total, 0.0, 0.30)   # F3 全殿阁汇总封：
@@ -12078,8 +21041,10 @@ func _资源殿阁产出():
 			#   气运乘 = 老气运buff（限时祥瑞类，天品灵根/突破触发，修炼+3%/产出+2%，持7日）
 			#   (1+获取气运产出加成()) = 新气运系统（综合香火速率/愿力/功德/业力，持续生效，±10%）
 			# 两个乘区来源不同、叠加生效：限时祥瑞是短期爆发，新气运是长期状态
-			产出值 = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 获取气运产出加成()) * (1.0 + 产出buff + 彩蛋产出加成() + 产出池加成 * 等级乘区 * 宗主灵石系数 * _殿阁等级_乘区(key)))
-			灵石 += 产出值
+			产出值 = int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 获取气运产出加成()) * (1.0 + 产出buff + 彩蛋产出加成() + 产出池加成) * 等级乘区 * 宗主灵石系数 * _殿阁等级_乘区(key))
+			# S1：灵田不直接产出灵石（修真世界观：灵田种灵草灵米，灵石来自矿脉/交易/历练）
+			if key != "lingtian":
+				灵石 += 产出值
 		# S1 ： D7 解锁①：Lv.2+ 保底津贴（与成员产出叠加，结构性产出）
 		if int(职.get("等级", 1)) >= 2:
 			灵石 += int(职.get("等级", 1)) * 殿阁保底津贴
@@ -12087,17 +21052,58 @@ func _资源殿阁产出():
 		# 资源系统补全（偏：3）：灵田/矿脉除普适灵石外，额外产出专属材料，：S1 丹器消：
 		match key:
 			"lingtian":
-				_本月灵田产出 = 产出值
-				灵草 += 产出值
+				# S1：灵田产出需要消耗灵种，灵种不足时产出减半
+				var 灵田消耗灵种: int = min(灵种, max(1, int(产出值 / 10)))
+				var 灵田产出系数: float = 1.0 if 灵种 >= 灵田消耗灵种 else 0.5
+				灵种 -= 灵田消耗灵种
+				_本月灵田产出 = int(产出值 * 灵田产出系数)
+				灵草 += int(产出值 * 灵田产出系数)
+				灵米 += int(ceil(产出值 * 0.3 * 灵田产出系数))   # S1：灵田副产灵米（30%转化率）
 				灵气 += int(ceil(产出值* 0.5))   # 灵气减半产出（老大拍板 2026-07-21）：初期不溢出，核心产出仍以灵草为主
+				# 灵田等级系统：高等级灵田产出高阶灵草（灵田等级=司职列表lingtian等级）
+				var 灵田等级: int = 1
+				if 司职列表.has("lingtian"):
+					灵田等级 = int(司职列表["lingtian"].get("等级", 1))
+				if 灵田等级 >= 3:
+					灵品灵草 += int(产出值 * 0.2 * 灵田产出系数 * (灵田等级 - 2))
+				if 灵田等级 >= 5:
+					宝品灵草 += int(产出值 * 0.1 * 灵田产出系数 * (灵田等级 - 4))
+				if 灵田等级 >= 7:
+					王品灵草 += int(产出值 * 0.05 * 灵田产出系数 * (灵田等级 - 6))
+				# 灵田副产灵木（修真世界观：灵田边种灵木，炼器琴/扇/拂尘柄用）
+				if 灵田等级 >= 2:
+					灵木 += int(产出值 * 0.1 * 灵田产出系数 * (灵田等级 - 1))
+				# 灵田有概率产出高年份灵草（修真世界观：种植时间久了灵草年份增长）
+				if 灵田等级 >= 3 and randf() < 0.15:
+					灵草_百年 += max(1, int(产出值 * 0.05 * 灵田等级))
+				if 灵田等级 >= 5 and randf() < 0.08:
+					灵草_千年 += max(1, int(产出值 * 0.03 * 灵田等级))
+				if 灵田等级 >= 7 and randf() < 0.03:
+					灵草_万年 += 1
+				if 灵田产出系数 < 1.0:
+					_加推演条目("灵田灵种不足，产出减半（需补充灵种）", "庶务", "低")
 			"kuangmai":
 				_本月矿脉产出 = 产出值
 				矿石 += 产出值
 				灵晶 += int(产出值 * 0.5)   # P0-3：灵晶产出（原恒0致装备强化必失败）；随矿脉开采凝结
+				# 矿脉等级=殿阁等级：高等级矿脉月度额外产出高阶矿物
+				var 矿脉殿阁等级: int = int(职.get("等级", 1))
+				if 矿脉殿阁等级 >= 4:
+					精铁 += int(产出值 * 0.3 * (矿脉殿阁等级 - 3))
+				if 矿脉殿阁等级 >= 6:
+					玄铁 += int(产出值 * 0.2 * (矿脉殿阁等级 - 5))
+				if 矿脉殿阁等级 >= 7:
+					庚金 += int(产出值 * 0.15 * (矿脉殿阁等级 - 6))
+				if 矿脉殿阁等级 >= 8:
+					紫晶 += int(产出值 * 0.1 * (矿脉殿阁等级 - 7))
+				if 矿脉殿阁等级 >= 9:
+					星辰铁 += int(产出值 * 0.05 * (矿脉殿阁等级 - 8))
 			"dantang":
 				_本月丹堂产出 = 产出值
 			"qitang":
 				_本月器殿产出 = 产出值
+			"futang":
+				_本月符堂产出 = 产出值
 	灵石 += 弟子列表.size() * 2
 	# Step 1 三场景接入：资源产出为「宗门内」奇遇触发点之一（与弟子修炼共用宗门内池：
 	# 受全局冷却约束，单次推演至多触发一条）：
@@ -12116,8 +21122,11 @@ func 预估殿阁产出(key: String) -> int:
 	if n == 0:
 		return 0
 	# 经营基数 ：_资源殿阁产出 保持一致（占位殿阁统一口径：
-	var 经营基数: Dictionary = {"lingtian": 5, "kuangmai": 4, "dantang": 3, "qitang": 3, "cangjing": 2, "zhifa": 2, "gongxun": 2, "tanwei": 2, "yuying": 1, "yushou": 1, "zhenfa": 1, "xichi": 1}
+	var 经营基数: Dictionary = {"lingtian": 5, "kuangmai": 6, "dantang": 3, "qitang": 3, "cangjing": 2, "zhifa": 2, "gongxun": 2, "tanwei": 2, "yuying": 1, "yushou": 1, "zhenfa": 1, "xichi": 1, "futang": 3}
 	var 产出buff: float = 汇总负责人全局buff().get("产出", 0.0)
+	# 宗主称号全宗产出加成
+	var 宗主产出加成: float = 获取宗主称号加成("全宗产出")
+	产出buff += 宗主产出加成
 	var 等级乘区: float = 1.0 + 0.02 * max(0, 门派等级 - 1)
 	var 气运乘: float = (1.0 + 气运产出加成) if (累计游戏日 < 气运到期日) else 1.0
 	var 经营加成: float = 0.0
@@ -12125,11 +21134,11 @@ func 预估殿阁产出(key: String) -> int:
 		var 弟子: Disciple = m as Disciple
 		var 命格数据: Dictionary = DestinyDataLoader.get_destiny(弟子.destiny_id)
 		if 命格数据.get("类型", "") == "经营" and 命格数据.get("维度", "") == "产出":
-			经营加成 += float(命格数据.get("数量", 0)) / 100.0
+			经营加成 += float(命格数据.get("数值", 0)) / 100.0
 	经营加成 = clamp(经营加成, 0.0, 0.20)   # F3 预览单殿阁封顶（与结算一致，独立 clamp 不接 economy_balance：
 	var base: int = 经营基数.get(key, 1)
 	var 保底: int = int(职.get("等级", 1)) * 殿阁保底津贴 if int(职.get("等级", 1)) >= 2 else 0
-	return int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff + 产出池加成 * 等级乘区 * _殿阁等级_乘区(key)) + 保底)
+	return int(n * base * (1.0 + 经营加成) * 气运乘 * (1.0 + 产出buff + 产出池加成) * 等级乘区 * _殿阁等级_乘区(key) + 保底)
 func 预估月产出() -> int:
 
 	var 额: int = 0
@@ -12146,14 +21155,64 @@ func _殿阁被动结算():
 
 	# [DORMANT] 聚合负面事件减免（暂存，当前无负：入侵事件系统消费；未来接入即可生效）
 	殿阁被动_负面事件减免 = _负面事件减免()
-	# 灵田 8%：灵草丰收，当月灵石产出翻倍
+	# 灵田 8%：灵草丰收，当月灵石产出翻倍，有概率出高阶灵草
 	if _本月灵田产出 > 0 and randf() < 0.08:
 		灵石 += _本月灵田产出
 		_加推演条目(文案表["hall_lingtian_harvest"], ET_RESOURCE, PRIO_NORMAL, {"殿阁": "lingtian"})
-	# 矿脉 7%：富矿现世，当月灵石产出翻倍
+		# 丰收有概率产出高阶灵草（修真世界观：灵气充沛时灵草变异进阶）
+		var 灵田殿阁等级: int = 1
+		if 司职列表.has("lingtian"):
+			灵田殿阁等级 = int(司职列表["lingtian"].get("等级", 1))
+		if 灵田殿阁等级 >= 3 and randf() < 0.3:
+			灵品灵草 += max(1, _本月灵田产出 / 10)
+			_加推演条目("【灵田】丰收中灵草变异为灵品灵草！", "庶务", "低")
+		if 灵田殿阁等级 >= 5 and randf() < 0.2:
+			宝品灵草 += max(1, _本月灵田产出 / 15)
+			_加推演条目("【灵田】丰收中灵草变异为宝品灵草！", "庶务", "低")
+		if 灵田殿阁等级 >= 7 and randf() < 0.1:
+			王品灵草 += max(1, _本月灵田产出 / 20)
+			_加推演条目("【灵田】丰收中灵草变异为王品灵草！", "庶务", "中")
+		# 极小概率出圣品/仙品灵草（可遇不可求）
+		if randf() < 0.02:
+			圣品灵草 += 1
+			_加推演条目("【灵田】天降祥瑞，灵田中生出一株圣品灵草！", "庶务", "高")
+		if randf() < 0.005:
+			仙品灵草 += 1
+			_加推演条目("【灵田】大道感应，灵田中生出一株仙品灵草！", "庶务", "极高")
+	# 灵兽堂月度产出（修真世界观：饲养灵兽获取灵蚕丝/灵禽羽/灵马尾等特殊材料）
+	if 司职列表.has("yushou"):
+		var 灵兽堂等级: int = int(司职列表["yushou"].get("等级", 1))
+		if 灵兽堂等级 >= 1:
+			var 灵兽产出基数: int = 灵兽堂等级 * 2
+			# 灵蚕丝：养蚕灵兽产出
+			if randf() < 0.5:
+				灵蚕丝 += max(1, 灵兽产出基数)
+			# 灵禽羽：饲养灵禽产出
+			if randf() < 0.4:
+				灵禽羽 += max(1, 灵兽产出基数 / 2)
+			# 灵马尾：饲养灵马产出
+			if randf() < 0.3:
+				灵马尾 += max(1, 灵兽产出基数 / 3)
+			# 玉石：灵兽堂有概率产出玉石（灵兽衔玉）
+			if randf() < 0.2:
+				玉石 += max(1, 灵兽堂等级)
+	# 矿脉 7%：富矿现世，当月灵石产出翻倍，有概率出高阶矿物
 	if _本月矿脉产出 > 0 and randf() < 0.07:
 		灵石 += _本月矿脉产出
 		_加推演条目("【矿脉】富矿现世，灵石产出翻倍！", ET_RESOURCE, PRIO_NORMAL, {"殿阁": "kuangmai"})
+		# 富矿有概率产出高阶矿物（修真世界观：富矿脉中伴生稀有矿）
+		var 矿脉殿阁等级: int = 1
+		if 司职列表.has("kuangmai"):
+			矿脉殿阁等级 = int(司职列表["kuangmai"].get("等级", 1))
+		if 矿脉殿阁等级 >= 4 and randf() < 0.3:
+			精铁 += max(1, _本月矿脉产出 / 10)
+			_加推演条目("【矿脉】富矿中伴生精铁！", "庶务", "低")
+		if 矿脉殿阁等级 >= 6 and randf() < 0.2:
+			玄铁 += max(1, _本月矿脉产出 / 15)
+			_加推演条目("【矿脉】富矿中伴生玄铁！", "庶务", "低")
+		if 矿脉殿阁等级 >= 8 and randf() < 0.1:
+			庚金 += max(1, _本月矿脉产出 / 20)
+			_加推演条目("【矿脉】富矿中伴生庚金！", "庶务", "中")
 	# 丹堂 15%：额外丹元（灵石翻倍计入）+ 子概：30% 生成随机低阶丹药入弟子储物袋
 	if _本月丹堂产出 > 0 and randf() < 0.15:
 		灵石 += _本月丹堂产出
@@ -12164,6 +21223,10 @@ func _殿阁被动结算():
 			得主.背包.append(物)
 			宗门纪事.append({"日期": 累计游戏日, "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "丹堂赠丹", "文案": 文案表["hall_dantang_gift"] % [得主.名称, 得主.姓名]})
 			_加推演条目(文案表["hall_dantang_extra"] % [得主.名称, 得主.姓名], ET_LOOT, PRIO_NORMAL, {"殿阁": "dantang"})
+	# 符堂 15%：额外符润（灵石翻倍计入）；弟子赠符（S45-9 可参照丹堂 _造低阶物品 扩展）
+	if _本月符堂产出 > 0 and randf() < 0.15:
+		灵石 += _本月符堂产出
+		_加推演条目("【符堂】符润外溢，灵石产出翻倍！", ET_RESOURCE, PRIO_NORMAL, {"殿阁": "futang"})
 	# 器殿赠宝（P0 配置驱动梯度：+ P1 分配权重/保底/冗余 + P2 轻量堂主加成：
 	if _本月器殿产出 > 0:
 		# --- P2 轻量堂主加成：仅 1 层判断（匠心命格负责人）---
@@ -12212,7 +21275,7 @@ func _殿阁被动结算():
 					var 样器: Item = _造器殿赠宝物(命中)   # 仅用于冗余判定（品类/品阶：
 					var 冗余: bool = (样器.类别 == "fabao") and 得主.装备.has("本命法宝") and _品阶不小于(得主.装备["本命法宝"].品阶, 样器.品阶)
 					if 冗余:
-						# P1 冗余：法宝同品阶及以上已持有 ：拆解折算阵纹碎片入背包（不建仓库：
+						# P1 冗余：法宝同品阶及以上已持有 ：拆解折算阵纹碎片入背包（不建宗门库房：
 						_发放阵纹碎片(得主, 数量)
 						宗门纪事.append({"日期": 累计游戏日, "弟子": 得主.姓名, "弟子ID": 得主.弟子ID, "稀有度": "殿阁被动", "名称": "器殿赠宝·拆解", "文案": 文案表["hall_gift_overlap"] % [得主.姓名, 数量]})
 						_加推演条目(文案表["hall_qidian_overlap"] % [数量], ET_LOOT, PRIO_NORMAL, {"殿阁": "qitang"})
@@ -12247,6 +21310,185 @@ func _殿阁被动结算():
 var _物品定义表: Dictionary= {
 	"dan_low": ["dan_yao", "凡阶"],
 }
+# ==================== 普通法宝系统（treasure_normal.csv 37件） ====================
+var _普通法宝配置缓存: Dictionary = {}
+var _普通法宝配置已载入: bool = false
+
+# 载入普通法宝配置表
+func _载入普通法宝配置() -> void:
+	if _普通法宝配置已载入:
+		return
+	_普通法宝配置已载入 = true
+	var p: String = "config/treasure_normal.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f: FileAccess = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳表头
+	while not f.eof_reached():
+		var row: PackedStringArray = f.get_csv_line()
+		if row.size() < 10:
+			continue
+		var tid: String = row[0].strip_edges()
+		if tid == "":
+			continue
+		_普通法宝配置缓存[tid] = {
+			"treasure_id": tid,
+			"名称": row[1].strip_edges(),
+			"品阶": row[2].strip_edges(),
+			"子品阶": row[3].strip_edges(),
+			"类型": row[4].strip_edges(),
+			"基础攻击": int(row[5]) if row[5] != "" else 0,
+			"基础防御": int(row[6]) if row[6] != "" else 0,
+			"基础气血": int(row[7]) if row[7] != "" else 0,
+			"被动效果": row[8].strip_edges(),
+			"效果数值": row[9].strip_edges(),
+			"售价": int(row[10]) if row.size() > 10 and row[10] != "" else 0,
+		}
+	f.close()
+
+# 获取单个普通法宝配置
+func 获取普通法宝配置(treasure_id: String) -> Dictionary:
+	_载入普通法宝配置()
+	return _普通法宝配置缓存.get(treasure_id, {})
+
+# 获取所有普通法宝配置
+func 获取所有普通法宝配置() -> Dictionary:
+	_载入普通法宝配置()
+	return _普通法宝配置缓存
+
+# 计算弟子普通法宝战斗加成
+func 计算普通法宝战斗加成(弟子: Object) -> Dictionary:
+	var 加成: Dictionary = {"攻击": 0, "防御": 0, "气血": 0, "被动效果": "", "效果数值": ""}
+	if 弟子 == null:
+		return 加成
+	# 检查弟子是否有普通法宝字段
+	if not "_普通法宝ID" in 弟子:
+		return 加成
+	var tid: String = str(弟子.get("_普通法宝ID"))
+	if tid == "":
+		return 加成
+	var 配置: Dictionary = 获取普通法宝配置(tid)
+	if 配置.is_empty():
+		return 加成
+	加成["攻击"] = int(配置.get("基础攻击", 0))
+	加成["防御"] = int(配置.get("基础防御", 0))
+	加成["气血"] = int(配置.get("基础气血", 0))
+	加成["被动效果"] = str(配置.get("被动效果", ""))
+	加成["效果数值"] = str(配置.get("效果数值", ""))
+	return 加成
+
+# 装备普通法宝
+func 装备普通法宝(弟子ID: int, treasure_id: String) -> Dictionary:
+	var 配置: Dictionary = 获取普通法宝配置(treasure_id)
+	if 配置.is_empty():
+		return {"成功": false, "原因": "法宝不存在"}
+	for d in 弟子列表:
+		if d != null and d.弟子ID == 弟子ID:
+			d.set("_普通法宝ID", treasure_id)
+			return {"成功": true, "原因": "已装备「%s」" % str(配置.get("名称", ""))}
+	return {"成功": false, "原因": "弟子不存在"}
+
+# 卸下普通法宝
+func 卸下普通法宝(弟子ID: int) -> Dictionary:
+	for d in 弟子列表:
+		if d != null and d.弟子ID == 弟子ID:
+			d.set("_普通法宝ID", "")
+			return {"成功": true, "原因": "已卸下普通法宝"}
+	return {"成功": false, "原因": "弟子不存在"}
+
+# ==================== 本命法宝配置表加载（treasure_innate.csv 26件） ====================
+var _本命法宝配置缓存: Dictionary = {}
+var _本命法宝配置已载入: bool = false
+
+# 载入本命法宝配置表
+func _载入本命法宝配置() -> void:
+	if _本命法宝配置已载入:
+		return
+	_本命法宝配置已载入 = true
+	var p: String = "config/treasure_innate.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f: FileAccess = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()  # 跳表头
+	while not f.eof_reached():
+		var row: PackedStringArray = f.get_csv_line()
+		if row.size() < 8:
+			continue
+		var iid: String = row[0].strip_edges()
+		if iid == "":
+			continue
+		_本命法宝配置缓存[iid] = {
+			"innate_id": iid,
+			"名称": row[1].strip_edges(),
+			"品阶": row[2].strip_edges(),
+			"子品阶": row[3].strip_edges(),
+			"适用职业": row[4].strip_edges(),
+			"主动技能": row[5].strip_edges(),
+			"被动效果": row[6].strip_edges(),
+			"成长值": row[7].strip_edges(),
+			"最大等级": int(row[8]) if row.size() > 8 and row[8] != "" else 1,
+		}
+	f.close()
+
+# 获取单个本命法宝配置
+func 获取本命法宝配置(innate_id: String) -> Dictionary:
+	_载入本命法宝配置()
+	return _本命法宝配置缓存.get(innate_id, {})
+
+# 获取所有本命法宝配置
+func 获取所有本命法宝配置() -> Dictionary:
+	_载入本命法宝配置()
+	return _本命法宝配置缓存
+
+# 计算本命法宝成长值加成（解析如"10%"、"12.5%"的成长值，返回全属性加成比例）
+func 计算本命法宝成长加成(弟子: Object) -> Dictionary:
+	var 加成: Dictionary = {"攻": 0.0, "防": 0.0, "血": 0.0, "速": 0.0}
+	if 弟子 == null:
+		return 加成
+	# 检查弟子是否装备了本命法宝
+	if not "装备" in 弟子:
+		return 加成
+	var 装备: Dictionary = 弟子.装备
+	if not 装备.has("本命法宝"):
+		return 加成
+	var 法宝 = 装备["本命法宝"]
+	if 法宝 == null:
+		return 加成
+	# 从法宝名称匹配配置表（本命法宝名称与配置表中的名称一致）
+	var 法宝名: String = str(法宝.get("名称", ""))
+	if 法宝名 == "":
+		return 加成
+	var 配置: Dictionary = {}
+	for iid in _本命法宝配置缓存.keys():
+		if _本命法宝配置缓存[iid].get("名称", "") == 法宝名:
+			配置 = _本命法宝配置缓存[iid]
+			break
+	if 配置.is_empty():
+		return 加成
+	# 解析成长值（如"10%" → 0.10）
+	var 成长值Str: String = str(配置.get("成长值", "0%"))
+	var 成长值: float = 0.0
+	if 成长值Str.contains("%"):
+		成长值 = float(成长值Str.replace("%", "")) / 100.0
+	else:
+		成长值 = float(成长值Str) / 100.0
+	# 祭炼等级加成（每级+10%成长加成，上限10级=+100%）
+	var 祭炼等级: int = 0
+	if 弟子 != null and "本命法宝祭炼等级" in 弟子:
+		祭炼等级 = int(弟子.本命法宝祭炼等级)
+	var 祭炼倍率: float = 1.0 + float(祭炼等级) * 0.10
+	# 全属性成长加成（受祭炼等级影响）
+	加成["攻"] = 成长值 * 祭炼倍率
+	加成["防"] = 成长值 * 祭炼倍率
+	加成["血"] = 成长值 * 祭炼倍率
+	加成["速"] = 成长值 * 祭炼倍率
+	return 加成
+
+
 # 获取所有本命法宝列表（从弟子背包中筛选）
 func 获取所有本命法宝列表() -> Array:
 	var 法宝列表 = []
@@ -12507,8 +21749,8 @@ func _注册入堂(d: Disciple):
 	if _在司职(d.司职, d):
 		return
 	(司职列表[d.司职]["成员"] as Array).append(d)
-	# 负责人按加成高者优先自动任命：为空取最高分；新成员更高则替换（含掌门手定后被超越的情况：
-	# P0-BUILD-2：已锁定的岗位不参与自动顶替（手动任：解除：任命负责人/ 解除负责人锁定）
+	# 负责人按加成高者优先自动📜 宗主钦命：为空取最高分；新成员更高则替换（含掌门手定后被超越的情况：
+	# P0-BUILD-2：已锁定的岗位不参与自动顶替（手动任：解除：📜 宗主钦命负责人/ 解除负责人锁定）
 	var 维度: String = 司职列表[d.司职]["加成维度"]
 	var 现负责: Disciple = 司职列表[d.司职]["负责人"]
 	var 现分 := -1.0
@@ -12523,7 +21765,7 @@ func _注册入堂(d: Disciple):
 func _设负责人(key: String, d: Disciple):
 
 	# S1 ：：仅当主事实际变更（旧主事存在且非同一人）：政绩清零 + 里程：事件标记重置（新任期）：
-	# 初始任命(：null)/应用负责人存：读档)/解除锁定 不触发清零（EC-P2~P4）：
+	# 初始📜 宗主钦命(：null)/应用负责人存：读档)/解除锁定 不触发清零（EC-P2~P4）：
 	var 旧主事: Variant = 司职列表[key].get("负责人", null)
 	司职列表[key]["负责人"] = d
 	司职负责人存档[key] = d.姓名
@@ -12533,7 +21775,7 @@ func _设负责人(key: String, d: Disciple):
 		_st["里程碑"] = 0
 		_st["高政绩事件"] = false
 		司职状态存档[key] = _st
-# 掌门任命负责人（UI 调用：
+# 人事任命负责人（UI 调用）
 func 任命负责人(key: String, d: Disciple):
 
 	if not 司职列表.has(key):
@@ -12545,6 +21787,19 @@ func 任命负责人(key: String, d: Disciple):
 	司职列表[key]["负责人锁定"] = true
 	宗门纪事.append({"日期": 累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "宗门", "名称": "人事任命", "文案": "【人事%s】被任命为%s主事" % [d.姓名, 司职列表[key]["名称"]]})
 	_加推演条目("【人事%s】被任命为【%s】主事" % [d.姓名, 司职列表[key]["名称"]], ET_APPOINT, PRIO_NORMAL, {"弟子": d.姓名, "司职": key})
+	弟子变动.emit()
+# 掌门📜 宗主钦命负责人（UI 调用：
+func 宗主钦命负责人(key: String, d: Disciple):
+
+	if not 司职列表.has(key):
+		return
+	# S1 ：：阶位门槛闸（additive；legacy 阶位已按身份给到对应阶位，veteran 不被误拦，：.2：
+	if d.阶位索引() < int(司职阶位门槛.get(key, 0)):
+		return false
+	_设负责人(key, d)
+	司职列表[key]["负责人锁定"] = true
+	宗门纪事.append({"日期": 累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "稀有度": "宗门", "名称": "人事📜 宗主钦命", "文案": "【人事%s】被📜 宗主钦命为%s主事" % [d.姓名, 司职列表[key]["名称"]]})
+	_加推演条目("【人事%s】被📜 宗主钦命为【%s】主事" % [d.姓名, 司职列表[key]["名称"]], ET_APPOINT, PRIO_NORMAL, {"弟子": d.姓名, "司职": key})
 	弟子变动.emit()
 func 应用负责人存档():
 
@@ -12783,6 +22038,21 @@ func _按姓名找(名: String) -> Disciple:
 		if d.姓名 == 名:
 			return d
 	return null
+
+# 派系/权力斗争系统调用的查找工具（2026-09-08 补：外部批次只写了调用，未建实现）
+# 入参兼容 String 与 int（调用处有 str(成员ID) 写法），内部统一按 int 比较 弟子ID。
+func _按ID找弟子(弟子ID) -> Disciple:
+	var 目标: int = int(弟子ID)
+	if 目标 <= 0:
+		return null
+	for d in 弟子列表:
+		if d.弟子ID == 目标:
+			return d
+	return null
+
+func _按姓名找弟子(名: String) -> Disciple:
+	return _按姓名找(名)
+
 # ============ 测灵根招收仪：============
 const 测灵根冷却日 := 365   # 1年一度（对应现实世界1天）
 # P0-BUILD-2：测灵高品质 buff 触发时，将弟子灵根品阶提升一档（同步灵根类型以维持一致性）
@@ -12907,11 +22177,62 @@ const 门派等级上限: int = 10   # P0 ：10 级（S1 赛季接入殿阁等�
 func 更新门派():
 
 	var 总战力:= 0
+	var 最高境界序: int = 0
 	for d in 弟子列表:
 		总战力+= d.总战力()
-	# P0 等效公式（复用现有字段，零新增底层）：弟子基础 > 战力核心 > 秘境进度 > 声望补充
-	var 新等级: int = 1 + int(弟子列表.size() / 12) + int(总战力/ 20000) + int(已通关秘境.size() / 10) + int(声望 / 500)
-	新等级 = clamp(新等级, 1, 门派等级上限)
+		var 境序: int = Disciple.境界序.find(d.境界)
+		if 境序 > 最高境界序:
+			最高境界序 = 境序
+	# 修真世界观7维综合评估：灵脉根基 > 顶尖战力 > 护山大阵 > 基础设施 > 资源储备 > 底蕴传承 > 宗门声望
+	# 1.灵脉根基（20%）：灵脉是宗门立足之本，1级灵脉最多支撑3级宗门
+	var 灵脉贡献: float = float(min(灵脉等级, 10)) * 0.3
+	# 2.顶尖战力（15%）：修真世界看顶尖战力，一人镇宗
+	var 顶尖战力贡献: float = float(最高境界序) * 0.4
+	# 3.护山大阵（15%）：无阵不成宗，大阵等级决定防御力
+	var 大阵贡献: float = float(min(int(阵法管理系统.阵法等级.get("hushan", 0)), 10)) * 0.2
+	# 4.基础设施（15%）：殿阁数量+洞府规模
+	var 殿阁数: int = 司职列表.size()
+	var 基础设施贡献: float = (float(殿阁数) * 0.2 + float(洞府数量) / 20.0) * 0.3
+	# 5.资源储备（15%）：灵石+材料+丹药的家底
+	var 资源贡献: float = (float(灵石) / 20000.0 + float(灵草) / 2000.0 + float(矿石) / 2000.0) * 0.5
+	资源贡献 = min(资源贡献, 2.0)
+	# 6.底蕴传承（10%）：藏经阁功法数量
+	var 底蕴贡献: float = float(藏经阁功法列表.size()) / 10.0
+	底蕴贡献 = min(底蕴贡献, 1.0)
+	# 7.宗门声望（10%）：弟子在外历练/做任务闯出的名声
+	var 声望贡献: float = float(声望) / 1000.0
+	声望贡献 = min(声望贡献, 1.0)
+	# 综合计算
+	var 综合评分: float = 灵脉贡献 + 顶尖战力贡献 + 大阵贡献 + 基础设施贡献 + 资源贡献 + 底蕴贡献 + 声望贡献
+	var 新等级: int = 1 + int(综合评分)
+	# 硬约束：灵脉品级决定宗门上限（修真世界常识）
+	var 灵脉上限: int = 3
+	if 灵脉等级 >= 3:
+		灵脉上限 = 5
+	if 灵脉等级 >= 5:
+		灵脉上限 = 7
+	if 灵脉等级 >= 7:
+		灵脉上限 = 9
+	if 灵脉等级 >= 9:
+		灵脉上限 = 10
+	# 硬约束：护山大阵等级决定宗门上限
+	var 大阵等级_实际: int = int(阵法管理系统.阵法等级.get("hushan", 0))
+	var 大阵上限: int = 2
+	if 大阵等级_实际 >= 2:
+		大阵上限 = 4
+	if 大阵等级_实际 >= 4:
+		大阵上限 = 6
+	if 大阵等级_实际 >= 6:
+		大阵上限 = 8
+	if 大阵等级_实际 >= 8:
+		大阵上限 = 10
+	var 等级上限: int = min(灵脉上限, 大阵上限, 门派等级上限)
+	新等级 = clamp(新等级, 1, 等级上限)
+	# P1：计算可晋升等级（综合评分达到下一级门槛且未超过上限）
+	if 新等级 > 门派等级 and 新等级 <= 等级上限:
+		可晋升等级 = 新等级
+	else:
+		可晋升等级 = 0
 	if not _校准开("双周期评级启用", true):
 		# 回退：原年度实时立即晋升
 		if 新等级> 门派等级:
@@ -12926,26 +22247,623 @@ func 更新门派():
 		if 新等级> 门派等级目标:
 			门派等级目标 = 新等级
 	繁荣 = clamp(50 + 弟子列表.size() * 2 + int(灵石 / 100) + 繁荣经营值, 0, 100)   # P1-2：基础派生 + 经营增量（可经营）
-	# P2-10：凡人城镇接业务（原恒空 Array 死资源；现派生自信徒数，随信徒增长而增，不再恒0）
-	凡人城镇.clear()
-	var 城镇数: int = clamp(int(信徒数 / 10) + 1, 0, 99)
-	for i in 城镇数:
-		凡人城镇.append({"名": "信众镇%d" % (i + 1), "人口": 100 + i * 50})
+	# S34：凡人城镇改为真数据源（派生自 郡县状态；不再由信徒数捏造假镇，避免每次 更新门派() 覆盖经营结果）
+	王朝系统.凡人城镇.clear()
+	if 王朝系统.郡县状态.is_empty():
+		_初始化郡县状态_S34()
+	for k in 王朝系统.郡县状态.keys():
+		var 郡: Dictionary = 王朝系统.郡县状态[k]
+		if not bool(郡.get("凡俗", false)):
+			continue
+		王朝系统.凡人城镇.append({"名": str(郡.get("名", "")), "人口": int(郡.get("人口", 0))})
 # 距下一级信息（主界面展示用）：基于已存储门派等级，计算单靠声望补齐时的缺口
 func 距下一级信息() -> Dictionary:
 
 	var 总战力:= 0
+	var 最高境界序: int = 0
 	for d in 弟子列表:
 		总战力+= d.总战力()
-	var s: float = 弟子列表.size() / 12.0 + 总战力/ 20000.0 + 已通关秘境.size() / 10.0 + float(声望) / 500.0
+		var 境序: int = Disciple.境界序.find(d.境界)
+		if 境序 > 最高境界序:
+			最高境界序 = 境序
+	# 7维综合评分（与更新门派一致）
+	var 灵脉贡献: float = float(min(灵脉等级, 10)) * 0.3
+	var 顶尖战力贡献: float = float(最高境界序) * 0.4
+	var 大阵贡献: float = float(min(int(阵法管理系统.阵法等级.get("hushan", 0)), 10)) * 0.2
+	var 殿阁数: int = 司职列表.size()
+	var 基础设施贡献: float = (float(殿阁数) * 0.2 + float(洞府数量) / 20.0) * 0.3
+	var 资源贡献: float = min((float(灵石) / 20000.0 + float(灵草) / 2000.0 + float(矿石) / 2000.0) * 0.5, 2.0)
+	var 底蕴贡献: float = min(float(藏经阁功法列表.size()) / 10.0, 1.0)
+	var 声望贡献: float = min(float(声望) / 1000.0, 1.0)
+	var 综合评分: float = 灵脉贡献 + 顶尖战力贡献 + 大阵贡献 + 基础设施贡献 + 资源贡献 + 底蕴贡献 + 声望贡献
 	var 等级 := 门派等级
-	var 已满: bool = 等级 >= 门派等级上限
+	# 硬约束上限
+	var 灵脉上限: int = 3
+	if 灵脉等级 >= 3: 灵脉上限 = 5
+	if 灵脉等级 >= 5: 灵脉上限 = 7
+	if 灵脉等级 >= 7: 灵脉上限 = 9
+	if 灵脉等级 >= 9: 灵脉上限 = 10
+	var 大阵等级_实际: int = int(阵法管理系统.阵法等级.get("hushan", 0))
+	var 大阵上限: int = 2
+	if 大阵等级_实际 >= 2: 大阵上限 = 4
+	if 大阵等级_实际 >= 4: 大阵上限 = 6
+	if 大阵等级_实际 >= 6: 大阵上限 = 8
+	if 大阵等级_实际 >= 8: 大阵上限 = 10
+	var 等级上限: int = min(灵脉上限, 大阵上限, 门派等级上限)
+	var 已满: bool = 等级 >= 等级上限
 	var 缺口 := 0
 	if not 已满:
-		var 缺: float = float(等级) - s   # 升到下一级需 raw 分数 >= 当前等级
-		if 缺> 0:
-			缺口 = int(ceil(缺* 500.0))
-	return {"等级": 等级, "下一级": 等级 + 1, "声望缺口": max(缺口, 0), "已满": 已满}
+		var 下一级评分: float = float(等级)  # 升到下一级需要综合评分>=当前等级
+		var 评分缺口: float = 下一级评分 - 综合评分
+		if 评分缺口 > 0:
+			缺口 = int(ceil(评分缺口 * 100.0))
+	# 瓶颈提示
+	var 瓶颈: String = ""
+	if 灵脉上限 < 等级 + 1:
+		瓶颈 = "灵脉品级不足，需升级灵脉"
+	elif 大阵上限 < 等级 + 1:
+		瓶颈 = "护山大阵等级不足，需升级大阵"
+	return {"等级": 等级, "下一级": min(等级 + 1, 等级上限), "声望缺口": max(缺口, 0), "已满": 已满, "综合评分": 综合评分, "等级上限": 等级上限, "瓶颈": 瓶颈,
+		"灵脉贡献": 灵脉贡献, "顶尖战力贡献": 顶尖战力贡献, "大阵贡献": 大阵贡献, "基础设施贡献": 基础设施贡献, "资源贡献": 资源贡献, "底蕴贡献": 底蕴贡献, "声望贡献": 声望贡献}
+
+# P1：举办晋升大典（达到门槛后玩家主动举办，立即生效）
+func 举办晋升大典() -> Dictionary:
+	if 可晋升等级 <= 0 or 可晋升等级 <= 门派等级:
+		return {"成功": false, "原因": "当前无可晋升等级"}
+	# 大典消耗：灵石（按等级递增，调用统一函数）
+	var 消耗灵石: int = 获取晋升大典消耗()
+	if 灵石 < 消耗灵石:
+		return {"成功": false, "原因": "灵石不足，举办晋升大典需%d灵石" % 消耗灵石}
+	灵石 -= 消耗灵石
+	# 立即晋升
+	var 旧等级: int = 门派等级
+	门派等级 = 可晋升等级
+	可晋升等级 = 0
+	门派等级目标 = 门派等级
+	# 仪式感：全宗庆祝
+	声望 += 可晋升等级 * 10  # 大典昭告天下，声望大涨
+	繁荣 = min(100, 繁荣 + 10)  # 全宗欢庆，繁荣提升
+	# 弟子士气提升（临时修炼加成，持续30游戏日）
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			d.增加心境(5)  # 大典激励，道心提升
+	# 纪事和推演条目
+	var 等级称呼: String = ""
+	if 门派等级 <= 3:
+		等级称呼 = "小型宗门"
+	elif 门派等级 <= 6:
+		等级称呼 = "中型宗门"
+	elif 门派等级 <= 9:
+		等级称呼 = "大型宗门"
+	else:
+		等级称呼 = "超级宗门"
+	添加纪事("宗门大事件", "晋升大典", "太玄宗举办晋升大典，正式晋升至%d级，位列%s之林。大典之上，万宗来贺，声威远播。" % [门派等级, 等级称呼], 3)
+	_加推演条目("太玄宗晋升大典圆满成功，宗门等级提升至%d级，位列%s。全宗上下欢欣鼓舞，弟子道心皆有精进。" % [门派等级, 等级称呼], ET_SECT, PRIO_HIGH, {})
+	_复检里程碑()
+	_复检成就()
+	return {"成功": true, "旧等级": 旧等级, "新等级": 门派等级, "消耗灵石": 消耗灵石, "等级称呼": 等级称呼}
+
+# 获取晋升大典消耗
+func 获取晋升大典消耗() -> int:
+	if 可晋升等级 <= 0:
+		return 0
+	return 可晋升等级 * 500
+
+# ============ 宗主独立场所系统 ============
+## 获取宗主场所等级
+func 获取宗主场所等级(场所: String) -> int:
+	match 场所:
+		"丹房": return 宗主丹房等级
+		"炼器室": return 宗主炼器室等级
+		"制符室": return 宗主制符室等级
+		"傀儡工坊": return 宗主傀儡工坊等级
+		"毒室": return 宗主毒室等级
+	return 1
+
+## 获取宗主场所加成（成功率/高品质率）
+func 获取宗主场所加成(场所: String) -> Dictionary:
+	var 等级: int = 获取宗主场所等级(场所)
+	var 成功率加成: float = 0.0
+	var 高品质加成: float = 0.0
+	if 等级 >= 3:
+		成功率加成 = 0.05
+	if 等级 >= 5:
+		成功率加成 = 0.10
+		高品质加成 = 0.05
+	if 等级 >= 7:
+		成功率加成 = 0.15
+		高品质加成 = 0.10
+	if 等级 >= 10:
+		成功率加成 = 0.20
+		高品质加成 = 0.15
+	return {"等级": 等级, "成功率加成": 成功率加成, "高品质加成": 高品质加成}
+
+## 获取宗主场所升级消耗
+func 获取宗主场所升级消耗(场所: String) -> int:
+	var 等级: int = 获取宗主场所等级(场所)
+	return 等级 * 1000
+
+## 升级宗主场所
+func 升级宗主场所(场所: String) -> Dictionary:
+	var 等级: int = 获取宗主场所等级(场所)
+	if 等级 >= 10:
+		return {"成功": false, "原因": "场所已达最高等级"}
+	var 消耗: int = 获取宗主场所升级消耗(场所)
+	if 灵石 < 消耗:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 消耗}
+	灵石 -= 消耗
+	match 场所:
+		"丹房": 宗主丹房等级 += 1
+		"炼器室": 宗主炼器室等级 += 1
+		"制符室": 宗主制符室等级 += 1
+		"傀儡工坊": 宗主傀儡工坊等级 += 1
+		"毒室": 宗主毒室等级 += 1
+	添加纪事("宗主", "升级场所", "宗主%s升级至%d级，地火旺盛，生产效率大增。" % [场所, 等级 + 1], 2)
+	return {"成功": true, "场所": 场所, "新等级": 等级 + 1, "消耗": 消耗}
+
+## 获取所有宗主场所列表
+func 获取宗主场所列表() -> Array:
+	return [
+		{"场所": "丹房", "名称": "宗主丹房", "描述": "宗主专属炼丹之所，地火醇厚", "等级": 宗主丹房等级},
+		{"场所": "炼器室", "名称": "宗主炼器室", "描述": "宗主专属炼器之地，锤法通灵", "等级": 宗主炼器室等级},
+		{"场所": "制符室", "名称": "宗主制符室", "描述": "宗主专属绘符之室，灵墨飘香", "等级": 宗主制符室等级},
+		{"场所": "傀儡工坊", "名称": "宗主傀儡工坊", "描述": "宗主专属炼制傀儡之地", "等级": 宗主傀儡工坊等级},
+		{"场所": "毒室", "名称": "宗主毒室", "描述": "宗主专属制毒之所，毒雾缭绕", "等级": 宗主毒室等级},
+	]
+
+# ============ 毒道系统（修真界旁门大道） ============
+## 毒药配置（品阶×类型）
+const 毒药配置: Dictionary = {
+	# 腐蚀毒：腐蚀肉身/法宝
+	"化骨水": {"品阶": "凡品", "类型": "腐蚀毒", "效果": "腐蚀肉身", "伤害": 50, "材料": "毒草×5+矿石×3"},
+	"腐仙散": {"品阶": "灵品", "类型": "腐蚀毒", "效果": "腐蚀法宝", "伤害": 150, "材料": "毒草×15+矿石×10"},
+	"蚀仙毒": {"品阶": "宝品", "类型": "腐蚀毒", "效果": "腐蚀仙躯", "伤害": 400, "材料": "毒草×40+毒兽内丹×1"},
+	# 麻痹毒：麻痹灵力/行动
+	"软筋散": {"品阶": "凡品", "类型": "麻痹毒", "效果": "麻痹行动", "伤害": 30, "材料": "毒草×3+毒虫×2"},
+	"迷仙散": {"品阶": "灵品", "类型": "麻痹毒", "效果": "麻痹灵力", "伤害": 100, "材料": "毒草×10+毒虫×8"},
+	"销魂散": {"品阶": "宝品", "类型": "麻痹毒", "效果": "销魂蚀骨", "伤害": 300, "材料": "毒草×30+毒虫×20"},
+	# 元神毒：侵蚀元神/道心
+	"噬魂烟": {"品阶": "灵品", "类型": "元神毒", "效果": "侵蚀元神", "伤害": 200, "材料": "毒兽内丹×2+毒草×20"},
+	"心魔散": {"品阶": "宝品", "类型": "元神毒", "效果": "诱发心魔", "伤害": 500, "材料": "毒兽内丹×5+毒草×50"},
+	"灭魂毒": {"品阶": "王品", "类型": "元神毒", "效果": "湮灭元神", "伤害": 1000, "材料": "毒兽内丹×10+万年毒草×1"},
+	# 瘟疫毒：传染性群体伤害
+	"瘟癀散": {"品阶": "宝品", "类型": "瘟疫毒", "效果": "传染瘟疫", "伤害": 300, "材料": "毒兽内丹×3+毒虫×30"},
+	"痘毒": {"品阶": "王品", "类型": "瘟疫毒", "效果": "天花痘毒", "伤害": 800, "材料": "毒兽内丹×8+毒虫×50"},
+	# 慢性毒：长期积累发作
+	"三尸脑神丹": {"品阶": "王品", "类型": "慢性毒", "效果": "三尸入脑", "伤害": 600, "材料": "毒虫×50+毒草×100"},
+	"七日醉": {"品阶": "灵品", "类型": "慢性毒", "效果": "七日发作", "伤害": 150, "材料": "毒草×20+毒虫×10"},
+	# 解毒药
+	"解毒丹": {"品阶": "灵品", "类型": "解毒药", "效果": "解除凡品/灵品毒", "伤害": 0, "材料": "灵草×15+灵晶×3"},
+	"辟毒丹": {"品阶": "宝品", "类型": "解毒药", "效果": "免疫毒素+50%", "伤害": 0, "材料": "灵草×30+灵晶×5"},
+}
+
+## 获取所有毒药列表
+func 获取毒药列表() -> Array:
+	var 列表: Array = []
+	for 毒药名 in 毒药配置.keys():
+		var cfg = 毒药配置[毒药名]
+		列表.append({"名称": 毒药名, "品阶": cfg["品阶"], "类型": cfg["类型"], "效果": cfg["效果"], "伤害": cfg["伤害"], "材料": cfg["材料"]})
+	return 列表
+
+## 炼制毒药（宗主或弟子使用）
+func 炼制毒药(毒药名: String, 制作者 = null) -> Dictionary:
+	if not 毒药配置.has(毒药名):
+		return {"成功": false, "原因": "未知毒药：%s" % 毒药名}
+	var cfg = 毒药配置[毒药名]
+	# 使用宗主毒室等级 + 毒道境界加成
+	var 毒室等级: int = 获取宗主场所等级("毒室")
+	var 境界加成: Dictionary = 获取毒道境界加成()
+	var 成功率: float = 0.4 + float(毒室等级) * 0.05 + float(境界加成["成功率加成"])
+	成功率 = min(0.95, 成功率)
+	# 消耗精力（宗主制作）
+	if 制作者 != null and 制作者 is Disciple:
+		if 制作者.精力 < 15:
+			return {"成功": false, "原因": "精力不足"}
+		制作者.精力 -= 15
+	# 炼制
+	if randf() < 成功率:
+		var 毒药 = Item.new()
+		毒药.名称 = 毒药名
+		毒药.类型 = "毒药"
+		毒药.品阶 = cfg["品阶"]
+		毒药.类别 = "du_yao"
+		宗门库房.append(毒药)
+		添加纪事("毒道", "炼制毒药", "炼制%s（%s/%s）成功，毒雾缭绕，令人心悸。" % [毒药名, cfg["品阶"], cfg["类型"]], 2)
+		# 按毒药类型区分代价（修真世界观：杀伤性毒有伤天和，控制性毒只是手段，解毒药正面）
+		var 毒类型: String = str(cfg["类型"])
+		if 毒类型 == "解毒药":
+			# 解毒药：正面，无代价，反而增加正道声望
+			增加阵营声望("正道宗门", 2)
+			if 制作者 != null and 制作者 is Disciple:
+				制作者.功德 = int(制作者.功德) + 5
+		elif 毒类型 == "麻痹毒":
+			# 麻痹毒：控制性，可解，不加业力心魔，正道声望小幅下降
+			增加阵营声望("正道宗门", -1)
+			增加阵营声望("魔道邪宗", 1)
+		else:
+			# 杀伤性毒（腐蚀/元神/瘟疫/慢性）：有伤天和，加业力心魔，正道声望大幅下降
+			if 制作者 != null and 制作者 is Disciple:
+				制作者.业力 = int(制作者.业力) + 5
+				制作者.心魔值 = clamp(float(制作者.心魔值) + 1.0, 0.0, 100.0)
+			增加阵营声望("正道宗门", -3)
+			增加阵营声望("魔道邪宗", 2)
+		# 增加毒道经验（按品阶）
+		var 经验值: int = 10
+		match cfg["品阶"]:
+			"凡品": 经验值 = 5
+			"灵品": 经验值 = 15
+			"宝品": 经验值 = 40
+			"王品": 经验值 = 100
+			"道品": 经验值 = 250
+			"圣品": 经验值 = 500
+			"仙品": 经验值 = 1000
+			_: 经验值 = 10
+		增加毒道经验(经验值)
+		return {"成功": true, "产出": 毒药名, "品阶": cfg["品阶"], "类型": cfg["类型"]}
+	else:
+		添加纪事("毒道", "炼制失败", "炼制%s失败，毒气反噬，材料损毁。" % 毒药名, 1)
+		# 炼制失败也有代价：毒气反噬，心魔+2（仅杀伤性毒）
+		var 毒类型: String = str(cfg["类型"])
+		if 毒类型 != "解毒药" and 毒类型 != "麻痹毒":
+			if 制作者 != null and 制作者 is Disciple:
+				制作者.心魔值 = clamp(float(制作者.心魔值) + 2.0, 0.0, 100.0)
+		return {"成功": false, "原因": "炼制失败", "成功率": 成功率}
+
+## 战斗中使用毒药（战前施毒）
+func 战斗施毒(毒药名: String, 目标战力: int) -> Dictionary:
+	if not 毒药配置.has(毒药名):
+		return {"成功": false, "原因": "未知毒药"}
+	var cfg = 毒药配置[毒药名]
+	if cfg["类型"] == "解毒药":
+		return {"成功": false, "原因": "解毒药不能用于进攻"}
+	# 从库房消耗毒药
+	var 找到: bool = false
+	for i in range(宗门库房.size()):
+		var it = 宗门库房[i]
+		if it != null and it.名称 == 毒药名:
+			宗门库房.remove_at(i)
+			找到 = true
+			break
+	if not 找到:
+		return {"成功": false, "原因": "库房无%s" % 毒药名}
+	# 毒伤计算（按品阶和类型）
+	var 毒伤: int = int(cfg["伤害"])
+	var 减伤: float = 0.0
+	match cfg["类型"]:
+		"腐蚀毒": 减伤 = 0.3  # 腐蚀法宝，降低防御
+		"麻痹毒": 减伤 = 0.2  # 麻痹行动，降低输出
+		"元神毒": 减伤 = 0.4  # 侵蚀元神，大幅削弱
+		"瘟疫毒": 减伤 = 0.25 # 群体伤害
+		"慢性毒": 减伤 = 0.15 # 持续伤害
+		_:
+			减伤 = 0.2
+	var 实际减伤: int = int(目标战力 * 减伤)
+	添加纪事("毒道", "战斗施毒", "战前施放%s（%s），敌人战力削弱%d，毒伤%d。" % [毒药名, cfg["类型"], 实际减伤, 毒伤], 2)
+	# 按毒药类型区分战斗用毒代价
+	var 毒类型: String = str(cfg["类型"])
+	if 毒类型 == "麻痹毒":
+		# 麻痹毒：控制性，正道声望小幅下降
+		增加阵营声望("正道宗门", -2)
+		增加阵营声望("魔道邪宗", 1)
+	else:
+		# 杀伤性毒：正道声望大幅下降
+		增加阵营声望("正道宗门", -5)
+		增加阵营声望("魔道邪宗", 3)
+	return {"成功": true, "毒伤": 毒伤, "战力削弱": 实际减伤, "毒药": 毒药名}
+
+## 获取毒道总览
+func 毒道总览() -> Dictionary:
+	var 毒药数量: int = 0
+	for it in 宗门库房:
+		if it != null and it.类别 == "du_yao":
+			毒药数量 += 1
+	var 境界: String = 获取毒道境界()
+	var 毒体: String = 获取毒体境界()
+	var 炼丹加成: Dictionary = 获取毒道炼丹加成()
+	return {"毒药数量": 毒药数量, "毒室等级": 获取宗主场所等级("毒室"), "可炼制毒药": 获取毒药列表().size(), "毒道境界": 境界, "毒道经验": 毒道经验, "毒体境界": 毒体, "毒体经验": 毒体经验, "炼丹成功率加成": 炼丹加成["成功率加成"], "解毒药效果加成": 获取解毒药效果加成()}
+
+## 毒道境界配置（修真界毒道旁门的修为境界）
+const 毒道境界表: Array = [
+	{"境界": "毒道学徒", "所需经验": 0, "成功率加成": 0.0, "毒伤加成": 0.0, "描述": "初窥毒道门径，认得几株毒草"},
+	{"境界": "毒师", "所需经验": 100, "成功率加成": 0.05, "毒伤加成": 0.1, "描述": "熟练制毒，小有名气，旁人不敢轻易招惹"},
+	{"境界": "大毒师", "所需经验": 500, "成功率加成": 0.1, "毒伤加成": 0.2, "描述": "毒道大成，一炉毒出，百里无生机"},
+	{"境界": "毒仙", "所需经验": 2000, "成功率加成": 0.15, "毒伤加成": 0.35, "描述": "毒道入仙，举手投足皆是毒，令人闻风丧胆"},
+	{"境界": "毒圣", "所需经验": 5000, "成功率加成": 0.2, "毒伤加成": 0.5, "描述": "毒道巅峰，万毒之祖，传说中可毒杀仙人的存在"},
+]
+
+## 获取当前毒道境界
+func 获取毒道境界() -> String:
+	var 当前境界: String = "毒道学徒"
+	for 境 in 毒道境界表:
+		if 毒道经验 >= int(境["所需经验"]):
+			当前境界 = str(境["境界"])
+	return 当前境界
+
+## 获取毒道境界加成
+func 获取毒道境界加成() -> Dictionary:
+	var 境界: String = 获取毒道境界()
+	for 境 in 毒道境界表:
+		if str(境["境界"]) == 境界:
+			return {"成功率加成": float(境["成功率加成"]), "毒伤加成": float(境["毒伤加成"]), "描述": str(境["描述"])}
+	return {"成功率加成": 0.0, "毒伤加成": 0.0, "描述": ""}
+
+## 增加毒道经验
+func 增加毒道经验(数量: int) -> void:
+	var 旧境界: String = 获取毒道境界()
+	毒道经验 += 数量
+	var 新境界: String = 获取毒道境界()
+	if 新境界 != 旧境界:
+		添加纪事("毒道", "境界突破", "毒道修为突破至%s！%s" % [新境界, 获取毒道境界加成()["描述"]], 3)
+	# 毒体修炼：炼制毒药时自动积累毒体经验（长期接触毒物，身体产生抗性）
+	毒体经验 += int(数量 / 2)
+	_检查毒体突破()
+
+# ============ 毒医双修系统（用毒大师即药理专家，治疗也是一把好手） ============
+## 毒体境界配置（长期用毒制毒，身体产生抗毒性）
+const 毒体境界表: Array = [
+	{"境界": "凡躯", "所需经验": 0, "毒抗": 0.0, "毒伤加成": 0.0, "描述": "凡俗之躯，中毒即伤"},
+	{"境界": "凡毒不侵", "所需经验": 200, "毒抗": 0.2, "毒伤加成": 0.05, "描述": "常触毒物，凡品毒药已难伤身"},
+	{"境界": "灵毒不侵", "所需经验": 800, "毒抗": 0.4, "毒伤加成": 0.1, "描述": "灵品毒药亦能抵御，毒道小成"},
+	{"境界": "宝毒不侵", "所需经验": 2000, "毒抗": 0.6, "毒伤加成": 0.2, "描述": "宝品毒药难侵，毒道大成"},
+	{"境界": "万毒不侵", "所需经验": 5000, "毒抗": 0.8, "毒伤加成": 0.35, "描述": "万毒辟易，毒道入仙"},
+	{"境界": "百毒不侵", "所需经验": 10000, "毒抗": 0.95, "毒伤加成": 0.5, "描述": "传说中的毒体，天下万毒皆不能伤，反能为己用"},
+]
+
+## 获取当前毒体境界
+func 获取毒体境界() -> String:
+	var 当前境界: String = "凡躯"
+	for 境 in 毒体境界表:
+		if 毒体经验 >= int(境["所需经验"]):
+			当前境界 = str(境["境界"])
+	return 当前境界
+
+## 获取毒体境界加成
+func 获取毒体加成() -> Dictionary:
+	var 境界: String = 获取毒体境界()
+	for 境 in 毒体境界表:
+		if str(境["境界"]) == 境界:
+			return {"毒抗": float(境["毒抗"]), "毒伤加成": float(境["毒伤加成"]), "描述": str(境["描述"])}
+	return {"毒抗": 0.0, "毒伤加成": 0.0, "描述": ""}
+
+## 检查毒体突破
+func _检查毒体突破() -> void:
+	var 当前境界: String = 获取毒体境界()
+	if 当前境界 != _上次毒体境界:
+		_上次毒体境界 = 当前境界
+		添加纪事("毒道", "毒体突破", "毒体修炼至%s！%s" % [当前境界, 获取毒体加成()["描述"]], 3)
+
+## 毒医双修：毒道境界影响炼丹（懂药理者，炼丹亦精）
+func 获取毒道炼丹加成() -> Dictionary:
+	var 境界加成: Dictionary = 获取毒道境界加成()
+	var 毒体加成: Dictionary = 获取毒体加成()
+	# 毒道境界每级给炼丹成功率+2%，高品质率+1%
+	# 毒体境界额外给炼丹成功率+1%（身体抗毒，敢用猛药）
+	var 成功率加成: float = float(境界加成["成功率加成"]) * 0.4 + float(毒体加成["毒抗"]) * 0.1
+	var 高品质加成: float = float(境界加成["成功率加成"]) * 0.2
+	return {"成功率加成": 成功率加成, "高品质加成": 高品质加成, "毒医等级": 获取毒道境界()}
+
+## 毒医双修：解毒药炼制效果加成（用毒大师最懂如何解毒）
+func 获取解毒药效果加成() -> float:
+	var 境界: String = 获取毒道境界()
+	var 加成: float = 1.0
+	match 境界:
+		"毒道学徒": 加成 = 1.0
+		"毒师": 加成 = 1.2
+		"大毒师": 加成 = 1.5
+		"毒仙": 加成 = 2.0
+		"毒圣": 加成 = 3.0
+		_: 加成 = 1.0
+	return 加成
+
+## 毒医双修：以毒攻毒治疗（用微量毒药中和毒素，毒道越高效果越好）
+func 以毒攻毒治疗(中毒者: Disciple) -> Dictionary:
+	if 中毒者 == null:
+		return {"成功": false, "原因": "无治疗对象"}
+	var 境界: String = 获取毒道境界()
+	var 毒体: String = 获取毒体境界()
+	# 治疗成功率 = 毒道境界基础 + 毒体加成
+	var 成功率: float = 0.3
+	match 境界:
+		"毒道学徒": 成功率 = 0.3
+		"毒师": 成功率 = 0.5
+		"大毒师": 成功率 = 0.7
+		"毒仙": 成功率 = 0.85
+		"毒圣": 成功率 = 0.95
+		_: 成功率 = 0.3
+	成功率 += float(获取毒体加成()["毒抗"]) * 0.1
+	成功率 = min(0.98, 成功率)
+	if randf() < 成功率:
+		# 治疗成功：清除中毒状态，恢复少量气血，减少受伤天数
+		var 治疗天数: int = 0
+		if 中毒者.受伤剩余 > 0:
+			治疗天数 = min(中毒者.受伤剩余, 3 + int(毒道境界表.find(境界)))
+			中毒者.受伤剩余 = max(0, 中毒者.受伤剩余 - 治疗天数)
+		添加纪事("毒道", "以毒攻毒", "毒医以毒攻毒，为%s解毒疗伤成功，毒道境界%s，毒体%s，伤势恢复%d日。" % [中毒者.姓名, 境界, 毒体, 治疗天数], 2)
+		return {"成功": true, "治疗者境界": 境界, "毒体": 毒体, "治疗天数": 治疗天数}
+	else:
+		添加纪事("毒道", "治疗失败", "以毒攻毒失败，%s毒素未能清除。" % 中毒者.姓名, 1)
+		return {"成功": false, "原因": "治疗失败", "成功率": 成功率}
+
+## 弟子AI用毒判定（按性格/道途决定用毒类型，符合修真世界观）
+func 弟子AI用毒判定(弟子: Disciple) -> Dictionary:
+	if 弟子 == null:
+		return {"可用毒": false, "偏好类型": "无", "原因": "无弟子", "业力代价": 0, "心魔代价": 0}
+	var 性格: String = str(弟子.性格)
+	var 道途: String = str(弟子.道途)
+	var 可用毒: bool = true
+	var 偏好类型: String = "任意"  # 任意/麻痹毒/控制毒/迷幻毒/致残毒/杀伤性毒/拒绝用毒
+	var 原因: String = ""
+	var 业力代价: int = 0  # 杀伤性/致残性毒增加业力
+	var 心魔代价: int = 0  # 杀伤性/致残性毒增加心魔
+	# 道途判定（正道拒毒，魔道喜毒）
+	if 道途.find("正") >= 0 or 道途.find("儒") >= 0 or 道途.find("佛") >= 0:
+		可用毒 = false
+		偏好类型 = "拒绝用毒"
+		原因 = "正道弟子不屑于用毒，有违道心"
+	elif 道途.find("魔") >= 0 or 道途.find("邪") >= 0 or 道途.find("鬼") >= 0:
+		偏好类型 = "杀伤性毒"
+		业力代价 = 5
+		心魔代价 = 3
+		原因 = "魔道弟子以毒为道，无所不用其极"
+	# 性格判定（在道途基础上微调）
+	if 可用毒:
+		match 性格:
+			"谨慎", "开朗", "温和":
+				偏好类型 = "麻痹毒"
+				原因 = "%s性格%s，只愿用麻痹毒制敌，不愿伤人性命" % [弟子.姓名, 性格]
+			"好斗", "孤僻", "冷酷":
+				偏好类型 = "杀伤性毒"
+				业力代价 = 3
+				心魔代价 = 2
+				原因 = "%s性格%s，狠辣果决，杀伤性毒最合其意" % [弟子.姓名, 性格]
+			"狡诈", "阴险":
+				偏好类型 = "致残毒"
+				业力代价 = 4
+				心魔代价 = 3
+				原因 = "%s性格%s，擅用致残毒废人修为，阴狠毒辣" % [弟子.姓名, 性格]
+			"聪慧", "机智":
+				偏好类型 = "迷幻毒"
+				原因 = "%s性格%s，喜用迷幻毒扰敌心智，不战而屈人之兵" % [弟子.姓名, 性格]
+			_:
+				偏好类型 = "任意"
+				原因 = "%s性格%s，两种毒药皆可使用" % [弟子.姓名, 性格]
+	# 毒道境界影响（毒道越高，越愿意用毒，且业力代价越低）
+	if 弟子.has_method("获取毒道境界"):
+		var 毒道境: String = str(弟子.获取毒道境界())
+		if 毒道境 in ["毒师", "大毒师", "毒宗", "毒圣"]:
+			可用毒 = true
+			业力代价 = max(0, 业力代价 - 2)  # 毒道高深者，以毒入道，业力渐消
+			if 偏好类型 == "拒绝用毒":
+				偏好类型 = "控制毒"
+				原因 = "%s虽为正道，但毒道境界已达%s，以毒济世，不违道心" % [弟子.姓名, 毒道境]
+	return {"可用毒": 可用毒, "偏好类型": 偏好类型, "原因": 原因, "性格": 性格, "道途": 道途, "业力代价": 业力代价, "心魔代价": 心魔代价}
+
+# ============ 毒丹系统（毒医双修的高阶应用，以毒入药，以毒攻毒） ============
+## 毒丹配置（修真界毒医的独门丹药）
+const 毒丹配置: Dictionary = {
+	# 攻毒丹：增强毒伤，服用后临时提升毒道能力
+	"攻毒丹": {"品阶": "灵品", "类型": "攻毒", "效果": "毒伤+50%，持续3场战斗", "材料": "毒草×20+妖兽内丹×1", "毒道经验": 30},
+	"剧毒丹": {"品阶": "宝品", "类型": "攻毒", "效果": "毒伤+100%，持续5场战斗", "材料": "毒草×50+毒兽内丹×2", "毒道经验": 80},
+	"万毒丹": {"品阶": "王品", "类型": "攻毒", "效果": "毒伤+200%，持续10场战斗", "材料": "万年毒草×1+毒兽内丹×5", "毒道经验": 200},
+	# 抗毒丹：增加毒体经验，加速百毒不侵修炼
+	"抗毒丹": {"品阶": "灵品", "类型": "抗毒", "效果": "毒体经验+100", "材料": "毒草×15+灵草×10", "毒道经验": 20},
+	"辟毒丹": {"品阶": "宝品", "类型": "抗毒", "效果": "毒体经验+300，临时免疫凡品毒", "材料": "毒草×40+灵草×30", "毒道经验": 60},
+	"万毒不侵丹": {"品阶": "王品", "类型": "抗毒", "效果": "毒体经验+1000，临时免疫宝品毒", "材料": "万年毒草×1+灵草×100", "毒道经验": 150},
+	# 疗伤丹：以毒攻毒，治疗伤势（毒道越高效果越好）
+	"毒疗丹": {"品阶": "灵品", "类型": "疗伤", "效果": "以毒攻毒，恢复大量气血，清除负面状态", "材料": "毒草×10+灵草×20", "毒道经验": 25},
+	"九转毒疗丹": {"品阶": "宝品", "类型": "疗伤", "效果": "以毒攻毒，起死回生，清除所有负面状态", "材料": "毒草×30+灵草×50+妖兽内丹×1", "毒道经验": 70},
+	# 化功丹：消散敌人功力，剧毒无比（战斗中使用）
+	"化功丹": {"品阶": "宝品", "类型": "化功", "效果": "敌人战力-30%，持续3回合", "材料": "毒草×50+毒兽内丹×3", "毒道经验": 100},
+	"散功毒丹": {"品阶": "王品", "类型": "化功", "效果": "敌人战力-50%，持续5回合", "材料": "万年毒草×1+毒兽内丹×5", "毒道经验": 250},
+}
+
+## 获取所有毒丹列表
+func 获取毒丹列表() -> Array:
+	var 列表: Array = []
+	for 毒丹名 in 毒丹配置.keys():
+		var cfg = 毒丹配置[毒丹名]
+		列表.append({"名称": 毒丹名, "品阶": cfg["品阶"], "类型": cfg["类型"], "效果": cfg["效果"], "材料": cfg["材料"], "毒道经验": cfg["毒道经验"]})
+	return 列表
+
+## 炼制毒丹（毒医双修的高阶应用，需要毒道境界达到毒师以上）
+func 炼制毒丹(毒丹名: String, 制作者 = null) -> Dictionary:
+	if not 毒丹配置.has(毒丹名):
+		return {"成功": false, "原因": "未知毒丹：%s" % 毒丹名}
+	var cfg = 毒丹配置[毒丹名]
+	# 毒道境界要求：至少毒师才能炼制毒丹
+	var 境界: String = 获取毒道境界()
+	if 境界 == "毒道学徒":
+		return {"成功": false, "原因": "毒道境界不足，至少需达到毒师方可炼制毒丹"}
+	# 使用宗主毒室等级 + 毒道境界加成
+	var 毒室等级: int = 获取宗主场所等级("毒室")
+	var 境界加成: Dictionary = 获取毒道境界加成()
+	var 成功率: float = 0.3 + float(毒室等级) * 0.05 + float(境界加成["成功率加成"])
+	成功率 = min(0.9, 成功率)
+	# 消耗精力（宗主制作）
+	if 制作者 != null and 制作者 is Disciple:
+		if 制作者.精力 < 20:
+			return {"成功": false, "原因": "精力不足"}
+		制作者.精力 -= 20
+	# 炼制
+	if randf() < 成功率:
+		var 毒丹 = Item.new()
+		毒丹.名称 = 毒丹名
+		毒丹.类型 = "毒丹"
+		毒丹.品阶 = cfg["品阶"]
+		毒丹.类别 = "du_dan"
+		宗门库房.append(毒丹)
+		添加纪事("毒道", "炼制毒丹", "炼制%s（%s/%s）成功，以毒入药，丹成之时毒雾弥漫。" % [毒丹名, cfg["品阶"], cfg["类型"]], 2)
+		# 炼制毒丹增加毒道经验和毒体经验
+		增加毒道经验(int(cfg["毒道经验"]))
+		# 毒丹无业力代价（以毒入药，是医术不是毒术）
+		return {"成功": true, "产出": 毒丹名, "品阶": cfg["品阶"], "类型": cfg["类型"]}
+	else:
+		添加纪事("毒道", "炼制失败", "炼制%s失败，丹药炸炉，毒气四散。" % 毒丹名, 1)
+		return {"成功": false, "原因": "炼制失败", "成功率": 成功率}
+
+## 服用毒丹（根据类型产生不同效果）
+func 服用毒丹(毒丹名: String, 服用者: Disciple) -> Dictionary:
+	if not 毒丹配置.has(毒丹名):
+		return {"成功": false, "原因": "未知毒丹"}
+	var cfg = 毒丹配置[毒丹名]
+	# 从库房消耗毒丹
+	var 找到: bool = false
+	for i in range(宗门库房.size()):
+		var it = 宗门库房[i]
+		if it != null and it.名称 == 毒丹名:
+			宗门库房.remove_at(i)
+			找到 = true
+			break
+	if not 找到:
+		return {"成功": false, "原因": "库房无%s" % 毒丹名}
+	# 根据类型产生效果
+	var 类型: String = str(cfg["类型"])
+	match 类型:
+		"抗毒":
+			# 抗毒丹：增加毒体经验
+			var 经验值: int = 100
+			if 毒丹名 == "辟毒丹": 经验值 = 300
+			elif 毒丹名 == "万毒不侵丹": 经验值 = 1000
+			毒体经验 += 经验值
+			_检查毒体突破()
+			添加纪事("毒道", "服用抗毒丹", "%s服用%s，毒体经验+%d，身体抗毒性增强。" % [服用者.姓名, 毒丹名, 经验值], 2)
+			return {"成功": true, "效果": "毒体经验+%d" % 经验值}
+		"疗伤":
+			# 疗伤丹：以毒攻毒，恢复气血
+			添加纪事("毒道", "以毒攻毒", "%s服用%s，以毒攻毒，伤势痊愈，负面状态清除。" % [服用者.姓名, 毒丹名], 2)
+			return {"成功": true, "效果": "恢复气血，清除负面状态"}
+		"攻毒":
+			# 攻毒丹：临时提升毒伤
+			添加纪事("毒道", "服用攻毒丹", "%s服用%s，毒道能力临时提升，毒伤大增。" % [服用者.姓名, 毒丹名], 2)
+			return {"成功": true, "效果": "毒伤临时提升"}
+		"化功":
+			# 化功丹：战斗中使用，消散敌人功力
+			添加纪事("毒道", "炼制化功丹", "%s服下%s，此丹剧毒，战斗中可消散敌人功力。" % [服用者.姓名, 毒丹名], 2)
+			return {"成功": true, "效果": "战斗中消散敌人功力"}
+		_:
+			return {"成功": false, "原因": "未知毒丹类型"}
+
+## 获取毒傀儡总毒伤（供战斗系统调用）
+func 获取毒傀儡毒伤() -> int:
+	var 总毒伤: int = 0
+	for 傀儡 in 傀儡系统.傀儡列表:
+		if 傀儡.get("类型", "") == "毒傀儡":
+			var 等级: int = int(傀儡.get("等级", 1))
+			总毒伤 += 等级 * 10  # 每级10点毒伤
+	return 总毒伤
+
+## 战斗中毒傀儡施毒（战前自动施放）
+func 毒傀儡战前施毒(目标战力: int) -> Dictionary:
+	var 毒伤: int = 获取毒傀儡毒伤()
+	if 毒伤 <= 0:
+		return {"成功": false, "原因": "无毒傀儡"}
+	var 战力削弱: int = int(目标战力 * 0.1)  # 毒傀儡降低敌人10%战力
+	# 毒傀儡施毒代价：正道声望-2，魔道声望+1（毒傀儡被动施毒，代价较小）
+	增加阵营声望("正道宗门", -2)
+	增加阵营声望("魔道邪宗", 1)
+	添加纪事("毒道", "毒傀儡施毒", "毒傀儡战前施放毒素，敌人战力削弱%d，毒伤%d。" % [战力削弱, 毒伤], 2)
+	return {"成功": true, "毒伤": 毒伤, "战力削弱": 战力削弱}
+
 func 已解锁道途() -> Array:
 
 	var 候选: Array = ["道修", "体修", "法修"]
@@ -13051,14 +22969,14 @@ func 推进孵化(日数: int):
 			已孵.append(e)
 	for e in 已孵:
 		灵兽蛋列表.erase(e)
-		灵兽库存.append(e)
+		灵兽管理系统.灵兽库存.append(e)
 		_记录图录(e.种类名, "御兽")   # WAVE-D #6：孵化即收录妖兽图录（匹配名 = 灵兽种类名）
 	if 已孵.size() > 0:
 		战报更新.emit(文案表["beast_eggs_hatched"] % [已孵.size()])
 # T03 引育计划队列：周期结算遍历启用条目，灵石足够则拨付经：按偏好生成兽卵入孵化列表
 func 处理兑换队列():
 
-	for 条目 in 灵兽兑换队列:
+	for 条目 in 灵兽管理系统.灵兽兑换队列:
 		if not 条目.get("启用", false):
 			continue
 		var 消耗: int = 条目.get("cost", 0)
@@ -13078,271 +22996,77 @@ func 处理兑换队列():
 #   故在此收敛为 3 ：typed + 带守卫的方法。返回值统一为「可直接展示的中文结果文案」，
 #   与同区既有的 绑定灵兽给指定弟子) / 解绑灵兽() 返回 String 的约定保持一致：
 # 边界：main.gd ：R8 复用端口保持原样不动、不改写为调用本组方法；两条路径写的是同一：
-#   灵兽兑换队列，条目结构同：{偏好: Dictionary, cost: int, 启用: bool}，语义完全一致：
+# ============ 灵兽管理系统（已拆分到beast_management_system.gd，此处为转发函数）============
 func 灵兽兑换_新增(偏好: Dictionary, 经费: int) -> String:
-
-	if 经费 <= 0:
-		return "引育计划拨付经费须为正数"
-	# 偏好可能来自调用方的 const 表（Godot 4 常量为只读），必须深拷贝后再入队：
-	# 否则后续存档/读档 ：条目改写会撞：read-only Dictionary：
-	灵兽兑换队列.append({"偏好": 偏好.duplicate(true), "cost": 经费, "启用": true})
-	return "已添加引育计划（单次拨付 %d 灵石）" % [经费]
+	return 灵兽管理系统.灵兽兑换_新增(偏好, 经费)
 func 灵兽兑换_启停(序号: int) -> String:
-
-	if 序号 < 0 or 序号 >= 灵兽兑换队列.size():
-		return "引育计划序号越界，操作已忽略"
-	var 条目: Dictionary = 灵兽兑换队列[序号]
-	var 新增: bool = not bool(条目.get("启用", false))
-	条目["启用"] = 新增
-	return "引育计划%s" % ("启用" if 新增 else "停用")
+	return 灵兽管理系统.灵兽兑换_启停(序号)
 func 灵兽兑换_删除(序号: int) -> String:
-
-	if 序号 < 0 or 序号 >= 灵兽兑换队列.size():
-		return "引育计划序号越界，操作已忽略"
-	灵兽兑换队列.remove_at(序号)
-	return "已删除该引育计划"
-# 获取所有灵兽列表（包含库存和出战）
+	return 灵兽管理系统.灵兽兑换_删除(序号)
 func 获取所有灵兽列表() -> Array:
-	var 灵兽列表 = []
-	# 库存灵兽
-	for 兽 in 灵兽库存:
-		if 兽 != null and not 兽.孵化中:
-			灵兽列表.append({
-				"种类名": 兽.种类名,
-				"品阶": 兽.品阶,
-				"类型": 兽.类型,
-				"等级": 兽.等级,
-				"等级上限": 兽.等级上限,
-				"忠诚": 兽.忠诚,
-				"状态": "库存",
-				"战力": 兽.战力,
-			})
-	# 出战灵兽（主宠和副宠）
-	for d in 弟子列表:
-		if d != null:
-			if d.主宠灵兽 != null and not d.主宠灵兽.孵化中:
-				灵兽列表.append({
-					"种类名": d.主宠灵兽.种类名,
-					"品阶": d.主宠灵兽.品阶,
-					"类型": d.主宠灵兽.类型,
-					"等级": d.主宠灵兽.等级,
-					"等级上限": d.主宠灵兽.等级上限,
-					"忠诚": d.主宠灵兽.忠诚,
-					"状态": "主宠（%s）" % d.姓名,
-					"战力": d.主宠灵兽.战力,
-				})
-			if d.副宠灵兽 != null and not d.副宠灵兽.孵化中:
-				灵兽列表.append({
-					"种类名": d.副宠灵兽.种类名,
-					"品阶": d.副宠灵兽.品阶,
-					"类型": d.副宠灵兽.类型,
-					"等级": d.副宠灵兽.等级,
-					"等级上限": d.副宠灵兽.等级上限,
-					"忠诚": d.副宠灵兽.忠诚,
-					"状态": "副宠（%s）" % d.姓名,
-					"战力": d.副宠灵兽.战力,
-				})
-	return 灵兽列表
-
-# 获取灵兽统计
+	return 灵兽管理系统.获取所有灵兽列表()
 func 获取灵兽统计() -> Dictionary:
-	var 库存数 = 灵兽库存.size()
-	var 孵化中数 = 灵兽蛋列表.size()
-	var 出战数 = 0
-	var 总战力 = 0
-	var 平均等级 = 0
-	var 等级总和 = 0
-	for 兽 in 灵兽库存:
-		if 兽 != null and not 兽.孵化中:
-			总战力 += 兽.战力
-			等级总和 += 兽.等级
-	for d in 弟子列表:
-		if d != null:
-			if d.主宠灵兽 != null and not d.主宠灵兽.孵化中:
-				出战数 += 1
-				总战力 += d.主宠灵兽.战力
-				等级总和 += d.主宠灵兽.等级
-			if d.副宠灵兽 != null and not d.副宠灵兽.孵化中:
-				出战数 += 1
-				总战力 += d.副宠灵兽.战力
-				等级总和 += d.副宠灵兽.等级
-	var 总数 = 库存数 + 出战数
-	if 总数 > 0:
-		平均等级 = int(等级总和 / 总数)
-	return {
-		"库存数": 库存数,
-		"孵化中数": 孵化中数,
-		"出战数": 出战数,
-		"总数": 总数,
-		"总战力": 总战力,
-		"平均等级": 平均等级,
-	}
-
-# 一键培养所有库存灵兽（提升等级和忠诚）
+	return 灵兽管理系统.获取灵兽统计()
 func 一键培养灵兽() -> Dictionary:
-	var 培养数量 = 0
-	var 消耗灵石 = 0
-	for 兽 in 灵兽库存:
-		if 兽 != null and not 兽.孵化中:
-			if 兽.等级 < 兽.等级上限:
-				var 消耗 = 100 * 兽.等级
-				if 灵石 >= 消耗:
-					灵石 -= 消耗
-					兽.等级 = min(兽.等级 + 1, 兽.等级上限)
-					兽.忠诚 = min(兽.忠诚 + 5, 100)
-					消耗灵石 += 消耗
-					培养数量 += 1
-	添加纪事("庶务", "一键培养灵兽", "培养了%d只灵兽，消耗%d灵石" % [培养数量, 消耗灵石], 1)
-	return {"成功": 培养数量 > 0, "培养数量": 培养数量, "消耗灵石": 消耗灵石, "消息": "一键培养完成，培养了%d只灵兽" % 培养数量}
-
-# 灵兽技能配置
-const 灵兽技能配置: Dictionary = {
-	"攻击": [
-		{"技能名": "撕咬", "描述": "对敌人造成150%攻击伤害", "解锁等级": 1},
-		{"技能名": "猛扑", "描述": "对敌人造成200%攻击伤害，有30%概率眩晕", "解锁等级": 5},
-		{"技能名": "狂暴", "描述": "进入狂暴状态，攻击力提升50%，持续3回合", "解锁等级": 10},
-	],
-	"防御": [
-		{"技能名": "硬壳", "描述": "受到的伤害减少20%", "解锁等级": 1},
-		{"技能名": "反击", "描述": "受到攻击时有30%概率反击", "解锁等级": 5},
-		{"技能名": "铁壁", "描述": "进入防御姿态，受到的伤害减少50%，持续2回合", "解锁等级": 10},
-	],
-	"辅助": [
-		{"技能名": "治愈", "描述": "恢复主人10%生命值", "解锁等级": 1},
-		{"技能名": "净化", "描述": "清除主人身上的负面状态", "解锁等级": 5},
-		{"技能名": "祝福", "描述": "提升主人全属性10%，持续3回合", "解锁等级": 10},
-	],
-	"速度": [
-		{"技能名": "迅捷", "描述": "提升主人速度10%", "解锁等级": 1},
-		{"技能名": "闪避", "描述": "主人有20%概率闪避攻击", "解锁等级": 5},
-		{"技能名": "疾风", "描述": "主人速度提升30%，持续2回合", "解锁等级": 10},
-	],
-}
-
-# 获取灵兽可学习的技能列表
+	return 灵兽管理系统.一键培养灵兽()
 func 获取灵兽技能列表(灵兽类型: String, 灵兽等级: int) -> Array:
-	var 技能列表 = []
-	var 类型技能 = 灵兽技能配置.get(灵兽类型, [])
-	for 技能 in 类型技能:
-		if 灵兽等级 >= int(技能.get("解锁等级", 1)):
-			技能列表.append({
-				"技能名": 技能.get("技能名", ""),
-				"描述": 技能.get("描述", ""),
-				"解锁等级": 技能.get("解锁等级", 1),
-				"已解锁": true,
-			})
-		else:
-			技能列表.append({
-				"技能名": 技能.get("技能名", ""),
-				"描述": 技能.get("描述", ""),
-				"解锁等级": 技能.get("解锁等级", 1),
-				"已解锁": false,
-			})
-	return 技能列表
-
-# 灵兽进化（提升品阶）
+	return 灵兽管理系统.获取灵兽技能列表(灵兽类型, 灵兽等级)
 func 灵兽进化(灵兽索引: int) -> Dictionary:
-	if 灵兽索引 < 0 or 灵兽索引 >= 灵兽库存.size():
-		return {"成功": false, "原因": "灵兽不存在"}
-	var 兽 = 灵兽库存[灵兽索引]
-	if 兽 == null or 兽.孵化中:
-		return {"成功": false, "原因": "灵兽未孵化"}
-	var 品阶列表 = ["凡品", "灵品", "宝品", "仙品", "神品"]
-	var 当前品阶索引 = 品阶列表.find(兽.品阶)
-	if 当前品阶索引 < 0 or 当前品阶索引 >= 品阶列表.size() - 1:
-		return {"成功": false, "原因": "灵兽已达最高品阶"}
-	if 兽.等级 < 兽.等级上限:
-		return {"成功": false, "原因": "灵兽等级未达上限（需%d级）" % 兽.等级上限}
-	var 消耗灵石 = 5000 * (当前品阶索引 + 1)
-	var 消耗灵草 = 100 * (当前品阶索引 + 1)
-	if 灵石 < 消耗灵石:
-		return {"成功": false, "原因": "灵石不足（需%d灵石）" % 消耗灵石}
-	if 灵草 < 消耗灵草:
-		return {"成功": false, "原因": "灵草不足（需%d灵草）" % 消耗灵草}
-	灵石 -= 消耗灵石
-	灵草 -= 消耗灵草
-	var 新品阶 = 品阶列表[当前品阶索引 + 1]
-	兽.品阶 = 新品阶
-	兽.等级上限 = min(兽.等级上限 + 5, 50)
-	兽.等级 = 1
-	添加纪事("庶务", "灵兽进化", "%s进化为%s，等级上限提升到%d" % [兽.种类名, 新品阶, 兽.等级上限], 1)
-	return {"成功": true, "灵兽": 兽, "新品阶": 新品阶, "消耗灵石": 消耗灵石, "消耗灵草": 消耗灵草, "消息": "%s进化成功" % 兽.种类名}
-
-# 获取灵兽进化消耗
+	var 结果: Dictionary = 灵兽管理系统.灵兽进化(灵兽索引)
+	# 旧实现在本层做过「推演条目 + 成就复检」两个副作用，而 灵兽管理系统 内部只写纪事。
+	# 迁移为转发后由本层补齐，否则灵兽进化不再进推演面板、也不再触发相关成就。
+	if bool(结果.get("成功", false)):
+		var 兽 = 结果.get("灵兽", null)
+		var 兽名: String = str(兽.种类名) if 兽 != null else "灵兽"
+		_加推演条目("【灵兽进化】%s进化成功，品阶提升至%s！" % [兽名, 结果.get("新品阶显示", "")], ET_SECT, PRIO_HIGH, {})
+		_复检成就()
+	return 结果
 func 获取灵兽进化消耗(灵兽索引: int) -> Dictionary:
-	if 灵兽索引 < 0 or 灵兽索引 >= 灵兽库存.size():
-		return {}
-	var 兽 = 灵兽库存[灵兽索引]
-	if 兽 == null:
-		return {}
-	var 品阶列表 = ["凡品", "灵品", "宝品", "仙品", "神品"]
-	var 当前品阶索引 = 品阶列表.find(兽.品阶)
-	return {
-		"当前品阶": 兽.品阶,
-		"当前等级": 兽.等级,
-		"等级上限": 兽.等级上限,
-		"是否可进化": 兽.等级 >= 兽.等级上限 and 当前品阶索引 >= 0 and 当前品阶索引 < 品阶列表.size() - 1,
-		"进化消耗灵石": 5000 * (当前品阶索引 + 1) if 当前品阶索引 >= 0 else 0,
-		"进化消耗灵草": 100 * (当前品阶索引 + 1) if 当前品阶索引 >= 0 else 0,
-		"进化后品阶": 品阶列表[当前品阶索引 + 1] if 当前品阶索引 >= 0 and 当前品阶索引 < 品阶列表.size() - 1 else "最高品阶",
-		"进化后等级上限": min(兽.等级上限 + 5, 50),
-	}
-
-# T13+T14 出战灵兽月度养成：出：：副宠)+1：封顶上限)、忠：2(封顶100)；库存灵兽忠：1(地板0)
+	return 灵兽管理系统.获取灵兽进化消耗(灵兽索引)
 func 出战灵兽月度养成():
-
-	for d in 弟子列表:
-		for 兽 in [d.主宠灵兽, d.副宠灵兽]:
-			if 兽== null or 兽.孵化中:
-				continue
-			兽.等级 = min(兽.等级 + 1, 兽.等级上限)
-			兽.忠诚 = min(兽.忠诚 + 2, 100)
-	for 兽 in 灵兽库存:
-		if 兽.孵化中:
-			continue
-		兽.忠诚 = max(兽.忠诚 - 1, 0)
+	灵兽管理系统.出战灵兽月度养成()
 func 绑定灵兽给首只合体(灵兽: Beast) -> String:
-
-	for d in 弟子列表:
-		if d.主宠灵兽 != null:
-			continue
-		if (d.资质 == "fan_su" or d.资质 == "pingyong") and not (灵兽.品阶 in ["fan_jie", "ling_jie"]):
-			continue
-		return 绑定灵兽给指定弟子(灵兽, d)
-	return 文案表["beast_no_bindable"]
+	return 灵兽管理系统.绑定灵兽给首只合体(灵兽)
 func 绑定灵兽给指定弟子(灵兽: Beast, 弟子: Disciple, 槽位: String = "主宠") -> String:
-
-	if 槽位 == "副宠" and 弟子.副宠灵兽 != null:
-		return "%s】已绑定副宠灵兽" % [弟子.姓名]
-	if 槽位 != "副宠" and 弟子.主宠灵兽 != null:
-		return "%s】已绑定主宠灵兽" % [弟子.姓名]
-	if (弟子.资质 == "fan_su" or 弟子.资质 == "pingyong") and not (灵兽.品阶 in ["fan_jie", "ling_jie"]):
-		return "%s】资质过低，仅能携带灵阶灵兽" % [弟子.姓名]
-	if 槽位 == "副宠":
-		弟子.副宠灵兽 = 灵兽
-		灵兽.设为副宠()
-	else:
-		弟子.主宠灵兽 = 灵兽
-		灵兽.设为主宠()
-	灵兽库存.erase(灵兽)
-	弟子变动.emit()
-	return "%s】已绑定灵兽%s】（%s）" % [弟子.姓名, 灵兽.种类名, Beast.类型中文.get(灵兽.beast_type, "")]
-# 解绑灵兽（P0-3 双槽：卸下主：副宠，灵兽返回御兽堂库存，可重新绑定：
+	return 灵兽管理系统.绑定灵兽给指定弟子(灵兽, 弟子, 槽位)
 func 解绑灵兽(弟子: Disciple, 槽位: String) -> String:
+	return 灵兽管理系统.解绑灵兽(弟子, 槽位)
 
-	var 兽: Beast = null
-	if 槽位 == "副宠":
-		兽= 弟子.副宠灵兽
-		弟子.副宠灵兽 = null
-	else:
-		兽= 弟子.主宠灵兽
-		弟子.主宠灵兽 = null
-	if 兽!= null:
-		兽.取消出战()
-		if not 灵兽库存.has(兽):
-			灵兽库存.append(兽)
-	弟子变动.emit()
-	return 文案表["beast_contract_released"] % [弟子.姓名, ("副宠" if 槽位 == "副宠" else "主宠")]
+# ============ 天才陨落传承机制（情感缓冲：天才弟子死亡留下传承，减轻玩家损失感）============
+## 天才弟子陨落时留下传承（功法心得/修炼资源/本命法宝）
+func _天才陨落传承(d: Disciple) -> void:
+	if d == null:
+		return
+	var 传承物品: Array = []
+	# 1. 留下功法心得（根据已学功法数量）
+	if d.已学功法.size() > 0:
+		var 心得数量: int = min(2, d.已学功法.size())
+		for i in range(心得数量):
+			var 功法ID: String = str(d.已学功法[i])
+			# 创建功法心得物品
+			var 心得: Dictionary = {
+				"名称": "%s的功法心得" % d.姓名,
+				"类别": "传承",
+				"品阶": "宝品",
+				"描述": "%s坐化前留下的功法心得，记载其毕生修炼感悟，研读可增进修为。" % d.姓名,
+				"功法ID": 功法ID
+			}
+			传承物品.append(心得)
+	# 2. 留下修炼资源（根据境界）
+	var 境界序: int = Disciple.境界序.find(str(d.境界))
+	var 灵石数量: int = (境界序 + 1) * 500
+	灵石 += 灵石数量
+	# 3. 留下悟道点
+	var 悟道点数量: int = (境界序 + 1) * 100
+	悟道点 += 悟道点数量
+	# 4. 加入传承物品到库房
+	for it in 传承物品:
+		宗门库房.append(it)
+	# 5. 推演条目通知
+	_加推演条目("【天才陨落】%s冲击大道失败，陨落道消。临终前留下毕生传承：功法心得%d部、灵石%d、悟道点%d，尽数归入宗门，以遗后人。" % [d.姓名, 传承物品.size(), 灵石数量, 悟道点数量], ET_SECT, PRIO_HIGH, {"弟子": d.姓名})
+	# 6. 宗门史馆弹窗
+	AchievementPopup.show_achievement("天才陨落", "%s 陨落留传承" % str(d.姓名), "%s坐化前留下毕生传承，功法心得与修炼资源尽数归入宗门，永受后人瞻仰。" % str(d.姓名), Color(0.8, 0.6, 0.2))
+
 # ============ 终局机制 P0：寿元坐化============
 # 寿元耗尽弟子离场：灵兽解绑归御兽堂、装：背包归宗门库房、按身份分档写纪事、从现役移除：
 # P0 不含延寿/丹毒/传承（留 P1/P2）；单月坐化数量兜底，避免界：数据洪峰：
@@ -13361,14 +23085,14 @@ func 处理坐化(名单: Array[Disciple]):
 			var 兽: Beast = d.主宠灵兽
 			d.主宠灵兽 = null
 			兽.取消出战()
-			if not 灵兽库存.has(兽):
-				灵兽库存.append(兽)
+			if not 灵兽管理系统.灵兽库存.has(兽):
+				灵兽管理系统.灵兽库存.append(兽)
 		if d.副宠灵兽 != null:
 			var 兽: Beast = d.副宠灵兽
 			d.副宠灵兽 = null
 			兽.取消出战()
-			if not 灵兽库存.has(兽):
-				灵兽库存.append(兽)
+			if not 灵兽管理系统.灵兽库存.has(兽):
+				灵兽管理系统.灵兽库存.append(兽)
 		# 装备/背包归还宗门库房
 		for it in d.装备.values():
 			宗门库房.append(it)
@@ -13376,11 +23100,20 @@ func 处理坐化(名单: Array[Disciple]):
 		for it in d.背包:
 			宗门库房.append(it)
 		d.背包.clear()
+		# §4.0 弟子自主层：清理遗物时起获暗藏私货 —— 随坐化归还宗门（避免物品随人永久蒸发）
+		if d.私库.size() > 0:
+			var 私藏数: int = d.私库.size()
+			for it in d.私库:
+				宗门库房.append(it)
+			d.私库.clear()
+			添加纪事("私藏", "遗物起获", "清理%s遗物时，于其储物法宝中起获私藏 %d 件，尽数归入宗门库房" % [str(d.姓名), 私藏数], 1)
 		# 先贤祠入册（坐化弟子静态档案：复制字段，不持有 Disciple 引用，防悬空；EC-2/EC-4：
 		先贤堂.append({
 			"弟子ID": d.弟子ID, "姓名": d.姓名, "境界": d.境界,
 			"坐化日": 累计游戏日, "事迹摘要": _坐化纪事文案(d)
 		})
+		# S55：宗门史馆入册弹窗
+		AchievementPopup.show_achievement("宗门史馆", "%s 入册先贤堂" % str(d.姓名), "%s 坐化，事迹载入宗门史册，永受后人瞻仰。" % str(d.姓名), Color(0.6, 0.4, 0.2))
 		# 纪事入册（按身份分档： 先贤缅怀分类（R1：填充「先贤缅怀」Tab：
 		宗门纪事.append({"日期": 累计游戏日, "弟子": d.姓名, "弟子ID": d.弟子ID, "名称": "坐化", "文案": _坐化纪事文案(d), "category": "先贤缅怀"})
 		_加推演条目("%s】寿元耗尽，坐化于山门" % [d.姓名], ET_SECT, PRIO_NORMAL, {"弟子": d.姓名})
@@ -13388,6 +23121,7 @@ func 处理坐化(名单: Array[Disciple]):
 			_传承事件("首位长老飞升")   # WAVE-D #8：长老坐：：先贤事迹图录 + 事件型里程碑
 		_复检里程碑()                      # WAVE-D #8：弟：长老状态变化复检
 		_复检成就()                              # S1 ：：弟：长老变化后按境：灵根/掌门境界补达成成：
+		_断链_师父离场(d.弟子ID)   # S29：师父坐化/陨落 → 徒弟弟子失师
 		弟子列表.erase(d)
 # 坐化纪事文案（史官视角，按身：境界分档；变量全部取自真实属性，禁止写死：
 func _坐化纪事文案(d: Disciple) -> String:
@@ -13404,21 +23138,641 @@ func _坐化纪事文案(d: Disciple) -> String:
 		return 文案表["disciple_demise_core"] % [d.姓名, d.境界, 寿终, 寿终, 偏科注]
 	else:
 		return 文案表["disciple_demise_plain"] % [d.姓名, 寿终, 寿终, 偏科注]
+# ============ 弟子自主层：所得归属（私藏 / 查抄）============
+
+## §4.0 弟子自主层：弟子按 目标/性格/心境 自主决定所得是上报宗门还是瞒报私藏。
+##   私藏不产生纪事、不入待抉择队列——玩家只见「私藏件数」，不知具体品名，须「查抄」方可揭晓。
+##   容量是硬闸门：储物法宝藏满了就藏不住，只能老实上报。
+func _弟子是否私藏(d: Disciple, it: Item) -> bool:
+	if d == null or it == null:
+		return false
+	if str(d.状态) != "在宗":
+		return false
+	if d.私库.size() >= d.私库容量上限():
+		return false   # 储物法宝已满，藏不下 → 只能上报
+	return randf() < Goal.弟子私藏率(d)
+
+
+## 私藏入库：从背包（获得物品已先入背包）移入私库，玩家视角就此「消失」
+func _弟子私藏入库(d: Disciple, it: Item) -> void:
+	if d == null or it == null:
+		return
+	if d.背包.has(it):
+		d.背包.erase(it)
+	d.私库.append(it)
+	d.私藏次数 += 1
+
+
+## 查抄：没收弟子私库全部私藏——撕破脸的代价（心境 -30 + 积怨推高叛离，数月方平）
+##   设计取「重罚」：查抄不是常规的资源回收手段，是要掂量人才损失的决定。
+##   积怨 +4 且每月 -1（见 _检查叛离）→ 约 3 个月高危期：当月 ×2.8、次月 ×2.2、再次 ×1.6
+func 查抄弟子(d: Disciple) -> Dictionary:
+	if d == null:
+		return {"成功": false, "原因": "查无此人"}
+	if str(d.状态) != "在宗":
+		return {"成功": false, "原因": "%s 已不在宗门，无从查抄" % str(d.姓名)}
+	if d.私库.is_empty():
+		return {"成功": false, "原因": "%s 的储物法宝中空无一物，查无所获" % str(d.姓名)}
+	var 没收数: int = 0
+	var 品名: Array = []
+	for it in d.私库:
+		if it == null:
+			continue
+		品名.append(str(it.名称))
+		宗门库房.append(it)
+		没收数 += 1
+	d.私库.clear()
+	var 旧心境: int = int(d.心境)
+	d.心境 = max(0, 旧心境 - 30)
+	d.查抄积怨 += 4
+	添加纪事("私藏", "查抄私库", "%s 私藏 %d 件之物被宗主查抄没收（%s），其心大恸，心境 %d → %d" % [str(d.姓名), 没收数, "、".join(品名), 旧心境, int(d.心境)], 2)
+	弟子变动.emit()
+	return {"成功": true, "没收": 没收数, "物品": 品名, "心境": int(d.心境)}
+
+# ============ S27 宗门任务榜：发布 / 接取 / 请命 ============
+
+## 玩家挂榜。报酬品阶留空=按模板标准档；可压档（省钱但冷清）或加档（热门但割肉）。
+func 发布宗门任务(模板ID: String, 报酬品阶: String = "") -> Dictionary:
+	var 模板: Dictionary = SectBounty.取模板(模板ID)
+	if 模板.is_empty():
+		return {"成功": false, "原因": "无此任务模板"}
+	var 实给: String = 报酬品阶 if 报酬品阶 != "" else SectBounty.标准报酬品阶(模板)
+	宗门任务计数器 += 1
+	var tid: String = "sb_%d" % 宗门任务计数器
+	宗门任务榜[tid] = {
+		"任务ID": tid,
+		"模板ID": 模板ID,
+		"任务名": str(模板.get("bounty_name", "")),
+		"类型": str(模板.get("bounty_type", "collect")),
+		"难度": SectBounty.难度(模板),
+		"报酬品阶": 实给,
+		"要求数量": SectBounty.要求数量(模板),
+		"接取弟子ID": -1,
+		"发布日": int(累计游戏日),
+		"状态": "招募中",
+	}
+	添加纪事("任务", "宗门挂榜", "宗门挂出【%s】（%s·难度%d），酬以%s之物，静待弟子接取" % [
+		str(模板.get("bounty_name", "")), SectBounty.类型名(str(模板.get("bounty_type", ""))),
+		SectBounty.难度(模板), 实给], 1)
+	return {"成功": true, "任务ID": tid}
+
+
+## 撤销尚未被接取的任务（已被接取则不可撤，避免弟子白跑）
+func 撤销宗门任务(任务ID: String) -> Dictionary:
+	if not 宗门任务榜.has(任务ID):
+		return {"成功": false, "原因": "任务不存在"}
+	var 任务: Dictionary = 宗门任务榜[任务ID]
+	if str(任务.get("状态", "")) != "招募中":
+		return {"成功": false, "原因": "已被接取，不可撤销"}
+	宗门任务榜.erase(任务ID)
+	return {"成功": true}
+
+
+## 月度挂点：弟子自主接取；榜上无合意任务则据主目标主动请命
+func _弟子任务榜月度(d: Disciple) -> void:
+	if d == null:
+		return
+	# 已有任务在身则不再接取
+	for iid in 宗门任务进行中:
+		var 实: Dictionary = 宗门任务进行中[iid]
+		if int(实.get("弟子ID", -1)) == int(d.弟子ID):
+			return
+	if 宗门任务榜.is_empty():
+		return
+	# 1. 自主接取：取所有招募中任务里意愿最高者
+	var 最佳ID: String = ""
+	var 最佳分: float = 0.0
+	for tid in 宗门任务榜:
+		var 任务: Dictionary = 宗门任务榜[tid]
+		if str(任务.get("状态", "")) != "招募中":
+			continue
+		var 模板: Dictionary = SectBounty.取模板(str(任务.get("模板ID", "")))
+		if 模板.is_empty():
+			continue
+		var 分: float = SectBounty.接取意愿(d, 模板, str(任务.get("报酬品阶", "")))
+		if 分 > 最佳分:
+			最佳分 = 分
+			最佳ID = tid
+	if 最佳ID != "" and 最佳分 >= SectBounty.接取意愿阈值 and randf() < 最佳分:
+		_接取宗门任务(最佳ID, d)
+		return
+	# 2. 榜上无合意任务 → 主动请命（8%/月，避免刷屏）
+	if randf() < 0.08:
+		_生成请命(d)
+
+
+## 弟子接取任务（内部）：从榜单移入进行中
+func _接取宗门任务(任务ID: String, d: Disciple) -> void:
+	var 任务: Dictionary = 宗门任务榜.get(任务ID, {})
+	if 任务.is_empty() or d == null:
+		return
+	var 模板: Dictionary = SectBounty.取模板(str(任务.get("模板ID", "")))
+	if 模板.is_empty():
+		return
+	任务["接取弟子ID"] = int(d.弟子ID)
+	任务["状态"] = "执行中"
+	宗门任务计数器 += 1
+	var iid: String = "sbrun_%d" % 宗门任务计数器
+	宗门任务进行中[iid] = {
+		"实例ID": iid,
+		"任务ID": 任务ID,
+		"弟子ID": int(d.弟子ID),
+		"模板ID": str(任务.get("模板ID", "")),
+		"报酬品阶": str(任务.get("报酬品阶", "")),
+		"开始游戏日": int(累计游戏日),
+		"预计结束游戏日": int(累计游戏日) + SectBounty.耗时(模板),
+	}
+	宗门任务榜.erase(任务ID)
+	添加纪事("任务", "弟子接取", "【%s】主动接下【%s】，约 %d 日可归" % [
+		str(d.姓名), str(任务.get("任务名", "")), SectBounty.耗时(模板)], 1)
+
+
+## 据主目标生成请命（内部）
+func _生成请命(d: Disciple) -> void:
+	if d == null:
+		return
+	# 同一弟子不重复请命
+	for q in 弟子请命列表:
+		if int(q.get("弟子ID", -1)) == int(d.弟子ID):
+			return
+	# 上限 10 条，避免刷屏
+	if 弟子请命列表.size() >= 10:
+		return
+	var 建议: Dictionary = SectBounty.请命建议(d)
+	if 建议.is_empty():
+		return
+	建议["弟子ID"] = int(d.弟子ID)
+	建议["弟子名"] = str(d.姓名)
+	建议["发布日"] = int(累计游戏日)
+	弟子请命列表.append(建议)
+
+
+## 批准请命：立即发榜并接取（弟子已在候命，不再掷骰）
+func 批准请命(索引: int) -> Dictionary:
+	if 索引 < 0 or 索引 >= 弟子请命列表.size():
+		return {"成功": false, "原因": "请命不存在"}
+	var q: Dictionary = 弟子请命列表[索引]
+	var d: Object = _取弟子(int(q.get("弟子ID", -1)))
+	if d == null:
+		弟子请命列表.remove_at(索引)
+		return {"成功": false, "原因": "弟子已不在宗"}
+	for iid in 宗门任务进行中:
+		var 实: Dictionary = 宗门任务进行中[iid]
+		if int(实.get("弟子ID", -1)) == int(d.弟子ID):
+			弟子请命列表.remove_at(索引)
+			return {"成功": false, "原因": "%s 已有任务在身" % str(d.姓名)}
+	var 发榜: Dictionary = 发布宗门任务(str(q.get("模板ID", "")))
+	if not bool(发榜.get("成功", false)):
+		弟子请命列表.remove_at(索引)
+		return 发榜
+	_接取宗门任务(str(发榜.get("任务ID", "")), d)
+	弟子请命列表.remove_at(索引)
+	添加纪事("任务", "准其所请", "宗主准【%s】所请，遣其往办【%s】" % [
+		str(d.姓名), str(q.get("任务名", ""))], 1)
+	return {"成功": true}
+
+
+## 驳回请命：其志难伸，心境 -3
+func 驳回请命(索引: int) -> Dictionary:
+	if 索引 < 0 or 索引 >= 弟子请命列表.size():
+		return {"成功": false, "原因": "请命不存在"}
+	var q: Dictionary = 弟子请命列表[索引]
+	var d: Object = _取弟子(int(q.get("弟子ID", -1)))
+	弟子请命列表.remove_at(索引)
+	if d != null:
+		d.心境 = max(0, int(d.心境) - 3)
+		添加纪事("任务", "驳其所请", "宗主驳【%s】所请，其志难伸，心境 -3" % str(d.姓名), 1)
+	return {"成功": true}
+
+
+# ============ S27 宗门任务榜：结算 ============
+
+## 到期任务结算（月度推演调用，与商队共用挂点）
+func _结算到期宗门任务() -> void:
+	if 宗门任务进行中.is_empty():
+		return
+	var 今日: int = int(累计游戏日)
+	var 到期: Array = []
+	for iid in 宗门任务进行中:
+		var 实: Dictionary = 宗门任务进行中[iid]
+		if int(实.get("预计结束游戏日", 0)) <= 今日:
+			到期.append(iid)
+	for iid in 到期:
+		_结算单个宗门任务(str(iid))
+
+
+func _结算单个宗门任务(实例ID: String) -> void:
+	var 实: Dictionary = 宗门任务进行中.get(实例ID, {})
+	if 实.is_empty():
+		return
+	宗门任务进行中.erase(实例ID)
+	var 模板: Dictionary = SectBounty.取模板(str(实.get("模板ID", "")))
+	if 模板.is_empty():
+		return
+	var d: Object = _取弟子(int(实.get("弟子ID", -1)))
+	if d == null:
+		return
+	# 弟子已非在宗（陨落/叛出/失踪）则任务作废
+	if str(d.状态) != "在宗":
+		return
+	var 类型: String = str(模板.get("bounty_type", "collect"))
+	var 难度: int = SectBounty.难度(模板)
+	var 报酬品阶: String = str(实.get("报酬品阶", ""))
+	if 类型 == "collect":
+		_结算征缴(d, 模板, 报酬品阶)
+	else:
+		_结算清剿或寻访(d, 模板, 报酬品阶, 类型, 难度)
+
+
+## 征缴结算：先扣背包（弟子保住私藏的第一选择），不足则动私库——私藏由此暴露
+func _结算征缴(d: Object, 模板: Dictionary, 报酬品阶: String) -> void:
+	var 需: int = SectBounty.要求数量(模板)
+	var 已交: Array = []
+	已交.append_array(_从容器扣物(d.背包, 需))
+	var 动私库: int = 0
+	if 已交.size() < 需:
+		var 缺: int = 需 - 已交.size()
+		var 自私库: Array = _从容器扣物(d.私库, 缺)
+		动私库 = 自私库.size()
+		已交.append_array(自私库)
+	if 已交.size() < 需:
+		添加纪事("任务", "征缴未足", "【%s】筹措不足，仅得 %d/%d，征缴之命未能达成" % [
+			str(d.姓名), 已交.size(), 需], 1)
+		return
+	for it in 已交:
+		宗门库房.append(it)
+	var 报酬: Object = _拨付任务报酬(d, 报酬品阶)
+	if 动私库 > 0:
+		添加纪事("任务", "私藏外露", "【%s】为完征缴之命，不得已取出私藏 %d 件充数——其所匿之物，宗门已尽知" % [
+			str(d.姓名), 动私库], 2)
+	添加纪事("任务", "征缴完成", "【%s】缴物 %d 件入库，宗门酬以 %s" % [
+		str(d.姓名), 已交.size(), (str(报酬.名称) if 报酬 != null else "无物可酬")], 1)
+
+
+## 清剿 / 寻访结算：按战力比定成败，难度≥4 另赐保命护身
+func _结算清剿或寻访(d: Object, 模板: Dictionary, 报酬品阶: String, 类型: String, 难度: int) -> void:
+	var 战力: int = int(d.战力)
+	var 需战力: int = SectBounty.要求战力(模板)
+	var 率: float = clamp(float(战力) / float(max(需战力, 1)) * 0.70, 0.15, 0.95)
+	if randf() >= 率:
+		var 伤: int = 难度 * 2
+		d.受伤剩余 = max(int(d.受伤剩余), 伤)
+		添加纪事("任务", "任务失利", "【%s】往办【%s】失利，负伤而归（养伤 %d 日）" % [
+			str(d.姓名), str(模板.get("bounty_name", "")), 伤], 2)
+		return
+	var 报酬: Object = _拨付任务报酬(d, 报酬品阶)
+	var 额外: String = ""
+	if 难度 >= 4:
+		d.保命护身 += 1
+		额外 = "，另赐保命护身一枚"
+	添加纪事("任务", "%s完成" % SectBounty.类型名(类型), "【%s】办妥【%s】，宗门酬以 %s%s" % [
+		str(d.姓名), str(模板.get("bounty_name", "")),
+		(str(报酬.名称) if 报酬 != null else "无物可酬"), 额外], 2)
+
+
+## 从容器（背包/私库）按品阶从低到高扣 N 件，返回被扣物品（原容器原地修改）
+func _从容器扣物(容器: Array, 数量: int) -> Array:
+	var 出: Array = []
+	if 数量 <= 0 or 容器 == null:
+		return 出
+	var 序: Array = Item.品阶序
+	for _n in range(数量):
+		var 最低: Object = null
+		var 最低档: int = 999
+		for it in 容器:
+			if it == null or not (it is Item):
+				continue
+			var 档: int = 序.find(str(it.品阶))
+			if 档 < 0:
+				档 = 0
+			if 档 < 最低档:
+				最低档 = 档
+				最低 = it
+		if 最低 == null:
+			break
+		容器.erase(最低)
+		出.append(最低)
+	return 出
+
+
+# ============ S28 宗门悬赏榜：发布 / 接单 / 结算 ============
+
+## 悬赏目标物类别（修真世界观常见材料）
+const 悬赏目标类别: Array = ["灵草", "矿石", "妖兽材料", "丹药", "符箓", "功法", "法宝", "灵兽", "特殊物品"]
+
+## 计算悬赏评级（S/A/B/C，基于需求价值和奖励价值）
+func _计算悬赏评级(需求数量: int, 奖励数量: int, 奖励类型: String) -> String:
+	# 奖励价值换算（灵石为基准）
+	var 奖励价值: float = float(奖励数量)
+	if 奖励类型 == "贡献点":
+		奖励价值 = float(奖励数量) * 10.0  # 1贡献点=10灵石
+	# 综合价值 = 需求数量 × 奖励价值 / 100（归一化）
+	var 综合价值: float = float(需求数量) * 奖励价值 / 100.0
+	if 综合价值 >= 500:
+		return "S"
+	elif 综合价值 >= 100:
+		return "A"
+	elif 综合价值 >= 20:
+		return "B"
+	else:
+		return "C"
+
+## 发布悬赏（玩家自由指定目标物和奖励）
+## 参数：目标物类别、目标物名称、需求数量、奖励类型（灵石/贡献点/物品）、奖励数量、有效期（游戏日）、奖励物品名称（物品类型时必填）
+func 发布悬赏(目标物类别: String, 目标物名称: String, 需求数量: int, 奖励类型: String = "灵石", 奖励数量: int = 100, 有效期: int = 30, 奖励物品名称: String = "") -> Dictionary:
+	if 目标物类别 == "" or 目标物名称 == "":
+		return {"成功": false, "原因": "目标物不能为空"}
+	if 需求数量 <= 0:
+		return {"成功": false, "原因": "需求数量必须大于0"}
+	if 奖励数量 <= 0:
+		return {"成功": false, "原因": "奖励数量必须大于0"}
+	# 检查宗门是否有足够奖励（灵石类型）
+	if 奖励类型 == "灵石" and 灵石 < 奖励数量:
+		return {"成功": false, "原因": "宗门灵石不足，无法发布悬赏"}
+	# 物品奖励：检查库房是否有该物品
+	if 奖励类型 == "物品":
+		if 奖励物品名称 == "":
+			return {"成功": false, "原因": "物品奖励需指定物品名称"}
+		var 找到: bool = false
+		for it in 宗门库房:
+			if it != null and it is Item and str(it.名称) == 奖励物品名称:
+				找到 = true
+				break
+		if not 找到:
+			return {"成功": false, "原因": "宗门库房中没有【%s】" % 奖励物品名称}
+	# 扣除奖励（先暂扣，完成后发给弟子，过期退还）
+	if 奖励类型 == "灵石":
+		灵石 -= 奖励数量
+	elif 奖励类型 == "物品":
+		# 从库房移除物品暂扣
+		for i in range(宗门库房.size()):
+			var it = 宗门库房[i]
+			if it != null and it is Item and str(it.名称) == 奖励物品名称:
+				宗门库房.remove_at(i)
+				break
+	宗门悬赏计数器 += 1
+	var 悬赏ID: String = "bounty_%d" % 宗门悬赏计数器
+	# 计算悬赏评级（S/A/B/C，基于需求价值和奖励价值）
+	var 评级: String = _计算悬赏评级(需求数量, 奖励数量, 奖励类型)
+	宗门悬赏榜[悬赏ID] = {
+		"悬赏ID": 悬赏ID,
+		"目标物类别": 目标物类别,
+		"目标物名称": 目标物名称,
+		"需求数量": 需求数量,
+		"已收集": 0,
+		"奖励类型": 奖励类型,
+		"奖励数量": 奖励数量,
+		"奖励物品名称": 奖励物品名称,
+		"评级": 评级,
+		"接取弟子ID": -1,
+		"发布日": int(累计游戏日),
+		"有效期": 有效期,
+		"状态": "招募中",
+	}
+	添加纪事("悬赏", "发布悬赏", "宗门发布悬赏：求购%s×%d，酬%s×%d，有效期%d日。" % [目标物名称, 需求数量, 奖励类型, 奖励数量, 有效期], 1)
+	return {"成功": true, "悬赏ID": 悬赏ID}
+
+## 撤销悬赏（未被接取时可撤销，退还奖励）
+func 撤销悬赏(悬赏ID: String) -> Dictionary:
+	if not 宗门悬赏榜.has(悬赏ID):
+		return {"成功": false, "原因": "悬赏不存在"}
+	var 悬赏: Dictionary = 宗门悬赏榜[悬赏ID]
+	if str(悬赏.get("状态", "")) != "招募中":
+		return {"成功": false, "原因": "悬赏已被接取，不可撤销"}
+	# 退还奖励
+	if str(悬赏.get("奖励类型", "")) == "灵石":
+		灵石 += int(悬赏.get("奖励数量", 0))
+	宗门悬赏榜.erase(悬赏ID)
+	添加纪事("悬赏", "撤销悬赏", "撤销悬赏【%s】，奖励已退还。" % str(悬赏.get("目标物名称", "")), 1)
+	return {"成功": true}
+
+## 月度挂点：弟子自主接取悬赏
+func _弟子悬赏月度(d: Disciple) -> void:
+	if d == null:
+		return
+	# 已有悬赏在身则不再接取
+	for bid in 宗门悬赏榜:
+		var 悬赏: Dictionary = 宗门悬赏榜[bid]
+		if int(悬赏.get("接取弟子ID", -1)) == int(d.弟子ID):
+			return
+	if 宗门悬赏榜.is_empty():
+		return
+	# 找意愿最高的悬赏
+	var 最佳ID: String = ""
+	var 最佳分: float = 0.0
+	for bid in 宗门悬赏榜:
+		var 悬赏: Dictionary = 宗门悬赏榜[bid]
+		if str(悬赏.get("状态", "")) != "招募中":
+			continue
+		# 意愿计算：奖励越高越愿意，难度越高越谨慎
+		var 奖励: float = float(悬赏.get("奖励数量", 0))
+		var 需求: float = float(悬赏.get("需求数量", 1))
+		var 意愿: float = clamp(奖励 / (需求 * 50.0), 0.1, 0.9)
+		# 评级加成：S级悬赏弟子更愿意接（高回报高声望）
+		var 评级: String = str(悬赏.get("评级", "C"))
+		var 评级加成: float = 1.0
+		match 评级:
+			"S": 评级加成 = 1.5
+			"A": 评级加成 = 1.3
+			"B": 评级加成 = 1.1
+			"C": 评级加成 = 1.0
+		意愿 *= 评级加成
+		# 弟子目标修正：求财者更愿意
+		var 目标: String = Goal.弟子目标(d)
+		if 目标 == "积累财富" or 目标 == "证道飞升":
+			意愿 *= 1.3
+		if 目标 == "清静无为" or 目标 == "逍遥世间":
+			意愿 *= 0.6
+		# 战力修正：战力高者更敢接
+		var 战力比: float = float(d.战力) / 1000.0
+		意愿 *= clamp(0.5 + 战力比 * 0.3, 0.5, 1.5)
+		if 意愿 > 最佳分:
+			最佳分 = 意愿
+			最佳ID = bid
+	if 最佳ID != "" and randf() < 最佳分:
+		_接取悬赏(最佳ID, d)
+
+## 弟子接取悬赏（内部）
+func _接取悬赏(悬赏ID: String, d: Disciple) -> void:
+	var 悬赏: Dictionary = 宗门悬赏榜.get(悬赏ID, {})
+	if 悬赏.is_empty() or d == null:
+		return
+	悬赏["接取弟子ID"] = int(d.弟子ID)
+	悬赏["状态"] = "进行中"
+	添加纪事("悬赏", "接取悬赏", "%s接取悬赏【%s×%d】，承诺%d日内完成。" % [d.姓名, str(悬赏.get("目标物名称", "")), int(悬赏.get("需求数量", 0)), int(悬赏.get("有效期", 30))], 1)
+
+## 月度结算：检查悬赏完成/过期
+func _结算到期悬赏() -> void:
+	if 宗门悬赏榜.is_empty():
+		return
+	var 今日: int = int(累计游戏日)
+	var 到期: Array = []
+	for bid in 宗门悬赏榜:
+		var 悬赏: Dictionary = 宗门悬赏榜[bid]
+		var 发布日: int = int(悬赏.get("发布日", 0))
+		var 有效期: int = int(悬赏.get("有效期", 30))
+		if 今日 >= 发布日 + 有效期:
+			到期.append(bid)
+	for bid in 到期:
+		_结算单个悬赏(bid)
+
+## 结算单个悬赏（完成/过期）
+func _结算单个悬赏(悬赏ID: String) -> void:
+	var 悬赏: Dictionary = 宗门悬赏榜.get(悬赏ID, {})
+	if 悬赏.is_empty():
+		return
+	var 已收集: int = int(悬赏.get("已收集", 0))
+	var 需求: int = int(悬赏.get("需求数量", 0))
+	var 弟子ID: int = int(悬赏.get("接取弟子ID", -1))
+	var d: Object = _取弟子(弟子ID) if 弟子ID >= 0 else null
+	if 已收集 >= 需求 and d != null:
+		# 完成：发放奖励
+		var 奖励类型: String = str(悬赏.get("奖励类型", ""))
+		var 奖励数量: int = int(悬赏.get("奖励数量", 0))
+		var 评级: String = str(悬赏.get("评级", "C"))
+		if 奖励类型 == "灵石":
+			# 奖励已暂扣，直接发给弟子
+			d.私库灵石 += 奖励数量
+		elif 奖励类型 == "贡献点":
+			d.贡献点 += 奖励数量
+		elif 奖励类型 == "物品":
+			# 物品奖励：创建物品实例发给弟子
+			var 物品名: String = str(悬赏.get("奖励物品名称", ""))
+			if 物品名 != "":
+				var 奖励物: Item = Item.new()
+				奖励物.名称 = 物品名
+				奖励物.品阶 = "宝阶"
+				奖励物.类型 = "奖励物品"
+				d.获得物品(奖励物)
+		# 评级额外奖励：S/A级悬赏完成后额外加声望
+		var 额外声望: int = 0
+		match 评级:
+			"S": 额外声望 = 10
+			"A": 额外声望 = 5
+			"B": 额外声望 = 2
+		if 额外声望 > 0:
+			声望 += 额外声望
+		添加纪事("悬赏", "悬赏完成", "%s完成%s级悬赏【%s×%d】，获得%s×%d，宗门声望+%d！" % [str(d.姓名), 评级, str(悬赏.get("目标物名称", "")), 需求, 奖励类型, 奖励数量, 额外声望], 2)
+	else:
+		# 未完成/过期：退还奖励给宗门
+		if str(悬赏.get("奖励类型", "")) == "灵石":
+			灵石 += int(悬赏.get("奖励数量", 0))
+		elif str(悬赏.get("奖励类型", "")) == "物品":
+			# 物品奖励退还库房
+			var 物品名: String = str(悬赏.get("奖励物品名称", ""))
+			if 物品名 != "":
+				var 退还物: Item = Item.new()
+				退还物.名称 = 物品名
+				退还物.品阶 = "宝阶"
+				退还物.类型 = "奖励物品"
+				宗门库房.append(退还物)
+		if d != null:
+			添加纪事("悬赏", "悬赏过期", "%s未能在期限内完成悬赏【%s】，悬赏作废。" % [str(d.姓名), str(悬赏.get("目标物名称", ""))], 2)
+		else:
+			添加纪事("悬赏", "悬赏过期", "悬赏【%s】无人接取，已过期作废，奖励退还。" % str(悬赏.get("目标物名称", "")), 1)
+	宗门悬赏榜.erase(悬赏ID)
+
+## 弟子上交悬赏物品（历练回来后调用）
+func 上交悬赏物品(弟子ID: int, 物品名称: String, 数量: int) -> Dictionary:
+	var d: Object = _取弟子(弟子ID)
+	if d == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	# 查找该弟子接取的悬赏
+	for bid in 宗门悬赏榜:
+		var 悬赏: Dictionary = 宗门悬赏榜[bid]
+		if int(悬赏.get("接取弟子ID", -1)) != 弟子ID:
+			continue
+		if str(悬赏.get("目标物名称", "")) != 物品名称:
+			continue
+		var 需求: int = int(悬赏.get("需求数量", 0))
+		var 已收集: int = int(悬赏.get("已收集", 0))
+		var 实际上交: int = min(数量, 需求 - 已收集)
+		悬赏["已收集"] = 已收集 + 实际上交
+		# 物品入宗门库房
+		for i in range(实际上交):
+			var it: Item = Item.new()
+			it.名称 = 物品名称
+			it.品阶 = "凡阶"
+			it.类型 = str(悬赏.get("目标物类别", "材料"))
+			宗门库房.append(it)
+		if 悬赏["已收集"] >= 需求:
+			# 立即结算
+			_结算单个悬赏(bid)
+		return {"成功": true, "上交": 实际上交, "进度": "%d/%d" % [int(悬赏["已收集"]), 需求]}
+	return {"成功": false, "原因": "未找到匹配的悬赏"}
+
+## 从宗门库房拨一件该品阶之物进弟子背包（优先挑战力加成最低者，宗门不拿重宝当常酬）
+## 库房混有 Item 与 Dictionary（存档按类型分流），故必须 is Item 防御
+func _拨付任务报酬(d: Object, 报酬品阶: String) -> Object:
+	if d == null or 报酬品阶 == "":
+		return null
+	var 候选: Array = []
+	for it in 宗门库房:
+		if it == null or not (it is Item):
+			continue
+		if str(it.品阶) == 报酬品阶:
+			候选.append(it)
+	if 候选.is_empty():
+		return null
+	var 最优: Object = 候选[0]
+	for it in 候选:
+		if int(it.战力加成) < int(最优.战力加成):
+			最优 = it
+	宗门库房.erase(最优)
+	d.背包.append(最优)
+	return 最优
+
+
+## UI 读取：进行中的任务（含进度，供展示）
+func 取宗门任务进行中() -> Array:
+	var 出: Array = []
+	for iid in 宗门任务进行中:
+		var 实: Dictionary = 宗门任务进行中[iid]
+		var 模板: Dictionary = SectBounty.取模板(str(实.get("模板ID", "")))
+		var d: Object = _取弟子(int(实.get("弟子ID", -1)))
+		var 总: int = max(SectBounty.耗时(模板), 1)
+		var 已过: int = int(累计游戏日) - int(实.get("开始游戏日", 0))
+		出.append({
+			"实例ID": str(iid),
+			"任务名": str(模板.get("bounty_name", "")),
+			"类型": SectBounty.类型名(str(模板.get("bounty_type", ""))),
+			"难度": SectBounty.难度(模板),
+			"弟子名": (str(d.姓名) if d != null else "—"),
+			"进度": clamp(float(已过) / float(总), 0.0, 1.0),
+			"剩余日": max(int(实.get("预计结束游戏日", 0)) - int(累计游戏日), 0),
+			"报酬品阶": str(实.get("报酬品阶", "")),
+		})
+	return 出
+
+
 # ============ 交宗 / 自留 ============
 func 交宗(条目: Dictionary):
 
 	var 弟子: Disciple = 条目["弟子"]
 	var 物品: Item = 条目["物品"]
 	var 贡献: int = {"凡阶": 10, "灵阶": 20, "宝阶": 40, "王阶": 80, "圣阶": 150, "仙阶": 300, "道阶": 600}.get(物品.品阶, 10)
+	# S28：交宗不再是白送——个人功勋账户记七成，公中（宗门池）留三成（公中至少 1）
+	# 旧行为：贡献点全进宗门池，弟子本人得 0，而「自留」零惩罚 → 交宗是严格劣势选项
+	var 入账: int = int(round(float(贡献) * ContributionShop.交宗个人占比))
+	var 公中: int = max(1, 贡献 - 入账)
+	var 已交: bool = false
 	if 弟子.背包.has(物品):
 		弟子.背包.erase(物品)
-		贡献点+= 贡献
+		已交 = true
 	elif 弟子.装备.has(物品.穿戴位) and 弟子.装备[物品.穿戴位] == 物品:
 		弟子.装备.erase(物品.穿戴位)
-		贡献点+= 贡献
+		已交 = true
+	if 已交:
+		弟子.贡献账户 += 入账
+		贡献点 += 公中
+		# 旧行为：交宗之物凭空消失，库房收不到货 → 功勋堂无货可兑
+		宗门库房.append(物品)
 	移除待抉择条目(条目)
 	弟子变动.emit()
-	战报更新.emit("%s】将%s】交予宗门，换得贡献点+%d" % [弟子.姓名, 物品.名称, 贡献])
+	if 已交:
+		战报更新.emit("%s】将%s】交予宗门，功勋入账 +%d（公中 +%d）" % [弟子.姓名, 物品.名称, 入账, 公中])
+	else:
+		战报更新.emit("%s】欲将%s】交予宗门，然遍寻不见此物" % [弟子.姓名, 物品.名称])
 func 自留(条目: Dictionary):
 
 	var 弟子: Disciple = 条目["弟子"]
@@ -13432,6 +23786,69 @@ func 移除待抉择条目(条目: Dictionary):
 		if 待抉择[i] == 条目:
 			待抉择.remove_at(i)
 			return
+# ============ S28 宗门功勋堂：个人贡献账户 / 交宗返还 / 兑换出口 ============
+# 闭环：历练所得 → 交宗（七成入个人账户、三成入公中、实物入库房）
+#       → 功勋堂按类别×品阶定价兑换（弟子月度自主 + 玩家代兑）
+# 修的是「交宗 = 严格劣势选项」这个根本逻辑洞：弟子交出宝物本人颗粒无收，自留却零惩罚。
+
+## 弟子以个人功勋兑换宗门库藏中的一件物品（价格见 config/contribution_shop.csv）
+func 弟子兑换(弟子ID: int, 物) -> Dictionary:
+	var 目标 = _取弟子(弟子ID)
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if 目标.状态 != "在宗":
+		return {"成功": false, "原因": "%s 不在宗中，不可兑换" % 目标.姓名}
+	if not (物 is Item):
+		return {"成功": false, "原因": "非库藏物品"}
+	var 价: int = ContributionShop.兑换价(物.类别, 物.品阶)
+	if 价 <= 0:
+		return {"成功": false, "原因": "%s 无定价，不可兑换" % 物.名称}
+	if 目标.贡献账户 < 价:
+		return {"成功": false, "原因": "个人功勋不足（现有%d，需%d）" % [目标.贡献账户, 价]}
+	if not 宗门库房.has(物):
+		return {"成功": false, "原因": "库藏中已无此物"}
+	目标.贡献账户 -= 价
+	宗门库房.erase(物)
+	目标.获得物品(物)
+	添加纪事("功勋", "库藏兑换", "%s 以 %d 功勋自库藏兑下 %s" % [目标.姓名, 价, 物.名称], 1)
+	弟子变动.emit()
+	return {"成功": true, "弟子": 目标.姓名, "物品": 物.名称, "消耗功勋": 价, "余功勋": 目标.贡献账户}
+
+## 弟子以个人功勋兑换保命护身（一条命，非库藏物品，价 5000）
+func 弟子兑换保命(弟子ID: int, 数量: int = 1) -> Dictionary:
+	var 目标 = _取弟子(弟子ID)
+	if 目标 == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if 目标.状态 == "陨落":
+		return {"成功": false, "原因": "%s 已陨落，无需保命道具" % 目标.姓名}
+	var 价: int = ContributionShop.保命价() * 数量
+	if 价 <= 0 or 数量 <= 0:
+		return {"成功": false, "原因": "兑换数量有误"}
+	if 目标.贡献账户 < 价:
+		return {"成功": false, "原因": "个人功勋不足（现有%d，需%d）" % [目标.贡献账户, 价]}
+	目标.贡献账户 -= 价
+	目标.保命护身 += 数量
+	添加纪事("功勋", "兑换保命", "%s 以个人功勋%d兑下保命护身%d枚" % [目标.姓名, 价, 数量], 1)
+	弟子变动.emit()
+	return {"成功": true, "弟子": 目标.姓名, "发放": 数量, "消耗功勋": 价, "当前保命护身": 目标.保命护身, "余功勋": 目标.贡献账户}
+
+## 月度：弟子自主消费个人功勋（每月至多兑一件，且留得住余额、不掏空库藏）
+func _弟子兑换月度(d: Disciple) -> void:
+	if d == null or d.状态 != "在宗":
+		return
+	var 候选: Array = ContributionShop.自主候选(d, 宗门库房)
+	if 候选.is_empty():
+		return
+	var 条目: Dictionary = 候选[0]
+	if randf() >= ContributionShop.兑换意愿(d, 条目):
+		return
+	if str(条目.get("类别", "")) == "护身":
+		弟子兑换保命(d.弟子ID, 1)
+		return
+	var 物 = 条目.get("物品", null)
+	if 物 is Item:
+		弟子兑换(d.弟子ID, 物)
+
 # ============ 存档 / 读档 ============
 # ============ 多账号系统（v1：本地多存档分身 + 登录/选择/增删：===========
 # 不升 SAVE_VERSION；存档结构不变，仅改寻址为按账号 id（user://profiles/<id>/save.json）：
@@ -13559,37 +23976,50 @@ func save_game():
 
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
-		"lingshi": 灵石, "lingcao": 灵草, "kuangshi": 矿石, "lingqi": 灵气, "lingjing": 灵晶, "gongxian": 贡献点,
+		"lingshi": 灵石, "lingcao": 灵草, "lingcao_bainian": 灵草_百年, "lingcao_qiannian": 灵草_千年, "lingcao_wannian": 灵草_万年, "自创功法列表": 自创功法列表, "自创功法总数": 自创功法总数, "藏经阁功法列表": 藏经阁功法列表, "kuangshi": 矿石, "lingqi": 灵气, "lingjing": 灵晶, "gongxian": 贡献点, "精铁": 精铁, "玄铁": 玄铁, "庚金": 庚金, "紫晶": 紫晶, "星辰铁": 星辰铁, "太阳精金": 太阳精金, "灵品灵草": 灵品灵草, "宝品灵草": 宝品灵草, "王品灵草": 王品灵草, "圣品灵草": 圣品灵草, "仙品灵草": 仙品灵草, "妖兽内丹": 妖兽内丹, "妖兽精血": 妖兽精血, "妖兽骨": 妖兽骨, "妖兽皮": 妖兽皮, "妖兽筋": 妖兽筋, "妖兽爪": 妖兽爪, "妖兽毛": 妖兽毛, "灵木": 灵木, "灵蚕丝": 灵蚕丝, "灵禽羽": 灵禽羽, "灵马尾": 灵马尾, "玉石": 玉石,
 		"仙玉_绑定": 仙玉_绑定, "仙玉_非绑定": 仙玉_非绑定,
 		"付费增益值": 付费增益值, "历练额外次数": 历练额外次数,  # S1-4 付费状态持久化（旧档缺键→默认0）
 		"改名卡数量": 改名卡数量,  # S1 新增：宗主改名消耗品（不升SAVE_VERSION，旧档缺键→默认0：
-		"dizi": [], "lingshou_dan": [], "lingshou_kucun": [], "lingshou_duilie": 灵兽兑换队列,
+		"dizi": [], "lingshou_dan": [], "lingshou_kucun": [], "lingshou_duilie": 灵兽管理系统.灵兽兑换队列,
 		"累计游戏日": 累计游戏日, "最后登录": 最后登录, "门派等级": 门派等级, "声望": 声望, "繁荣": 繁荣, "繁荣经营值": 繁荣经营值, "当前皮肤": 当前皮肤,
-		"香火值": 香火值, "信徒数": 信徒数, "凡人城镇": 凡人城镇, "香火月产预估": 香火月产预估, "信徒增益档": 信徒增益档,
+		"香火值": 香火值, "信徒数": 信徒数, "凡人城镇": 王朝系统.凡人城镇, "香火日产预估": 香火日产预估, "信徒增益档": 信徒增益档,
 		# 开宗捏脸（不升 SAVE_VERSION，旧档缺键→默认零回归）
 		"宗门": 宗门名, "宗主名": 宗主名, "宗主性别": 宗主性别, "宗主头像": 宗主头像,
+		# 称号系统：宗主称号（旧档缺键→默认空）
+		"宗主当前称号": 宗主当前称号, "宗主已获得称号": 宗主已获得称号,
 		# 头像选择系统 + 三类渠道计数：充值状态（不升 SAVE_VERSION，旧档缺键→默认零回归；头像框系统已：2026-08-21 取消：
 		"已解锁头像": 已解锁头像,
 		"奇遇完成总数": 奇遇完成总数, "高级奇遇完成数": 高级奇遇完成数, "已首充": 已首充, "累充额": 累充额,
-		"邮件列表": 邮件列表,   # 灵讯（邮件）系统（不升SAVE_VERSION，旧档缺键→默认[]，零回归：
-		"玄榜虚拟宗门": 玄榜虚拟宗门,   # 玄榜（排行榜）：虚拟对手宗门（不升SAVE_VERSION，旧档缺键→默认[]，零回归：
-		"碎片库存": 碎片库存,   # 碎片合成系统（不升SAVE_VERSION，旧档缺键→默认{}，零回归：
-		"宝箱库存": 宝箱库存,   # 宝箱系统（不升SAVE_VERSION，旧档缺键→默认{}，零回归：
+		"邮件系统.邮件列表": 邮件系统.邮件列表,   # 灵讯（邮件）系统（不升SAVE_VERSION，旧档缺键→默认[]，零回归：
+		"消息系统": 消息系统.to_dict(),   # S56 修真世界消息系统（不升SAVE_VERSION，旧档缺键→默认空）
+		"世界地图系统": 世界地图系统.to_dict(),   # S58 世界地图系统（不升SAVE_VERSION，旧档缺键→默认空）
+		"闭关嘱托": 闭关嘱托.to_dict(),   # S59 闭关嘱托系统（不升SAVE_VERSION，旧档缺键→默认空）
+		"传讯系统.待处理传讯": 待处理传讯,   # 实时传讯系统（不升SAVE_VERSION，旧档缺键→默认[]，零回归）
+		"传讯系统.传讯历史": 传讯历史,   # 传讯历史记录（不升SAVE_VERSION，旧档缺键→默认[]，零回归）
+		"庆典系统.论道大会冷却": 论道大会冷却,   # 论道大会冷却（不升SAVE_VERSION，旧档缺键→默认0，零回归）
+		"庆典系统.祭祖大典年份": _祭祖大典年份标记,   # 祭祖大典年份标记（不升SAVE_VERSION，旧档缺键→默认-1，零回归）
+		"玄榜系统.玄榜虚拟宗门": 玄榜系统.玄榜虚拟宗门,   # 玄榜（排行榜）：虚拟对手宗门（不升SAVE_VERSION，旧档缺键→默认[]，零回归：
+		"碎片宝箱系统.碎片库存": 碎片宝箱系统.碎片库存,   # 碎片合成系统（不升SAVE_VERSION，旧档缺键→默认{}，零回归：
+		"碎片宝箱系统.宝箱库存": 碎片宝箱系统.宝箱库存,   # 宝箱系统（不升SAVE_VERSION，旧档缺键→默认{}，零回归：
 		"辈分字派": 辈分字派, "门规严格度": 门规严格度, "正邪路线": 正邪路线, "宗门大阵": 宗门大阵,
 		"功德": 功德, "业力": 业力, "愿力": 愿力,
 		"连锁进度": 连锁进度,   # P3：连锁链进度（旧档缺键→默认空 dict 回归）
-		"设置": 设置项, "道友列表": _道友列表, "道友消息": _道友消息,   # 设置/本地道友（不升SAVE_VERSION，旧档缺键→默认零回归）
+		"设置": 设置项, "道友列表": 道友系统._道友列表, "道友消息": 道友系统._道友消息,   # 设置/本地道友（不升SAVE_VERSION，旧档缺键→默认零回归）
 		# S1 ：：日供（不升 SAVE_VERSION，旧档缺键→默认零回归）
-		"日供最后领取日": 日供_最后领取日, "连续理事天数": 连续理事天数,
+		"日供最后领取日": 日供_最后领取日, "日供最后领取现实日": 日供_最后领取现实日, "连续理事天数": 连续理事天数,
 		"日供总领取次": 日供_总领取次数, "回溯玉符数量": 回溯玉符数量,
 		"司职负责人存档": 司职负责人存档, "司职状态存档": 司职状态存档, "引导阶段": 引导阶段,
 		"上次出战弟子": _上次出战弟子, "器殿赠宝连计": _器殿赠宝未中上阵连计,   # 器殿赠宝 P1 状态（不升 SAVE_VERSION，旧档缺键→默认零回归）
-		"体力": 体力, "已通关秘境": 已通关秘境, "精英每日次数": 精英每日次数,
+		"每日机缘": 每日机缘, "已通关秘境": 已通关秘境, "精英每日次数": 精英每日次数,
+		"护道人列表": 护道人列表, "护道人计数器": 护道人计数器, "护道玉符": 护道玉符, "护道续缘符": 护道续缘符, "功德玉牌": 功德玉牌, "气运符箓": 气运符箓, "替死玉符": 替死玉符,
+		"渡劫准备配置": 渡劫准备配置,   # 天劫渡劫外力预设（不升 SAVE_VERSION，旧档缺键→默认零配置）
+		"宗主观礼配置": 宗主观礼配置,   # S46 宗主观礼邀请配置（不升 SAVE_VERSION，旧档缺键→默认全开）
 		"气运修炼加成": 气运修炼加成, "气运产出加成": 气运产出加成, "气运到期日": 气运到期日,
-		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力,
+		"历史周期评级": 周期评分.历史, "上次结算年": 上次结算年, "年始灵石": 年始灵石, "年始总战力": 年始总战力, "年始宗主战力": 年始宗主战力, "年始宗主境界": 年始宗主境界, "活动上次重置日期": 活动上次重置日期, "活动上次重置周": 活动上次重置周, "活动积分": 活动积分, "连续参与天数": 连续参与天数, "上次参与现实日": 上次参与现实日, "历史总参与天数": 历史总参与天数,
 		"七载赏赐池": 七载赏赐池, "七载待发掉落": 七载待发掉落, "门派等级目标": 门派等级目标, "上次七载日": 上次七载日,
 		# S0 差事/商店系统（不升SAVE_VERSION：load ：.get 默认兼容老档：
 		"先贤堂": 先贤堂,   # WAVE-C #3：先贤祠静态档案（不升 SAVE_VERSION，旧档缺键→默认[]：
+		"祖师堂": 祖师堂, "飞升前兆队列": 飞升前兆队列, "散仙列表": 散仙列表, "化身列表": 化身列表,   # 飞升系统+化身系统（不升SAVE_VERSION，旧档缺键→默认[]）
 		# S1 赛季战令（功：/ 宗门令；不升 SAVE_VERSION，旧档缺键→默认零回归）
 		"战令_赛季": 战令_赛季, "战令_等级": 战令_等级, "战令_经验": 战令_经验,
 		"战令_已购付费": 战令_已购付费轨, "战令_已领免费": 战令_已领免费, "战令_已领付费": 战令_已领付费,
@@ -13597,14 +24027,20 @@ func save_game():
 		"图录_已收集": 收藏图录_已收集, "产出池加成": 产出池加成,
 		"里程碑_已达成": 里程碑_已达成, "捐赠记录": 捐赠记录, "传承史册": 传承史册,
 		# S1 ：：成就系统（不升 SAVE_VERSION：load ：.get 默认空数组，老档零回归）
-		"成就_已达成": 成就_已达成,
+		"成就系统.成就_已达成": 成就系统.成就_已达成,
 		"kucun": [], "fangshi": 坊市购买记录, "fs_list": 坊市上架集,
+		# S27 宗门任务榜（4 键，与 load 严格对称）
+		"sect_bounty": 宗门任务榜, "sect_bounty_run": 宗门任务进行中,
+		"sect_bounty_petition": 弟子请命列表, "sect_bounty_seq": 宗门任务计数器,
 		"fangshi_leibie": 坊市类别月购, "fangshi_month_start": 坊市月购窗口起始日,
 		"fangshi_buyback": 坊市回购列表, "fangshi_tehui": 坊市每日特惠, "fangshi_tehui_day": 坊市特惠卡,
 		"daily": {"当前": 当前日常, "已领": 日常已领, "上次日常日": 上次日常日, "上次日常真实秒": 上次日常真实秒, "计数": 日常计数},
 		"weekly": {"当前": 当前周常, "已领": 周常已领, "上次周常日": 上次周常日, "上次周常真实秒": 上次周常真实秒, "计数": 周常计数},
 		"main_done": 主线已完成,
 		"policy": 方针,
+		# 灵兽方针（喂养/培养）：不升SAVE_VERSION，旧档缺键→默认零回归
+		"beast_policy": {"喂养": 灵兽喂养方针, "培养": 灵兽培养方针},
+		"daily_policy": 日常方针,
 		"memorials": 待决奏折,
 		"randcd": 随机事件冷却, "rtypecd": 随机事件类型冷却, "qcd": quest_cooldown,
 		"newbie_active": 新手目标链激活, "newbie_done": 新手完成列表,
@@ -13613,33 +24049,108 @@ func save_game():
 		"已拥有弟子皮肤": 已拥有弟子皮肤,
 		# 历练派遣系统（不升SAVE_VERSION，旧档缺键→默认零回归）
 		"历练系统": ExpeditionSystem.to_dict() if ExpeditionSystem != null else {},
-		# §11.15 商路贸易：商队状态持久化（旧档缺键→默认零回归，不升SAVE_VERSION）
-		"商队列表": 商队列表, "商队历史": 商队历史, "商队地区": 商队地区,
-		"商路声望": 商路声望, "行情事件列表": 行情事件列表,
-		# §11.15 优化：现实时间贸易模型（每日配额/槽位，旧档缺键→默认零回归，不升SAVE_VERSION）
-		"商队每日已派": 商队每日已派, "上次配额日真实秒": 上次配额日真实秒,
-		# §11.20 修复：行情刷新按现实日节流（旧档缺键→默认零回归，不升SAVE_VERSION）
-		"上次行情日真实秒": 上次行情日真实秒,
-		# §11.15 阶段三：灵舟坞/黑市禁闭/商路竞争（旧档缺键→默认零回归，不升SAVE_VERSION）
-		"灵舟坞等级": 灵舟坞等级, "黑市禁闭日": 黑市禁闭日, "商路竞争状态": 商路竞争状态,
-		"灵舟库存": 灵舟库存, "灵舟坞建造中": 灵舟坞建造中, "灵舟建造队列": 灵舟建造队列, "虚空大阵冷却日": 虚空大阵冷却日,
+		# P0-2渡劫系统存档（不升SAVE_VERSION，旧档缺键→默认零回归）
+		"渡劫系统": Tribulation.to_dict() if Tribulation != null else {},
+		# P0-3炼丹系统存档（不升SAVE_VERSION，旧档缺键→默认零回归）
+		"炼丹系统": AlchemySystem.to_dict() if AlchemySystem != null else {},
+		# §11.15 商路贸易：商队系统状态持久化（已拆分到caravan_system.gd）
+		"商队系统": 商队系统.to_dict(),
+		"灵钓系统": 灵钓系统.to_dict(),
+		"探秘系统": 探秘系统.to_dict(),
+		"饲灵系统": 饲灵系统.to_dict(),
+		"卜算系统": 卜算系统.to_dict(),
+		"药圃系统": 药圃系统.to_dict(),
+		"论道系统": 论道系统.to_dict(),
+		# S34c 传送阵（不升SAVE_VERSION，旧档缺键→默认值）
+		"传送阵等级": 传送阵等级, "传送阵建造中": 传送阵建造中, "传送阵今日已用": 传送阵今日已用, "传送阵待机欠费": 传送阵待机欠费, "enable_teleport_system": enable_teleport_system,
+		"朝报": 朝报, "朝报未读": 朝报未读, "朝奏": 朝奏, "上次朝奏日": 上次朝奏日, "上次祥瑞日": 上次祥瑞日, "上次祥瑞日序号": 上次祥瑞日序号, "今日祥瑞数": 今日祥瑞数, "下次必降祥瑞": 下次必降祥瑞, "enable_dynasty_gazette": enable_dynasty_gazette,
+		# §11.15 优化#69/#72/#73/#74/#75 贸易拓展持久化（不升SAVE_VERSION）
+		"商队系统.累计贸易次数": 商队系统.累计贸易次数, "商队系统.累计贸易收益": 商队系统.累计贸易收益,
+		"宗门领地": 宗门领地,   # S31 宣战/领地战（不升SAVE_VERSION，旧档缺键→默认[]）
+		# S32 宣战周期化 / 战场功勋（不升SAVE_VERSION，旧档缺键→默认值）
+		"战功": 战功,
+		"赛季序号": 赛季序号,
+		"宣战周已用": 宣战周已用,
+		"本周宣战胜场": 本周宣战胜场,
+		"赛季累计战功": 赛季累计战功,
+		"上次宣战周真实秒": 上次宣战周真实秒,
+		"上次赛季真实秒": 上次赛季真实秒,
+		"战功道具库存": 战功道具库存,
+		# S33-5 阵营战役（不升SAVE_VERSION，旧档缺键→默认值）
+		"阵营战役周已用": 阵营战役周已用,
+		"阵营战役战绩": 阵营战役战绩,
+		# S34 凡人王朝（不升SAVE_VERSION，旧档缺键→兜底）
+		"王朝": 王朝系统.王朝,
+		"凡间差事榜": 王朝系统.凡间差事榜,
+		"凡间差事进行中": 王朝系统.凡间差事进行中,
+		"郡县状态": 王朝系统.郡县状态,
+		"香火庙": 香火庙, "郡信仰": 王朝系统.郡信仰, "enable_faith_system": enable_faith_system,   # S35-2
+		"誓约待批": 誓约待批, "万仙大誓": 万仙大誓, "誓约推进日": 誓约推进日,   # S36 心魔誓
+		"丹纹图谱": 丹纹系统.丹纹图谱, "丹纹日志": 丹纹系统.丹纹日志, "丹纹今日纪事": 丹纹系统.丹纹今日纪事, "丹纹纪事日": 丹纹系统.丹纹纪事日,   # S37 丹纹
+		"丹方熟练度": 丹方熟练度, "已领悟丹方": 已领悟丹方, "丹方领悟进度": 丹方领悟进度, "当前丹炉": 当前丹炉, "丹炉列表": 丹炉列表,
+		"符箓熟练度": 符箓熟练度, "当前符纸": 当前符纸,
+		"绘符经验值": 绘符经验值,
+		"符纹图谱": 符纹系统.符纹图谱, "符纹日志": 符纹系统.符纹日志, "符纹今日纪事": 符纹系统.符纹今日纪事, "符纹纪事日": 符纹系统.符纹纪事日,   # S45-4 符纹
+		"入赘名录": 王朝系统.入赘名录,
+		"外戚索要待决": 王朝系统.外戚索要待决,
+		# S34b 通用拍卖会（不升SAVE_VERSION，旧档缺键->默认{}）
+		"拍卖行系统": 拍卖行系统.to_dict(),
 		# v3 新增：阵营任务和商店系统（旧档缺键→默认零回归）
-		"阵营任务进度": 阵营任务进度,
-		"阵营商店购买记录": 阵营商店购买记录,
+		"阵营任务进度": 阵营声望系统.阵营任务进度,
+		"阵营商店购买记录": 阵营声望系统.阵营商店购买记录,
 		# v3 新增：道友互动系统（旧档缺键→默认零回归）
-		"结义道友列表": 结义道友列表,
-		"道友拜访冷却": 道友拜访冷却,
-		"道友切磋冷却": 道友切磋冷却,
+		"结义道友列表": 道友系统.结义道友列表,
+		"道友拜访冷却": 道友系统.道友拜访冷却,
+		"道友切磋冷却": 道友系统.道友切磋冷却,
 		# v3 新增：探索事件分支选择系统（旧档缺键→默认零回归）
 		"探索事件冷却": 探索事件冷却,
+		# 傀儡系统（已拆分到puppet_system.gd）
+		"傀儡系统": 傀儡系统.to_dict(),
+		# 藏书阁系统（已拆分到library_system.gd）
+		"藏书阁系统": 藏书阁系统.to_dict(),
+		# 阵法管理系统（已拆分到formation_system.gd）
+		"阵法管理系统": 阵法管理系统.to_dict(),
+		# 坐骑系统（已拆分到mount_system.gd）
+		"坐骑系统": 坐骑系统.to_dict(),
+		# 碎片宝箱系统（已拆分到fragment_chest_system.gd）
+		"碎片宝箱系统": 碎片宝箱系统.to_dict(),
+		# 邮件系统（已拆分到mail_system.gd）
+		"邮件系统": 邮件系统.to_dict(),
+		# 宗门科技系统（已拆分到sect_tech_system.gd）
+		"宗门科技系统": 宗门科技系统.to_dict(),
+		# 玄榜系统（已拆分到xuan_rank_system.gd）
+		"玄榜系统": 玄榜系统.to_dict(),
+		# 炼丹炼器封装系统（已拆分到alchemy_forge_system.gd）
+		"炼丹炼器系统": 炼丹炼器系统.to_dict(),
+		# 符箓系统封装（已拆分到talisman_system.gd）
+		"符箓封装系统": 符箓封装系统.to_dict(),
+		# 功法管理系统（已拆分到gongfa_management_system.gd）
+		"功法管理系统": 功法管理系统.to_dict(),
+		# 灵兽管理系统（已拆分到beast_management_system.gd）
+		"灵兽管理系统": 灵兽管理系统.to_dict(),
+		# 弟子突破系统（已拆分到breakthrough_system.gd，无状态变量）
+		"弟子突破系统": 弟子突破系统.to_dict(),
+		# 成就系统（已拆分到achievement_system.gd）
+		"成就系统": 成就系统.to_dict(),
+		# 休闲玩法：酿道/厨道/茶道/琴道（不升SAVE_VERSION，旧档缺键→默认1级/0经验）
+		"酿道等级": 酿道等级, "酿道经验": 酿道经验,
+		"厨道等级": 厨道等级, "厨道经验": 厨道经验,
+		"茶道等级": 茶道等级, "茶道经验": 茶道经验,
+		"琴道等级": 琴道等级, "琴道经验": 琴道经验,
+		"灵酿列表": 灵酿列表,
 	}
 	for it in 宗门库房:
-		data["kucun"].append(it.to_dict())
+		# S25 类型防御：库房原则上只装 Item；历史来源曾塞入裸 Dictionary（gongxun），
+		# 直接调 to_dict() 会令存档崩溃（Dictionary 无此方法）→ 按类型分流
+		if it is Item:
+			data["kucun"].append(it.to_dict())
+		elif typeof(it) == TYPE_DICTIONARY:
+			data["kucun"].append(it)
 	for d in 弟子列表:
 		data["dizi"].append(d.to_dict())
 	for e in 灵兽蛋列表:
 		data["lingshou_dan"].append(e.to_dict())
-	for b in 灵兽库存:
+	for b in 灵兽管理系统.灵兽库存:
 		data["lingshou_kucun"].append(b.to_dict())
 	# 存档安全：先写临时文件，校验后原子替换；写前滚动备份（按当前账号路径：
 	if 当前账号id == "":
@@ -13657,6 +24168,7 @@ func save_game():
 		push_error("存档失败：临时文件无法打开")
 		return
 	f.store_string(JSON.stringify(data))
+	更新在线时间戳()  # S3：保存时更新最后在线时间
 	f.close()
 	var da: DirAccess = DirAccess.open("user://")
 	var err: int = OK
@@ -13666,6 +24178,8 @@ func save_game():
 		push_error("存档失败：原子替换错：%d" % err)
 	更新账号摘要(当前账号id)
 func load_game(账号id: String = "") -> void:
+	# S2：旧档懒迁移宗主实体（读档后检查）
+	call_deferred("_迁移宗主实体")
 
 	if 账号id != "":
 		当前账号id = 账号id
@@ -13699,14 +24213,57 @@ func load_game(账号id: String = "") -> void:
 		_复检成就()   # S1 ：：损坏兜底按当前状态补达成成就
 		弟子变动.emit()
 		return
+	var _迁移后需存盘: bool = false
 	if data.get("version") if "version" in data else 0 != SAVE_VERSION:
 		push_warning("存档版本不一（%d），尝试兼容读取" % [data.get("version") if "version" in data else 0])
 		_版本升级备份(data.get("version") if "version" in data else 0)
 		# 存档迁移：处理旧版本的键名重命名和结构变更
 		data = _迁移存档(data, data.get("version") if "version" in data else 0)
+		_迁移后需存盘 = true
 	灵石 = data.get("lingshi") if "lingshi" in data else 0
 	灵草 = data.get("lingcao") if "lingcao" in data else 0
+	灵草_百年 = data.get("lingcao_bainian") if "lingcao_bainian" in data else 0
+	灵草_千年 = data.get("lingcao_qiannian") if "lingcao_qiannian" in data else 0
+	灵草_万年 = data.get("lingcao_wannian") if "lingcao_wannian" in data else 0
+	自创功法列表 = data.get("自创功法列表", []) if typeof(data.get("自创功法列表", [])) == TYPE_ARRAY else []
+	自创功法总数 = int(data.get("自创功法总数", 0))
+	藏经阁功法列表 = data.get("藏经阁功法列表", []) if typeof(data.get("藏经阁功法列表", [])) == TYPE_ARRAY else []
 	矿石 = data.get("kuangshi") if "kuangshi" in data else 0
+	精铁 = data.get("精铁") if "精铁" in data else 0
+	玄铁 = data.get("玄铁") if "玄铁" in data else 0
+	庚金 = data.get("庚金") if "庚金" in data else 0
+	紫晶 = data.get("紫晶") if "紫晶" in data else 0
+	星辰铁 = data.get("星辰铁") if "星辰铁" in data else 0
+	太阳精金 = data.get("太阳精金") if "太阳精金" in data else 0
+	灵品灵草 = data.get("灵品灵草") if "灵品灵草" in data else 0
+	宝品灵草 = data.get("宝品灵草") if "宝品灵草" in data else 0
+	王品灵草 = data.get("王品灵草") if "王品灵草" in data else 0
+	圣品灵草 = data.get("圣品灵草") if "圣品灵草" in data else 0
+	仙品灵草 = data.get("仙品灵草") if "仙品灵草" in data else 0
+	# 妖兽内丹/精血：旧档是数字（统一算一阶），新档是Dictionary按等阶
+	var _raw内丹 = data.get("妖兽内丹", 0)
+	var _raw精血 = data.get("妖兽精血", 0)
+	if typeof(_raw内丹) == TYPE_INT:
+		妖兽内丹 = {"一阶": int(_raw内丹), "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+	else:
+		妖兽内丹 = _raw内丹 if typeof(_raw内丹) == TYPE_DICTIONARY else {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+	if typeof(_raw精血) == TYPE_INT:
+		妖兽精血 = {"一阶": int(_raw精血), "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+	else:
+		妖兽精血 = _raw精血 if typeof(_raw精血) == TYPE_DICTIONARY else {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+	# 新材料（旧档缺键→默认0）
+	var _默认等阶: Dictionary = {"一阶": 0, "二阶": 0, "三阶": 0, "四阶": 0, "五阶": 0, "六阶": 0, "七阶": 0, "八阶": 0, "九阶": 0}
+	妖兽骨 = data.get("妖兽骨", _默认等阶.duplicate()) if typeof(data.get("妖兽骨", {})) == TYPE_DICTIONARY else _默认等阶.duplicate()
+	妖兽皮 = data.get("妖兽皮", _默认等阶.duplicate()) if typeof(data.get("妖兽皮", {})) == TYPE_DICTIONARY else _默认等阶.duplicate()
+	妖兽筋 = data.get("妖兽筋", _默认等阶.duplicate()) if typeof(data.get("妖兽筋", {})) == TYPE_DICTIONARY else _默认等阶.duplicate()
+	妖兽爪 = data.get("妖兽爪", _默认等阶.duplicate()) if typeof(data.get("妖兽爪", {})) == TYPE_DICTIONARY else _默认等阶.duplicate()
+	妖兽毛 = data.get("妖兽毛", _默认等阶.duplicate()) if typeof(data.get("妖兽毛", {})) == TYPE_DICTIONARY else _默认等阶.duplicate()
+	灵木 = int(data.get("灵木", 0))
+	灵蚕丝 = int(data.get("灵蚕丝", 0))
+	灵禽羽 = int(data.get("灵禽羽", 0))
+	灵马尾 = int(data.get("灵马尾", 0))
+	玉石 = int(data.get("玉石", 0))
+
 	灵晶 = data.get("lingjing") if "lingjing" in data else 0   # P0-3：灵晶持久化（旧档缺键→默认0）
 	灵气 = data.get("lingqi") if "lingqi" in data else 0
 	贡献点= data.get("gongxian") if "gongxian" in data else 0
@@ -13726,25 +24283,134 @@ func load_game(账号id: String = "") -> void:
 	# 历练派遣系统（旧档缺键→默认零回归，不升 SAVE_VERSION）
 	if ExpeditionSystem != null:
 		ExpeditionSystem.from_dict(data.get("历练系统") if "历练系统" in data else {})
-	# §11.15 商路贸易：商队状态持久化（旧档缺键→默认零回归，不升SAVE_VERSION）
-	商队列表 = data.get("商队列表") if "商队列表" in data else []
-	商队历史 = data.get("商队历史") if "商队历史" in data else []
-	商队地区 = data.get("商队地区") if "商队地区" in data else 商队地区
-	商路声望 = data.get("商路声望") if "商路声望" in data else {}
-	行情事件列表 = data.get("行情事件列表") if "行情事件列表" in data else []
-	# §11.15 优化：现实时间贸易模型（旧档缺键→默认零回归，不升SAVE_VERSION）
-	商队每日已派 = int(data.get("商队每日已派") if "商队每日已派" in data else 0)
-	上次配额日真实秒 = int(data.get("上次配额日真实秒") if "上次配额日真实秒" in data else 0)
-	# §11.20 修复：行情刷新节流锚点（旧档缺键→默认 0，首次推演即刷新一次，不升SAVE_VERSION）
-	上次行情日真实秒 = int(data.get("上次行情日真实秒") if "上次行情日真实秒" in data else 0)
-	# §11.15 阶段三：灵舟坞/黑市禁闭/商路竞争（旧档缺键→默认零回归，不升SAVE_VERSION）
-	灵舟坞等级 = data.get("灵舟坞等级") if "灵舟坞等级" in data else 0
-	黑市禁闭日 = data.get("黑市禁闭日") if "黑市禁闭日" in data else 0
-	商路竞争状态 = data.get("商路竞争状态") if "商路竞争状态" in data else {}
-	灵舟库存 = data.get("灵舟库存") if "灵舟库存" in data else []
-	灵舟坞建造中 = data.get("灵舟坞建造中") if "灵舟坞建造中" in data else {}
-	灵舟建造队列 = data.get("灵舟建造队列") if "灵舟建造队列" in data else []
-	虚空大阵冷却日 = int(data.get("虚空大阵冷却日", 0)) if "虚空大阵冷却日" in data else 0
+		# P0-2渡劫系统加载（旧档缺键→默认零回归，不升SAVE_VERSION）
+		if Tribulation != null:
+			Tribulation.from_dict(data.get("渡劫系统") if "渡劫系统" in data else {})
+		# P0-3炼丹系统加载（旧档缺键→默认零回归，不升SAVE_VERSION）
+		if AlchemySystem != null:
+			AlchemySystem.from_dict(data.get("炼丹系统") if "炼丹系统" in data else {})
+	# §11.15 商路贸易：商队系统状态加载（已拆分到caravan_system.gd，兼容旧存档）
+	if "商队系统" in data:
+		商队系统.from_dict(data["商队系统"])
+	if "灵钓系统" in data:
+		灵钓系统.from_dict(data["灵钓系统"])
+	if "探秘系统" in data:
+		探秘系统.from_dict(data["探秘系统"])
+	if "饲灵系统" in data:
+		饲灵系统.from_dict(data["饲灵系统"])
+	if "卜算系统" in data:
+		卜算系统.from_dict(data["卜算系统"])
+	if "药圃系统" in data:
+		药圃系统.from_dict(data["药圃系统"])
+	if "论道系统" in data:
+		论道系统.from_dict(data["论道系统"])
+	else:
+		# 旧存档兼容：从旧键恢复
+		var _旧商队数据: Dictionary = {
+			"商队列表": data.get("商队列表", []),
+			"商队历史": data.get("商队历史", []),
+			"商队地区": data.get("商队地区", []),
+			"商路声望": data.get("商路声望", {}),
+			"行情事件列表": data.get("行情事件列表", []),
+			"商队每日已派": data.get("商队每日已派", 0),
+			"上次配额日真实秒": data.get("上次配额日真实秒", 0),
+			"上次行情日真实秒": data.get("上次行情日真实秒", 0),
+			"灵舟坞等级": data.get("灵舟坞等级", 0),
+			"黑市禁闭日": data.get("黑市禁闭日", 0),
+			"商路竞争状态": data.get("商路竞争状态", {}),
+			"灵舟库存": data.get("灵舟库存", []),
+			"灵舟坞建造中": data.get("灵舟坞建造中", {}),
+			"灵舟建造队列": data.get("灵舟建造队列", []),
+			"虚空大阵冷却日": data.get("虚空大阵冷却日", 0),
+			"累计贸易次数": data.get("累计贸易次数", 0),
+			"累计贸易收益": data.get("累计贸易收益", 0),
+		}
+		商队系统.from_dict(_旧商队数据)
+	# S34c 传送阵（不升SAVE_VERSION，旧档缺键→默认值）
+	传送阵等级 = int(data.get("传送阵等级", 0)) if "传送阵等级" in data else 0
+	传送阵建造中 = data.get("传送阵建造中") if "传送阵建造中" in data else {}
+	传送阵今日已用 = int(data.get("传送阵今日已用", 0)) if "传送阵今日已用" in data else 0
+	传送阵待机欠费 = bool(data.get("传送阵待机欠费", false)) if "传送阵待机欠费" in data else false
+	香火庙 = (data.get("香火庙", {}) as Dictionary) if "香火庙" in data else {}
+	誓约待批 = (data.get("誓约待批", []) as Array) if "誓约待批" in data else []
+	万仙大誓 = (data.get("万仙大誓", {}) as Dictionary) if "万仙大誓" in data else {}
+	誓约推进日 = int(data.get("誓约推进日", 0))   # S36 旧档缺键→0，首个日切只记不判
+	丹纹系统.丹纹图谱 = (data.get("丹纹图谱", {}) as Dictionary) if "丹纹图谱" in data else {}
+	丹方熟练度 = (data.get("丹方熟练度", {}) as Dictionary) if "丹方熟练度" in data else {}
+	已领悟丹方 = (data.get("已领悟丹方", {}) as Dictionary) if "已领悟丹方" in data else {}
+	丹方领悟进度 = (data.get("丹方领悟进度", {}) as Dictionary) if "丹方领悟进度" in data else {}
+	_初始化领悟丹方()
+	当前丹炉 = str(data.get("当前丹炉", "")) if "当前丹炉" in data else ""
+	符箓熟练度 = (data.get("符箓熟练度", {}) as Dictionary) if "符箓熟练度" in data else {}
+	当前符纸 = str(data.get("当前符纸", "")) if "当前符纸" in data else ""
+	绘符经验值 = int(data.get("绘符经验值", 0)) if "绘符经验值" in data else 0
+	符纹系统.符纹图谱 = (data.get("符纹图谱", {}) as Dictionary) if "符纹图谱" in data else {}
+	符纹系统.符纹日志 = (data.get("符纹日志", []) as Array) if "符纹日志" in data else []
+	符纹系统.符纹今日纪事 = int(data.get("符纹今日纪事", 0)) if "符纹今日纪事" in data else 0
+	符纹系统.符纹纪事日 = int(data.get("符纹纪事日", 0)) if "符纹纪事日" in data else 0
+	丹炉列表 = (data.get("丹炉列表", []) as Array) if "丹炉列表" in data else []
+	丹纹系统.丹纹日志 = (data.get("丹纹日志", []) as Array) if "丹纹日志" in data else []
+	丹纹系统.丹纹今日纪事 = int(data.get("丹纹今日纪事", 0)) if "丹纹今日纪事" in data else 0
+	丹纹系统.丹纹纪事日 = int(data.get("丹纹纪事日", 0)) if "丹纹纪事日" in data else 0
+	_丹纹补缺()
+	符纹校验()
+	王朝系统.郡信仰 = (data.get("郡信仰", {}) as Dictionary) if "郡信仰" in data else {}
+	enable_faith_system = bool(data.get("enable_faith_system", true)) if "enable_faith_system" in data else true
+	信仰表缓存.clear()
+	_信仰补缺()
+	enable_teleport_system = bool(data.get("enable_teleport_system", true)) if "enable_teleport_system" in data else true
+	朝报 = (data.get("朝报", []) as Array) if "朝报" in data else []
+	朝报未读 = int(data.get("朝报未读", 0)) if "朝报未读" in data else 0
+	朝奏 = (data.get("朝奏", {}) as Dictionary) if "朝奏" in data else {}
+	上次朝奏日 = int(data.get("上次朝奏日", -1)) if "上次朝奏日" in data else -1
+	上次祥瑞日 = int(data.get("上次祥瑞日", -999)) if "上次祥瑞日" in data else -999
+	上次祥瑞日序号 = int(data.get("上次祥瑞日序号", -1)) if "上次祥瑞日序号" in data else -1
+	今日祥瑞数 = int(data.get("今日祥瑞数", 0)) if "今日祥瑞数" in data else 0
+	下次必降祥瑞 = bool(data.get("下次必降祥瑞", false)) if "下次必降祥瑞" in data else false
+	enable_dynasty_gazette = bool(data.get("enable_dynasty_gazette", true)) if "enable_dynasty_gazette" in data else true
+	_传送阵补缺()
+	# 灵舟建造队列/虚空大阵冷却日已移至商队系统（上面已加载）
+	宗门领地 = data.get("宗门领地") if "宗门领地" in data else []   # S31 宣战/领地战（不升SAVE_VERSION，旧档缺键→默认[]）
+	宗主观礼配置 = data.get("宗主观礼配置") if "宗主观礼配置" in data else {"本宗人员": true, "道友道侣": true, "友好阵营": true, "同盟阵营": true, "手动名单": [], "其他玩家": []}   # S46（不升SAVE_VERSION，旧档缺键→默认全开）
+	# S32 宣战周期化 / 战场功勋（旧档缺键→默认值，不升SAVE_VERSION）
+	战功 = int(data.get("战功") if "战功" in data else 0)
+	赛季序号 = int(data.get("赛季序号") if "赛季序号" in data else 1)
+	宣战周已用 = int(data.get("宣战周已用") if "宣战周已用" in data else 0)
+	本周宣战胜场 = int(data.get("本周宣战胜场") if "本周宣战胜场" in data else 0)
+	赛季累计战功 = int(data.get("赛季累计战功") if "赛季累计战功" in data else 0)
+	上次宣战周真实秒 = int(data.get("上次宣战周真实秒") if "上次宣战周真实秒" in data else 0)
+	上次赛季真实秒 = int(data.get("上次赛季真实秒") if "上次赛季真实秒" in data else 0)
+	战功道具库存 = data.get("战功道具库存") if "战功道具库存" in data else {}
+	# S33-5 阵营战役（旧档缺键→默认值，不升SAVE_VERSION）
+	阵营战役周已用 = int(data.get("阵营战役周已用") if "阵营战役周已用" in data else 0)
+	阵营战役战绩 = data.get("阵营战役战绩") if "阵营战役战绩" in data else {}
+	# S34 凡人王朝（旧档缺键→_新王朝()兜底初始化，不升SAVE_VERSION）
+	var _王朝数据 = data.get("王朝") if "王朝" in data else {}
+	if _王朝数据 is Dictionary and not (_王朝数据 as Dictionary).is_empty():
+		王朝系统.王朝 = _王朝数据
+	else:
+		王朝系统.王朝 = _新王朝(1)
+	王朝系统.凡间差事榜 = data.get("凡间差事榜") if "凡间差事榜" in data else {}
+	王朝系统.凡间差事进行中 = data.get("凡间差事进行中") if "凡间差事进行中" in data else {}
+	王朝系统.郡县状态 = data.get("郡县状态") if "郡县状态" in data else {}
+	if 王朝系统.郡县状态.is_empty():
+		_初始化郡县状态_S34()
+	# 批次 2：入赘名录 / 外戚索要待决（旧档缺键→空，不升 SAVE_VERSION）
+	王朝系统.入赘名录 = data.get("入赘名录") if "入赘名录" in data else []
+	王朝系统.外戚索要待决 = data.get("外戚索要待决") if "外戚索要待决" in data else {}
+	if 王朝系统.王朝.get("派系", []).is_empty():
+		_初始化派系_S34()
+	_王朝补缺_S34()
+	# 拍卖行系统状态加载（已拆分到auction_system.gd，兼容旧存档）
+	if "拍卖行系统" in data:
+		拍卖行系统.from_dict(data["拍卖行系统"])
+	else:
+		# 旧存档兼容
+		var _旧拍卖会数据: Dictionary = {}
+		if "拍卖会" in data:
+			_旧拍卖会数据["拍卖会"] = data["拍卖会"]
+		拍卖行系统.from_dict(_旧拍卖会数据)
+	# 商队系统.累计贸易次数/收益已移至商队系统（上面已加载）
 	# 开宗捏脸（旧档缺键→默认零回归，不升SAVE_VERSION）
 	宗门名 = data.get("宗门名") if "宗门名" in data else "太玄宗"
 	宗主名= data.get("宗主名") if "宗主名" in data else "太虚道君"
@@ -13753,12 +24419,22 @@ func load_game(账号id: String = "") -> void:
 	if 宗主头像 == "":
 		var _默认头像: Dictionary = 默认解锁头像(宗主性别)
 		宗主头像 = _默认头像.get("id", "")
+	# 称号系统：宗主称号（旧档缺键→默认空）
+	宗主当前称号 = data.get("宗主当前称号") if "宗主当前称号" in data else ""
+	宗主已获得称号 = data.get("宗主已获得称号") if "宗主已获得称号" in data else []
 	# 头像选择系统（旧档缺键→默认零回归，不升 SAVE_VERSION；头像框系统已于 2026-08-21 取消，相关键忽略：
 	已解锁头像= data.get("已解锁头像") if "已解锁头像" in data else []
-	邮件列表 = data.get("邮件列表") if "邮件列表" in data else []   # 灵讯（邮件）系统：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
-	玄榜虚拟宗门 = data.get("玄榜虚拟宗门") if "玄榜虚拟宗门" in data else []   # 玄榜（排行榜）：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
-	碎片库存 = data.get("碎片库存") if "碎片库存" in data else {}   # 碎片合成系统：旧档缺键→默认{}，零回归（不升SAVE_VERSION）
-	宝箱库存 = data.get("宝箱库存") if "宝箱库存" in data else {}   # 宝箱系统：旧档缺键→默认{}，零回归（不升SAVE_VERSION）
+	邮件系统.邮件列表 = data.get("邮件系统.邮件列表") if "邮件系统.邮件列表" in data else []   # 灵讯（邮件）系统：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
+	消息系统.from_dict(data.get("消息系统", {}))   # S56 修真世界消息系统：旧档缺键→默认空
+	世界地图系统.from_dict(data.get("世界地图系统", {}))   # S58 世界地图系统：旧档缺键→随机分配位置
+	闭关嘱托.from_dict(data.get("闭关嘱托", {}))   # S59 闭关嘱托系统：旧档缺键→默认空
+	待处理传讯 = data.get("传讯系统.待处理传讯") if "传讯系统.待处理传讯" in data else []   # 实时传讯系统：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
+	传讯历史 = data.get("传讯系统.传讯历史") if "传讯系统.传讯历史" in data else []   # 传讯历史：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
+	论道大会冷却 = int(data.get("庆典系统.论道大会冷却", 0))   # 论道大会冷却：旧档缺键→默认0，零回归（不升SAVE_VERSION）
+	_祭祖大典年份标记 = int(data.get("庆典系统.祭祖大典年份", -1))   # 祭祖大典年份标记：旧档缺键→默认-1，零回归（不升SAVE_VERSION）
+	玄榜系统.玄榜虚拟宗门 = data.get("玄榜系统.玄榜虚拟宗门") if "玄榜系统.玄榜虚拟宗门" in data else []   # 玄榜（排行榜）：旧档缺键→默认[]，零回归（不升SAVE_VERSION）
+	碎片宝箱系统.碎片库存 = data.get("碎片宝箱系统.碎片库存") if "碎片宝箱系统.碎片库存" in data else {}   # 碎片合成系统：旧档缺键→默认{}，零回归（不升SAVE_VERSION）
+	碎片宝箱系统.宝箱库存 = data.get("碎片宝箱系统.宝箱库存") if "碎片宝箱系统.宝箱库存" in data else {}   # 宝箱系统：旧档缺键→默认{}，零回归（不升SAVE_VERSION）
 	_种子化默认解锁头像()  # 读档后补种子（初始头像默认解锁），否则弹窗选了写不：
 	_种子化初始邮()      # 读档后补种子（全新档/旧档无邮件→给初始几封；已有邮件则不重复种子：
 	_种子化玄()          # 读档后补种子（全新档/旧档无虚拟宗门→种子；已有则不重复）
@@ -13771,20 +24447,25 @@ func load_game(账号id: String = "") -> void:
 	繁荣经营值 = data.get("繁荣经营值") if "繁荣经营值" in data else 0   # P1-2：经营增量持久化（旧档缺键→0）
 	香火值= data.get("香火值") if "香火值" in data else 0
 	信徒数= data.get("信徒数") if "信徒数" in data else 0
-	凡人城镇.clear()
+	王朝系统.凡人城镇.clear()
 	for 镇 in data.get("凡人城镇") if "凡人城镇" in data else []:
-		凡人城镇.append(镇)
+		王朝系统.凡人城镇.append(镇)
 	# WAVE-C #3：先贤祠静态档案（旧档缺键→默认[]，零回归：
 	先贤堂= data.get("先贤堂") if "先贤堂" in data else []
+	# 飞升系统+化身系统（旧档缺键→默认[]，零回归）
+	祖师堂 = data.get("祖师堂") if "祖师堂" in data else []
+	飞升前兆队列 = data.get("飞升前兆队列") if "飞升前兆队列" in data else []
+	散仙列表 = data.get("散仙列表") if "散仙列表" in data else []
+	化身列表 = data.get("化身列表") if "化身列表" in data else []
 	# WAVE-D #6/#8：图：里程：传承史册（旧档缺键→默认零回归）
 	收藏图录_已收集= data.get("图录_已收：") if "图录_已收：" in data else {}
 	产出池加成= data.get("产出池加成") if "产出池加成" in data else 0.0
 	里程碑_已达成= data.get("里程碑_已达成") if "里程碑_已达成" in data else []
 	# S1 ：：成就系统（旧档缺键→默认空数组，零回归：
-	成就_已达成= data.get("成就_已达成") if "成就_已达成" in data else []
+	成就系统.成就_已达成= data.get("成就系统.成就_已达成") if "成就系统.成就_已达成" in data else []
 	捐赠记录 = data.get("捐赠记录") if "捐赠记录" in data else {}
 	传承史册 = data.get("传承史册") if "传承史册" in data else []
-	香火月产预估 = data.get("香火月产预估") if "香火月产预估" in data else 0
+	香火日产预估 = data.get("香火日产预估") if "香火日产预估" in data else (data.get("香火月产预估") if "香火月产预估" in data else 0)
 	信徒增益档= data.get("信徒增益档") if "信徒增益档" in data else "未启"
 	辈分字派.clear()
 	for 派 in data.get("辈分字派") if "辈分字派" in data else []:
@@ -13800,41 +24481,144 @@ func load_game(账号id: String = "") -> void:
 	# 战斗模式同步：从设置项中读取战斗模式（完整结算→full，加速结算→quick）
 	var 设置战斗模式: String = str(设置项.get("战斗模式", "完整结算"))
 	战斗模式 = "full" if 设置战斗模式 == "完整结算" else "quick"
-	_道友列表 = data.get("道友列表") if "道友列表" in 设置战斗模式 else []
-	_道友消息 = data.get("道友消息") if "道友消息" in 设置战斗模式 else []
+	道友系统._道友列表 = data.get("道友列表") if "道友列表" in data else []
+	道友系统._道友消息 = data.get("道友消息") if "道友消息" in data else []
 	# S1 赛季战令（功：/ 宗门令；旧档缺键→默认零回归，不升SAVE_VERSION）
-	战令_赛季 = data.get("战令_赛季") if "战令_赛季" in 设置战斗模式 else 1
-	战令_等级 = data.get("战令_等级") if "战令_等级" in 设置战斗模式 else 0
-	战令_经验 = data.get("战令_经验") if "战令_经验" in 设置战斗模式 else 0
-	战令_已购付费轨= bool(data.get("战令_已购付费：") if "战令_已购付费：" in 设置战斗模式 else false)
-	战令_已领免费 = data.get("战令_已领免费") if "战令_已领免费" in 设置战斗模式 else []
-	战令_已领付费 = data.get("战令_已领付费") if "战令_已领付费" in 设置战斗模式 else []
+	战令_赛季 = data.get("战令_赛季") if "战令_赛季" in data else 1
+	战令_等级 = data.get("战令_等级") if "战令_等级" in data else 0
+	战令_经验 = data.get("战令_经验") if "战令_经验" in data else 0
+	战令_已购付费轨= bool(data.get("战令_已购付费：") if "战令_已购付费：" in data else false)
+	战令_已领免费 = data.get("战令_已领免费") if "战令_已领免费" in data else []
+	战令_已领付费 = data.get("战令_已领付费") if "战令_已领付费" in data else []
 	# S1 ：：日供（旧档缺键→默认零回归，不升SAVE_VERSION）
-	日供_最后领取日 = data.get("日供最后领取日") if "日供最后领取日" in 设置战斗模式 else 0
-	连续理事天数 = data.get("连续理事天数") if "连续理事天数" in 设置战斗模式 else 0
-	日供_总领取次数= data.get("日供总领取次：") if "日供总领取次：" in 设置战斗模式 else 0
-	回溯玉符数量 = data.get("回溯玉符数量") if "回溯玉符数量" in 设置战斗模式 else 0
-	已解锁单人法阵= data.get("已解锁单人法阵") if "已解锁单人法阵" in 设置战斗模式 else {}   # D5：弟子已解锁单人法阵集合（旧档缺键→默认：Dict：
-	司职负责人存档= data.get("司职负责：") if "司职负责：" in 设置战斗模式 else {}
-	司职状态存档= data.get("司职状：") if "司职状：" in 设置战斗模式 else {}   # S1 ：：等：政绩持久化（旧档缺键→默认空，零回归：
-	引导阶段 = data.get("引导阶段") if "引导阶段" in 设置战斗模式 else 6   # 老档无此字段 ：默认6（已完成，不强制弹入门指引；阶段语义：§5.2：
-	_上次出战弟子 = data.get("上次出战弟子") if "上次出战弟子" in 设置战斗模式 else []   # 器殿赠宝 P1 缓存（旧档缺键→默认空，零回归）：注意：赋值给模块变量 _上次出战弟子（带下划线），与声明/保存一：
-	_器殿赠宝未中上阵连计 = data.get("器殿赠宝连计") if "器殿赠宝连计" in 设置战斗模式 else 0   # 保底计数器（旧档缺键→默认0）：同上，须写回 _器殿赠宝未中上阵连计
-	气运修炼加成 = data.get("气运修炼加成") if "气运修炼加成" in 设置战斗模式 else 0.0
-	气运产出加成 = data.get("气运产出加成") if "气运产出加成" in 设置战斗模式 else 0.0
-	气运到期日= data.get("气运到期日") if "气运到期日" in 设置战斗模式 else 0
-	体力 = data.get("体力") if "体力" in 设置战斗模式 else 50
-	已通关秘境 = data.get("已通关秘境") if "已通关秘境" in 设置战斗模式 else {}
-	精英每日次数 = data.get("精英每日次数") if "精英每日次数" in 设置战斗模式 else {}
+	日供_最后领取日 = data.get("日供最后领取日") if "日供最后领取日" in data else 0
+	日供_最后领取现实日 = data.get("日供最后领取现实日") if "日供最后领取现实日" in data else ""
+	连续理事天数 = data.get("连续理事天数") if "连续理事天数" in data else 0
+	日供_总领取次数= data.get("日供总领取次：") if "日供总领取次：" in data else 0
+	回溯玉符数量 = data.get("回溯玉符数量") if "回溯玉符数量" in data else 0
+	已解锁单人法阵= data.get("已解锁单人法阵") if "已解锁单人法阵" in data else {}   # D5：弟子已解锁单人法阵集合（旧档缺键→默认：Dict：
+	司职负责人存档= data.get("司职负责：") if "司职负责：" in data else {}
+	司职状态存档= data.get("司职状：") if "司职状：" in data else {}   # S1 ：：等：政绩持久化（旧档缺键→默认空，零回归：
+	引导阶段 = data.get("引导阶段") if "引导阶段" in data else 6   # 老档无此字段 ：默认6（已完成，不强制弹入门指引；阶段语义：§5.2：
+	_上次出战弟子 = data.get("上次出战弟子") if "上次出战弟子" in data else []   # 器殿赠宝 P1 缓存（旧档缺键→默认空，零回归）：注意：赋值给模块变量 _上次出战弟子（带下划线），与声明/保存一：
+	_器殿赠宝未中上阵连计 = data.get("器殿赠宝连计") if "器殿赠宝连计" in data else 0   # 保底计数器（旧档缺键→默认0）：同上，须写回 _器殿赠宝未中上阵连计
+	气运修炼加成 = data.get("气运修炼加成") if "气运修炼加成" in data else 0.0
+	气运产出加成 = data.get("气运产出加成") if "气运产出加成" in data else 0.0
+	气运到期日= data.get("气运到期日") if "气运到期日" in data else 0
+	# P0修复：体力系统已移除，改为每日机缘（旧档兼容：缺键默认空字典）
+	每日机缘 = data.get("每日机缘") if "每日机缘" in data else {}
+	已通关秘境 = data.get("已通关秘境") if "已通关秘境" in data else {}
+	精英每日次数 = data.get("精英每日次数") if "精英每日次数" in data else {}
+	# 护道人系统（旧档兼容：缺键默认值）
+	护道人列表 = data.get("护道人列表") if "护道人列表" in data else {}
+	护道人计数器 = int(data.get("护道人计数器", 0))
+	护道玉符 = int(data.get("护道玉符", 0))
+	护道续缘符 = int(data.get("护道续缘符", 0))
+	功德玉牌 = int(data.get("功德玉牌", 0))
+	气运符箓 = int(data.get("气运符箓", 0))
+	替死玉符 = int(data.get("替死玉符", 0))
+	渡劫准备配置 = data.get("渡劫准备配置", {"道具": [], "用护阵": false, "用护法": false})
 	# v3 新增：阵营任务和商店系统（旧档缺键→默认零回归）
-	阵营任务进度 = data.get("阵营任务进度") if "阵营任务进度" in 设置战斗模式 else {}
-	阵营商店购买记录 = data.get("阵营商店购买记录") if "阵营商店购买记录" in 设置战斗模式 else {}
+	阵营声望系统.阵营任务进度 = data.get("阵营任务进度") if "阵营任务进度" in data else {}
+	阵营声望系统.阵营商店购买记录 = data.get("阵营商店购买记录") if "阵营商店购买记录" in data else {}
 	# v3 新增：道友互动系统（旧档缺键→默认零回归）
-	结义道友列表 = data.get("结义道友列表") if "结义道友列表" in 设置战斗模式 else []
-	道友拜访冷却 = data.get("道友拜访冷却") if "道友拜访冷却" in 设置战斗模式 else {}
-	道友切磋冷却 = data.get("道友切磋冷却") if "道友切磋冷却" in 设置战斗模式 else {}
+	道友系统.结义道友列表 = data.get("结义道友列表") if "结义道友列表" in data else []
+	道友系统.道友拜访冷却 = data.get("道友拜访冷却") if "道友拜访冷却" in data else {}
+	道友系统.道友切磋冷却 = data.get("道友切磋冷却") if "道友切磋冷却" in data else {}
 	# v3 新增：探索事件分支选择系统（旧档缺键→默认零回归）
-	探索事件冷却 = data.get("探索事件冷却") if "探索事件冷却" in 设置战斗模式 else {}
+	探索事件冷却 = data.get("探索事件冷却") if "探索事件冷却" in data else {}
+	# 傀儡系统（已拆分到puppet_system.gd）
+	if "傀儡系统" in data:
+		傀儡系统.from_dict(data["傀儡系统"])
+	else:
+		# 旧档兼容：从旧字段加载
+		傀儡系统.傀儡列表 = data.get("傀儡列表") if "傀儡列表" in data else []
+		傀儡系统.傀儡ID计数器 = data.get("傀儡ID计数器") if "傀儡ID计数器" in data else 0
+		傀儡系统.累计制作傀儡数 = data.get("累计制作傀儡数") if "累计制作傀儡数" in data else 0
+	# 藏书阁系统（已拆分到library_system.gd）
+	if "藏书阁系统" in data:
+		藏书阁系统.from_dict(data["藏书阁系统"])
+	else:
+		# 旧档兼容：从旧字段加载
+		藏书阁系统.藏书阁列表 = data.get("藏书阁列表") if "藏书阁列表" in data else []
+		藏书阁系统.藏书阁ID计数器 = data.get("藏书阁ID计数器") if "藏书阁ID计数器" in data else 0
+		藏书阁系统.藏书阁收录数 = data.get("藏书阁收录数") if "藏书阁收录数" in data else 0
+		藏书阁系统.藏书阁临时加成 = data.get("藏书阁临时加成") if "藏书阁临时加成" in data else 0.0
+		藏书阁系统.藏书阁加成到期日 = data.get("藏书阁加成到期日") if "藏书阁加成到期日" in data else 0
+	# 阵法管理系统（已拆分到formation_system.gd）
+	if "阵法管理系统" in data:
+		阵法管理系统.from_dict(data["阵法管理系统"])
+	else:
+		# 旧档兼容：从旧字段加载
+		阵法管理系统.阵法等级 = data.get("阵法等级") if "阵法等级" in data else {}
+		阵法管理系统.阵法耐久度 = data.get("阵法耐久度") if "阵法耐久度" in data else {}
+		阵法管理系统.阵法驻守弟子 = data.get("阵法驻守弟子") if "阵法驻守弟子" in data else {}
+		阵法管理系统.阵法强化等级 = data.get("阵法强化等级") if "阵法强化等级" in data else {}
+	# 坐骑系统（已拆分到mount_system.gd）
+	if "坐骑系统" in data:
+		坐骑系统.from_dict(data["坐骑系统"])
+	else:
+		坐骑系统.坐骑列表 = data.get("坐骑列表") if "坐骑列表" in data else []
+		坐骑系统.当前坐骑 = data.get("当前坐骑") if "当前坐骑" in data else ""
+		坐骑系统.坐骑ID计数器 = data.get("坐骑ID计数器") if "坐骑ID计数器" in data else 0
+	# 碎片宝箱系统（已拆分到fragment_chest_system.gd）
+	if "碎片宝箱系统" in data:
+		碎片宝箱系统.from_dict(data["碎片宝箱系统"])
+	else:
+		碎片宝箱系统.碎片库存 = data.get("碎片库存") if "碎片库存" in data else {}
+		碎片宝箱系统.宝箱库存 = data.get("宝箱库存") if "宝箱库存" in data else {}
+	# 邮件系统（已拆分到mail_system.gd）
+	if "邮件系统" in data:
+		邮件系统.from_dict(data["邮件系统"])
+	else:
+		邮件系统.邮件列表 = data.get("邮件列表") if "邮件列表" in data else []
+	# 宗门科技系统（已拆分到sect_tech_system.gd）
+	if "宗门科技系统" in data:
+		宗门科技系统.from_dict(data["宗门科技系统"])
+	else:
+		宗门科技系统.已研究宗门科技 = data.get("已研究宗门科技") if "已研究宗门科技" in data else []
+	# 玄榜系统（已拆分到xuan_rank_system.gd）
+	if "玄榜系统" in data:
+		玄榜系统.from_dict(data["玄榜系统"])
+	else:
+		玄榜系统.玄榜虚拟宗门 = data.get("玄榜虚拟宗门") if "玄榜虚拟宗门" in data else []
+	# 炼丹炼器封装系统（已拆分到alchemy_forge_system.gd）
+	if "炼丹炼器系统" in data:
+		炼丹炼器系统.from_dict(data["炼丹炼器系统"])
+	else:
+		炼丹炼器系统.炼器经验值 = data.get("炼器经验值") if "炼器经验值" in data else 0
+	# 符箓系统封装（已拆分到talisman_system.gd，无状态变量）
+	if "符箓封装系统" in data:
+		符箓封装系统.from_dict(data["符箓封装系统"])
+	# 功法管理系统（已拆分到gongfa_management_system.gd）
+	if "功法管理系统" in data:
+		功法管理系统.from_dict(data["功法管理系统"])
+	else:
+		功法管理系统.功法熟练度 = data.get("功法熟练度") if "功法熟练度" in data else {}
+	# 灵兽管理系统（已拆分到beast_management_system.gd）
+	# 灵兽库存/兑换队列由本函数后段的 lingshou_kucun / lingshou_duilie 扁平键统一回填（Beast 逐只重建）。
+	# 原 else 分支用 data.get() 直接重赋 Array[Beast]（typed array 拒绝原始 Array）→ 运行期报错，已移除。
+	if "灵兽管理系统" in data and typeof(data["灵兽管理系统"]) == TYPE_DICTIONARY:
+		灵兽管理系统.from_dict(data["灵兽管理系统"])
+	# 弟子突破系统（已拆分到breakthrough_system.gd，无状态变量）
+	if "弟子突破系统" in data:
+		弟子突破系统.from_dict(data["弟子突破系统"])
+	# 成就系统（已拆分到achievement_system.gd）
+	if "成就系统" in data:
+		成就系统.from_dict(data["成就系统"])
+	else:
+		成就系统.成就_已达成 = data.get("成就_已达成") if "成就_已达成" in data else []
+		成就系统.已领取成就奖励 = data.get("已领取成就奖励") if "已领取成就奖励" in data else []
+	# 休闲玩法：酿道/厨道/茶道/琴道（不升SAVE_VERSION，旧档缺键→默认1级/0经验）
+	酿道等级 = int(data.get("酿道等级", 1))
+	酿道经验 = int(data.get("酿道经验", 0))
+	厨道等级 = int(data.get("厨道等级", 1))
+	厨道经验 = int(data.get("厨道经验", 0))
+	茶道等级 = int(data.get("茶道等级", 1))
+	茶道经验 = int(data.get("茶道经验", 0))
+	琴道等级 = int(data.get("琴道等级", 1))
+	琴道经验 = int(data.get("琴道经验", 0))
+	灵酿列表 = data.get("灵酿列表", []) if typeof(data.get("灵酿列表", [])) == TYPE_ARRAY else []
 	# 老档兼容：加载后数值合法性校验与兜底修正（防坏档崩溃 / 异常数据自动修正：
 	灵石 = _修正负值(灵石, "灵石")
 	灵草 = _修正负值(灵草, "灵草")
@@ -13845,15 +24629,23 @@ func load_game(账号id: String = "") -> void:
 	声望 = _修正负值(声望, "声望")
 	繁荣 = _修正区间(繁荣, 0, 100, "繁荣")
 	繁荣经营值 = _修正区间(繁荣经营值, 0, 50, "繁荣经营值")   # P1-2：经营增量钳制
-	体力 = _修正区间(体力, 0, 体力上限(), "体力")
+	# P0修复：体力系统已移除，无需修正
 	累计游戏日 = _修正负值(累计游戏日, "累计游戏日")
 	# P1：周期评分存档（计数器不持久化，读档后重置；历史与年：年始快照恢复：
-	历史周期评级 = data.get("历史周期评级") if "历史周期评级" in 设置战斗模式 else []
+	历史周期评级 = data.get("历史周期评级") if "历史周期评级" in data else []
 	周期评分.历史 = 历史周期评级
 	周期评分.计数 = {"灵石获取": 0, "稀有道具": 0, "突破": 0, "高品质新弟子": 0, "首通": 0}
 	上次结算年= data.get("上次结算年") if "上次结算年" in data else 0
 	年始灵石 = data.get("年始灵石") if "年始灵石" in data else 灵石
 	年始总战力= data.get("年始总战力") if "年始总战力" in data else 0
+	年始宗主战力 = data.get("年始宗主战力") if "年始宗主战力" in data else 0
+	年始宗主境界 = data.get("年始宗主境界") if "年始宗主境界" in data else ""
+	活动上次重置日期 = data.get("活动上次重置日期") if "活动上次重置日期" in data else ""
+	活动上次重置周 = data.get("活动上次重置周") if "活动上次重置周" in data else ""
+	活动积分 = data.get("活动积分") if "活动积分" in data else 0
+	连续参与天数 = data.get("连续参与天数") if "连续参与天数" in data else 0
+	上次参与现实日 = data.get("上次参与现实日") if "上次参与现实日" in data else ""
+	历史总参与天数 = data.get("历史总参与天数") if "历史总参与天数" in data else 0
 	七载赏赐池= data.get("七载赏赐池") if "七载赏赐池" in data else 0
 	七载待发掉落 = data.get("七载待发掉落") if "七载待发掉落" in data else []
 	门派等级目标 = data.get("门派等级目标") if "门派等级目标" in data else 门派等级
@@ -13864,11 +24656,11 @@ func load_game(账号id: String = "") -> void:
 	奇遇待抉择.clear()      # 会话瞬时队列，load 时清空（ADR-002 D6：
 	宗门纪事.clear()        # 会话瞬时历史，load 时清空
 	灵兽蛋列表.clear()
-	灵兽库存.clear()
-	灵兽兑换队列.clear()
+	灵兽管理系统.灵兽库存.clear()
+	灵兽管理系统.灵兽兑换队列.clear()
 	for _q in data.get("lingshou_duilie") if "lingshou_duilie" in data else []:
 		if _q is Dictionary:
-			灵兽兑换队列.append(_q)
+			灵兽管理系统.灵兽兑换队列.append(_q)
 	for dd in data.get("dizi") if "dizi" in data else []:
 		var d := Disciple.new()
 		d.from_dict(dd)
@@ -13886,7 +24678,7 @@ func load_game(账号id: String = "") -> void:
 	for bd in data.get("lingshou_kucun") if "lingshou_kucun" in data else []:
 		var b := Beast.new()
 		b.from_dict(bd)
-		灵兽库存.append(b)
+		灵兽管理系统.灵兽库存.append(b)
 	# S0 差事/商店系统：get 默认兼容无此字段的老档：
 	宗门库房.clear()
 	for kd in data.get("kucun") if "kucun" in data else []:
@@ -13898,6 +24690,21 @@ func load_game(账号id: String = "") -> void:
 	坊市类别月购 = data.get("fangshi_leibie") if "fangshi_leibie" in data else {}
 	坊市月购窗口起始日= int(data.get("fangshi_month_start") if "fangshi_month_start" in data else 0)
 	坊市回购列表 = data.get("fangshi_buyback") if "fangshi_buyback" in data else []
+	# S27 宗门任务榜：旧档无此 4 键则回落空（不升 SAVE_VERSION）
+	# 类型化容器不可用 data.get() 的 Variant 直接重赋（丢类型信息，F5 期崩），一律 clear()+逐项回填
+	宗门任务榜.clear()
+	var 旧任务榜: Dictionary = data.get("sect_bounty") if "sect_bounty" in data else {}
+	for 任务键 in 旧任务榜:
+		宗门任务榜[任务键] = 旧任务榜[任务键]
+	宗门任务进行中.clear()
+	var 旧进行中: Dictionary = data.get("sect_bounty_run") if "sect_bounty_run" in data else {}
+	for 实例键 in 旧进行中:
+		宗门任务进行中[实例键] = 旧进行中[实例键]
+	弟子请命列表.clear()
+	for 请命项 in (data.get("sect_bounty_petition") if "sect_bounty_petition" in data else []):
+		if typeof(请命项) == TYPE_DICTIONARY:
+			弟子请命列表.append(请命项)
+	宗门任务计数器 = int(data.get("sect_bounty_seq") if "sect_bounty_seq" in data else 0)
 	坊市每日特惠 = data.get("fangshi_tehui") if "fangshi_tehui" in data else []
 	坊市特惠卡= int(data.get("fangshi_tehui_day") if "fangshi_tehui_day" in data else -1)
 	var djson: Dictionary = data.get("daily") if "daily" in data else {}
@@ -13916,6 +24723,13 @@ func load_game(账号id: String = "") -> void:
 	上次周常真实秒 = int(wjson.get("上次周常真实秒") if "上次周常真实秒" in wjson else 0)
 	主线已完成= data.get("main_done") if "main_done" in wjson else []
 	方针 = data.get("policy", _方针默认).duplicate(true) if (data.get("policy") is Dictionary) else _方针默认.duplicate(true)
+	# 灵兽方针（喂养/培养）：旧档缺键→默认零回归
+	var bpolicy: Dictionary = data.get("beast_policy") if (data.get("beast_policy") is Dictionary) else {}
+	灵兽喂养方针 = String(bpolicy.get("喂养", "普通"))
+	灵兽培养方针 = String(bpolicy.get("培养", "均衡"))
+	# 日常方针：旧档缺键 / 非法值 → 默认「充库」，零回归
+	var dp: String = String(data.get("daily_policy", "充库"))
+	日常方针 = dp if dp in ["养士", "充库", "扬名"] else "充库"
 	待决奏折 = data.get("memorials", [])
 	随机事件冷却 = data.get("randcd") if "randcd" in wjson else {}
 	随机事件类型冷却 = data.get("rtypecd") if "rtypecd" in wjson else {}
@@ -13933,7 +24747,12 @@ func load_game(账号id: String = "") -> void:
 	_复检里程碑()
 	_复检成就()   # S1 ：：多账号载入后按当前状态补达成成就
 	更新账号摘要(当前账号id)
+	# 存档迁移后自动存盘，确保version=SAVE_VERSION写回文件，避免下次重复升级
+	if _迁移后需存盘:
+		save_game()
+		push_warning("存档迁移完成，已自动保存v%d" % SAVE_VERSION)
 	弟子变动.emit()
+	call_deferred("离线结算")  # S3：读档后执行离线结算
 # ---- 存档安全辅助函数 ----
 func _读存档(path: String) -> Dictionary:
 
@@ -14006,7 +24825,7 @@ func _版本升级备份(旧版本: int):
 		return
 	var ts: int = int(Time.get_unix_time_from_system())
 	var 目标: String = "save_backup_v%d_%d.json" % [旧版本, ts]
-	da.copy("save.json", 目标)
+	DirAccess.copy_absolute(账号目录 + "/save.json", 账号目录 + "/" + 目标)
 	push_warning("检测到存档升级 v%d→v%d，已备份旧档%s/%s" % [旧版本, SAVE_VERSION, 账号目录, 目标])
 
 # ==================== 品质名称转换函数（确保旧存档兼容性）====================
@@ -14058,21 +24877,21 @@ static func 转换存档品质名称(存档数据: Dictionary) -> Dictionary:
 			if typeof(典籍) == TYPE_DICTIONARY and 典籍.has("品阶"):
 				典籍["品阶"] = 转换品质名称(典籍["品阶"])
 	# 转换宝箱库存
-	if 转换后.has("宝箱库存"):
-		for 宝箱ID in 转换后["宝箱库存"].keys():
+	if 转换后.has("碎片宝箱系统.宝箱库存"):
+		for 宝箱ID in 转换后["碎片宝箱系统.宝箱库存"].keys():
 			var 宝箱 = 转换后["宝箱库存"][宝箱ID]
 			if typeof(宝箱) == TYPE_DICTIONARY and 宝箱.has("品阶"):
 				宝箱["品阶"] = 转换品质名称(宝箱["品阶"])
 	# 转换碎片库存（碎片名称中包含品质名称）
-	if 转换后.has("碎片库存"):
-		for 碎片ID in 转换后["碎片库存"].keys():
+	if 转换后.has("碎片宝箱系统.碎片库存"):
+		for 碎片ID in 转换后["碎片宝箱系统.碎片库存"].keys():
 			var 新ID: String = 碎片ID
 			for 旧品质 in 品质转换表.keys():
 				if 新ID.contains(旧品质):
 					新ID = 新ID.replace(旧品质, 品质转换表[旧品质])
 			if 新ID != 碎片ID:
-				转换后["碎片库存"][新ID] = 转换后["碎片库存"][碎片ID]
-				转换后["碎片库存"].erase(碎片ID)
+				转换后["碎片宝箱系统.碎片库存"][新ID] = 转换后["碎片宝箱系统.碎片库存"][碎片ID]
+				转换后["碎片宝箱系统.碎片库存"].erase(碎片ID)
 	push_warning("存档品质名称转换完成：傀儡/藏书阁/宝箱/碎片系统品质已统一为阶")
 	return 转换后
 
@@ -14099,22 +24918,26 @@ func _迁移存档(data: Dictionary, 旧版本: int) -> Dictionary:
 			if 迁移后.has(旧键) and not 迁移后.has(新键):
 				迁移后[新键] = 迁移后[旧键]
 				push_warning("存档迁移 v1→v2：%s → %s" % [旧键, 新键])
-		# v2→v3：新增阵营任务/商店、道友互动、探索事件分支选择系统
-		if 旧版本 < 3:
-			# 新增字段默认零回归（确保键存在，load时也会用.get默认值处理）
-			if not 迁移后.has("阵营任务进度"):
-				迁移后["阵营任务进度"] = {}
-			if not 迁移后.has("阵营商店购买记录"):
-				迁移后["阵营商店购买记录"] = {}
-			if not 迁移后.has("结义道友列表"):
-				迁移后["结义道友列表"] = []
-			if not 迁移后.has("道友拜访冷却"):
-				迁移后["道友拜访冷却"] = {}
-			if not 迁移后.has("道友切磋冷却"):
-				迁移后["道友切磋冷却"] = {}
-			if not 迁移后.has("探索事件冷却"):
-				迁移后["探索事件冷却"] = {}
-			push_warning("存档迁移 v2→v3：新增阵营任务/商店、道友互动、探索事件系统字段")
+	# v2→v3：新增阵营任务/商店、道友互动、探索事件分支选择系统
+	if 旧版本 < 3:
+		# 新增字段默认零回归（确保键存在，load时也会用.get默认值处理）
+		if not 迁移后.has("阵营任务进度"):
+			迁移后["阵营任务进度"] = {}
+		if not 迁移后.has("阵营商店购买记录"):
+			迁移后["阵营商店购买记录"] = {}
+		if not 迁移后.has("结义道友列表"):
+			迁移后["结义道友列表"] = []
+		if not 迁移后.has("道友拜访冷却"):
+			迁移后["道友拜访冷却"] = {}
+		if not 迁移后.has("道友切磋冷却"):
+			迁移后["道友切磋冷却"] = {}
+		if not 迁移后.has("探索事件冷却"):
+			迁移后["探索事件冷却"] = {}
+		push_warning("存档迁移 v2→v3：新增阵营任务/商店、道友互动、探索事件系统字段")
+	# v3→v4：品质名称统一（品→阶），傀儡/藏书阁/宝箱/碎片系统
+	if 旧版本 < 4:
+		迁移后 = 转换存档品质名称(迁移后)
+		push_warning("存档迁移 v3→v4：品质名称统一（品→阶）")
 	# 更新版本号
 	迁移后["version"] = SAVE_VERSION
 	return 迁移后
@@ -14140,8 +24963,8 @@ func new_game():
 	贡献点= 0
 	弟子列表.clear()
 	灵兽蛋列表.clear()
-	灵兽库存.clear()
-	灵兽兑换队列.clear()
+	灵兽管理系统.灵兽库存.clear()
+	灵兽管理系统.灵兽兑换队列.clear()
 	待抉择.clear()
 	奇遇待抉择.clear()
 	宗门纪事.clear()
@@ -14160,13 +24983,30 @@ func new_game():
 	司职负责人存档.clear()
 	司职状态存档.clear()
 	推演日志.clear()
-	体力 = 50
+	# P0修复：体力系统已移除，改为每日机缘
+	每日机缘 = {}
 	已通关秘境.clear()
 	精英每日次数.clear()
+	# 护道人系统初始化
+	护道人列表.clear()
+	护道人计数器 = 0
+	护道玉符 = 0
+	护道续缘符 = 0
+	功德玉牌 = 0
+	气运符箓 = 0
+	替死玉符 = 0
 	# P1：周期评分状态复：
 	上次结算年= 0
 	年始灵石 = 灵石
 	年始总战力= 0
+	年始宗主战力 = 0
+	年始宗主境界 = ""
+	活动上次重置日期 = ""
+	活动上次重置周 = ""
+	活动积分 = 0
+	连续参与天数 = 0
+	上次参与现实日 = ""
+	历史总参与天数 = 0
 	最新周期评级卡 = {}
 	历史周期评级 = []
 	周期评分.历史 = []
@@ -14192,7 +25032,31 @@ func new_game():
 	主线已完成= []
 	随机事件冷却.clear()
 	# S1 ：：成就系统复位（新档从零开始；里程碑_已达：沿用历史不重置的既有行为：
-	成就_已达成= []
+	成就系统.成就_已达成= []
+	# S31 宣战/领地战复位（原缺失：切账号会继承上一宗门版图）
+	宗门领地 = []
+	# S32 战场功勋 / 宣战周期复位
+	战功 = 0
+	赛季序号 = 1
+	宣战周已用 = 0
+	本周宣战胜场 = 0
+	赛季累计战功 = 0
+	上次宣战周真实秒 = int(Time.get_unix_time_from_system())
+	上次赛季真实秒 = int(Time.get_unix_time_from_system())
+	战功道具库存 = {}
+	# S33-5 阵营战役复位（切账号不继承上一宗门战绩）
+	阵营战役周已用 = 0
+	阵营战役战绩 = {}
+	# S34 凡人王朝复位（切账号不继承上一宗门经营的王朝与差事）
+	王朝系统.王朝 = _新王朝(1)
+	王朝系统.凡间差事榜 = {}
+	王朝系统.凡间差事进行中 = {}
+	王朝系统.郡县状态 = {}
+	_初始化郡县状态_S34()
+	_刷新凡间差事榜_S34()
+	# 批次 2：入赘名录 / 外戚索要待决 复位（切账号不继承上一宗门的入赘旧账）
+	王朝系统.入赘名录 = []
+	王朝系统.外戚索要待决 = {}
 	# S1 赛季战令复位
 	战令_赛季 = 1
 	战令_等级 = 0
@@ -14219,5 +25083,3846 @@ func new_game():
 	刷新周常()
 	重建司职()
 	更新账号摘要(当前账号id)
+	誓约待批.clear()      # S36 心魔誓：新档复位
+	万仙大誓 = {}
+	誓约推进日 = 0
+	丹纹系统.丹纹图谱 = {}          # S37 丹纹：新档复位
+	丹方熟练度 = {}        # S39：新档复位（切号不残留）
+	已领悟丹方 = {}       # S46：新档复位
+	丹方领悟进度 = {}     # S46：新档复位
+	_初始化领悟丹方()
+	当前丹炉 = ""
+	符箓熟练度 = {}        # S45-3：新档复位（切号不残留）
+	当前符纸 = ""
+	绘符经验值 = 0         # S45-6：新档复位（切号不残留）
+	符纹系统.符纹图谱 = {}          # S45-4：新档复位（切号不残留）
+	符纹系统.符纹日志 = []
+	符纹系统.符纹今日纪事 = 0
+	符纹系统.符纹纪事日 = 0
+	丹炉列表 = []
+	丹纹系统.丹纹日志 = []
+	丹纹系统.丹纹今日纪事 = 0
+	丹纹系统.丹纹纪事日 = 0
+	# 顺手补既有漏项：S34/S35 动态状态容器此前漏 new_game 复位（切号会残留上一档）
+	香火庙 = {}
+	王朝系统.郡信仰 = {}
+	朝报 = []
+	传送阵等级 = 0
+	传送阵建造中 = {}
+	传送阵今日已用 = 0
+	传送阵待机欠费 = false
 	save_game()
 	弟子变动.emit()
+
+# ==================== S36 心魔誓（以道心立誓·天地为证）====================
+# 设计三铁律：
+# ① 现实日推进：每次日切只推进 1 日，离线不做批量跳变（避免「上线即违约」）
+# ② 零货币产出：奖励只调真数值（道心/心境/忠诚/声望），杜绝通胀
+# ③ 破誓有代价：心魔冲顶 + 激进性格 → 走火入魔 / 目标突变魔道（复用 §4.0 既有 _突变目标）
+
+const 誓约每日请誓上限: int = 2     # 每日最多生成 2 道弟子请誓（现实日限流）
+
+func _读表_誓约() -> Dictionary:
+	if 誓约表缓存.has("oath"):
+		return 誓约表缓存["oath"] as Dictionary
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/oath_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("oath_config.csv 缺失，誓约表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 16:
+			continue
+		var id: String = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"oath_id": id, "name": p[1].strip_edges(), "kind": p[2].strip_edges(), "desc": p[3].strip_edges(),
+			"need_daoxin": int(p[4]), "need_loyal": int(p[5]), "duration_days": int(p[6]),
+			"cond_type": p[7].strip_edges(), "cond_value": int(p[8]),
+			"buff_cult": float(p[9]), "buff_breakthrough": float(p[10]),
+			"cost_demon_per_day": float(p[11]), "forbid_expedition": int(p[12]),
+			"reward": p[13].strip_edges(), "punish": p[14].strip_edges(), "weight": int(p[15]),
+		}
+	誓约表缓存["oath"] = 表
+	return 表
+
+func _读表_万仙大誓() -> Dictionary:
+	if 誓约表缓存.has("sect_oath"):
+		return 誓约表缓存["sect_oath"] as Dictionary
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/oath_sect_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("oath_sect_config.csv 缺失，万仙大誓表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 9:
+			continue
+		var id: String = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表[id] = {
+			"sect_oath_id": id, "name": p[1].strip_edges(), "desc": p[2].strip_edges(),
+			"duration_days": int(p[3]),
+			"cond_type": p[4].strip_edges(), "cond_value": int(p[5]),
+			"buff_cult": float(p[6]),
+			"reward": p[7].strip_edges(), "punish": p[8].strip_edges(),
+		}
+	誓约表缓存["sect_oath"] = 表
+	return 表
+
+## 效果串解析："daoxin:8|xinjing:5" → {daoxin:8, xinjing:5}
+func _解析誓约效果串(s: String) -> Dictionary:
+	var r: Dictionary = {}
+	if s.strip_edges() == "":
+		return r
+	for seg in s.split("|"):
+		var kv = seg.split(":")
+		if kv.size() < 2:
+			continue
+		var k: String = kv[0].strip_edges()
+		if k.is_empty():
+			continue
+		r[k] = int(kv[1])
+	return r
+
+## 对个人应用效果（真消费方：道心→突破率/心魔抗性；心境→修炼效率/突破率；忠诚→叛离/产出）
+func _应用誓约效果(d: Object, 效果: Dictionary) -> void:
+	for k in 效果.keys():
+		var v: int = int(效果[k])
+		match str(k):
+			"daoxin":
+				d.道心 = clamp(int(d.道心) + v, 0, 100)
+			"xinjing":
+				d.心境 = clamp(int(d.心境) + v, 0, 100)
+			"loyal":
+				d.忠诚 = clamp(int(d.忠诚) + v, 0, 100)
+			"demon":
+				d.心魔值 = clamp(int(d.心魔值) + v, 0, 100)
+			"prestige":
+				声望 = max(0, 声望 + v)
+			_:
+				pass
+
+## 对全宗应用效果（万仙大誓专用）
+func _应用全宗誓约效果(效果: Dictionary) -> void:
+	for k in 效果.keys():
+		var v: int = int(效果[k])
+		match str(k):
+			"prestige":
+				声望 = max(0, 声望 + v)
+			"daoxin_all":
+				for d in 弟子列表:
+					if d != null and str(d.状态) == "在宗":
+						d.道心 = clamp(int(d.道心) + v, 0, 100)
+			"xinjing_all":
+				for d2 in 弟子列表:
+					if d2 != null and str(d2.状态) == "在宗":
+						d2.心境 = clamp(int(d2.心境) + v, 0, 100)
+			"loyal_all":
+				for d3 in 弟子列表:
+					if d3 != null and str(d3.状态) == "在宗":
+						d3.忠诚 = clamp(int(d3.忠诚) + v, 0, 100)
+			"demon_all":
+				for d4 in 弟子列表:
+					if d4 != null and str(d4.状态) == "在宗":
+						d4.心魔值 = clamp(int(d4.心魔值) + v, 0, 100)
+			_:
+				pass
+
+## 立誓时记录的条件基线快照（全部取自真字段，绝不手抄常量）
+func _誓约快照(d: Object, 条件: String) -> int:
+	match 条件:
+		"realm_up":
+			return Disciple.境界序.find(str(d.境界))
+		"merit_gain":
+			return 战功
+		"contrib_gain":
+			return int(d.贡献账户)
+		"disciple_gain":
+			return (d.徒弟列表 as Array).size()
+		"heart_max":
+			return int(d.心魔值)
+		"loyal_keep":
+			return int(d.忠诚)
+		"daoxin_reach":
+			return int(d.道心)
+		"target_alive":
+			return 1
+	return 0
+
+## 到期/即时达成判定（快照对比，离线亦正确）
+func _誓约达成判定(d: Object, 誓: Dictionary) -> bool:
+	var 条件: String = str(誓.get("cond_type", ""))
+	var 阈值: int = int(誓.get("cond_value", 0))
+	var 快照: int = int(誓.get("快照", 0))
+	match 条件:
+		"realm_up":
+			return Disciple.境界序.find(str(d.境界)) - 快照 >= 阈值
+		"merit_gain":
+			return 战功 - 快照 >= 阈值
+		"contrib_gain":
+			return int(d.贡献账户) - 快照 >= 阈值
+		"disciple_gain":
+			return (d.徒弟列表 as Array).size() - 快照 >= 阈值
+		"heart_max":
+			return int(d.心魔值) <= 阈值
+		"loyal_keep":
+			if str(d.状态) in ["叛出", "陨落", "失踪"]:
+				return false
+			return int(d.忠诚) >= 阈值
+		"daoxin_reach":
+			return int(d.道心) >= 阈值
+		"target_alive":
+			var 目标id: int = int(誓.get("目标ID", -1))
+			if 目标id < 0:
+				return true
+			var 目 = _取弟子(目标id)
+			return (目 != null and str(目.状态) == "在宗")
+	return false
+
+## 状态类誓约是否仍可履行（护道对象已陨落 / 本人已叛出 → 即刻破誓，不等到期）
+func _誓约仍可履行(d: Object, 誓: Dictionary) -> bool:
+	var 条件: String = str(誓.get("cond_type", ""))
+	if 条件 == "loyal_keep":
+		return str(d.状态) not in ["叛出", "陨落", "失踪"]
+	if 条件 == "target_alive":
+		var 目标id: int = int(誓.get("目标ID", -1))
+		if 目标id < 0:
+			return true
+		var 目 = _取弟子(目标id)
+		return (目 != null and str(目.状态) == "在宗")
+	return true
+
+## 宗主为弟子立誓（护道誓须指定目标ID）
+func 立心魔誓(弟子ID: int, oath_id: String, 目标ID: int = -1) -> Dictionary:
+	var d = _取弟子(弟子ID)
+	if d == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if not d.誓言.is_empty():
+		return {"成功": false, "原因": "该弟子已身负誓约，不可再立"}
+	if str(d.状态) != "在宗":
+		return {"成功": false, "原因": "该弟子不在宗内"}
+	var 配: Dictionary = _读表_誓约().get(oath_id, {}) as Dictionary
+	if 配.is_empty():
+		return {"成功": false, "原因": "誓约不存在"}
+	var 需道心: int = int(配.get("need_daoxin", 0))
+	var 需忠诚: int = int(配.get("need_loyal", 0))
+	if int(d.道心) < 需道心:
+		return {"成功": false, "原因": "道心不足（需%d）" % 需道心}
+	if int(d.忠诚) < 需忠诚:
+		return {"成功": false, "原因": "忠诚不足（需%d）" % 需忠诚}
+	var 条件: String = str(配.get("cond_type", ""))
+	if 条件 == "target_alive" and 目标ID < 0:
+		return {"成功": false, "原因": "护道誓须指定护持对象"}
+	var 期限: int = int(配.get("duration_days", 7))
+	d.誓言 = {
+		"oath_id": oath_id, "名称": str(配.get("name", "")),
+		"起始日": _今日序号(), "期限": 期限, "剩余日": 期限,
+		"cond_type": 条件, "cond_value": int(配.get("cond_value", 0)),
+		"快照": _誓约快照(d, 条件),
+		"buff_cult": float(配.get("buff_cult", 1.0)),
+		"buff_breakthrough": float(配.get("buff_breakthrough", 0.0)),
+		"demon_per_day": float(配.get("cost_demon_per_day", 0.0)),
+		"forbid_expedition": int(配.get("forbid_expedition", 0)),
+		"reward": str(配.get("reward", "")), "punish": str(配.get("punish", "")),
+		"目标ID": 目标ID,
+	}
+	添加纪事("宗门", "立心魔誓", "%s指道心为誓：「%s」，限期%d日。" % [str(d.姓名), str(配.get("name", "")), 期限], 1)
+	return {"成功": true, "誓约": d.誓言}
+
+## 主动解誓 = 按破誓论处
+func 解除心魔誓(弟子ID: int) -> Dictionary:
+	var d = _取弟子(弟子ID)
+	if d == null:
+		return {"成功": false, "原因": "弟子不存在"}
+	if d.誓言.is_empty():
+		return {"成功": false, "原因": "该弟子无在身誓约"}
+	_结算誓约(d, false)
+	return {"成功": true}
+
+## 苦修誓：期间禁出战（真拦截，见 expedition.开始历练）
+func 誓约禁历练(弟子ID: int) -> bool:
+	var d = _取弟子(弟子ID)
+	if d == null or d.誓言.is_empty():
+		return false
+	return int(d.誓言.get("forbid_expedition", 0)) == 1
+
+## 万仙大誓：全宗共誓修炼乘区
+func 万仙誓修炼乘区() -> float:
+	if 万仙大誓.is_empty():
+		return 1.0
+	return float(万仙大誓.get("buff_cult", 1.0))
+
+## 每日推进（现实日口径，一次日切只推进 1 日）
+func _推进誓约_S36() -> void:
+	var 今日: int = _今日序号()
+	if 誓约推进日 == 0:
+		誓约推进日 = 今日
+		return
+	if 今日 == 誓约推进日:
+		return
+	誓约推进日 = 今日
+	var 有誓弟子: Array = []
+	for d in 弟子列表:
+		if d != null and not d.誓言.is_empty():
+			有誓弟子.append(d)
+	for dd in 有誓弟子:
+		# 状态类誓约（护道/不叛）：违约即刻破誓，绝不空挂等到期
+		if not _誓约仍可履行(dd, dd.誓言):
+			_结算誓约(dd, false)
+			continue
+		var 日增: float = float(dd.誓言.get("demon_per_day", 0.0))
+		if 日增 > 0.0:
+			dd.心魔值 = clamp(int(dd.心魔值) + int(round(日增)), 0, 100)
+		elif 日增 < 0.0:
+			dd.心魔值 = clamp(int(dd.心魔值) + int(round(日增)), 0, 100)
+		var 剩余: int = int(dd.誓言.get("剩余日", 0)) - 1
+		dd.誓言["剩余日"] = 剩余
+		if _誓约达成判定(dd, dd.誓言):
+			_结算誓约(dd, true)
+		elif 剩余 <= 0:
+			_结算誓约(dd, false)
+	_推进万仙大誓_S36()
+	_生成请誓_S36()
+
+func _结算誓约(d: Object, 达成: bool) -> void:
+	var 誓: Dictionary = d.誓言
+	var 名: String = str(誓.get("名称", "无名之誓"))
+	if 达成:
+		_应用誓约效果(d, _解析誓约效果串(str(誓.get("reward", ""))))
+		d.誓言史.append({"oath_id": str(誓.get("oath_id", "")), "名称": 名, "结果": "达成", "日": 累计游戏日})
+		添加纪事("宗门", "誓约达成", "%s践诺「%s」，道心澄明、修为大进。" % [str(d.姓名), 名], 1)
+	else:
+		d.破誓次数 = int(d.破誓次数) + 1
+		_应用誓约效果(d, _解析誓约效果串(str(誓.get("punish", ""))))
+		d.誓言史.append({"oath_id": str(誓.get("oath_id", "")), "名称": 名, "结果": "破誓", "日": 累计游戏日})
+		添加纪事("宗门", "心魔反噬", "%s违背「%s」，心魔反噬、道基动摇。" % [str(d.姓名), 名], 2)
+		_破誓入魔分支_S36(d)
+	d.誓言 = {}
+
+## 破誓入魔分支：心魔冲顶 → 跌境重伤；激进性格 → 目标突变魔道
+func _破誓入魔分支_S36(d: Object) -> void:
+	var 心魔: int = int(d.心魔值)
+	if 心魔 < 70:
+		return
+	var 激进: bool = str(d.性格) in ["杀伐果断", "狂傲绝世", "桀骜不羁", "锐意争先"]
+	if 心魔 >= 90:
+		d.层数 = max(1, int(d.层数) - 3)
+		d.修炼进度 = 0.0
+		d.受伤剩余 = max(int(d.受伤剩余), 30)
+		if 激进:
+			_突变目标(d, "魔道", "破誓反噬·心魔噬心")
+		添加纪事("宗门", "走火入魔", "%s破誓反噬，心魔噬心，跌境重伤！" % str(d.姓名), 3)
+	elif 激进 and randf() < 0.5:
+		d.受伤剩余 = max(int(d.受伤剩余), 10)
+		_突变目标(d, "魔道", "破誓反噬·道心蒙尘")
+
+## 弟子主动请誓（每日现实日限流，登录就有新东西）
+func _生成请誓_S36() -> void:
+	if 誓约待批.size() >= 誓约每日请誓上限:
+		return
+	var 候选: Array = []
+	for d in 弟子列表:
+		if d == null or not d.誓言.is_empty():
+			continue
+		if str(d.状态) != "在宗":
+			continue
+		if int(d.道心) < 5:
+			continue
+		候选.append(d)
+	if 候选.is_empty():
+		return
+	var 人 = 候选[randi() % 候选.size()]
+	var 表: Dictionary = _读表_誓约()
+	var 池: Array = []
+	for k in 表.keys():
+		var 配: Dictionary = 表[k] as Dictionary
+		if str(配.get("cond_type", "")) == "target_alive":
+			continue   # 护道誓须宗主指定对象，不进随机请誓池
+		if int(人.道心) < int(配.get("need_daoxin", 0)) or int(人.忠诚) < int(配.get("need_loyal", 0)):
+			continue
+		var w: int = max(1, int(配.get("weight", 1)))
+		for i in range(w):
+			池.append(k)
+	if 池.is_empty():
+		return
+	var 选id: String = str(池[randi() % 池.size()])
+	誓约待批.append({
+		"弟子ID": int(人.弟子ID), "弟子名": str(人.姓名), "oath_id": 选id,
+		"名称": str((表[选id] as Dictionary).get("name", "")),
+		"desc": str((表[选id] as Dictionary).get("desc", "")),
+		"日": _今日序号(),
+	})
+
+func 批准请誓(序号: int) -> Dictionary:
+	if 序号 < 0 or 序号 >= 誓约待批.size():
+		return {"成功": false, "原因": "请誓不存在"}
+	var 项: Dictionary = 誓约待批[序号] as Dictionary
+	var r: Dictionary = 立心魔誓(int(项.get("弟子ID", -1)), str(项.get("oath_id", "")))
+	if bool(r.get("成功", false)):
+		誓约待批.remove_at(序号)
+	return r
+
+func 驳回请誓(序号: int) -> Dictionary:
+	if 序号 < 0 or 序号 >= 誓约待批.size():
+		return {"成功": false, "原因": "请誓不存在"}
+	var 项: Dictionary = 誓约待批[序号] as Dictionary
+	var d = _取弟子(int(项.get("弟子ID", -1)))
+	if d != null:
+		d.心境 = clamp(int(d.心境) - 2, 0, 100)
+	誓约待批.remove_at(序号)
+	return {"成功": true}
+
+## 万仙大誓：宗门级共誓
+func 发起万仙大誓(so_id: String) -> Dictionary:
+	if not 万仙大誓.is_empty():
+		return {"成功": false, "原因": "宗门已有在身大誓"}
+	var 配: Dictionary = _读表_万仙大誓().get(so_id, {}) as Dictionary
+	if 配.is_empty():
+		return {"成功": false, "原因": "大誓不存在"}
+	var 条件: String = str(配.get("cond_type", ""))
+	var 期限: int = int(配.get("duration_days", 14))
+	万仙大誓 = {
+		"sect_oath_id": so_id, "名称": str(配.get("name", "")),
+		"起始日": _今日序号(), "期限": 期限, "剩余日": 期限,
+		"cond_type": 条件, "cond_value": int(配.get("cond_value", 0)),
+		"快照": _全宗誓约快照(条件),
+		"buff_cult": float(配.get("buff_cult", 1.0)),
+		"reward": str(配.get("reward", "")), "punish": str(配.get("punish", "")),
+	}
+	添加纪事("宗门", "万仙大誓", "全宗心香共燃，立「%s」，限期%d日。" % [str(配.get("name", "")), 期限], 2)
+	return {"成功": true}
+
+func _全宗誓约快照(条件: String) -> int:
+	match 条件:
+		"sect_realm_up":
+			var s: int = 0
+			for d in 弟子列表:
+				if d != null and str(d.状态) == "在宗":
+					s += Disciple.境界序.find(str(d.境界))
+			return s
+		"sect_merit":
+			return 战功
+		"sect_member":
+			return 弟子列表.size()
+	return 0
+
+func _全宗誓约达成判定() -> bool:
+	var 条件: String = str(万仙大誓.get("cond_type", ""))
+	var 阈值: int = int(万仙大誓.get("cond_value", 0))
+	var 快照: int = int(万仙大誓.get("快照", 0))
+	return (_全宗誓约快照(条件) - 快照) >= 阈值
+
+func _推进万仙大誓_S36() -> void:
+	if 万仙大誓.is_empty():
+		return
+	var 剩余: int = int(万仙大誓.get("剩余日", 0)) - 1
+	万仙大誓["剩余日"] = 剩余
+	if _全宗誓约达成判定():
+		_结算万仙大誓(true)
+	elif 剩余 <= 0:
+		_结算万仙大誓(false)
+
+func _结算万仙大誓(达成: bool) -> void:
+	var 名: String = str(万仙大誓.get("名称", "无名大誓"))
+	if 达成:
+		_应用全宗誓约效果(_解析誓约效果串(str(万仙大誓.get("reward", ""))))
+		添加纪事("宗门", "大誓达成", "全宗践诺「%s」，上下同心、声威大振。" % 名, 2)
+	else:
+		_应用全宗誓约效果(_解析誓约效果串(str(万仙大誓.get("punish", ""))))
+		添加纪事("宗门", "大誓落空", "「%s」未能践诺，全宗心魔浮动。" % 名, 3)
+	万仙大誓 = {}
+
+## UI 读取：宗门誓约总览
+func 誓约总览_S36() -> Dictionary:
+	var 在誓: Array = []
+	for d in 弟子列表:
+		if d != null and not d.誓言.is_empty():
+			在誓.append({
+				"弟子ID": int(d.弟子ID), "姓名": str(d.姓名),
+				"名称": str(d.誓言.get("名称", "")),
+				"剩余日": int(d.誓言.get("剩余日", 0)), "期限": int(d.誓言.get("期限", 0)),
+				"buff_cult": float(d.誓言.get("buff_cult", 1.0)),
+				"demon_per_day": float(d.誓言.get("demon_per_day", 0.0)),
+				"forbid": int(d.誓言.get("forbid_expedition", 0)),
+			})
+	return {"在誓": 在誓, "待批": 誓约待批, "万仙": 万仙大誓}
+# ==================== S37 丹纹系统（丹成生纹·图谱收集） ====================
+# 铁律：①丹纹只放大【既有】丹药效果与售价，不新增任何货币产出（售价倍率 clamp 2.0）
+#      ②丹毒轴激活：无纹/低纹丹涨毒，高纹丹净清毒（disciple.丹毒 原本只减不增，是死轴）
+#      ③所有数值走 CSV（pill_mark_config / pill_mark_tier / pill_mark_codex）
+# 丹纹图谱已移至 dan_mark_system.gd
+# 丹纹日志已移至 dan_mark_system.gd
+# 丹纹表缓存已移至 dan_mark_system.gd
+# 丹纹分档缓存已移至 dan_mark_system.gd
+# 丹纹图谱档缓存已移至 dan_mark_system.gd
+# 丹纹今日纪事已移至 dan_mark_system.gd
+# 丹纹纪事日已移至 dan_mark_system.gd
+const 丹纹每日纪事上限: int = 3     # 每日最多 3 条「丹纹天成」纪事
+const 丹纹日志上限: int = 20
+const 丹纹售价上限倍率: float = 2.0
+
+func _读表_丹纹() -> Dictionary:
+	if 丹纹系统.丹纹表缓存.has("mark"):
+		return 丹纹系统.丹纹表缓存["mark"] as Dictionary
+	var 表: Dictionary = {}
+	var f = FileAccess.open("res://config/pill_mark_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("pill_mark_config.csv 缺失，丹纹表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 7:
+			continue
+		var 阶: String = p[0].strip_edges()
+		if 阶.is_empty():
+			continue
+		表[阶] = {
+			"grade": 阶,
+			"base_rate": float(p[1]),
+			"base_toxin": float(p[2]),
+			"effect_per_mark": float(p[3]),
+			"price_per_mark": float(p[4]),
+			"detox_per_mark": float(p[5]),
+			"max_mark": int(p[6]),
+		}
+	丹纹系统.丹纹表缓存["mark"] = 表
+	return 表
+
+func _读表_丹纹分档() -> Array:
+	if not 丹纹系统.丹纹分档缓存.is_empty():
+		return 丹纹系统.丹纹分档缓存
+	var 表: Array = []
+	var f = FileAccess.open("res://config/pill_mark_tier.csv", FileAccess.READ)
+	if f == null:
+		push_warning("pill_mark_tier.csv 缺失，丹纹分档为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 5:
+			continue
+		var id: String = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表.append({
+			"tier_id": id,
+			"min": int(p[1]), "max": int(p[2]),
+			"name": p[3].strip_edges(),
+			"desc": p[4].strip_edges(),
+			"omen": p[5].strip_edges() if p.size() > 5 else "",
+		})
+	表.sort_custom(func(a, b): return int(a["min"]) < int(b["min"]))
+	丹纹系统.丹纹分档缓存 = 表
+	return 表
+
+func _读表_丹纹图谱档() -> Array:
+	if not 丹纹系统.丹纹图谱档缓存.is_empty():
+		return 丹纹系统.丹纹图谱档缓存
+	var 表: Array = []
+	var f = FileAccess.open("res://config/pill_mark_codex.csv", FileAccess.READ)
+	if f == null:
+		push_warning("pill_mark_codex.csv 缺失，丹纹图谱档为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 5:
+			continue
+		var id: String = p[0].strip_edges()
+		if id.is_empty():
+			continue
+		表.append({
+				"codex_id": id, "name": p[1].strip_edges(),
+				"need": int(p[2]), "success": float(p[3]), "rate": float(p[4]),
+				"desc": p[5].strip_edges() if p.size() > 5 else "",
+			})
+	表.sort_custom(func(a, b): return int(a["need"]) < int(b["need"]))
+	丹纹系统.丹纹图谱档缓存 = 表
+	return 表
+
+## 品阶归一：既有「凡阶/灵阶…」（Item.品阶序）也有「凡品/灵品…」（解锁丹方体系），统一到「X阶」
+func _丹纹归一品阶(阶: String) -> String:
+	var s: String = 阶.strip_edges()
+	if s.ends_with("品"):
+		s = s.substr(0, s.length() - 1) + "阶"
+	return s
+
+func _丹纹配置(阶: String) -> Dictionary:
+	var 表: Dictionary = _读表_丹纹()
+	var k: String = _丹纹归一品阶(阶)
+	if 表.has(k):
+		return (表[k] as Dictionary).duplicate()
+	return {"grade": k, "base_rate": 0.35, "base_toxin": 1.0, "effect_per_mark": 0.1,
+		"price_per_mark": 0.15, "detox_per_mark": 0.6, "max_mark": 9}
+
+func 丹纹分档(纹: int) -> Dictionary:
+	var 表: Array = _读表_丹纹分档()
+	for t in 表:
+		var d: Dictionary = t as Dictionary
+		if 纹 >= int(d["min"]) and 纹 <= int(d["max"]):
+			return d
+	return {"tier_id": "t0", "min": 0, "max": 0, "name": "无纹", "desc": "", "omen": ""}
+
+func 丹纹名(纹: int) -> String:
+	if 纹 <= 0:
+		return "无纹"
+	return "%d纹·%s" % [纹, str(丹纹分档(纹).get("name", ""))]
+
+## 掷纹：逐纹递进，每道纹以 p 通过，失败即止（0=无纹）
+func 掷丹纹(阶: String, 丹堂等级: int = 1) -> int:
+	var c: Dictionary = _丹纹配置(阶)
+	var p: float = float(c.get("base_rate", 0.35))
+	p += 炼丹出纹加成(丹堂等级)
+	p = clamp(p, 0.02, 0.95)
+	var 上限: int = int(c.get("max_mark", 9))
+	var 纹: int = 0
+	while 纹 < 上限:
+		if randf() > p:
+			break
+		纹 += 1
+	return 纹
+
+func 丹纹药效倍率(阶: String, 纹: int) -> float:
+	if 纹 <= 0:
+		return 1.0
+	var c: Dictionary = _丹纹配置(阶)
+	return 1.0 + float(纹) * float(c.get("effect_per_mark", 0.1))
+
+func 丹纹售价倍率(纹: int) -> float:
+	if 纹 <= 0:
+		return 1.0
+	return clamp(1.0 + float(纹) * 0.15, 1.0, 丹纹售价上限倍率)
+
+## 丹毒变化：正=涨毒，负=清毒（激活 disciple.丹毒 死轴）
+func 丹纹丹毒变化(阶: String, 纹: int) -> float:
+	var c: Dictionary = _丹纹配置(阶)
+	var 毒: float = float(c.get("base_toxin", 1.0)) - float(纹) * float(c.get("detox_per_mark", 0.6))
+	return 毒
+
+## 图谱总分 = 各丹最高纹之和（满分 = 丹方数 × 9）
+
+# ===== 丹纹系统（已拆分到dan_mark_system.gd，此处为转发函数）=====
+func 丹纹图谱总分():
+	return 丹纹系统.丹纹图谱总分()
+func 丹纹图谱加成():
+	return 丹纹系统.丹纹图谱加成()
+func 丹纹图谱成功率加成():
+	return 丹纹系统.丹纹图谱成功率加成()
+func 赋予丹纹(丹药, 阶: String, 丹堂等级: int = 1):
+	return 丹纹系统.赋予丹纹(丹药, 阶, 丹堂等级)
+func _丹纹纪事(丹名: String, 纹: int, 阶: String, 新纪录: bool):
+	丹纹系统._丹纹纪事(丹名, 纹, 阶, 新纪录)
+func 丹纹服用摘要(阶: String, 纹: int):
+	return 丹纹系统.丹纹服用摘要(阶, 纹)
+func 丹纹图谱总览():
+	return 丹纹系统.丹纹图谱总览()
+func 丹纹总览():
+	return 丹纹系统.丹纹总览()
+func _丹纹补缺():
+	丹纹系统._丹纹补缺()
+
+# ==================== S45 符箓因子网络（人/器/法/势 四源决定成率与符纹，镜像 S38/S42 范式） ====================
+# 设计：炼符产出由 多维度因子 决定 成功率 与 符纹率，
+#   人：符师灵根品阶/灵根类型/道途（档位）+ 心境/心魔/忠诚/境界序/政绩（连续）
+#   器/法/势：符纸（符堂等级·成率）/朱砂（符堂等级·出纹）/符师在编/符箓图谱/宗门气运
+# 杜绝假系统：CSV 为唯一真源，炼符成功率/符纹率真消费，符堂 UI 真展示。
+var 符箓因子档缓存: Array = []
+var 符箓因子线缓存: Array = []
+var 符箓来源缓存: Dictionary = {}
+var 符箓表缓存: Dictionary = {}   # config/item_talisman.csv -> {talisman_id: cfg}（懒加载，不入库）
+var _符品级缓存: Array = []       # config/talisman_grade_config.csv（懒加载，不入库）
+var _符产量缓存: Dictionary = {}   # config/talisman_yield_config.csv（懒加载，不入库）
+var _符纸表缓存: Dictionary = {}   # config/talisman_paper_config.csv（懒加载，不入库）
+# S45-4 符纹三表缓存（镜像丹纹 S37，懒加载，不入库）
+# _符纹表缓存已移至 talisman_mark_system.gd
+# _符纹分档缓存已移至 talisman_mark_system.gd
+# _符纹图谱档缓存已移至 talisman_mark_system.gd
+var _符等级缓存: Array = []       # S45-6 config/talisman_level_config.csv（按 level 升序，懒加载）
+const 符箓个人封顶成率: float = 0.18
+const 符箓个人封顶出纹: float = 0.18
+const 符纹每级符堂加成: float = 0.03   # 符堂每级 +3% 逐纹概率（镜像 丹纹每级丹堂加成）
+const 符纹售价上限倍率: float = 2.0    # 符纹售价加价封顶（镜像 丹纹售价上限倍率）
+const 符纹日志上限: int = 20
+
+func _读表_符箓因子档() -> Array:
+	if not 符箓因子档缓存.is_empty():
+		return 符箓因子档缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/talisman_factor_step.csv"):
+		if p.size() < 7:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+		"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+		"键": str(p[4]).strip_edges(), "成率": float(p[5]), "出纹": float(p[6])})
+	符箓因子档缓存 = 表
+	return 表
+
+func _读表_符箓因子线() -> Array:
+	if not 符箓因子线缓存.is_empty():
+		return 符箓因子线缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/talisman_factor_linear.csv"):
+		if p.size() < 9:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+		"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+		"每成": float(p[4]), "每纹": float(p[5]),
+		"上成": float(p[6]), "上纹": float(p[7])})
+	符箓因子线缓存 = 表
+	return 表
+
+func _读表_符箓来源() -> Dictionary:
+	if not 符箓来源缓存.is_empty():
+		return 符箓来源缓存
+	var 表: Dictionary = {}
+	for p in _S38_读表行("res://config/talisman_source_config.csv"):
+		if p.size() < 6:
+			continue
+		表[str(p[0]).strip_edges()] = {"名称": str(p[2]).strip_edges(),
+		"成率": float(p[3]), "出纹": float(p[4])}
+	符箓来源缓存 = 表
+	return 表
+
+## 符堂负责人 = 实际符师（无人则 null，因子只吃宗门侧）
+func 符堂负责人():
+	if 司职列表.has("futang"):
+		return (司职列表["futang"] as Dictionary).get("负责人", null)
+	return null
+
+func _符堂政绩() -> int:
+	if 司职列表.has("futang"):
+		return int((司职列表["futang"] as Dictionary).get("政绩", 0))
+	return 0
+
+## 符箓因子明细：返回 {成率, 出纹, 人成, 人纹, 明细}
+func 符箓因子明细(符师弟子, 符堂等级: int = 1) -> Dictionary:
+	var 明细: Array = []
+	var 人成: float = 0.0
+	var 人纹: float = 0.0
+	var 宗成: float = 0.0
+	var 宗纹: float = 0.0
+	var d = 符师弟子
+	if d != null:
+		for 行 in _读表_符箓因子档():
+			var r: Dictionary = 行 as Dictionary
+			var 实: String = ""
+			match str(r["维度"]):
+				"灵根品阶": 实 = str(d.灵根品阶)
+				"灵根类型": 实 = str(d.灵根)
+				"道途": 实 = str(d.道途)
+				_: 实 = ""
+			if 实.is_empty() or 实 != str(r["键"]):
+				continue
+			人成 += float(r["成率"])
+			人纹 += float(r["出纹"])
+			明细.append({"名称": str(r["名称"]), "类别": str(r["类别"]),
+			"成率": float(r["成率"]), "出纹": float(r["出纹"])})
+		for 行2 in _读表_符箓因子线():
+			var r2: Dictionary = 行2 as Dictionary
+			if str(r2["维度"]) == "殿阁等级":
+				continue
+			var 值: float = 0.0
+			match str(r2["维度"]):
+				"心境": 值 = float(d.心境)
+				"心魔值": 值 = float(d.心魔值)
+				"忠诚": 值 = float(d.忠诚)
+				"境界序": 值 = float(max(0, Disciple.境界序.find(str(d.境界))))
+				"政绩": 值 = float(_符堂政绩())
+				_: 值 = 0.0
+			if 值 == 0.0:
+				continue
+			var 成2: float = _S38_限幅(值 * float(r2["每成"]), float(r2["上成"]))
+			var 纹2: float = _S38_限幅(值 * float(r2["每纹"]), float(r2["上纹"]))
+			if abs(成2) < 0.0001 and abs(纹2) < 0.0001:
+				continue
+			人成 += 成2
+			人纹 += 纹2
+			明细.append({"名称": "%s（%s）" % [str(r2["名称"]), str(int(值))], "类别": str(r2["类别"]),
+			"成率": 成2, "出纹": 纹2})
+	人成 = clamp(人成, -符箓个人封顶成率, 符箓个人封顶成率)
+	人纹 = clamp(人纹, -符箓个人封顶出纹, 符箓个人封顶出纹)
+	var 源: Dictionary = _读表_符箓来源()
+	var 级值: float = float(max(0, 符堂等级 - 1))
+	# 符纸（势·成率，每符堂等级+3%，封顶15%）
+	var 纸: Dictionary = 源.get("asc_fuzhi", {}) as Dictionary
+	var 纸成: float = _S38_限幅(级值 * float(纸.get("成率", 0.0)), 0.15)
+	if 纸成 > 0.0:
+		宗成 += 纸成
+		明细.append({"名称": "符纸（L%d）" % 符堂等级, "类别": "势", "成率": 纸成, "出纹": 0.0})
+	# 朱砂（势·出纹，每符堂等级+3%，封顶15%）
+	var 砂: Dictionary = 源.get("asc_futan", {}) as Dictionary
+	var 砂纹: float = _S38_限幅(级值 * float(砂.get("出纹", 0.0)), 0.15)
+	if 砂纹 > 0.0:
+		宗纹 += 砂纹
+		明细.append({"名称": "朱砂（L%d）" % 符堂等级, "类别": "势", "成率": 0.0, "出纹": 砂纹})
+	# 符师在编（器）
+	if 司职列表.has("futang"):
+		var 在编: Dictionary = 源.get("asc_futang", {}) as Dictionary
+		var 成: float = float(在编.get("成率", 0.0))
+		if 成 > 0.0 and 符堂负责人() != null:
+			宗成 += 成
+			明细.append({"名称": "符师在编", "类别": "器", "成率": 成, "出纹": 0.0})
+	# 符箓图谱（法·出纹，封顶8%）
+	var 图: Dictionary = 源.get("asc_codex_fu", {}) as Dictionary
+	var 图纹: float = float(图.get("出纹", 0.0))
+	if 图纹 > 0.0:
+		宗纹 += 图纹
+		明细.append({"名称": "符箓图谱", "类别": "法", "成率": 0.0, "出纹": 图纹})
+	# 宗门气运（势，±10%）
+	var 气: float = 获取气运炼丹加成()
+	if abs(气) > 0.0001:
+		宗成 += 气
+		宗纹 += 气
+		明细.append({"名称": "宗门气运", "类别": "势", "成率": 气, "出纹": 气})
+	return {"成率": 人成 + 宗成, "出纹": 人纹 + 宗纹, "人成": 人成, "人纹": 人纹, "明细": 明细}
+
+func 符箓成率加成(符堂等级: int = 1) -> float:
+	return float(符箓因子明细(符堂负责人(), 符堂等级).get("成率", 0.0))
+
+func 符箓出纹加成(符堂等级: int = 1) -> float:
+	return float(符箓因子明细(符堂负责人(), 符堂等级).get("出纹", 0.0))
+
+## 符箓师摘要（UI 用）
+func 符箓师摘要() -> String:
+	var d = 符堂负责人()
+	if d == null:
+		return "符堂无负责人，仅宗门侧加成生效"
+	return "%s（%s·%s·%s）" % [str(d.姓名), str(d.境界), str(d.灵根), str(d.道途)]
+
+# ==================== S42 炼器因子网络（人/器/法/势 四源决定成率与高品质，沿用 S38 范式） ====================
+# 设计：锻造产出（矿石路径 锻造装备 / 配方路径 执行炼器）由 多维度因子 决定 成功率 与 高品质率，
+#   人：铸匠灵根品阶/灵根类型/道途（档位）+ 心境/心魔/忠诚/境界序/政绩（连续）
+#   器/势：器胚（器堂等级·成率）/炉火（器堂等级·高品质）/铸匠在编/锻造图谱/宗门气运
+# 杜绝假系统：CSV 为唯一真源（与 alchemy 同构），锻造成功率/高品质率真消费，器堂 UI 真展示。
+var 锻造因子档缓存: Array = []
+var 锻造因子线缓存: Array = []
+var 锻造来源缓存: Dictionary = {}
+
+const 锻造个人封顶成率: float = 0.18
+const 锻造个人封顶高品质: float = 0.18
+
+# 炼器品阶归一（矿石路径用 凡品/灵品…，item/forge 内部用 凡阶/灵阶…）
+const 锻造品阶归一: Dictionary = {"凡品":"凡阶","灵品":"灵阶","宝品":"宝阶","王品":"王阶","圣品":"圣阶","仙品":"仙阶","道品":"道阶"}
+
+func _读表_锻造因子档() -> Array:
+	if not 锻造因子档缓存.is_empty():
+		return 锻造因子档缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/forge_factor_step.csv"):
+		if p.size() < 7:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+		"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+		"键": str(p[4]).strip_edges(), "成率": float(p[5]), "高品质": float(p[6])})
+	锻造因子档缓存 = 表
+	return 表
+
+func _读表_锻造因子线() -> Array:
+	if not 锻造因子线缓存.is_empty():
+		return 锻造因子线缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/forge_factor_linear.csv"):
+		if p.size() < 9:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+		"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+		"每成": float(p[4]), "每高": float(p[5]),
+		"上成": float(p[6]), "上高": float(p[7])})
+	锻造因子线缓存 = 表
+	return 表
+
+func _读表_锻造来源() -> Dictionary:
+	if not 锻造来源缓存.is_empty():
+		return 锻造来源缓存
+	var 表: Dictionary = {}
+	for p in _S38_读表行("res://config/forge_source_config.csv"):
+		if p.size() < 7:
+			continue
+		表[str(p[0]).strip_edges()] = {"名称": str(p[2]).strip_edges(), "键": str(p[3]).strip_edges(),
+		"成率": float(p[4]), "高品质": float(p[5])}
+	锻造来源缓存 = 表
+	return 表
+
+## 器堂负责人 = 实际铸匠（无人则 null，因子只吃宗门侧），镜像 丹堂负责人
+func 器堂负责人():
+	if 司职列表.has("qitang"):
+		return (司职列表["qitang"] as Dictionary).get("负责人", null)
+	return null
+
+func _器堂政绩() -> int:
+	if 司职列表.has("qitang"):
+		return int((司职列表["qitang"] as Dictionary).get("政绩", 0))
+	return 0
+
+## 锻造因子明细：返回 {成率, 高品质, 人成, 人高, 明细}
+## 明细为 [{名称, 类别, 成率, 高品质}]，供 UI 展示「该培养谁/升什么」
+func 锻造因子明细(铸匠弟子, 器堂等级: int = 1) -> Dictionary:
+	var 明细: Array = []
+	var 人成: float = 0.0
+	var 人高: float = 0.0
+	var 宗成: float = 0.0
+	var 宗高: float = 0.0
+	var d = 铸匠弟子
+	if d != null:
+		# --- 档位因子：灵根品阶 / 灵根类型 / 道途 ---
+		for 行 in _读表_锻造因子档():
+			var r: Dictionary = 行 as Dictionary
+			var 实: String = ""
+			match str(r["维度"]):
+				"灵根品阶": 实 = str(d.灵根品阶)
+				"灵根类型": 实 = str(d.灵根)
+				"道途": 实 = str(d.道途)
+				_: 实 = ""
+			if 实.is_empty() or 实 != str(r["键"]):
+				continue
+			人成 += float(r["成率"])
+			人高 += float(r["高品质"])
+			明细.append({"名称": str(r["名称"]), "类别": str(r["类别"]),
+				"成率": float(r["成率"]), "高品质": float(r["高品质"])})
+		# --- 连续因子：心境 / 心魔 / 忠诚 / 境界 / 政绩 ---
+		for 行2 in _读表_锻造因子线():
+			var r2: Dictionary = 行2 as Dictionary
+			var 值: float = 0.0
+			match str(r2["维度"]):
+				"心境": 值 = float(d.心境)
+				"心魔值": 值 = float(d.心魔值)
+				"忠诚": 值 = float(d.忠诚)
+				"境界序": 值 = float(max(0, Disciple.境界序.find(str(d.境界))))
+				"政绩": 值 = float(_器堂政绩())
+				_: 值 = 0.0
+			if 值 == 0.0:
+				continue
+			var 成2: float = _S38_限幅(值 * float(r2["每成"]), float(r2["上成"]))
+			var 高2: float = _S38_限幅(值 * float(r2["每高"]), float(r2["上高"]))
+			if abs(成2) < 0.0001 and abs(高2) < 0.0001:
+				continue
+			人成 += 成2
+			人高 += 高2
+			明细.append({"名称": "%s（%s）" % [str(r2["名称"]), str(int(值))], "类别": str(r2["类别"]),
+				"成率": 成2, "高品质": 高2})
+	人成 = clamp(人成, -锻造个人封顶成率, 锻造个人封顶成率)
+	人高 = clamp(人高, -锻造个人封顶高品质, 锻造个人封顶高品质)
+	# --- 宗门侧：器/法/势（不受个人封顶限制，否则升级建筑毫无意义）---
+	var 源: Dictionary = _读表_锻造来源()
+	var 级值: float = float(max(0, 器堂等级 - 1))
+	# 器胚（势·成率，每器堂等级+3%，封顶15%）
+	var 胚: Dictionary = 源.get("fsc_qipei", {}) as Dictionary
+	var 胚成: float = _S38_限幅(级值 * float(胚.get("成率", 0.0)), 0.15)
+	if 胚成 > 0.0:
+		宗成 += 胚成
+		明细.append({"名称": "器胚（L%d）" % 器堂等级, "类别": "势", "成率": 胚成, "高品质": 0.0})
+	# 炉火（势·高品质，每器堂等级+3%，封顶15%）
+	var 火: Dictionary = 源.get("fsc_luhuo", {}) as Dictionary
+	var 火高: float = _S38_限幅(级值 * float(火.get("高品质", 0.0)), 0.15)
+	if 火高 > 0.0:
+		宗高 += 火高
+		明细.append({"名称": "炉火（L%d）" % 器堂等级, "类别": "势", "成率": 0.0, "高品质": 火高})
+	# 铸匠在编（器）
+	if 司职列表.has("qitang"):
+		var 在编: Dictionary = 源.get("fsc_zhujian", {}) as Dictionary
+		var 成: float = float(在编.get("成率", 0.0))
+		if 成 > 0.0 and 器堂负责人() != null:
+			宗成 += 成
+			明细.append({"名称": "铸匠在编", "类别": "器", "成率": 成, "高品质": 0.0})
+	# 锻造图谱（法·高品质，按已解锁装备图纸数折算，封顶8%）
+	var 图: Dictionary = 源.get("fsc_tupu", {}) as Dictionary
+	var 图高上限: float = float(图.get("高品质", 0.08))
+	var 图高: float = clamp(float(已解锁装备图纸列表.size()) * 0.01, 0.0, 图高上限)
+	if 图高 > 0.0:
+		宗高 += 图高
+		明细.append({"名称": "锻造图谱·%d图" % 已解锁装备图纸列表.size(), "类别": "法", "成率": 0.0, "高品质": 图高})
+	# 宗门气运（势，±10%，复用获取气运炼丹加成）
+	var 气: float = 获取气运炼丹加成()
+	if abs(气) > 0.0001:
+		宗成 += 气
+		宗高 += 气
+		明细.append({"名称": "宗门气运", "类别": "势", "成率": 气, "高品质": 气})
+	return {"成率": 人成 + 宗成, "高品质": 人高 + 宗高, "人成": 人成, "人高": 人高, "明细": 明细}
+
+func 炼器成率加成(器堂等级: int = 1) -> float:
+	return float(锻造因子明细(器堂负责人(), 器堂等级).get("成率", 0.0))
+
+func 炼器高品质加成(器堂等级: int = 1) -> float:
+	return float(锻造因子明细(器堂负责人(), 器堂等级).get("高品质", 0.0))
+
+## 炼器师摘要（UI 用）
+func 炼器师摘要() -> String:
+	var d = 器堂负责人()
+	if d == null:
+		return "器堂无负责人，仅宗门侧加成生效"
+	return "%s（%s·%s·%s）" % [str(d.姓名), str(d.境界), str(d.灵根), str(d.道途)]
+
+# ==================== S38 炼丹因子网络（人/器/法/势 四源决定成率与丹纹） ====================
+# 铁律：①每个因子必须来自真字段或真配置，禁恒真表达式
+#      ②单人因子封顶，防某一维度独大
+#      ③CSV 里写给玩家看的加成必须有真消费方（本块即为道途/傀儡/建筑的消费方）
+var 炼丹因子档缓存: Array = []
+var 炼丹因子线缓存: Array = []
+var 炼丹来源缓存: Dictionary = {}
+const 炼丹个人封顶成率: float = 0.18
+const 炼丹个人封顶出纹: float = 0.18
+
+## 通用 CSV 行读取（跳过表头，去空行）
+func _S38_读表行(路径: String) -> Array:
+	var 行: Array = []
+	var f = FileAccess.open(路径, FileAccess.READ)
+	if f == null:
+		push_warning("S38 配置缺失：%s" % 路径)
+		return 行
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() >= 2 and not str(p[0]).strip_edges().is_empty():
+			行.append(p)
+	return 行
+
+func _读表_炼丹因子档() -> Array:
+	if not 炼丹因子档缓存.is_empty():
+		return 炼丹因子档缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/alchemy_factor_step.csv"):
+		if p.size() < 7:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+			"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+			"键": str(p[4]).strip_edges(), "成率": float(p[5]), "出纹": float(p[6])})
+	炼丹因子档缓存 = 表
+	return 表
+
+func _读表_炼丹因子线() -> Array:
+	if not 炼丹因子线缓存.is_empty():
+		return 炼丹因子线缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/alchemy_factor_linear.csv"):
+		if p.size() < 9:
+			continue
+		表.append({"id": str(p[0]).strip_edges(), "类别": str(p[1]).strip_edges(),
+			"名称": str(p[2]).strip_edges(), "维度": str(p[3]).strip_edges(),
+			"每成": float(p[4]), "每纹": float(p[5]),
+			"上成": float(p[6]), "上纹": float(p[7])})
+	炼丹因子线缓存 = 表
+	return 表
+
+func _读表_炼丹来源() -> Dictionary:
+	if not 炼丹来源缓存.is_empty():
+		return 炼丹来源缓存
+	var 表: Dictionary = {}
+	for p in _S38_读表行("res://config/alchemy_source_config.csv"):
+		if p.size() < 6:
+			continue
+		表[str(p[0]).strip_edges()] = {"名称": str(p[2]).strip_edges(),
+			"成率": float(p[3]), "出纹": float(p[4])}
+	炼丹来源缓存 = 表
+	return 表
+
+## 带符号限幅：cap 为正取 [0,cap]，为负取 [cap,0]
+func _S38_限幅(v: float, cap: float) -> float:
+	if cap >= 0.0:
+		return clamp(v, 0.0, cap)
+	return clamp(v, cap, 0.0)
+
+## 丹堂负责人 = 实际炼丹师（无人则 null，因子只吃宗门侧）
+func 丹堂负责人():
+	if 司职列表.has("dantang"):
+		return (司职列表["dantang"] as Dictionary).get("负责人", null)
+	return null
+
+func _丹堂政绩() -> int:
+	if 司职列表.has("dantang"):
+		return int((司职列表["dantang"] as Dictionary).get("政绩", 0))
+	return 0
+
+## 丹道傀儡加成：读 puppet.csv（类型=炼丹），按宗门已制作傀儡名称累加（救活既有死配置）
+func 丹道傀儡加成() -> Dictionary:
+	var 源: Dictionary = _读表_炼丹来源()
+	var 上成: float = float((源.get("asc_puppet", {}) as Dictionary).get("成率", 0.17))
+	var 上纹: float = float((源.get("asc_puppet", {}) as Dictionary).get("出纹", 0.06))
+	var 成: float = 0.0
+	var 名: Array = []
+	for p in _S38_读表行("res://config/puppet.csv"):
+		if p.size() < 7:
+			continue
+		if str(p[4]).strip_edges() != "炼丹":
+			continue
+		var 傀名: String = str(p[1]).strip_edges()
+		var n: int = 0
+		for 傀 in 傀儡系统.傀儡列表:
+			if str((傀 as Dictionary).get("名称", "")) == 傀名:
+				n += 1
+		if n <= 0:
+			continue
+		var v: float = float(str(p[6]).strip_edges().replace("%", "")) / 100.0
+		成 += v * float(n)
+		名.append("%s×%d" % [傀名, n])
+	成 = clamp(成, 0.0, 上成)
+	return {"成率": 成, "出纹": clamp(成 * 0.35, 0.0, 上纹), "名": "、".join(名)}
+
+## 炼丹因子明细：返回 {成率, 出纹, 人成, 人纹, 明细}
+## 明细为 [{名称, 类别, 成率, 出纹}]，供 UI 展示「该培养谁」
+func 炼丹因子明细(炼丹师, 丹堂等级: int = 1) -> Dictionary:
+	var 明细: Array = []
+	var 人成: float = 0.0
+	var 人纹: float = 0.0
+	var 宗成: float = 0.0
+	var 宗纹: float = 0.0
+	var d = 炼丹师
+	if d != null:
+		# --- 档位因子：灵根品阶 / 灵根类型 / 道途 ---
+		for 行 in _读表_炼丹因子档():
+			var r: Dictionary = 行 as Dictionary
+			var 实: String = ""
+			match str(r["维度"]):
+				"灵根品阶": 实 = str(d.灵根品阶)
+				"灵根类型": 实 = str(d.灵根)
+				"道途": 实 = str(d.道途)
+				_: 实 = ""
+			if 实.is_empty() or 实 != str(r["键"]):
+				continue
+			人成 += float(r["成率"])
+			人纹 += float(r["出纹"])
+			明细.append({"名称": str(r["名称"]), "类别": str(r["类别"]),
+				"成率": float(r["成率"]), "出纹": float(r["出纹"])})
+		# --- 连续因子：心境 / 心魔 / 忠诚 / 境界 / 政绩（殿阁等级属宗门侧，见下） ---
+		for 行2 in _读表_炼丹因子线():
+			var r2: Dictionary = 行2 as Dictionary
+			if str(r2["维度"]) == "殿阁等级":
+				continue
+			var 值: float = 0.0
+			match str(r2["维度"]):
+				"心境": 值 = float(d.心境)
+				"心魔值": 值 = float(d.心魔值)
+				"忠诚": 值 = float(d.忠诚)
+				"境界序": 值 = float(max(0, Disciple.境界序.find(str(d.境界))))
+				"政绩": 值 = float(_丹堂政绩())
+				_: 值 = 0.0
+			if 值 == 0.0:
+				continue
+			var 成2: float = _S38_限幅(值 * float(r2["每成"]), float(r2["上成"]))
+			var 纹2: float = _S38_限幅(值 * float(r2["每纹"]), float(r2["上纹"]))
+			if abs(成2) < 0.0001 and abs(纹2) < 0.0001:
+				continue
+			人成 += 成2
+			人纹 += 纹2
+			明细.append({"名称": "%s（%s）" % [str(r2["名称"]), str(int(值))], "类别": str(r2["类别"]),
+				"成率": 成2, "出纹": 纹2})
+	人成 = clamp(人成, -炼丹个人封顶成率, 炼丹个人封顶成率)
+	人纹 = clamp(人纹, -炼丹个人封顶出纹, 炼丹个人封顶出纹)
+	# --- 宗门侧：器/法/势（不受个人封顶限制，否则升级建筑毫无意义） ---
+	var 源2: Dictionary = _读表_炼丹来源()
+	# 丹堂等级（器）：随等级线性增长，是升级丹堂的核心回报
+	for 行3 in _读表_炼丹因子线():
+		var r3: Dictionary = 行3 as Dictionary
+		if str(r3["维度"]) != "殿阁等级":
+			continue
+		var 级值: float = float(max(0, 丹堂等级 - 1))
+		var 成3: float = _S38_限幅(级值 * float(r3["每成"]), float(r3["上成"]))
+		var 纹3: float = _S38_限幅(级值 * float(r3["每纹"]), float(r3["上纹"]))
+		宗成 += 成3
+		宗纹 += 纹3
+		if 级值 > 0.0:
+			明细.append({"名称": "%s（L%d）" % [str(r3["名称"]), 丹堂等级], "类别": "器",
+				"成率": 成3, "出纹": 纹3})
+	if 司职列表.has("dantang"):
+		var s成: float = float((源2.get("asc_dantang", {}) as Dictionary).get("成率", 0.0))
+		if s成 > 0.0:
+			宗成 += s成
+			明细.append({"名称": "丹堂在编", "类别": "器", "成率": s成, "出纹": 0.0})
+	var 傀: Dictionary = 丹道傀儡加成()
+	if float(傀["成率"]) > 0.0:
+		宗成 += float(傀["成率"])
+		宗纹 += float(傀["出纹"])
+		明细.append({"名称": "丹道傀儡·%s" % str(傀["名"]), "类别": "器",
+			"成率": float(傀["成率"]), "出纹": float(傀["出纹"])})
+	var 图: Dictionary = 丹纹图谱加成()
+	var 图成: float = float(图.get("success", 0.0)) / 100.0
+	var 图纹: float = float(图.get("rate", 0.0))
+	if 图成 > 0.0 or 图纹 > 0.0:
+		宗成 += 图成
+		宗纹 += 图纹
+		明细.append({"名称": "丹纹图谱·%s" % str(图.get("name", "")), "类别": "法",
+			"成率": 图成, "出纹": 图纹})
+	var 气: float = 获取气运炼丹加成()
+	if abs(气) > 0.0001:
+		宗成 += 气
+		宗纹 += 气
+		明细.append({"名称": "宗门气运", "类别": "势", "成率": 气, "出纹": 气})
+	# === S40 灵植「料」因子（宗门侧·势：库房内灵材平均年份越高，丹成/丹纹越佳）===
+	var 均年: int = 宗门灵植平均年份()
+	if 均年 > 0:
+		var 料: Dictionary = 灵植年份炼丹加成(均年)
+		if abs(float(料.get("成率", 0.0))) > 0.0001 or abs(float(料.get("出纹", 0.0))) > 0.0001:
+			宗成 += float(料.get("成率", 0.0))
+			宗纹 += float(料.get("出纹", 0.0))
+			明细.append({"名称": "灵植·均%d年" % 均年, "类别": "料", "成率": float(料.get("成率", 0.0)), "出纹": float(料.get("出纹", 0.0))})
+	return {"成率": 人成 + 宗成, "出纹": 人纹 + 宗纹, "人成": 人成, "人纹": 人纹, "明细": 明细}
+
+# ==================== S40 灵植年份（料因子 + 坊市价值倍率） ====================
+# 设计：灵田产出 / 历练掉落灵材带「年份」；年份档（herb_age_config.csv）映射出
+#   · 炼丹「料」因子加成（宗门灵植平均年份）→ 接 S38 因子网络，喂 掷丹纹/执行炼丹/炼制丹药
+#   · 坊市/商队售价价值倍率（_品阶售价 消费）
+# 杜绝「加了字段没人用」的假系统：两条消费链均为真接。
+var _灵植年份档缓存: Array = []
+
+func _读表_灵植年份档() -> Array:
+	if not _灵植年份档缓存.is_empty():
+		return _灵植年份档缓存
+	var 表: Array = []
+	for p in _S38_读表行("res://config/herb_age_config.csv"):
+		if p.size() < 6:
+			continue
+		表.append({"档名": str(p[0]).strip_edges(),
+			"下限年份": int(p[1]), "上限年份": int(p[2]),
+			"价值系数": float(p[3]), "成率加成": float(p[4]), "出纹加成": float(p[5])})
+	_灵植年份档缓存 = 表
+	return 表
+
+## 命中年份档（档按 下限年份 升序；最后一档 上限年份=-1 为开放上限）
+func 灵植年份档(年份: int) -> Dictionary:
+	for r in _读表_灵植年份档():
+		var lo: int = int(r.get("下限年份", 0))
+		var hi: int = int(r.get("上限年份", -1))
+		if 年份 >= lo and (hi < 0 or 年份 <= hi):
+			return r
+	return {}
+
+## 坊市/商队售价倍率（按年份档，_品阶售价 消费；普通材料年份=0 → ×1.0 零影响）
+func 灵植年份价值系数(年份: int) -> float:
+	var r: Dictionary = 灵植年份档(年份)
+	if r.is_empty():
+		return 1.0
+	return float(r.get("价值系数", 1.0))
+
+## 炼丹「料」因子加成（按宗门灵植平均年份档）
+func 灵植年份炼丹加成(年份: int) -> Dictionary:
+	var r: Dictionary = 灵植年份档(年份)
+	if r.is_empty():
+		return {"成率": 0.0, "出纹": 0.0}
+	return {"成率": float(r.get("成率加成", 0.0)), "出纹": float(r.get("出纹加成", 0.0))}
+
+## 宗门库房内灵材平均年份（仅计 ling_cai 且 年份>0，避免年份=0 材料稀释均值）
+func 宗门灵植平均年份() -> int:
+	var 总: int = 0
+	var n: int = 0
+	if 宗门库房 == null:
+		return 0
+	for it in 宗门库房:
+		if it is Object and str(it.get("类别") if "类别" in it else "") == "ling_cai":
+			var y: int = int(it.get("年份") if "年份" in it else 0)
+			if y > 0:
+				总 += y
+				n += 1
+	if n <= 0:
+		return 0
+	return int(round(float(总) / float(n)))
+
+func 炼丹成率加成(丹堂等级: int = 1) -> float:
+	return float(炼丹因子明细(丹堂负责人(), 丹堂等级).get("成率", 0.0))
+
+func 炼丹出纹加成(丹堂等级: int = 1) -> float:
+	return float(炼丹因子明细(丹堂负责人(), 丹堂等级).get("出纹", 0.0))
+
+## 炼丹师摘要（UI 用）：无人则提示
+func 炼丹师摘要() -> String:
+	var d = 丹堂负责人()
+	if d == null:
+		return "丹堂无负责人，仅宗门侧加成生效"
+	return "%s（%s·%s·%s）" % [str(d.姓名), str(d.境界), str(d.灵根), str(d.道途)]
+
+
+# ==================== S39 丹药品级与产出体系 ====================
+# 设计：产物 = 品阶（丹方决定）× 品级（下/中/上/极品，掷）× 丹纹（0..上限，逐纹递进）
+# 产出数量 = 品阶基准 + 境界压制 + 丹方熟练度 + 丹炉产量，再乘品级数量系数
+# 老大定调：高阶炼丹师炼低阶丹 → 量大；同一丹方炼得多 → 熟练加成；丹炉 → 成率/出纹/产量/品级
+var 丹方熟练度: Dictionary = {}      # recipe_id -> 累计成功炉数（熟练度唯一真源）
+var 已领悟丹方: Dictionary = {}       # S46 领悟丹方：recipe_id -> 领悟时间（0=未领悟）
+var 丹方领悟进度: Dictionary = {}     # S46 领悟丹方：recipe_id -> 累计炼制次数（用于反推领悟）
+var 当前丹炉: String = ""            # 已装备丹炉ID（空=无炉）
+var 符箓熟练度: Dictionary = {}      # talisman_id -> 累计成功次数（熟练度/经验唯一真源，S45-3/6）
+var 当前符纸: String = ""            # 已装备符纸ID（空=无纸加成，S45-3/8）
+var 绘符经验值: int = 0              # S45-6 绘符经验值（宗门级，用于提升绘符等级；旧档默认0）
+# S45-4 符纹图谱（镜像 S37 丹纹图谱）：符名 -> 该符历史最高纹数（0 不入谱）
+# 符纹图谱已移至 talisman_mark_system.gd
+# 符纹日志已移至 talisman_mark_system.gd
+# 符纹今日纪事已移至 talisman_mark_system.gd
+# 符纹纪事日已移至 talisman_mark_system.gd
+var 丹炉列表: Array = []             # 已购得的丹炉ID列表
+var _丹方表缓存: Dictionary = {}
+var _丹品级缓存: Array = []
+var _丹产量缓存: Dictionary = {}
+var _丹炉表缓存: Dictionary = {}
+
+func _读表_丹方() -> Dictionary:
+	if not _丹方表缓存.is_empty():
+		return _丹方表缓存
+	for p in _S38_读表行("res://config/pill_recipe_config.csv"):
+		if p.size() < 15:
+			continue
+		_丹方表缓存[str(p[0]).strip_edges()] = {
+			"id": str(p[0]).strip_edges(), "名称": str(p[1]).strip_edges(),
+			"品阶": str(p[2]).strip_edges(), "需求境界": str(p[3]).strip_edges(),
+			"需求境界序": int(p[4]), "材料描述": str(p[5]).strip_edges(),
+			"cost_herb": int(p[6]), "cost_ore": int(p[7]), "cost_jing": int(p[8]),
+			"cost_stone": int(p[9]), "cost_qi": int(p[10]),
+			"基础成功率": float(p[11]) / 100.0, "产出丹名": str(p[12]).strip_edges(),
+			"描述": str(p[13]).strip_edges(), "来源": str(p[14]).strip_edges()}
+	return _丹方表缓存
+
+func _读表_丹品级() -> Array:
+	if not _丹品级缓存.is_empty():
+		return _丹品级缓存
+	for p in _S38_读表行("res://config/pill_grade_config.csv"):
+		if p.size() < 9:
+			continue
+		_丹品级缓存.append({
+			"grade_id": str(p[0]).strip_edges(), "grade_name": str(p[1]).strip_edges(),
+			"effect_scale": float(p[2]), "price_scale": float(p[3]), "toxin_scale": float(p[4]),
+			"mark_cap_delta": int(p[5]), "mark_rate_scale": float(p[6]),
+			"yield_scale": float(p[7]), "weight": float(p[8])})
+	return _丹品级缓存
+
+func _读表_丹产量() -> Dictionary:
+	if not _丹产量缓存.is_empty():
+		return _丹产量缓存
+	for p in _S38_读表行("res://config/pill_yield_config.csv"):
+		if p.size() < 5:
+			continue
+		_丹产量缓存[str(p[0]).strip_edges()] = {
+			"base_yield": float(p[1]), "per_realm_surplus": float(p[2]),
+			"per_prof_level": float(p[3]), "furnace_scale": float(p[4])}
+	return _丹产量缓存
+
+func _读表_丹炉() -> Dictionary:
+	if not _丹炉表缓存.is_empty():
+		return _丹炉表缓存
+	for p in _S38_读表行("res://config/pill_furnace_config.csv"):
+		if p.size() < 12:
+			continue
+		_丹炉表缓存[str(p[0]).strip_edges()] = {
+			"id": str(p[0]).strip_edges(), "名称": str(p[1]).strip_edges(), "品质": str(p[2]).strip_edges(),
+			"成率": float(p[3]), "出纹": float(p[4]), "产量": float(p[5]), "品级分": float(p[6]),
+			"减毒率": float(p[7]), "省材率": float(p[8]), "价灵石": int(p[9]), "价灵晶": int(p[10]),
+			"描述": str(p[11]).strip_edges()}
+	return _丹炉表缓存
+
+func 丹方配置(rid: String) -> Dictionary:
+	var t: Dictionary = _读表_丹方()
+	if t.has(rid):
+		return (t[rid] as Dictionary).duplicate()
+	return {}
+
+func 全部丹方() -> Array:
+	return _读表_丹方().values()
+
+## ==================== S45-2 符箓配置读取（镜像 丹方配置 / 炼制丹方） ====================
+func _读表_符箓() -> Dictionary:
+	if not 符箓表缓存.is_empty():
+		return 符箓表缓存
+	for p in _S38_读表行("res://config/item_talisman.csv"):
+		if p.size() < 11:
+			continue
+		符箓表缓存[str(p[0]).strip_edges()] = {
+			"id": str(p[0]).strip_edges(), "名称": str(p[1]).strip_edges(),
+			"grade": str(p[2]).strip_edges(), "sub_grade": str(p[3]).strip_edges(),
+			"talisman_type": str(p[4]).strip_edges(), "use_effect": str(p[5]).strip_edges(),
+			"effect_value": str(p[6]).strip_edges(), "use_limit": int(p[7]),
+			"base_rate": float(p[8]), "craft_material": str(p[9]).strip_edges(),
+			"sell_price": int(p[10])}
+	return 符箓表缓存
+
+func 符箓配置(rid: String) -> Dictionary:
+	var t: Dictionary = _读表_符箓()
+	if t.has(rid):
+		return (t[rid] as Dictionary).duplicate()
+	return {}
+
+func 符箓配置按名(名: String) -> Dictionary:
+	var t: Dictionary = _读表_符箓()
+	for k in t.keys():
+		var row: Dictionary = t[k] as Dictionary
+		if str(row.get("名称", "")) == 名:
+			return row.duplicate()
+	return {}
+
+func _解析符箓效果值(cfg: Dictionary) -> float:
+	if cfg.is_empty():
+		return 0.0
+	var raw: String = str(cfg.get("effect_value", "0"))
+	raw = raw.strip_edges().replace("%", "")
+	if raw == "":
+		return 0.0
+	return float(raw) / 100.0
+
+func _符类型转增益(类: String, 效: float) -> Dictionary:
+	match 类:
+		"攻击类":
+			return {"攻击加成": 效, "持续回合": 5}
+		"防御类":
+			return {"防御加成": 效, "持续回合": 5}
+		"辅助类":
+			return {"攻击加成": 效 * 0.5, "防御加成": 效 * 0.5, "生命加成": 效 * 0.5, "持续回合": 5}
+		"控制类":
+			# 控制类符箓：定身/昏睡/冰封，敌人被控后输出环境更好，转化为伤害加成+闪避
+			return {"攻击加成": 效 * 0.8, "防御加成": 效 * 0.3, "持续回合": 5}
+		"特殊类":
+			# 特殊类符箓：传送/隐身/破邪，转化为综合增益+生命加成
+			return {"攻击加成": 效 * 0.4, "防御加成": 效 * 0.4, "生命加成": 效 * 0.4, "持续回合": 5}
+		_:
+			return {"生命加成": 0.10, "防御加成": 0.10, "持续回合": 5}
+
+## S45-7 符箓战前增益（战斗主动消费方接入；零触碰 72 战斗断言，仅追加至攻方增益）
+## 出战队伍 = 数组的数组（每队弟子）；每名弟子最多消耗 3 张符箓（攻击/防御/辅助/控制/特殊 五类路由）
+func 符箓战前增益(出战队伍: Array) -> Array:
+	var 增益列表: Array = []
+	if 宗门库房.is_empty():
+		return 增益列表
+	# 品阶阈值：只自动消耗凡品/灵品低阶符箓，宝品及以上为珍贵符箓需宗主手动分配
+	var 自动品阶: Array = ["凡品", "灵品"]
+	var 候选: Array = []
+	for i in range(宗门库房.size()):
+		var it = 宗门库房[i]
+		if it != null and (it is Item) and it.类别 == "fu_lu" and str(it.品阶) in 自动品阶:
+			候选.append(i)
+	# 按品阶升序+符纹升序：先消耗最低阶、符纹最低的符箓
+	var 品阶序: Dictionary = {"凡品": 1, "灵品": 2, "宝品": 3, "王品": 4, "道品": 5, "圣品": 6, "仙品": 7}
+	候选.sort_custom(func(a, b):
+		var 阶a = 品阶序.get(str(宗门库房[a].品阶), 99)
+		var 阶b = 品阶序.get(str(宗门库房[b].品阶), 99)
+		if 阶a != 阶b:
+			return 阶a < 阶b
+		return float(宗门库房[a].符纹) < float(宗门库房[b].符纹))
+	var 弟子数: int = 0
+	for 队 in 出战队伍:
+		for d in 队:
+			if d is Disciple:
+				弟子数 += 1
+	var 可消耗: int = min(候选.size(), 弟子数 * 3)
+	var 已消耗: Array = []
+	for k in range(可消耗):
+		var it = 宗门库房[候选[k]]
+		var cfg: Dictionary = 符箓配置按名(it.名称)
+		var 类: String = it.符类型
+		var 效: float = _解析符箓效果值(cfg)
+		增益列表.append(_符类型转增益(类, 效))
+		已消耗.append(候选[k])
+	已消耗.sort()
+	已消耗.reverse()
+	for idx in 已消耗:
+		宗门库房.remove_at(idx)
+	return 增益列表
+
+## S45-7 通用符箓消耗（宗门防御/历练接入；消耗上限张数，返回综合战力增益系数）
+func 符箓消耗加成(上限张数: int) -> float:
+	var 总: float = 0.0
+	if 宗门库房.is_empty() or 上限张数 <= 0:
+		return 0.0
+	# 品阶阈值：只自动消耗凡品/灵品低阶符箓
+	var 自动品阶: Array = ["凡品", "灵品"]
+	var 候选: Array = []
+	for i in range(宗门库房.size()):
+		var it = 宗门库房[i]
+		if it != null and (it is Item) and it.类别 == "fu_lu" and str(it.品阶) in 自动品阶:
+			候选.append(i)
+	# 按品阶升序+符纹升序：先消耗最低阶
+	var 品阶序: Dictionary = {"凡品": 1, "灵品": 2, "宝品": 3, "王品": 4, "道品": 5, "圣品": 6, "仙品": 7}
+	候选.sort_custom(func(a, b):
+		var 阶a = 品阶序.get(str(宗门库房[a].品阶), 99)
+		var 阶b = 品阶序.get(str(宗门库房[b].品阶), 99)
+		if 阶a != 阶b:
+			return 阶a < 阶b
+		return float(宗门库房[a].符纹) < float(宗门库房[b].符纹))
+	var n: int = min(候选.size(), 上限张数)
+	var 已: Array = []
+	for k in range(n):
+		var it = 宗门库房[候选[k]]
+		var cfg: Dictionary = 符箓配置按名(it.名称)
+		var 效: float = _解析符箓效果值(cfg)
+		match it.符类型:
+			"攻击类": 总 += 效
+			"防御类": 总 += 效
+			"辅助类": 总 += 效 * 0.5
+			"控制类": 总 += 效 * 0.6
+			_: 总 += 0.10
+		已.append(候选[k])
+	已.sort()
+	已.reverse()
+	for idx in 已:
+		宗门库房.remove_at(idx)
+	return 总
+
+## ==================== S45-3 符箓产出体系（镜像 S39 丹药品级与产出） ====================
+func _读表_符品级() -> Array:
+	if not _符品级缓存.is_empty():
+		return _符品级缓存
+	for p in _S38_读表行("res://config/talisman_grade_config.csv"):
+		if p.size() < 9:
+			continue
+		_符品级缓存.append({
+			"grade_id": str(p[0]).strip_edges(), "grade_name": str(p[1]).strip_edges(),
+			"effect_scale": float(p[2]), "price_scale": float(p[3]), "toxin_scale": float(p[4]),
+			"mark_cap_delta": int(p[5]), "mark_rate_scale": float(p[6]),
+			"yield_scale": float(p[7]), "weight": float(p[8])})
+	return _符品级缓存
+
+func _读表_符产量() -> Dictionary:
+	if not _符产量缓存.is_empty():
+		return _符产量缓存
+	for p in _S38_读表行("res://config/talisman_yield_config.csv"):
+		if p.size() < 5:
+			continue
+		_符产量缓存[str(p[0]).strip_edges()] = {
+			"base_yield": float(p[1]), "per_realm_surplus": float(p[2]),
+			"per_prof_level": float(p[3]), "paper_scale": float(p[4])}
+	return _符产量缓存
+
+func _读表_符纸() -> Dictionary:
+	if not _符纸表缓存.is_empty():
+		return _符纸表缓存
+	for p in _S38_读表行("res://config/talisman_paper_config.csv"):
+		if p.size() < 12:
+			continue
+		_符纸表缓存[str(p[0]).strip_edges()] = {
+			"id": str(p[0]).strip_edges(), "名称": str(p[1]).strip_edges(), "品质": str(p[2]).strip_edges(),
+			"成率": float(p[3]), "出纹": float(p[4]), "产量": float(p[5]), "品级分": float(p[6]),
+			"减毒率": float(p[7]), "省材率": float(p[8]), "价灵石": int(p[9]), "价灵晶": int(p[10]),
+			"描述": str(p[11]).strip_edges()}
+	return _符纸表缓存
+
+func 符品级配置(名: String) -> Dictionary:
+	for g in _读表_符品级():
+		if str(g["grade_name"]) == 名:
+			return g as Dictionary
+	return {"grade_id": "tg_mid", "grade_name": "中品", "effect_scale": 1.0, "price_scale": 1.0,
+		"toxin_scale": 1.0, "mark_cap_delta": 0, "mark_rate_scale": 1.0, "yield_scale": 1.0, "weight": 32.0}
+
+## 掷符品级：分越高越向上品/极品倾斜（分来自符堂等级+因子成率+熟练分+符纸分+压制分）
+## 注：修正原 掷丹品级 仅对 极品 执行 权重.append 的潜在 bug——此处每个品级都 append，否则 range(表.size()) 越界
+func 掷符品级(分: float) -> Dictionary:
+	var 表: Array = _读表_符品级()
+	if 表.is_empty():
+		return 符品级配置("中品")
+	var 权重: Array = []
+	var 总: float = 0.0
+	for g in 表:
+		var w: float = float((g as Dictionary).get("weight", 1.0))
+		var gid: String = str((g as Dictionary).get("grade_id", ""))
+		if gid == "tg_low":
+			w *= max(0.30, 1.0 - 分 / 60.0)
+		elif gid == "tg_high":
+			w *= 0.60 + 分 / 80.0
+		elif gid == "tg_top":
+			w *= 0.15 + 分 / 120.0
+		权重.append(w)
+		总 += w
+	if 总 <= 0.0:
+		return 符品级配置("中品")
+	var r: float = randf() * 总
+	var acc: float = 0.0
+	for i in range(表.size()):
+		acc += float(权重[i])
+		if r <= acc:
+			return 表[i] as Dictionary
+	return 表[表.size() - 1] as Dictionary
+
+## 符箓熟练：成功次数 -> 等级 0-5（0/5/15/30/60/100）
+func 符箓熟练等级(rid: String) -> int:
+	var n: int = int(符箓熟练度.get(rid, 0))
+	if n >= 100: return 5
+	elif n >= 60: return 4
+	elif n >= 30: return 3
+	elif n >= 15: return 2
+	elif n >= 5: return 1
+	return 0
+
+func 符箓熟练加成(rid: String) -> Dictionary:
+	var lv: int = 符箓熟练等级(rid)
+	return {"等级": lv, "次数": int(符箓熟练度.get(rid, 0)),
+		"成率": float(lv) * 0.012, "出纹": float(lv) * 0.010,
+		"品级分": float(lv) * 2.0, "产量": float(lv)}
+
+## 符箓需求境界序（按 grade 映射：凡品→练气，道品→渡劫）
+func 符箓需求境界序(阶: String) -> int:
+	var 表: Dictionary = {"凡品": 0, "灵品": 1, "宝品": 2, "王品": 3, "圣品": 4, "仙品": 5, "道品": 6}
+	return int(表.get(阶, 0))
+
+## 符师压制：自身境界序 - 符箓需求境界序（正=降维绘符，量产）
+func 符师压制(符师, 需求境界序: int) -> int:
+	if 符师 == null:
+		return 0
+	var i: int = Disciple.境界序.find(str(符师.境界))
+	if i < 0:
+		return 0
+	return i - 需求境界序
+
+## 符纸配置（镜像 丹炉配置）
+func 符纸配置(pid: String) -> Dictionary:
+	if pid.is_empty():
+		return {}
+	var t: Dictionary = _读表_符纸()
+	if t.has(pid):
+		return (t[pid] as Dictionary).duplicate()
+	return {}
+
+func 当前符纸配置() -> Dictionary:
+	return 符纸配置(当前符纸)
+
+## 符箓一炉产量：数量 = (品阶基准 + 压制×系数 + 熟练×系数 + 符纸产量) × 品级数量系数
+func 符箓产出数量(rid: String, 符师, 符堂等级: int, 品级: String) -> int:
+	var cfg = 符箓配置(rid)
+	if cfg.is_empty():
+		return 1
+	var 阶: String = str(cfg.get("grade", "凡品"))
+	var 产: Dictionary = _读表_符产量().get(阶, {"base_yield": 1.0, "per_realm_surplus": 0.0, "per_prof_level": 0.0, "paper_scale": 1.0})
+	var 压制: int = 符师压制(符师, 符箓需求境界序(阶))
+	var 熟练: Dictionary = 符箓熟练加成(rid)
+	var 纸: Dictionary = 当前符纸配置()
+	var 数量浮: float = float(产.get("base_yield", 1.0))
+	数量浮 += float(压制) * float(产.get("per_realm_surplus", 0.0))
+	数量浮 += float(熟练.get("产量", 0.0)) * float(产.get("per_prof_level", 0.0))
+	数量浮 += float(纸.get("产量", 0.0)) * float(产.get("paper_scale", 1.0))
+	数量浮 *= float(符品级配置(品级).get("yield_scale", 1.0))
+	return max(1, int(round(数量浮)))
+
+# ============ S45-4 符纹系统（镜像 S37 丹纹；CSV 为唯一真源） ============
+
+# ===== 符纹系统（已拆分到talisman_mark_system.gd，此处为转发函数）=====
+func _读表_符纹():
+	return 符纹系统._读表_符纹()
+func _读表_符纹分档():
+	return 符纹系统._读表_符纹分档()
+func _读表_符纹图谱档():
+	return 符纹系统._读表_符纹图谱档()
+func _符纹归一品阶(阶: String):
+	return 符纹系统._符纹归一品阶(阶)
+func _符纹配置(阶: String):
+	return 符纹系统._符纹配置(阶)
+func 符纹分档(纹: int):
+	return 符纹系统.符纹分档(纹)
+func 符纹名(纹: int):
+	return 符纹系统.符纹名(纹)
+func 符纹上限(品阶: String, 品级: String):
+	return 符纹系统.符纹上限(品阶, 品级)
+func 掷符纹(阶: String, 符堂等级: int = 1, 额外出纹: float = 0.0, 级系数: float = 1.0, 上限: int = -1):
+	return 符纹系统.掷符纹(阶, 符堂等级, 额外出纹, 级系数, 上限)
+func 符纹效力倍率(阶: String, 纹: int):
+	return 符纹系统.符纹效力倍率(阶, 纹)
+func 符纹售价倍率(阶: String, 纹: int):
+	return 符纹系统.符纹售价倍率(阶, 纹)
+func 符纹图谱总分():
+	return 符纹系统.符纹图谱总分()
+func 符纹图谱加成():
+	return 符纹系统.符纹图谱加成()
+func 符纹图谱成功率加成():
+	return 符纹系统.符纹图谱成功率加成()
+func 符纹图谱出纹加成():
+	return 符纹系统.符纹图谱出纹加成()
+func 符纹图谱入谱(符箓, 纹: int, 阶: String):
+	符纹系统.符纹图谱入谱(符箓, 纹, 阶)
+func 符纹总览():
+	return 符纹系统.符纹总览()
+func 符纹校验():
+	符纹系统.符纹校验()
+
+# ============ S45-6 绘符经验/等级（镜像炼器 forge.gd；CSV 为唯一真源） ============
+func _读表_符等级() -> Array:
+	if not _符等级缓存.is_empty():
+		return _符等级缓存
+	var 表: Array = []
+	var f = FileAccess.open("res://config/talisman_level_config.csv", FileAccess.READ)
+	if f == null:
+		push_warning("talisman_level_config.csv 缺失，绘符等级表为空")
+		return 表
+	f.get_csv_line()
+	while not f.eof_reached():
+		var p = f.get_csv_line()
+		if p.size() < 4:
+			continue
+		var lv: String = p[0].strip_edges()
+		if lv.is_empty():
+			continue
+		表.append({"level": int(p[0]), "need_exp": int(p[1]),
+			"success_bonus": float(p[2]), "quality_bonus": float(p[3]),
+			"desc": p[4].strip_edges() if p.size() > 4 else ""})
+	表.sort_custom(func(a, b): return int(a["level"]) < int(b["level"]))
+	_符等级缓存 = 表
+	return 表
+
+func 绘符等级表() -> Array:
+	return _读表_符等级()
+
+## 按经验取绘符等级（表按 level 升序，取最后一个 need_exp <= 经验 的档）
+func 绘符等级按经验(经验值: int) -> int:
+	var 表: Array = _读表_符等级()
+	var 等级: int = 1
+	for t in 表:
+		var d: Dictionary = t as Dictionary
+		if 经验值 >= int(d.get("need_exp", 0)):
+			等级 = int(d.get("level", 1))
+	return 等级
+
+## 按经验取绘符加成 {等级, 成功率加成(百分点), 高品质加成(品级分用)}
+func 绘符加成按经验(经验值: int) -> Dictionary:
+	var 表: Array = _读表_符等级()
+	var 等级: int = 绘符等级按经验(经验值)
+	for t in 表:
+		var d: Dictionary = t as Dictionary
+		if int(d.get("level", 1)) == 等级:
+			return {"等级": 等级, "成功率加成": float(d.get("success_bonus", 0.0)),
+				"高品质加成": float(d.get("quality_bonus", 0.0))}
+	return {"等级": 1, "成功率加成": 0.0, "高品质加成": 0.0}
+
+## 计算单次绘符获得经验（按品阶；失败得一半；镜像 ForgeSystem.计算炼器经验）
+func 计算绘符经验(品阶: String, 成功: bool) -> int:
+	var 基础经验: Dictionary = {"凡阶": 10, "灵阶": 20, "宝阶": 40, "王阶": 80,
+		"圣阶": 120, "仙阶": 200, "道阶": 300}
+	var 经验: int = int(基础经验.get(品阶, 10))
+	if not 成功:
+		经验 = int(经验 * 0.5)
+	return 经验
+
+## 当前绘符等级（宗门级）
+func 获取绘符等级() -> int:
+	return TalismanSystem.获取绘符等级(绘符经验值)
+
+## 当前绘符加成
+func 获取绘符加成() -> Dictionary:
+	return TalismanSystem.获取绘符加成(绘符经验值)
+
+## 增加绘符经验（升级时打日志，便于 UI 提示）
+func 增加绘符经验(数量: int) -> void:
+	if 数量 <= 0:
+		return
+	var 旧等级: int = 获取绘符等级()
+	绘符经验值 += 数量
+	var 新等级: int = 获取绘符等级()
+	if 新等级 > 旧等级:
+		print("[绘符] 绘符等级提升：%d → %d" % [旧等级, 新等级])
+
+## 绘符总览（S45-8 UI 消费方）
+func 绘符总览() -> Dictionary:
+	var 加成: Dictionary = 获取绘符加成()
+	var 表: Array = _读表_符等级()
+	var 下一档: Dictionary = {}
+	var 当前: int = int(加成.get("等级", 1))
+	for t in 表:
+		var d: Dictionary = t as Dictionary
+		if int(d.get("level", 1)) > 当前:
+			下一档 = d
+			break
+	return {"经验": 绘符经验值, "等级": 当前, "成功率加成": float(加成.get("成功率加成", 0.0)),
+		"高品质加成": float(加成.get("高品质加成", 0.0)), "下一档": 下一档}
+
+func 全部符箓() -> Array:
+	return _读表_符箓().values()
+
+func 丹炉配置(fid: String) -> Dictionary:
+	if fid.is_empty():
+		return {}
+	var t: Dictionary = _读表_丹炉()
+	if t.has(fid):
+		return (t[fid] as Dictionary).duplicate()
+	return {}
+
+func 当前丹炉配置() -> Dictionary:
+	return 丹炉配置(当前丹炉)
+
+## 丹方熟练等级 0-5（成功炉数：0/5/15/30/60/100）
+func 丹方熟练等级(rid: String) -> int:
+	var n: int = int(丹方熟练度.get(rid, 0))
+	if n >= 100:
+		return 5
+	elif n >= 60:
+		return 4
+	elif n >= 30:
+		return 3
+	elif n >= 15:
+		return 2
+	elif n >= 5:
+		return 1
+	return 0
+
+func 丹方熟练加成(rid: String) -> Dictionary:
+	var lv: int = 丹方熟练等级(rid)
+	return {"等级": lv, "次数": int(丹方熟练度.get(rid, 0)),
+		"成率": float(lv) * 0.012, "出纹": float(lv) * 0.010,
+		"品级分": float(lv) * 2.0, "产量": float(lv)}
+
+# ==================== S46 领悟丹方系统（丹道传承·触类旁通·顿悟天成） ====================
+## 新档初始化：师承传授基础丹方（入门时师父传授2-3个基础丹方）
+func _初始化领悟丹方() -> void:
+	if 已领悟丹方.is_empty():
+		var 基础丹方: Array = ["juqi", "ip_002", "ip_006"]
+		for rid in 基础丹方:
+			if not 已领悟丹方.has(rid):
+				已领悟丹方[rid] = _今日序号()
+		if 丹方熟练度.size() > 0 and 已领悟丹方.size() <= 3:
+			for rid in 丹方熟练度.keys():
+				if not 已领悟丹方.has(rid):
+					已领悟丹方[rid] = _今日序号()
+
+## 检查是否领悟某丹方
+func 是否领悟丹方(rid: String) -> bool:
+	return 已领悟丹方.has(rid) and int(已领悟丹方[rid]) > 0
+
+## 领悟某个丹方（返回是否新领悟）
+func 领悟丹方(rid: String) -> bool:
+	if 是否领悟丹方(rid):
+		return false
+	var cfg: Dictionary = 丹方配置(rid)
+	if cfg.is_empty():
+		return false
+	已领悟丹方[rid] = _今日序号()
+	丹方领悟进度[rid] = 0
+	return true
+
+## 获取未领悟的丹方列表（按品阶筛选）
+func _获取未领悟丹方(最高品阶序: int = 99) -> Array:
+	var 未领悟: Array = []
+	for 方 in 全部丹方():
+		var rid: String = str(方.get("id", ""))
+		if not 是否领悟丹方(rid):
+			var 阶序: int = int(方.get("需求境界序", 0))
+			if 阶序 <= 最高品阶序:
+				未领悟.append(方)
+	return 未领悟
+
+## 炼丹成功时触发领悟检查（反推领悟 + 随机顿悟）
+func _炼丹成功触发领悟(rid: String, 丹堂等级: int = 1) -> Dictionary:
+	var 结果: Dictionary = {"反推领悟": false, "顿悟领悟": false, "领悟丹方": ""}
+	if rid == "" or not 是否领悟丹方(rid):
+		return 结果
+	丹方领悟进度[rid] = int(丹方领悟进度.get(rid, 0)) + 1
+	var cfg: Dictionary = 丹方配置(rid)
+	if cfg.is_empty():
+		return 结果
+	var 当前阶序: int = int(cfg.get("需求境界序", 0))
+	var 反推基础概率: Dictionary = {0: 0.05, 1: 0.04, 2: 0.03, 3: 0.02, 4: 0.015, 5: 0.01, 6: 0.005}
+	var 基础率: float = float(反推基础概率.get(当前阶序, 0.01))
+	var 进度加成: float = float(int(丹方领悟进度.get(rid, 0)) / 10) * 0.01
+	var 反推率: float = 基础率 * (1.0 + float(丹堂等级) * 0.05 + 进度加成)
+	反推率 = clamp(反推率, 0.005, 0.30)
+	if randf() < 反推率:
+		var 可领悟: Array = _获取未领悟丹方(当前阶序 + 2)
+		if 可领悟.size() > 0:
+			var idx: int = randi() % 可领悟.size()
+			var 新丹方: Dictionary = 可领悟[idx] as Dictionary
+			var 新rid: String = str(新丹方.get("id", ""))
+			if 领悟丹方(新rid):
+				结果["反推领悟"] = true
+				结果["领悟丹方"] = 新rid
+				return 结果
+	if randf() < 0.01:
+		var 可顿悟: Array = _获取未领悟丹方(当前阶序 + 3)
+		if 可顿悟.size() > 0:
+			var idx2: int = randi() % 可顿悟.size()
+			var 顿悟丹方: Dictionary = 可顿悟[idx2] as Dictionary
+			var 顿悟rid: String = str(顿悟丹方.get("id", ""))
+			if 领悟丹方(顿悟rid):
+				结果["顿悟领悟"] = true
+				结果["领悟丹方"] = 顿悟rid
+	return 结果
+
+## 获取领悟丹方统计
+func 领悟丹方统计() -> Dictionary:
+	var 总数: int = 全部丹方().size()
+	var 已领悟数: int = 0
+	for 方 in 全部丹方():
+		var rid: String = str(方.get("id", ""))
+		if 是否领悟丹方(rid):
+			已领悟数 += 1
+	return {"总数": 总数, "已领悟": 已领悟数, "未领悟": 总数 - 已领悟数,
+		"进度": float(已领悟数) / float(max(1, 总数))}
+
+# ==================== S46 炼器领悟系统（器道传承·触类旁通·顿悟天成） ====================
+## 获取全部配方列表（从ForgeSystem读取 + 配置表扩展）
+func 全部配方() -> Array:
+	_加载炼器配方配置表()
+	var 列表: Array = []
+	# 优先使用配置表配方（更完整）
+	for fid in 配置表配方.keys():
+		var 配方: Dictionary = 配置表配方[fid] as Dictionary
+		列表.append({"id": fid, "名称": 配方.get("名称", fid), "品阶": 配方.get("品阶", "凡阶"),
+			"基础成功率": float(配方.get("基础成功率", 50)) / 100.0, "需求境界序": int(配方.get("需求境界序", 0))})
+	# 补充ForgeSystem中独有的配方（配置表未覆盖的）
+	for fid in ForgeSystem.配方库.keys():
+		var 已存在: bool = false
+		for it in 列表:
+			if str(it.get("id", "")) == fid:
+				已存在 = true
+				break
+		if not 已存在:
+			var 配方2: Dictionary = ForgeSystem.配方库[fid] as Dictionary
+			列表.append({"id": fid, "名称": 配方2.get("名称", fid), "品阶": 配方2.get("品阶", "凡阶"),
+				"基础成功率": float(配方2.get("基础成功率", 50)) / 100.0, "需求境界序": int(配方2.get("需求境界序", 0))})
+	return 列表
+
+## 加载炼器配方配置表（forge_recipe_config.csv）
+func _加载炼器配方配置表() -> void:
+	if not 配置表配方.is_empty():
+		return
+	var 路径: String = "res://config/forge_recipe_config.csv"
+	if not FileAccess.file_exists(路径):
+		return
+	var f: FileAccess = FileAccess.open(路径, FileAccess.READ)
+	if f == null:
+		return
+	var 表头: Array = f.get_csv_line()
+	while not f.eof_reached():
+		var 行: Array = f.get_csv_line()
+		if 行.size() < 13 or 行[0] == "":
+			continue
+		var rid: String = str(行[0])
+		配置表配方[rid] = {
+			"名称": str(行[1]), "品阶": str(行[2]), "产出名": str(行[3]),
+			"产出类别": str(行[4]), "产出穿戴位": str(行[5]),
+			"材料": [{"名": str(行[6]), "数量": int(行[7])}, {"名": str(行[8]), "数量": int(行[9])}],
+			"基础成功率": int(行[10]), "需求境界序": int(行[11]), "描述": str(行[12])
+		}
+	f.close()
+	# 将配置表配方传递给ForgeSystem
+	ForgeSystem.设置配置表配方(配置表配方)
+
+## 新档初始化：师承传授基础配方
+func _初始化领悟配方() -> void:
+	if 已领悟配方.is_empty():
+		# 师承传授：2个凡阶基础配方（剑、衣袍）
+		var 基础配方: Array = ["jian_fan", "yipao_fan"]
+		for rid in 基础配方:
+			if not 已领悟配方.has(rid):
+				已领悟配方[rid] = _今日序号()
+		# 旧档兼容：如果已领悟为空，全部领悟
+		if 已领悟配方.is_empty():
+			_加载炼器配方配置表()
+			for rid in 配置表配方.keys():
+				已领悟配方[rid] = _今日序号()
+
+## 检查是否领悟某配方
+func 是否领悟配方(rid: String) -> bool:
+	return 已领悟配方.has(rid) and int(已领悟配方[rid]) > 0
+
+## 领悟某个配方（返回是否新领悟）
+func 领悟配方(rid: String) -> bool:
+	if 是否领悟配方(rid):
+		return false
+	var 配方: Dictionary = ForgeSystem.获取配方(rid)
+	if 配方.is_empty():
+		return false
+	已领悟配方[rid] = _今日序号()
+	配方领悟进度[rid] = 0
+	var 配方名: String = str(配方.get("名称", rid))
+	添加纪事("庶务", "器道领悟", "于锻造中触类旁通，领悟了【%s】锻造之法！" % 配方名, 2)
+	return true
+
+## 获取未领悟的配方列表（按品阶筛选）
+func _获取未领悟配方(最高品阶序: int = 99) -> Array:
+	var 未领悟: Array = []
+	for 方 in 全部配方():
+		var rid: String = str(方.get("id", ""))
+		if not 是否领悟配方(rid):
+			var 阶序: int = int(方.get("需求境界序", 0))
+			if 阶序 <= 最高品阶序:
+				未领悟.append(方)
+	return 未领悟
+
+## 炼器成功时触发领悟检查（反推领悟 + 随机顿悟）
+func _炼器成功触发领悟(rid: String, 器堂等级: int = 1) -> Dictionary:
+	var 结果: Dictionary = {"反推领悟": false, "顿悟领悟": false, "领悟配方": ""}
+	if rid == "" or not 是否领悟配方(rid):
+		return 结果
+	配方领悟进度[rid] = int(配方领悟进度.get(rid, 0)) + 1
+	var 配方: Dictionary = ForgeSystem.获取配方(rid)
+	if 配方.is_empty():
+		return 结果
+	var 当前阶序: int = int(配方.get("需求境界序", 0))
+	var 反推基础概率: Dictionary = {0: 0.06, 1: 0.05, 2: 0.04, 3: 0.03, 4: 0.02, 5: 0.015, 6: 0.01}
+	var 基础率: float = float(反推基础概率.get(当前阶序, 0.01))
+	var 进度加成: float = float(int(配方领悟进度.get(rid, 0)) / 8) * 0.01
+	var 反推率: float = 基础率 * (1.0 + float(器堂等级) * 0.05 + 进度加成)
+	反推率 = clamp(反推率, 0.005, 0.35)
+	if randf() < 反推率:
+		var 可领悟: Array = _获取未领悟配方(当前阶序 + 2)
+		if 可领悟.size() > 0:
+			var idx: int = randi() % 可领悟.size()
+			var 新配方: Dictionary = 可领悟[idx] as Dictionary
+			var 新rid: String = str(新配方.get("id", ""))
+			if 领悟配方(新rid):
+				结果["反推领悟"] = true
+				结果["领悟配方"] = 新rid
+				return 结果
+	if randf() < 0.012:
+		var 可顿悟: Array = _获取未领悟配方(当前阶序 + 3)
+		if 可顿悟.size() > 0:
+			var idx2: int = randi() % 可顿悟.size()
+			var 顿悟配方: Dictionary = 可顿悟[idx2] as Dictionary
+			var 顿悟rid: String = str(顿悟配方.get("id", ""))
+			if 领悟配方(顿悟rid):
+				结果["顿悟领悟"] = true
+				结果["领悟配方"] = 顿悟rid
+				添加纪事("庶务", "器道顿悟", "炉火纯青，于锻造中顿悟，领悟了【%s】锻造之法！" % str(顿悟配方.get("名称", "")), 3)
+	return 结果
+
+## 获取领悟配方统计
+func 领悟配方统计() -> Dictionary:
+	var 总数: int = 全部配方().size()
+	var 已领悟数: int = 0
+	for 方 in 全部配方():
+		var rid: String = str(方.get("id", ""))
+		if 是否领悟配方(rid):
+			已领悟数 += 1
+	return {"总数": 总数, "已领悟": 已领悟数, "未领悟": 总数 - 已领悟数,
+		"进度": float(已领悟数) / float(max(1, 总数))}
+
+## 炼丹师压制：自身境界序 - 丹方需求境界序（正=降维炼丹，负=勉强炼丹）
+func 炼丹师压制(炼丹师, 需求境界序: int) -> int:
+	if 炼丹师 == null:
+		return 0
+	var i: int = Disciple.境界序.find(str(炼丹师.境界))
+	if i < 0:
+		return 0
+	return i - 需求境界序
+
+func 丹品级配置(名: String) -> Dictionary:
+	for g in _读表_丹品级():
+		if str(g["grade_name"]) == 名:
+			return g as Dictionary
+	return {"grade_id": "sg_mid", "grade_name": "中品", "effect_scale": 1.0, "price_scale": 1.0,
+		"toxin_scale": 1.0, "mark_cap_delta": 0, "mark_rate_scale": 1.0, "yield_scale": 1.0, "weight": 32.0}
+
+## 掷丹品级：分越高越向上品/极品倾斜（分来自超额成率+熟练度+丹炉+压制）
+func 掷丹品级(分: float) -> Dictionary:
+	var 表: Array = _读表_丹品级()
+	if 表.is_empty():
+		return 丹品级配置("中品")
+	var 权重: Array = []
+	var 总: float = 0.0
+	for g in 表:
+		var w: float = float((g as Dictionary).get("weight", 1.0))
+		var gid: String = str((g as Dictionary).get("grade_id", ""))
+		if gid == "sg_low":
+			w *= max(0.30, 1.0 - 分 / 60.0)
+		elif gid == "sg_high":
+			w *= 0.60 + 分 / 80.0
+		elif gid == "sg_top":
+			w *= 0.15 + 分 / 120.0
+		权重.append(w)
+		总 += w
+	if 总 <= 0.0:
+		return 丹品级配置("中品")
+	var r: float = randf() * 总
+	var acc: float = 0.0
+	for i in range(表.size()):
+		acc += float(权重[i])
+		if r <= acc:
+			return 表[i] as Dictionary
+	return 表[表.size() - 1] as Dictionary
+
+## 丹纹上限 = 品阶上限 + 品级偏移（凡品3 → 道品9；极品+2、下品-1）
+func 丹纹上限(品阶: String, 品级: String) -> int:
+	var c: Dictionary = _丹纹配置(品阶)
+	var base: int = int(c.get("max_mark", 9))
+	var g: Dictionary = 丹品级配置(品级)
+	return clamp(base + int(g.get("mark_cap_delta", 0)), 0, 9)
+
+## 一炉成丹数量：品阶基准 + 压制 + 熟练 + 丹炉，再乘品级数量系数
+func 炼丹产量(品阶: String, 品级: String, 压制: int, 熟练等级: int, 炉: Dictionary) -> int:
+	var r: Dictionary = (_读表_丹产量().get(品阶, {}) as Dictionary)
+	var base: float = float(r.get("base_yield", 1.0))
+	var pr: float = float(r.get("per_realm_surplus", 0.0))
+	var pp: float = float(r.get("per_prof_level", 0.0))
+	var fs: float = float(r.get("furnace_scale", 1.0))
+	var n: float = (base + float(max(0, 压制)) * pr + float(熟练等级) * pp
+		+ float(炉.get("产量", 0.0)) * fs) * float(丹品级配置(品级).get("yield_scale", 1.0))
+	return max(1, int(round(n)))
+
+func _S39_掷纹(品阶: String, 额外出纹: float, 上限: int, 级系数: float, 丹堂等级: int) -> int:
+	if 上限 <= 0:
+		return 0
+	var c: Dictionary = _丹纹配置(品阶)
+	var p: float = float(c.get("base_rate", 0.35)) * 级系数
+	p += 炼丹出纹加成(丹堂等级) + 额外出纹
+	p = clamp(p, 0.02, 0.95)
+	var 纹: int = 0
+	while 纹 < 上限:
+		if randf() > p:
+			break
+		纹 += 1
+	return 纹
+
+## 炼制一炉（S39 统一入口）：返回 {成功, 品级, 数量, 产出列表, 产出, 成功率, 纹, 原因}
+func 炼制丹方(rid: String, 丹堂等级: int = 1) -> Dictionary:
+	var cfg: Dictionary = 丹方配置(rid)
+	if cfg.is_empty():
+		return {"成功": false, "原因": "丹方不存在"}
+	var 炉: Dictionary = 当前丹炉配置()
+	var 省: float = clamp(float(炉.get("省材率", 0.0)), 0.0, 0.5)
+	var 减毒: float = clamp(float(炉.get("减毒率", 0.0)), 0.0, 0.9)
+	var 需草: int = int(ceil(float(cfg["cost_herb"]) * (1.0 - 省)))
+	var 需矿: int = int(ceil(float(cfg["cost_ore"]) * (1.0 - 省)))
+	var 需晶: int = int(ceil(float(cfg["cost_jing"]) * (1.0 - 省)))
+	var 需石: int = int(ceil(float(cfg["cost_stone"]) * (1.0 - 省)))
+	var 需气: int = int(ceil(float(cfg["cost_qi"]) * (1.0 - 省)))
+	# 修真世界观：按丹方功效分配独特材料组合（每种丹方材料不同）
+	var 丹方品阶: String = str(cfg.get("品阶", "凡品"))
+	var 丹方名: String = str(cfg.get("名称", ""))
+	var 需灵品灵草: int = 0
+	var 需宝品灵草: int = 0
+	var 需王品灵草: int = 0
+	var 需圣品灵草: int = 0
+	var 需仙品灵草: int = 0
+	var 需妖兽内丹: String = ""
+	var 需内丹数: int = 0
+	var 需妖兽精血: String = ""
+	var 需精血数: int = 0
+	var 需灵晶额外: int = 0
+	# 按功效分类（修真小说丹方设定）
+	var 是突破丹: bool = false
+	var 是回血丹: bool = false
+	var 是修炼丹: bool = false
+	var 是特殊丹: bool = false
+	for k in ["筑基", "破障", "冲窍", "破婴", "凝金", "化神", "固金", "婴变"]:
+		if k in 丹方名:
+			是突破丹 = true
+			break
+	for k in ["回血", "续命", "回春", "养元", "固元"]:
+		if k in 丹方名:
+			是回血丹 = true
+			break
+	for k in ["聚气", "凝气", "培元"]:
+		if k in 丹方名:
+			是修炼丹 = true
+			break
+	for k in ["洗髓", "悟道", "化劫", "道果", "驻颜", "清颜", "延寿", "神识", "体丹", "力丹"]:
+		if k in 丹方名:
+			是特殊丹 = true
+			break
+	# 品阶→等阶映射
+	var 品阶内丹等阶: Dictionary = {"灵品": "二阶", "宝品": "三阶", "王品": "四阶", "圣品": "五阶", "仙品": "七阶", "道品": "九阶"}
+	var 品阶精血等阶: Dictionary = {"灵品": "一阶", "宝品": "二阶", "王品": "三阶", "圣品": "四阶", "仙品": "六阶", "道品": "八阶"}
+	if 丹方品阶 in 品阶内丹等阶:
+		var 等阶: String = 品阶内丹等阶[丹方品阶]
+		var 精血等阶: String = 品阶精血等阶[丹方品阶]
+		if 是突破丹:
+			# 突破丹：高阶灵草为主 + 妖兽内丹（突破需妖兽精华）
+			if 丹方品阶 == "灵品": 需灵品灵草 = max(2, 需草)
+			elif 丹方品阶 == "宝品": 需宝品灵草 = max(2, 需草); 需灵品灵草 = 需晶
+			elif 丹方品阶 == "王品": 需王品灵草 = max(2, 需草); 需宝品灵草 = 需晶; 需妖兽内丹 = 等阶; 需内丹数 = 1
+			elif 丹方品阶 == "圣品": 需圣品灵草 = max(2, 需草); 需王品灵草 = 需晶; 需妖兽内丹 = 等阶; 需内丹数 = 2
+			elif 丹方品阶 == "仙品": 需仙品灵草 = max(2, 需草); 需圣品灵草 = 需晶; 需妖兽内丹 = 等阶; 需内丹数 = 2
+			elif 丹方品阶 == "道品": 需仙品灵草 = 需草; 需妖兽内丹 = 等阶; 需内丹数 = 3
+		elif 是回血丹:
+			# 回血丹：灵草为主 + 妖兽精血（精血生血）
+			if 丹方品阶 == "灵品": 需灵品灵草 = max(1, 需草 / 2); 需妖兽精血 = 精血等阶; 需精血数 = 1
+			elif 丹方品阶 == "宝品": 需宝品灵草 = max(1, 需草 / 2); 需妖兽精血 = 精血等阶; 需精血数 = 2
+			elif 丹方品阶 == "王品": 需王品灵草 = max(1, 需草 / 2); 需妖兽精血 = 精血等阶; 需精血数 = 2; 需妖兽内丹 = 等阶; 需内丹数 = 1
+			elif 丹方品阶 == "圣品": 需圣品灵草 = max(1, 需草 / 2); 需妖兽精血 = 精血等阶; 需精血数 = 3
+			elif 丹方品阶 == "仙品": 需仙品灵草 = max(1, 需草 / 2); 需妖兽精血 = 精血等阶; 需精血数 = 3
+			elif 丹方品阶 == "道品": 需仙品灵草 = 需草; 需妖兽精血 = 精血等阶; 需精血数 = 5
+		elif 是修炼丹:
+			# 修炼丹：灵草为主 + 灵晶（聚气凝元）
+			if 丹方品阶 == "灵品": 需灵品灵草 = max(1, 需草 / 2); 需灵晶额外 = 需晶
+			elif 丹方品阶 == "宝品": 需宝品灵草 = max(1, 需草 / 2); 需灵晶额外 = 需晶 * 2
+			elif 丹方品阶 == "王品": 需王品灵草 = max(1, 需草 / 2); 需灵晶额外 = 需晶 * 2
+			elif 丹方品阶 == "圣品": 需圣品灵草 = max(1, 需草 / 2); 需灵晶额外 = 需晶 * 3
+			elif 丹方品阶 == "仙品": 需仙品灵草 = max(1, 需草 / 2); 需灵晶额外 = 需晶 * 3
+			elif 丹方品阶 == "道品": 需仙品灵草 = 需草; 需灵晶额外 = 需晶 * 5
+		else:
+			# 特殊丹：稀有材料 + 高阶妖兽内丹
+			if 丹方品阶 == "灵品": 需灵品灵草 = max(2, 需草); 需妖兽精血 = 精血等阶; 需精血数 = 1
+			elif 丹方品阶 == "宝品": 需宝品灵草 = max(2, 需草); 需妖兽内丹 = 等阶; 需内丹数 = 1
+			elif 丹方品阶 == "王品": 需王品灵草 = max(2, 需草); 需妖兽内丹 = 等阶; 需内丹数 = 2; 需妖兽精血 = 精血等阶; 需精血数 = 1
+			elif 丹方品阶 == "圣品": 需圣品灵草 = max(2, 需草); 需妖兽内丹 = 等阶; 需内丹数 = 2
+			elif 丹方品阶 == "仙品": 需仙品灵草 = max(2, 需草); 需妖兽内丹 = 等阶; 需内丹数 = 3
+			elif 丹方品阶 == "道品": 需仙品灵草 = 需草; 需妖兽内丹 = 等阶; 需内丹数 = 5
+	# 基础材料检查
+	if 灵草 < 需草:
+		return {"成功": false, "原因": "灵草不足（需%d）" % 需草}
+	if 矿石 < 需矿:
+		return {"成功": false, "原因": "矿石不足（需%d）" % 需矿}
+	if 灵晶 < 需晶:
+		return {"成功": false, "原因": "灵晶不足（需%d）" % 需晶}
+	if 灵石 < 需石:
+		return {"成功": false, "原因": "灵石不足（需%d）" % 需石}
+	if 灵气 < 需气:
+		return {"成功": false, "原因": "灵气不足（需%d）" % 需气}
+	# 高阶灵草检查
+	if 灵品灵草 < 需灵品灵草:
+		return {"成功": false, "原因": "灵品灵草不足（需%d）" % 需灵品灵草}
+	if 宝品灵草 < 需宝品灵草:
+		return {"成功": false, "原因": "宝品灵草不足（需%d）" % 需宝品灵草}
+	if 王品灵草 < 需王品灵草:
+		return {"成功": false, "原因": "王品灵草不足（需%d）" % 需王品灵草}
+	if 圣品灵草 < 需圣品灵草:
+		return {"成功": false, "原因": "圣品灵草不足（需%d）" % 需圣品灵草}
+	if 仙品灵草 < 需仙品灵草:
+		return {"成功": false, "原因": "仙品灵草不足（需%d）" % 需仙品灵草}
+	# 妖兽内丹检查
+	if 需妖兽内丹 != "" and 获取妖兽内丹(需妖兽内丹) < 需内丹数:
+		return {"成功": false, "原因": "%s妖兽内丹不足（需%d）" % [需妖兽内丹, 需内丹数]}
+	if 需妖兽精血 != "" and 获取妖兽精血(需妖兽精血) < 需精血数:
+		return {"成功": false, "原因": "%s妖兽精血不足（需%d）" % [需妖兽精血, 需精血数]}
+	if 灵晶 < 需晶 + 需灵晶额外:
+		return {"成功": false, "原因": "灵晶不足（需%d）" % (需晶 + 需灵晶额外)}
+	# 扣除材料
+	灵草 -= 需草
+	矿石 -= 需矿
+	灵晶 -= 需晶
+	灵石 -= 需石
+	灵气 -= 需气
+	灵品灵草 -= 需灵品灵草
+	宝品灵草 -= 需宝品灵草
+	王品灵草 -= 需王品灵草
+	圣品灵草 -= 需圣品灵草
+	仙品灵草 -= 需仙品灵草
+	if 需妖兽内丹 != "":
+		妖兽内丹[需妖兽内丹] = int(妖兽内丹.get(需妖兽内丹, 0)) - 需内丹数
+	if 需妖兽精血 != "":
+		妖兽精血[需妖兽精血] = int(妖兽精血.get(需妖兽精血, 0)) - 需精血数
+	if 需灵晶额外 > 0:
+		灵晶 -= 需灵晶额外
+	# ---- 成功率：丹方基础（每丹不同）+ 因子网络 + 丹炉 + 熟练 + 压制 ----
+	var d = 丹堂负责人()
+	var 基础: float = float(cfg["基础成功率"])
+	var 因子: Dictionary = 炼丹因子明细(d, 丹堂等级)
+	var 压: int = 炼丹师压制(d, int(cfg["需求境界序"]))
+	var 熟: Dictionary = 丹方熟练加成(rid)
+	var 率: float = 基础 + float(因子.get("成率", 0.0)) + float(炉.get("成率", 0.0)) + float(熟["成率"])
+	if 压 > 0:
+		率 += float(压) * 0.02
+	elif 压 < 0:
+		率 += float(压) * 0.05
+	率 = clamp(率, 0.02, 0.98)
+	if randf() > 率:
+		return {"成功": false, "原因": "炼制失败（成功率%.0f%%）" % (率 * 100.0), "成功率": 率}
+	# ---- 品级 ----
+	var 分: float = (率 - 基础) * 100.0 * 0.6 + float(熟["品级分"])     + float(炉.get("品级分", 0.0)) + float(max(0, 压)) * 1.5
+	var 级: Dictionary = 掷丹品级(分)
+	var 级名: String = str(级["grade_name"])
+	var 数量: int = 炼丹产量(str(cfg["品阶"]), 级名, 压, int(熟["等级"]), 炉)
+	var 额外出纹: float = float(炉.get("出纹", 0.0)) + float(熟["出纹"])
+	var 上限: int = 丹纹上限(str(cfg["品阶"]), 级名)
+	var 级系数: float = float(级.get("mark_rate_scale", 1.0))
+	var 毒基: float = float(_丹纹配置(str(cfg["品阶"])).get("base_toxin", 1.0))
+	var 产出: Array = []
+	var 首纹: int = 0
+	for i in range(数量):
+		var it = Item.new()
+		it.类别 = "dan_yao"
+		it.品阶 = str(cfg["品阶"])
+		it.品级 = 级名
+		it.名称 = str(cfg["产出丹名"])
+		it.功效 = str(cfg.get("描述", ""))
+		it.描述 = "%s炼制（%s）" % [str(cfg.get("需求境界", "")), 级名]
+		it.战力加成 = 0
+		it.丹毒值 = 毒基 * float(级.get("toxin_scale", 1.0)) * (1.0 - 减毒)
+		it.算战力()
+		var 纹: int = _S39_掷纹(str(cfg["品阶"]), 额外出纹, 上限, 级系数, 丹堂等级)
+		it.丹纹 = 纹
+		if i == 0:
+			首纹 = 纹
+		丹纹图谱入谱(it, 纹, str(cfg["品阶"]))
+		宗门库房.append(it)
+		产出.append(it)
+	丹方熟练度[rid] = int(丹方熟练度.get(rid, 0)) + 1
+	# S46 领悟丹方：炼丹成功时触发反推领悟 + 随机顿悟
+	var 领悟结果: Dictionary = _炼丹成功触发领悟(rid, 丹堂等级)
+	if bool(领悟结果.get("反推领悟", false)) or bool(领悟结果.get("顿悟领悟", false)):
+		var 新丹方名: String = str(丹方配置(str(领悟结果.get("领悟丹方", ""))).get("名称", ""))
+		if 新丹方名 != "":
+			添加纪事("庶务", "丹道领悟", "于炼丹中触类旁通，领悟了【%s】！" % 新丹方名, 2)
+	return {"成功": true, "品级": 级名, "数量": 数量, "纹": 首纹, "产出": 产出[0],
+		"产出列表": 产出, "成功率": 率, "压制": 压,
+		"原因": "成丹%d枚·%s（%s·%d纹，成功率%.0f%%）" % [数量, str(cfg["产出丹名"]), 级名, 首纹, 率 * 100.0]}
+
+## 丹纹入谱（S37 图谱按「品阶+丹名」记录，避免同名不同阶混淆）
+func 丹纹图谱入谱(丹药, 纹: int, 阶: String) -> void:
+	if 丹药 == null or 纹 <= 0:
+		return
+	var 丹名: String = str(丹药.名称)
+	var 键: String = "%s·%s" % [_丹纹归一品阶(阶), 丹名]
+	var 旧: int = int(丹纹系统.丹纹图谱.get(键, 0))
+	if 纹 > 旧:
+		丹纹系统.丹纹图谱[键] = 纹
+		丹纹系统.丹纹日志.push_front({"丹名": 丹名, "纹": 纹, "日": _今日序号(), "阶": _丹纹归一品阶(阶),
+			"分档": str(丹纹分档(纹).get("name", "")), "品级": str(丹药.品级)})
+		while 丹纹系统.丹纹日志.size() > 丹纹日志上限:
+			丹纹系统.丹纹日志.pop_back()
+		_丹纹纪事(丹名, 纹, 阶, true)
+
+## 购置丹炉
+func 购置丹炉(fid: String) -> Dictionary:
+	var f: Dictionary = 丹炉配置(fid)
+	if f.is_empty():
+		return {"成功": false, "原因": "丹炉不存在"}
+	if 丹炉列表.has(fid):
+		return {"成功": false, "原因": "已拥有此炉"}
+	var 石: int = int(f.get("价灵石", 0))
+	var 晶: int = int(f.get("价灵晶", 0))
+	if 灵石 < 石 or 灵晶 < 晶:
+		return {"成功": false, "原因": "资材不足（需灵石%d、灵晶%d）" % [石, 晶]}
+	灵石 -= 石
+	灵晶 -= 晶
+	丹炉列表.append(fid)
+	if 当前丹炉.is_empty():
+		当前丹炉 = fid
+	return {"成功": true, "原因": "购得%s（%s）" % [str(f["名称"]), str(f["品质"])]}
+
+func 装备丹炉(fid: String) -> Dictionary:
+	if not fid.is_empty() and not 丹炉列表.has(fid):
+		return {"成功": false, "原因": "尚未拥有此炉"}
+	当前丹炉 = fid
+	if fid.is_empty():
+		return {"成功": true, "原因": "已撤下丹炉"}
+	return {"成功": true, "原因": "已装备%s" % str(丹炉配置(fid).get("名称", "丹炉"))}
+
+## 全部丹炉（UI 购置/装备用）
+func 全部丹炉() -> Array:
+	return _读表_丹炉().values()
+
+## 丹炉摘要（UI 用）
+func 丹炉摘要() -> String:
+	if 当前丹炉.is_empty():
+		return "未装备丹炉（徒手炼丹，无器加成）"
+	var f: Dictionary = 当前丹炉配置()
+	return "%s（%s）成率+%d%% 出纹+%d%% 产量+%.1f 品级分+%.0f 减毒%d%% 省材%d%%" % [
+		str(f.get("名称", "")), str(f.get("品质", "")), int(float(f.get("成率", 0.0)) * 100.0),
+		int(float(f.get("出纹", 0.0)) * 100.0), float(f.get("产量", 0.0)), float(f.get("品级分", 0.0)),
+		int(float(f.get("减毒率", 0.0)) * 100.0), int(float(f.get("省材率", 0.0)) * 100.0)]
+
+
+# ============ §6.16 AI托管深度优化（方向2实现）============
+## AI外交自动执行
+
+func AI外交自动执行(家族ID: String) -> Dictionary:
+	return 家族系统.AI外交自动执行(家族ID)
+
+
+## 家族战争自动结算
+
+# ===== 扩展家族系统函数（已拆分到family_system.gd，此处为转发函数）=====
+func 家族战争自动结算():
+	return 家族系统.家族战争自动结算()
+func NPC家族动态生成():
+	return 家族系统.NPC家族动态生成()
+func 触发扩展家族事件(家族ID: String, 事件类型: String):
+	return 家族系统.触发扩展家族事件(家族ID, 事件类型)
+func 家族兴衰周期判定(家族ID: String):
+	return 家族系统.家族兴衰周期判定(家族ID)
+func 获取家族完整详情(家族ID: String):
+	return 家族系统.获取家族完整详情(家族ID)
+func 获取家族成员列表(家族ID: String):
+	return 家族系统.获取家族成员列表(家族ID)
+func 发起拍卖(物品ID: String, 物品名: String, 品阶: String, 起拍价: int, 卖家ID: String, 卖家类型: String):
+	return 家族系统.发起拍卖(物品ID, 物品名, 品阶, 起拍价, 卖家ID, 卖家类型)
+func 参与竞价(拍卖ID: String, 买家ID: String, 买家类型: String, 出价: int):
+	return 家族系统.参与竞价(拍卖ID, 买家ID, 买家类型, 出价)
+func 结算拍卖行():
+	return 家族系统.结算拍卖行()
+func 获取拍卖行列表(品阶过滤: String = "", 状态过滤: String = "进行中"):
+	return 家族系统.获取拍卖行列表(品阶过滤, 状态过滤)
+func 加入正魔阵营(弟子: Disciple, 阵营: String):
+	return 家族系统.加入正魔阵营(弟子, 阵营)
+func 参战正魔大战(弟子: Disciple, 战场: String = "中场"):
+	return 家族系统.参战正魔大战(弟子, 战场)
+func 兑换正魔战功(弟子: Disciple, 物品ID: String, 所需战功: int):
+	return 家族系统.兑换正魔战功(弟子, 物品ID, 所需战功)
+func 获取正魔大战状态():
+	return 家族系统.获取正魔大战状态()
+func 炼丹优化(弟子: Disciple, 丹方ID: String, 材料: Dictionary):
+	return 家族系统.炼丹优化(弟子, 丹方ID, 材料)
+func 炼器优化(弟子: Disciple, 器方ID: String, 材料: Dictionary):
+	return 家族系统.炼器优化(弟子, 器方ID, 材料)
+func 触发王朝事件(事件类型: String, 郡: String = ""):
+	return 家族系统.触发王朝事件(事件类型, 郡)
+func 王朝办差优化(弟子: Disciple, 差事类型: String, 郡: String):
+	return 家族系统.王朝办差优化(弟子, 差事类型, 郡)
+func 获取王朝状态():
+	return 家族系统.获取王朝状态()
+func 三元运算(条件: bool, 真值, 假值):
+	return 家族系统.三元运算(条件, 真值, 假值)
+func 获取拍卖行增强状态():
+	return 家族系统.获取拍卖行增强状态()
+func 发起拍卖增强(物品ID: String, 起拍价: int):
+	return 家族系统.发起拍卖增强(物品ID, 起拍价)
+func 获取正魔大战增强状态():
+	return 家族系统.获取正魔大战增强状态()
+func _统计弟子阵营():
+	return 家族系统._统计弟子阵营()
+func 获取炼丹炼器增强状态():
+	return 家族系统.获取炼丹炼器增强状态()
+func 炼丹增强(弟子: Disciple, 丹方ID: String):
+	return 家族系统.炼丹增强(弟子, 丹方ID)
+func 炼器增强(弟子: Disciple, 器方ID: String):
+	return 家族系统.炼器增强(弟子, 器方ID)
+func 获取凡人王朝增强状态():
+	return 家族系统.获取凡人王朝增强状态()
+func 王朝办差增强(弟子: Disciple, 差事类型: String, 郡: String):
+	return 家族系统.王朝办差增强(弟子, 差事类型, 郡)
+func 获取家族UI汇总数据():
+	return 家族系统.获取家族UI汇总数据()
+
+func _获取所有资源点状态() -> Array:
+	var 资源点列表: Array = []
+	var 资源点配置: Dictionary = _资源点配置 if "_资源点配置" in self else {}
+	if 资源点配置.is_empty():
+		# 默认资源点配置
+		资源点配置 = {
+			"灵脉矿脉": {"产出": "灵石100/月", "占领者": ""},
+			"灵药园": {"产出": "灵草50/月", "占领者": ""},
+			"炼器坊": {"产出": "矿石30/月", "占领者": ""},
+			"聚灵地": {"产出": "修炼+20%", "占领者": ""},
+			"秘境入口": {"产出": "定期探索", "占领者": ""}
+		}
+	for 资源点名 in 资源点配置.keys():
+		var 资源点: Dictionary = 资源点配置[资源点名]
+		资源点列表.append({"名": 资源点名, "产出": 资源点.get("产出", ""), "占领者": 资源点.get("占领者", "无")})
+	return 资源点列表
+# ============ P0 敌对生态系统（怪物/敌对NPC/阵营冲突/敌对势力AI） ============
+
+# ---- P0-1 扩展怪物库 ----
+var _扩展怪物配置: Array = []
+var _扩展怪物已加载: bool = false
+
+func _加载扩展怪物配置() -> void:
+	if _扩展怪物已加载:
+		return
+	_扩展怪物已加载 = true
+	var p: String = "res://config/monster_main.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 18:
+			continue
+		_扩展怪物配置.append({
+			"id": str(row[0]).strip_edges(),
+			"名称": str(row[1]).strip_edges(),
+			"境界": str(row[2]).strip_edges(),
+			"属性": str(row[3]).strip_edges(),
+			"气血": int(row[4]),
+			"攻击": int(row[5]),
+			"防御": int(row[6]),
+			"速度": int(row[7]),
+			"暴击": float(row[8]),
+			"闪避": float(row[9]),
+			"是否BOSS": str(row[13]).strip_edges() == "true",
+			"族类": str(row[14]).strip_edges() if row.size() > 14 else "异兽",
+			"行为": str(row[15]).strip_edges() if row.size() > 15 else "游荡",
+			"区域": str(row[16]).strip_edges() if row.size() > 16 else "未知",
+			"智慧": str(row[17]).strip_edges() if row.size() > 17 else "无智慧",
+			"法宝": str(row[18]).strip_edges() if row.size() > 18 else "无",
+			"本命物": str(row[19]).strip_edges() if row.size() > 19 else "无",
+			"战斗道具": str(row[20]).strip_edges() if row.size() > 20 else "无",
+			"描述": str(row[21]).strip_edges() if row.size() > 21 else ""
+		})
+	f.close()
+
+func 获取所有怪物() -> Array:
+	_加载扩展怪物配置()
+	return _扩展怪物配置.duplicate()
+
+func 按族类获取怪物(族类: String) -> Array:
+	_加载扩展怪物配置()
+	var result: Array = []
+	for m in _扩展怪物配置:
+		if str(m.get("族类", "")) == 族类:
+			result.append(m)
+	return result
+
+func 按境界获取怪物(境界: String) -> Array:
+	_加载扩展怪物配置()
+	var result: Array = []
+	for m in _扩展怪物配置:
+		if str(m.get("境界", "")) == 境界:
+			result.append(m)
+	return result
+
+func 按区域获取怪物(区域: String) -> Array:
+	_加载扩展怪物配置()
+	var result: Array = []
+	for m in _扩展怪物配置:
+		if str(m.get("区域", "")) == 区域:
+			result.append(m)
+	return result
+
+func 生成怪物战斗属性(怪物ID: String) -> Dictionary:
+	_加载扩展怪物配置()
+	for m in _扩展怪物配置:
+		if str(m.get("id", "")) == 怪物ID:
+			return {
+				"名称": m.get("名称", ""),
+				"气血": m.get("气血", 100),
+				"攻击": m.get("攻击", 10),
+				"防御": m.get("防御", 5),
+				"速度": m.get("速度", 50),
+				"暴击率": m.get("暴击", 0.1),
+				"闪避率": m.get("闪避", 0.05),
+				"五行属性": m.get("属性", "全"),
+				"职业": m.get("族类", "异兽"),
+				"是BOSS": m.get("是否BOSS", false)
+			}
+	return {}
+
+func 获取怪物法宝详情(怪物ID: String) -> Dictionary:
+	_加载扩展怪物配置()
+	for m in _扩展怪物配置:
+		if str(m.get("id", "")) == 怪物ID:
+			return {
+				"怪物名称": str(m.get("名称", "")),
+				"境界": str(m.get("境界", "")),
+				"族类": str(m.get("族类", "")),
+				"智慧": str(m.get("智慧", "无智慧")),
+				"法宝": str(m.get("法宝", "无")),
+				"本命物": str(m.get("本命物", "无")),
+				"战斗道具": str(m.get("战斗道具", "无"))
+			}
+	return {}
+
+func 获取所有怪物法宝() -> Array:
+	_加载扩展怪物配置()
+	var result: Array = []
+	for m in _扩展怪物配置:
+		if str(m.get("智慧", "")) == "高智慧" or str(m.get("法宝", "")) != "无":
+			result.append({
+				"怪物名称": str(m.get("名称", "")),
+				"境界": str(m.get("境界", "")),
+				"族类": str(m.get("族类", "")),
+				"法宝": str(m.get("法宝", "无")),
+				"本命物": str(m.get("本命物", "无")),
+				"战斗道具": str(m.get("战斗道具", "无"))
+			})
+	return result
+
+# ---- P0-2 敌对NPC系统 ----
+var _敌对NPC配置: Array = []
+var _敌对NPC已加载: bool = false
+var 敌对NPC仇恨值: Dictionary = {}  # npc_id -> 仇恨值(0-100)
+var 敌对NPC位置: Dictionary = {}    # npc_id -> 当前位置
+var 敌对NPC状态: Dictionary = {}    # npc_id -> 状态(游荡/挑衅/掠夺/追杀/潜伏)
+
+func _加载敌对NPC配置() -> void:
+	if _敌对NPC已加载:
+		return
+	_敌对NPC已加载 = true
+	var p: String = "res://config/hostile_npc_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 17:
+			continue
+		var npc_id: String = str(row[0]).strip_edges()
+		_敌对NPC配置.append({
+			"id": npc_id,
+			"名称": str(row[1]).strip_edges(),
+			"境界": str(row[2]).strip_edges(),
+			"势力": str(row[3]).strip_edges(),
+			"性格": str(row[4]).strip_edges(),
+			"基础仇恨": int(row[5]),
+			"初始位置": str(row[6]).strip_edges(),
+			"战力": int(row[7]),
+			"功法": str(row[8]).strip_edges(),
+			"功法效果": str(row[9]).strip_edges(),
+			"武器": str(row[10]).strip_edges(),
+			"防具": str(row[11]).strip_edges(),
+			"饰品": str(row[12]).strip_edges(),
+			"背景": str(row[13]).strip_edges(),
+			"行为模式": str(row[14]).strip_edges(),
+			"掉落": str(row[15]).strip_edges(),
+			"可和解": str(row[16]).strip_edges() == "true",
+			"和解条件": str(row[17]).strip_edges() if row.size() > 17 else ""
+		})
+		# 初始化仇恨值和位置
+		if not 敌对NPC仇恨值.has(npc_id):
+			敌对NPC仇恨值[npc_id] = int(row[5])
+		if not 敌对NPC位置.has(npc_id):
+			敌对NPC位置[npc_id] = str(row[6]).strip_edges()
+		if not 敌对NPC状态.has(npc_id):
+			敌对NPC状态[npc_id] = "游荡"
+	f.close()
+
+func 获取所有敌对NPC() -> Array:
+	_加载敌对NPC配置()
+	var result: Array = []
+	for npc in _敌对NPC配置:
+		var npc_id: String = str(npc.get("id", ""))
+		var copy: Dictionary = npc.duplicate()
+		copy["当前仇恨"] = int(敌对NPC仇恨值.get(npc_id, 0))
+		copy["当前位置"] = str(敌对NPC位置.get(npc_id, ""))
+		copy["当前状态"] = str(敌对NPC状态.get(npc_id, "游荡"))
+		result.append(copy)
+	return result
+
+func 获取敌对NPC详情(npc_id: String) -> Dictionary:
+	_加载敌对NPC配置()
+	for npc in _敌对NPC配置:
+		if str(npc.get("id", "")) == npc_id:
+			var copy: Dictionary = npc.duplicate()
+			copy["当前仇恨"] = int(敌对NPC仇恨值.get(npc_id, 0))
+			copy["当前位置"] = str(敌对NPC位置.get(npc_id, ""))
+			copy["当前状态"] = str(敌对NPC状态.get(npc_id, "游荡"))
+			return copy
+	return {}
+
+func 增加敌对NPC仇恨(npc_id: String, 数量: int) -> void:
+	_加载敌对NPC配置()
+	var 当前: int = int(敌对NPC仇恨值.get(npc_id, 0))
+	敌对NPC仇恨值[npc_id] = clamp(当前 + 数量, 0, 100)
+
+func 减少敌对NPC仇恨(npc_id: String, 数量: int) -> void:
+	_加载敌对NPC配置()
+	var 当前: int = int(敌对NPC仇恨值.get(npc_id, 0))
+	敌对NPC仇恨值[npc_id] = clamp(当前 - 数量, 0, 100)
+
+func _更新敌对NPC状态(npc_id: String) -> void:
+	var 仇恨: int = int(敌对NPC仇恨值.get(npc_id, 0))
+	if 仇恨 < 30:
+		敌对NPC状态[npc_id] = "游荡"
+	elif 仇恨 < 50:
+		敌对NPC状态[npc_id] = "挑衅"
+	elif 仇恨 < 70:
+		敌对NPC状态[npc_id] = "掠夺"
+	else:
+		敌对NPC状态[npc_id] = "追杀"
+
+func 敌对NPC月度行动() -> Array:
+	_加载敌对NPC配置()
+	var 行动日志: Array = []
+	for npc in _敌对NPC配置:
+		var npc_id: String = str(npc.get("id", ""))
+		var 行为模式: String = str(npc.get("行为模式", "游荡"))
+		# 潜伏型NPC不主动行动
+		if 行为模式 == "潜伏":
+			continue
+		# 更新状态
+		_更新敌对NPC状态(npc_id)
+		var 状态: String = str(敌对NPC状态.get(npc_id, "游荡"))
+		# 根据状态执行行动
+		if 状态 == "挑衅":
+			行动日志.append("%s在%s挑衅宗门弟子" % [str(npc.get("名称", "")), str(敌对NPC位置.get(npc_id, ""))])
+		elif 状态 == "掠夺":
+			var 损失: int = randi() % 100 + 50
+			灵石 = max(0, 灵石 - 损失)
+			行动日志.append("%s掠夺宗门商队，损失%d灵石" % [str(npc.get("名称", "")), 损失])
+			增加敌对NPC仇恨(npc_id, 10)
+		elif 状态 == "追杀":
+			行动日志.append("⚠️ %s正在追杀宗门落单弟子，请加强戒备！" % str(npc.get("名称", "")))
+			增加敌对NPC仇恨(npc_id, 5)
+		# 小概率移动位置
+		if randf() < 0.2:
+			var 区域列表: Array = ["后山", "古道", "坊市", "密林", "秘境", "魔渊", "血河"]
+			敌对NPC位置[npc_id] = 区域列表[randi() % 区域列表.size()]
+	return 行动日志
+
+func 击杀敌对NPC(npc_id: String) -> Dictionary:
+	_加载敌对NPC配置()
+	var npc: Dictionary = 获取敌对NPC详情(npc_id)
+	if npc.is_empty():
+		return {"成功": false, "原因": "NPC不存在"}
+	# 增加业力
+	业力 += 5
+	# 移除NPC（标记为已击杀）
+	敌对NPC仇恨值[npc_id] = -1
+	敌对NPC状态[npc_id] = "已击杀"
+	添加纪事("战斗", "击杀敌对NPC", "击杀%s，获得%s" % [str(npc.get("名称", "")), str(npc.get("掉落", ""))], 2)
+	return {"成功": true, "掉落": str(npc.get("掉落", "")), "业力增加": 5}
+
+func 和解敌对NPC(npc_id: String) -> Dictionary:
+	_加载敌对NPC配置()
+	var npc: Dictionary = 获取敌对NPC详情(npc_id)
+	if npc.is_empty():
+		return {"成功": false, "原因": "NPC不存在"}
+	if not bool(npc.get("可和解", false)):
+		return {"成功": false, "原因": "此NPC不可和解"}
+	# 清零仇恨
+	敌对NPC仇恨值[npc_id] = 0
+	敌对NPC状态[npc_id] = "已和解"
+	添加纪事("外交", "和解敌对NPC", "与%s达成和解，条件：%s" % [str(npc.get("名称", "")), str(npc.get("和解条件", ""))], 1)
+	return {"成功": true, "和解条件": str(npc.get("和解条件", ""))}
+
+# ---- P0-3 阵营冲突扩展 ----
+const _阵营关系网: Dictionary = {
+	"正道宗门": {"魔道邪宗": "敌对", "中立散修": "友好", "上古妖兽": "中立", "远古遗泽": "中立", "丹器师公会": "友好"},
+	"魔道邪宗": {"正道宗门": "敌对", "中立散修": "中立", "上古妖兽": "友好", "远古遗泽": "中立", "丹器师公会": "中立"},
+	"中立散修": {"正道宗门": "友好", "魔道邪宗": "中立", "上古妖兽": "中立", "远古遗泽": "中立", "丹器师公会": "竞争"},
+	"上古妖兽": {"正道宗门": "中立", "魔道邪宗": "友好", "中立散修": "中立", "远古遗泽": "敌对", "丹器师公会": "中立"},
+	"远古遗泽": {"正道宗门": "中立", "魔道邪宗": "中立", "中立散修": "中立", "上古妖兽": "敌对", "丹器师公会": "中立"},
+	"丹器师公会": {"正道宗门": "友好", "魔道邪宗": "中立", "中立散修": "竞争", "上古妖兽": "中立", "远古遗泽": "中立"}
+}
+
+func 获取阵营关系(阵营A: String, 阵营B: String) -> String:
+	if 阵营A == 阵营B:
+		return "同盟"
+	if _阵营关系网.has(阵营A) and _阵营关系网[阵营A].has(阵营B):
+		return str(_阵营关系网[阵营A][阵营B])
+	return "中立"
+
+func 获取敌对阵营(阵营: String) -> Array:
+	var result: Array = []
+	if _阵营关系网.has(阵营):
+		for other in _阵营关系网[阵营].keys():
+			if str(_阵营关系网[阵营][other]) == "敌对":
+				result.append(other)
+	return result
+
+func 获取友好阵营(阵营: String) -> Array:
+	var result: Array = []
+	if _阵营关系网.has(阵营):
+		for other in _阵营关系网[阵营].keys():
+			if str(_阵营关系网[阵营][other]) == "友好":
+				result.append(other)
+	return result
+
+func 阵营冲突月度事件() -> Array:
+	var 事件日志: Array = []
+	# 正道vs魔道冲突（高概率）
+	if randf() < 0.4:
+		var 事件类型: Array = ["边境冲突", "资源争夺", "弟子摩擦", "互相悬赏"]
+		var 事件: String = 事件类型[randi() % 事件类型.size()]
+		事件日志.append("⚔️ 正道与魔道在边境发生%s" % 事件)
+		# 影响玩家声望
+		if randf() < 0.5:
+			增加阵营声望("fz_zhengdao", 5)
+		else:
+			增加阵营声望("fz_mo", 5)
+	# 散修vs丹器公会竞争（中概率）
+	if randf() < 0.2:
+		事件日志.append("💰 中立散修与丹器师公会在坊市发生商业竞争")
+	# 妖族vs远古遗泽冲突（低概率）
+	if randf() < 0.1:
+		事件日志.append("🌿 上古妖兽与远古遗泽在禁地发生冲突")
+	return 事件日志
+
+# ---- P0-4 敌对势力AI基础 ----
+func 敌对势力月度行动() -> Array:
+	var 行动日志: Array = []
+	# 魔道邪宗边境骚扰（高概率）
+	if randf() < 0.5:
+		var 骚扰类型: Array = ["边境哨站被袭", "商队被劫", "弟子被掳", "资源被掠夺"]
+		var 骚扰: String = 骚扰类型[randi() % 骚扰类型.size()]
+		行动日志.append("⚠️ 魔道邪宗在边境发起骚扰：%s" % 骚扰)
+		# 小概率造成实际损失
+		if randf() < 0.3:
+			var 损失: int = randi() % 200 + 100
+			灵石 = max(0, 灵石 - 损失)
+			行动日志.append("  损失：%d灵石" % 损失)
+	# 敌对NPC行动
+	var npc行动: Array = 敌对NPC月度行动()
+	for act in npc行动:
+		行动日志.append(act)
+	# 阵营冲突事件
+	var 阵营事件: Array = 阵营冲突月度事件()
+	for evt in 阵营事件:
+		行动日志.append(evt)
+	return 行动日志
+
+func 获取敌对势力威胁等级() -> Dictionary:
+	var 威胁: Dictionary = {"魔道邪宗": 0, "敌对NPC": 0, "总体": "安全"}
+	# 魔道威胁（基于声望）
+	var 魔道声望: int = 0
+	if 阵营声望系统.阵营声望.has("fz_mo"):
+		魔道声望 = int(阵营声望系统.阵营声望["fz_mo"])
+	威胁["魔道邪宗"] = clamp(100 - 魔道声望, 0, 100)
+	# 敌对NPC威胁（基于仇恨值总和）
+	var 总仇恨: int = 0
+	for npc_id in 敌对NPC仇恨值.keys():
+		var h: int = int(敌对NPC仇恨值[npc_id])
+		if h > 0:
+			总仇恨 += h
+	威胁["敌对NPC"] = clamp(总仇恨 / 5, 0, 100)
+	# 总体威胁
+	var 总体威胁: int = max(威胁["魔道邪宗"], 威胁["敌对NPC"])
+	if 总体威胁 < 30:
+		威胁["总体"] = "安全"
+	elif 总体威胁 < 60:
+		威胁["总体"] = "警戒"
+	elif 总体威胁 < 80:
+		威胁["总体"] = "危险"
+	else:
+		威胁["总体"] = "极度危险"
+	return 威胁
+# ============ P1 敌对生态深度系统（兽潮/敌对NPC成长/势力战争/阵营战争） ============
+
+# ---- P1-1 兽潮事件系统 ----
+var _兽潮配置: Array = []
+var _兽潮已加载: bool = false
+var 当前兽潮: Dictionary = {}  # 当前正在进行的兽潮
+
+func _加载兽潮配置() -> void:
+	if _兽潮已加载:
+		return
+	_兽潮已加载 = true
+	var p: String = "res://config/beast_wave_config.csv"
+	if not FileAccess.file_exists(p):
+		return
+	var f = FileAccess.open(p, FileAccess.READ)
+	if f == null:
+		return
+	f.get_csv_line()
+	while not f.eof_reached():
+		var row = f.get_csv_line()
+		if row == null or row.size() < 9:
+			continue
+		_兽潮配置.append({
+			"id": str(row[0]).strip_edges(),
+			"名称": str(row[1]).strip_edges(),
+			"族类": str(row[2]).strip_edges(),
+			"怪物数量": int(row[3]),
+			"推荐战力": int(row[4]),
+			"触发概率": float(row[5]),
+			"基础伤害": int(row[6]),
+			"基础奖励": int(row[7]),
+			"描述": str(row[8]).strip_edges()
+		})
+	f.close()
+
+func 兽潮月度触发检查() -> Dictionary:
+	_加载兽潮配置()
+	# 如果已有进行中的兽潮，不重复触发
+	if not 当前兽潮.is_empty():
+		return {"触发": false, "原因": "已有进行中的兽潮"}
+	# 遍历所有兽潮，按概率触发
+	for wave in _兽潮配置:
+		if randf() < float(wave.get("触发概率", 0.05)):
+			当前兽潮 = wave.duplicate()
+			当前兽潮["状态"] = "进行中"
+			当前兽潮["剩余怪物"] = int(wave.get("怪物数量", 10))
+			添加纪事("事件", "兽潮来袭", "⚠️ %s来袭！%s" % [str(wave.get("名称", "")), str(wave.get("描述", ""))], 3)
+			return {"触发": true, "兽潮": 当前兽潮}
+	return {"触发": false}
+
+func 兽潮防御(策略: String) -> Dictionary:
+	if 当前兽潮.is_empty():
+		return {"成功": false, "原因": "当前无兽潮"}
+	var 兽潮: Dictionary = 当前兽潮
+	var 基础伤害: int = int(兽潮.get("基础伤害", 100))
+	var 基础奖励: int = int(兽潮.get("基础奖励", 200))
+	var 推荐战力: int = int(兽潮.get("推荐战力", 1000))
+	# 计算宗门总战力，并筛选在宗弟子
+	var 宗门总战力: int = 0
+	var 在宗弟子: Array = []
+	for d in 弟子列表:
+		if d != null and d is Disciple and d.状态 == "在宗":
+			宗门总战力 += int(d.战力)
+			在宗弟子.append(d)
+	# 散仙/鬼仙参与宗门防御（隐居灵脉的守护者，大难时出手）
+	var 散仙战力: int = 获取散仙总战力()
+	if 散仙战力 > 0:
+		宗门总战力 += 散仙战力
+		添加纪事("散仙", "兽潮防御", "隐居宗门灵脉的散仙/鬼仙感知兽潮来袭，出手相助，战力+%d。" % 散仙战力, 2)
+	# 按战力排序，取前3为出战主力
+	# 毒道：兽潮防御时毒傀儡和毒药自动生效（毒雾弥漫，妖兽畏毒）
+	var 毒傀儡毒伤: int = 获取毒傀儡毒伤()
+	var 毒道境界: String = 获取毒道境界()
+	var 毒体加成: Dictionary = 获取毒体加成()
+	var 总毒伤: int = 0
+	var 毒伤减伤: float = 0.0
+	var 毒伤战利品加成: float = 0.0
+	if 毒傀儡毒伤 > 0 or 毒道境界 != "毒道学徒":
+		总毒伤 = 毒傀儡毒伤 + int(float(毒道境界表.find(毒道境界)) * 30) + int(float(毒体加成["毒伤加成"]) * 150)
+		# 毒伤降低兽潮基础伤害（妖兽中毒，攻击力下降）
+		毒伤减伤 = min(0.3, float(总毒伤) / float(max(1, 推荐战力)))
+		# 毒伤增加战利品（妖兽中毒，更容易击杀，获得更多材料）
+		毒伤战利品加成 = min(0.5, float(总毒伤) / float(max(1, 推荐战力)) * 1.5)
+		基础伤害 = int(float(基础伤害) * (1.0 - 毒伤减伤))
+		添加纪事("毒道", "兽潮毒防", "毒傀儡布下毒雾大阵，妖兽中毒，攻击力下降%d%%，战利品+%d%%。" % [int(毒伤减伤 * 100), int(毒伤战利品加成 * 100)], 2)
+	# S45-7：兽潮符箓加成（消耗符箓→临时战力增益，主动消费方接入）
+	var 兽潮符箓加成: float = 符箓消耗加成(6)
+	if 兽潮符箓加成 > 0:
+		宗门总战力 = int(float(宗门总战力) * (1.0 + 兽潮符箓加成))
+	if 毒傀儡毒伤 > 0:
+		宗门总战力 += 毒傀儡毒伤 * 2  # 毒傀儡毒伤翻倍计入防御
+	var 出战弟子: Array = 在宗弟子.duplicate()
+	出战弟子.sort_custom(func(a, b): return int(a.战力) > int(b.战力))
+	出战弟子 = 出战弟子.slice(0, min(3, 出战弟子.size()))
+	var 出战弟子名: Array = []
+	for d in 出战弟子:
+		出战弟子名.append(d.姓名)
+	var 结果: Dictionary = {"策略": 策略, "兽潮名称": 兽潮.get("名称", ""), "出战弟子": 出战弟子名}
+	# 根据兽潮等级决定战利品池
+	var 战利品: Dictionary = {}
+	if 推荐战力 <= 800:
+		战利品 = {"妖兽血": 3, "妖兽皮": 2, "妖兽内丹": 1}
+	elif 推荐战力 <= 1500:
+		战利品 = {"妖兽血": 5, "妖兽筋骨": 2, "妖兽内丹": 1, "妖兽精血": 1}
+	elif 推荐战力 <= 2500:
+		战利品 = {"妖兽筋骨": 3, "妖兽内丹": 2, "妖兽精血": 1, "狐火晶": 1}
+	else:
+		战利品 = {"妖兽内丹": 3, "妖兽精血": 2, "鹏羽": 1, "麒麟鳞": 1}
+	# 毒道：毒伤战利品加成（妖兽中毒，更容易击杀，获得更多材料）
+	if 毒伤战利品加成 > 0:
+		for k in 战利品.keys():
+			战利品[k] = int(战利品[k] * (1.0 + 毒伤战利品加成))
+	if 策略 == "坚守":
+		# 坚守：减少伤害，战利品减半
+		var 伤害减免: float = 0.5 if 宗门总战力 >= 推荐战力 else 0.2
+		# 护山大阵联动：大阵等级提供额外减伤（每级+3%，上限+30%）
+		var 大阵抗性: float = 获取护山大阵抗性() if has_method("获取护山大阵抗性") else 0.0
+		伤害减免 += clamp(大阵抗性, 0.0, 0.3)
+		伤害减免 = clamp(伤害减免, 0.0, 0.9)  # 最高90%减伤
+		var 实际伤害: int = int(基础伤害 * (1.0 - 伤害减免))
+		灵石 = max(0, 灵石 - 实际伤害)
+		结果["伤害"] = 实际伤害
+		结果["奖励"] = 基础奖励 / 2
+		灵石 += 基础奖励 / 2
+		# 坚守战利品减半
+		var 坚守战利品: Dictionary = {}
+		for k in 战利品.keys():
+			坚守战利品[k] = max(1, int(战利品[k] / 2))
+		结果["战利品"] = 坚守战利品
+		# 守护宗门：在宗弟子各加功德（护道安民）
+		for d in 在宗弟子:
+			if d.has_method("增加功德"):
+				d.增加功德(10)
+		# 坚守时低阶弟子有概率受伤（护山大阵也会有疏漏）
+		var 伤亡名单: Array = []
+		for d in 在宗弟子:
+			if int(d.战力) < 推荐战力 / 3 and randf() < 0.1:
+				d.受伤剩余 = max(int(d.受伤剩余), 10)
+				伤亡名单.append(d.姓名)
+		结果["伤亡"] = 伤亡名单
+		结果["成功"] = true
+		var 战利品文本: String = ""
+		for k in 坚守战利品.keys():
+			if 战利品文本 != "":
+				战利品文本 += "、"
+			战利品文本 += "%s×%d" % [k, 坚守战利品[k]]
+		var 伤亡文本: String = "，%d名弟子受伤" % 伤亡名单.size() if not 伤亡名单.is_empty() else ""
+		var 大阵文本: String = "，护山大阵减伤%d%%" % int(大阵抗性 * 100) if 大阵抗性 > 0 else ""
+		结果["描述"] = "坚守不出，以护山大阵抵御兽潮%s，损失%d灵石，获得%d灵石及战利品【%s】%s，在宗弟子各积功德10" % [大阵文本, 实际伤害, 基础奖励 / 2, 战利品文本, 伤亡文本]
+	elif 策略 == "出击":
+		# 出击：高风险高回报
+		var 胜率: float = float(宗门总战力) / float(推荐战力 * 2)
+		胜率 = clamp(胜率, 0.1, 0.9)
+		if randf() < 胜率:
+			# 胜利
+			var 奖励: int = 基础奖励 * 2
+			灵石 += 奖励
+			悟道点 += 20
+			结果["战利品"] = 战利品
+			# 击退兽潮：出战弟子加功德（守护一方），同时杀妖兽造少量杀业
+			for d in 出战弟子:
+				if d.has_method("增加功德"):
+					d.增加功德(20)
+					d.增加业力(5)
+			# 出战弟子有概率临阵突破（修真小说常见桥段）
+			var 突破名单: Array = []
+			for d in 出战弟子:
+				if d.层数 >= 8 and randf() < 0.15:
+					d.层数 = 10
+					突破名单.append(d.姓名)
+			# 出战弟子有概率受伤
+			var 伤亡名单: Array = []
+			for d in 出战弟子:
+				if randf() < 0.2:
+					d.受伤剩余 = max(int(d.受伤剩余), 15)
+					伤亡名单.append(d.姓名)
+			结果["突破"] = 突破名单
+			结果["伤亡"] = 伤亡名单
+			结果["胜利"] = true
+			结果["奖励"] = 奖励
+			结果["悟道点"] = 20
+			var 战利品文本: String = ""
+			for k in 战利品.keys():
+				if 战利品文本 != "":
+					战利品文本 += "、"
+				战利品文本 += "%s×%d" % [k, 战利品[k]]
+			var 突破文本: String = ""
+			if not 突破名单.is_empty():
+				突破文本 = "，%s临阵突破" % "、".join(突破名单)
+			var 伤亡文本: String = "，%d名弟子受伤" % 伤亡名单.size() if not 伤亡名单.is_empty() else ""
+			var 出战名: String = "、".join(出战弟子名)
+			结果["描述"] = "主动出击，大败兽潮！出战弟子%s，获得%d灵石、20悟道点及战利品【%s】%s%s，出战弟子各积功德20、杀业5" % [出战名, 奖励, 战利品文本, 突破文本, 伤亡文本]
+		else:
+			# 失败
+			var 伤害: int = 基础伤害 * 2
+			灵石 = max(0, 灵石 - 伤害)
+			# 失败时出战弟子必受伤
+			var 伤亡名单: Array = []
+			for d in 出战弟子:
+				d.受伤剩余 = max(int(d.受伤剩余), 20)
+				伤亡名单.append(d.姓名)
+			结果["伤亡"] = 伤亡名单
+			结果["胜利"] = false
+			结果["伤害"] = 伤害
+			var 出战名2: String = "、".join(出战弟子名)
+			结果["描述"] = "出击失利，被兽潮击退，出战弟子%s皆受伤，损失%d灵石" % [出战名2, 伤害]
+		结果["成功"] = true
+	elif 策略 == "求和":
+		# 求和：付出代价，避免战斗
+		var 代价: int = 基础奖励
+		if 灵石 >= 代价:
+			灵石 -= 代价
+			结果["代价"] = 代价
+			结果["成功"] = true
+			结果["描述"] = "以%d灵石为代价，与兽潮达成和解，避免战斗" % 代价
+		else:
+			结果["成功"] = false
+			结果["原因"] = "灵石不足，无法求和"
+	else:
+		结果["成功"] = false
+		结果["原因"] = "未知策略"
+	# 结束兽潮
+	if 结果.get("成功", false):
+		当前兽潮 = {}
+		添加纪事("事件", "兽潮结束", "%s已结束：%s" % [str(兽潮.get("名称", "")), str(结果.get("描述", ""))], 2)
+	return 结果
+
+func 获取当前兽潮() -> Dictionary:
+	return 当前兽潮.duplicate()
+
+# ---- P1-2 敌对NPC成长/化敌为友 ----
+func 敌对NPC月度成长() -> Array:
+	_加载敌对NPC配置()
+	var 成长日志: Array = []
+	for npc in _敌对NPC配置:
+		var npc_id: String = str(npc.get("id", ""))
+		var 状态: String = str(敌对NPC状态.get(npc_id, "游荡"))
+		# 已击杀/已和解的NPC不成长
+		if 状态 == "已击杀" or 状态 == "已和解":
+			continue
+		# 月度修炼（小概率突破）
+		if randf() < 0.1:
+			var 当前境界: String = str(npc.get("境界", "练气"))
+			var 境界列表: Array = ["练气", "筑基", "金丹", "元婴", "化神", "炼虚"]
+			var 当前索引: int = 境界列表.find(当前境界)
+			if 当前索引 >= 0 and 当前索引 < 境界列表.size() - 1:
+				var 新境界: String = 境界列表[当前索引 + 1]
+				npc["境界"] = 新境界
+				成长日志.append("%s突破至%s境界！" % [str(npc.get("名称", "")), 新境界])
+		# 战力自然增长
+		var 当前战力: int = int(npc.get("战力", 500))
+		var 增长: int = randi() % 50 + 10
+		npc["战力"] = 当前战力 + 增长
+	return 成长日志
+
+func 尝试化敌为友(npc_id: String, 方式: String) -> Dictionary:
+	_加载敌对NPC配置()
+	var npc: Dictionary = 获取敌对NPC详情(npc_id)
+	if npc.is_empty():
+		return {"成功": false, "原因": "NPC不存在"}
+	if not bool(npc.get("可和解", false)):
+		return {"成功": false, "原因": "此NPC不可化敌为友"}
+	var 仇恨: int = int(npc.get("当前仇恨", 0))
+	if 仇恨 > 30:
+		return {"成功": false, "原因": "仇恨值过高（%d），需先降低仇恨至30以下" % 仇恨}
+	var 结果: Dictionary = {"成功": false}
+	if 方式 == "击败收服":
+		# 击败后收服（需要宗门战力足够）
+		var 宗门总战力: int = 0
+		for d in 弟子列表:
+			if d != null and d is Disciple and d.状态 == "在宗":
+				宗门总战力 += int(d.战力)
+		if 宗门总战力 >= int(npc.get("战力", 500)) * 2:
+			结果["成功"] = true
+			结果["描述"] = "击败%s后将其收服，加入宗门" % str(npc.get("名称", ""))
+		else:
+			结果["原因"] = "宗门战力不足，无法击败收服"
+	elif 方式 == "满足条件":
+		# 满足和解条件
+		var 条件: String = str(npc.get("和解条件", ""))
+		if 条件 != "":
+			结果["成功"] = true
+			结果["描述"] = "满足条件：%s，%s化敌为友" % [条件, str(npc.get("名称", ""))]
+		else:
+			结果["原因"] = "此NPC无明确和解条件"
+	elif 方式 == "真情打动":
+		# 小概率成功
+		if randf() < 0.2:
+			结果["成功"] = true
+			结果["描述"] = "以真情打动%s，化敌为友" % str(npc.get("名称", ""))
+		else:
+			结果["原因"] = "真情打动失败，对方不为所动"
+			减少敌对NPC仇恨(npc_id, 5)
+	else:
+		结果["原因"] = "未知方式"
+	# 化敌为友成功
+	if 结果.get("成功", false):
+		敌对NPC仇恨值[npc_id] = 0
+		敌对NPC状态[npc_id] = "已和解"
+		声望 += 50
+		添加纪事("外交", "化敌为友", "%s：%s" % [str(npc.get("名称", "")), str(结果.get("描述", ""))], 2)
+	return 结果
+
+func 获取敌对NPC背景故事(npc_id: String) -> String:
+	_加载敌对NPC配置()
+	for npc in _敌对NPC配置:
+		if str(npc.get("id", "")) == npc_id:
+			return "%s，%s境界，%s势力。%s" % [
+				str(npc.get("名称", "")),
+				str(npc.get("境界", "")),
+				str(npc.get("势力", "")),
+				str(npc.get("背景", ""))
+			]
+	return ""
+
+func 获取敌对NPC功法详情(npc_id: String) -> Dictionary:
+	_加载敌对NPC配置()
+	for npc in _敌对NPC配置:
+		if str(npc.get("id", "")) == npc_id:
+			return {
+				"功法名称": str(npc.get("功法", "")),
+				"功法效果": str(npc.get("功法效果", "")),
+				"NPC名称": str(npc.get("名称", "")),
+				"境界": str(npc.get("境界", ""))
+			}
+	return {}
+
+func 获取所有敌对NPC功法() -> Array:
+	_加载敌对NPC配置()
+	var result: Array = []
+	for npc in _敌对NPC配置:
+		result.append({
+			"NPC名称": str(npc.get("名称", "")),
+			"功法": str(npc.get("功法", "")),
+			"功法效果": str(npc.get("功法效果", "")),
+			"境界": str(npc.get("境界", ""))
+		})
+	return result
+
+func 获取敌对NPC装备详情(npc_id: String) -> Dictionary:
+	_加载敌对NPC配置()
+	for npc in _敌对NPC配置:
+		if str(npc.get("id", "")) == npc_id:
+			return {
+				"NPC名称": str(npc.get("名称", "")),
+				"武器": str(npc.get("武器", "")),
+				"防具": str(npc.get("防具", "")),
+				"饰品": str(npc.get("饰品", "")),
+				"境界": str(npc.get("境界", ""))
+			}
+	return {}
+
+func 获取所有敌对NPC装备() -> Array:
+	_加载敌对NPC配置()
+	var result: Array = []
+	for npc in _敌对NPC配置:
+		result.append({
+			"NPC名称": str(npc.get("名称", "")),
+			"武器": str(npc.get("武器", "")),
+			"防具": str(npc.get("防具", "")),
+			"饰品": str(npc.get("饰品", "")),
+			"境界": str(npc.get("境界", ""))
+		})
+	return result
+
+# ============ P2接入：敌对NPC挑战战斗 ============
+## 挑战敌对NPC（使用BattleManager真实战斗引擎）
+## 参数：npc_id - 敌对NPC ID，出战弟子 - 弟子对象数组
+## 返回：{成功, 战报, 奖励, NPC详情}
+func 挑战敌对NPC(npc_id: String, 出战弟子: Array = []) -> Dictionary:
+	_加载敌对NPC配置()
+	var npc: Dictionary = 获取敌对NPC详情(npc_id)
+	if npc.is_empty():
+		return {"成功": false, "原因": "NPC不存在", "战报": {}, "奖励": {}}
+
+	var 状态: String = str(npc.get("当前状态", "游荡"))
+	if 状态 == "已击杀":
+		return {"成功": false, "原因": "此NPC已被击杀", "战报": {}, "奖励": {}}
+	if 状态 == "已和解":
+		return {"成功": false, "原因": "此NPC已化敌为友", "战报": {}, "奖励": {}}
+
+	# 检查出战弟子
+	if 出战弟子.is_empty():
+		return {"成功": false, "原因": "未选择出战弟子", "战报": {}, "奖励": {}}
+
+	# 构造敌对NPC战斗快照（根据战力和境界估算属性）
+	var npc战力: int = int(npc.get("战力", 500))
+	var npc境界: String = str(npc.get("境界", "练气"))
+	var 境界加成: Dictionary = {"练气": 0, "筑基": 20, "金丹": 50, "元婴": 100, "化神": 200, "炼虚": 400}
+	var 境界灵力: int = int(境界加成.get(npc境界, 0))
+	var npc快照: Dictionary = {
+		"名称": str(npc.get("名称", "敌对NPC")),
+		"境界": npc境界,
+		"属性": {
+			"血": int(npc战力 * 0.5),
+			"攻": int(npc战力 * 0.15),
+			"防": int(npc战力 * 0.1),
+			"灵力上限": 50 + 境界灵力,
+			"灵力回复": 5 + int(境界灵力 / 10),
+			"当前灵力": 50 + 境界灵力,
+			"暴击率": 0.05,
+			"闪避率": 0.03
+		},
+		"战力": npc战力,
+		"功法": str(npc.get("功法", "")),
+		"武器": str(npc.get("武器", "")),
+		"防具": str(npc.get("防具", ""))
+	}
+
+	# 获取出战弟子战斗快照
+	var 弟子快照: Array = []
+	for d in 出战弟子:
+		if d != null and d.has_method("get_final_combat_attr"):
+			弟子快照.append(d.get_final_combat_attr())
+
+	if 弟子快照.is_empty():
+		return {"成功": false, "原因": "出战弟子无效", "战报": {}, "奖励": {}}
+
+	# 使用BattleManager计算战斗（1v1取第一名弟子）
+	var 战报: Dictionary
+	if 弟子快照.size() == 1:
+		战报 = BattleManager.发起1v1(弟子快照[0], npc快照, "full", false)
+	else:
+		# 多弟子取前3名3v3
+		var 攻方: Array = 弟子快照.slice(0, min(3, 弟子快照.size()))
+		战报 = BattleManager.发起3v3(攻方, [npc快照], "full", false)
+
+	var 胜利: bool = bool(战报.get("is_win", false))
+	var 奖励: Dictionary = {}
+
+	# 处理战斗结果
+	if 胜利:
+		# 击杀NPC
+		敌对NPC状态[npc_id] = "已击杀"
+		# 增加仇恨（其他敌对NPC）
+		for other_id in 敌对NPC状态.keys():
+			if other_id != npc_id and 敌对NPC状态[other_id] == "游荡":
+				增加敌对NPC仇恨(str(other_id), 5)
+		# 弟子级业力：斩杀修士/妖兽皆造杀业（修真世界观：因果随身）
+		var npc类型: String = str(npc.get("类型", "修士"))
+		var 杀业业力: int = 20
+		match npc类型:
+			"邪修", "魔族": 杀业业力 = 15  # 斩妖除魔，业力较轻
+			"妖兽": 杀业业力 = 10  # 杀妖兽，业力微
+			_: 杀业业力 = 30  # 斩杀修士，业力较重
+		for d in 出战弟子:
+			if d != null and d.has_method("增加业力"):
+				d.增加业力(杀业业力)
+		# 宗门级业力
+		业力 += 5
+		# 奖励：灵石、声望、掉落
+		var 灵石奖励: int = int(npc战力 * 0.2) + randi() % 100
+		灵石 += 灵石奖励
+		声望 += 20
+		奖励["灵石"] = 灵石奖励
+		奖励["声望"] = 20
+		奖励["掉落"] = str(npc.get("掉落", ""))
+		添加纪事("战斗", "击杀敌对NPC", "击杀%s，出战弟子各增杀业%d，获得灵石%d、声望20" % [str(npc.get("名称", "")), 杀业业力, 灵石奖励], 2)
+	else:
+		# 失败：NPC仇恨增加，弟子受伤
+		增加敌对NPC仇恨(npc_id, 15)
+		for d in 出战弟子:
+			if d != null and d.has_method("受伤剩余"):
+				d.受伤剩余 = max(int(d.受伤剩余), 15)
+		奖励["灵石"] = 0
+		奖励["声望"] = 0
+		添加纪事("战斗", "挑战失败", "挑战%s失败，弟子受伤，仇恨+15" % str(npc.get("名称", "")), 1)
+
+	return {
+		"成功": true,
+		"胜利": 胜利,
+		"战报": 战报,
+		"奖励": 奖励,
+		"NPC详情": npc,
+		"攻方快照": 弟子快照,
+		"守方快照": [npc快照]
+	}
+
+# ---- P1-3 势力战争系统 ----
+var 进行中战争: Dictionary = {}  # 当前进行中的战争
+const _可争夺资源点: Array = ["灵脉矿脉", "灵药园", "炼器坊", "聚灵地", "秘境入口"]
+
+func 发起势力战争(战争类型: String, 目标势力: String, 出战队伍: Array) -> Dictionary:
+	if not 进行中战争.is_empty():
+		return {"成功": false, "原因": "已有进行中的战争"}
+	# 检查出战队伍
+	if 出战队伍.is_empty():
+		return {"成功": false, "原因": "未选择出战队伍"}
+	# 计算双方战力
+	var 攻方战力: int = 0
+	for d in 出战队伍:
+		if d != null:
+			攻方战力 += int(d.get("战力", 0))
+	var 守方战力: int = 攻方战力 / 2 + randi() % 攻方战力
+	# 创建战争
+	进行中战争 = {
+		"类型": 战争类型,
+		"目标势力": 目标势力,
+		"攻方战力": 攻方战力,
+		"守方战力": 守方战力,
+		"状态": "备战",
+		"回合": 0,
+		"最大回合": 3,
+		"攻方损失": 0,
+		"守方损失": 0
+	}
+	添加纪事("战争", "宣战", "宗门向%s宣战，%s之战拉开帷幕！" % [目标势力, 战争类型], 3)
+	_加推演条目("【宗门】向%s宣战，%s之战拉开帷幕。" % [目标势力, 战争类型], ET_SECT, PRIO_HIGH, {})
+	return {"成功": true, "战争": 进行中战争.duplicate()}
+
+func 推进战争回合() -> Dictionary:
+	if 进行中战争.is_empty():
+		return {"成功": false, "原因": "无进行中的战争"}
+	var 战争: Dictionary = 进行中战争
+	战争["回合"] = int(战争.get("回合", 0)) + 1
+	# 战斗结算
+	var 攻方战力: int = int(战争.get("攻方战力", 1000))
+	var 守方战力: int = int(战争.get("守方战力", 1000))
+	var 攻方胜率: float = float(攻方战力) / float(攻方战力 + 守方战力)
+	var 回合结果: String = ""
+	if randf() < 攻方胜率:
+		# 攻方胜
+		var 损失: int = 守方战力 / 5
+		战争["守方损失"] = int(战争.get("守方损失", 0)) + 损失
+		战争["守方战力"] = max(0, 守方战力 - 损失)
+		回合结果 = "第%d阵交锋：我军占优，敌方法力折损%d" % [int(战争["回合"]), 损失]
+	else:
+		# 守方胜
+		var 损失: int = 攻方战力 / 5
+		战争["攻方损失"] = int(战争.get("攻方损失", 0)) + 损失
+		战争["攻方战力"] = max(0, 攻方战力 - 损失)
+		回合结果 = "第%d阵交锋：敌军顽抗，我军折损%d" % [int(战争["回合"]), 损失]
+	# 检查战争结束
+	var 战争结束: bool = false
+	var 战争结果: String = ""
+	if int(战争.get("回合", 0)) >= int(战争.get("最大回合", 3)):
+		战争结束 = true
+		if int(战争.get("攻方战力", 0)) > int(战争.get("守方战力", 0)):
+			战争结果 = "大获全胜！敌军溃败，我军凯旋！"
+			# 战利品
+			var 战利品: int = 500 + randi() % 500
+			灵石 += 战利品
+			声望 += 30
+			战争结果 += "缴获灵石%d、宗门声望+30" % 战利品
+		else:
+			战争结果 = "战事失利，我军败退！"
+			var 损失: int = 300 + randi() % 300
+			灵石 = max(0, 灵石 - 损失)
+			战争结果 += "军需损耗灵石%d" % 损失
+	elif int(战争.get("攻方战力", 0)) <= 0:
+		战争结束 = true
+		战争结果 = "我军尽殁，敌军大获全胜！"
+	elif int(战争.get("守方战力", 0)) <= 0:
+		战争结束 = true
+		战争结果 = "敌军尽灭，我军大获全胜！缴获无数战利品！"
+		灵石 += 1000
+		声望 += 50
+	# 记录
+	添加纪事("战争", "战争回合", 回合结果, 2)
+	if 战争结束:
+		添加纪事("战争", "战争结束", 战争结果, 3)
+		进行中战争 = {}
+	return {"成功": true, "回合结果": 回合结果, "战争结束": 战争结束, "战争结果": 战争结果, "当前战争": 战争.duplicate()}
+
+func 获取可争夺资源点() -> Array:
+	return _可争夺资源点.duplicate()
+
+func 获取进行中战争() -> Dictionary:
+	return 进行中战争.duplicate()
+
+# ---- P1-4 阵营战争系统 ----
+var 进行中阵营战争: Dictionary = {}
+
+func 阵营战争月度检查() -> Dictionary:
+	# 如果已有进行中的阵营战争，不重复触发
+	if not 进行中阵营战争.is_empty():
+		return {"触发": false, "原因": "已有进行中的阵营战争"}
+	# 正道vs魔道战争（低概率触发）
+	if randf() < 0.1:
+		进行中阵营战争 = {
+			"名称": "正魔大战",
+			"攻方": "正道宗门",
+			"守方": "魔道邪宗",
+			"状态": "进行中",
+			"持续月数": 3,
+			"已过月数": 0,
+			"正道战绩": 0,
+			"魔道战绩": 0
+		}
+		添加纪事("战争", "阵营战争", "正魔大战爆发！正道诸宗与魔道邪宗在边境展开旷世激战！", 3)
+		_加推演条目("【天下】正魔大战爆发，正道与魔道在边境激战。", ET_SECT, PRIO_HIGH, {})
+		return {"触发": true, "战争": 进行中阵营战争.duplicate()}
+	return {"触发": false}
+
+func 阵营战争玩家选择(选择: String) -> Dictionary:
+	if 进行中阵营战争.is_empty():
+		return {"成功": false, "原因": "当前无阵营战争"}
+	var 战争: Dictionary = 进行中阵营战争
+	var 结果: Dictionary = {"选择": 选择}
+	if 选择 == "参战正道":
+		# 加入正道阵营
+		增加阵营声望("fz_zhengdao", 20)
+		增加阵营声望("fz_mo", -10)
+		战争["正道战绩"] = int(战争.get("正道战绩", 0)) + 1
+		结果["描述"] = "投入正道阵营，共抗魔道！正道声望+20，魔道声望-10"
+		结果["奖励"] = {"正道声望": 20, "魔道声望": -10}
+	elif 选择 == "参战魔道":
+		增加阵营声望("fz_mo", 20)
+		增加阵营声望("fz_zhengdao", -10)
+		战争["魔道战绩"] = int(战争.get("魔道战绩", 0)) + 1
+		结果["描述"] = "投入魔道阵营，与正道为敌！魔道声望+20，正道声望-10"
+		结果["奖励"] = {"魔道声望": 20, "正道声望": -10}
+	elif 选择 == "中立":
+		# 保持中立，获得少量资源
+		灵石 += 100
+		结果["描述"] = "闭关中立，坐山观虎斗，两方皆有馈赠，得灵石100"
+		结果["奖励"] = {"灵石": 100}
+	elif 选择 == "渔利":
+		# 趁火打劫，高风险高回报
+		if randf() < 0.5:
+			var 收益: int = 300 + randi() % 300
+			灵石 += 收益
+			结果["描述"] = "趁乱取利，缴获灵石%d！" % 收益
+			结果["奖励"] = {"灵石": 收益}
+		else:
+			var 损失: int = 200 + randi() % 200
+			灵石 = max(0, 灵石 - 损失)
+			结果["描述"] = "取利不成，反被两方夹击，损耗灵石%d" % 损失
+			结果["损失"] = 损失
+	else:
+		结果["成功"] = false
+		结果["原因"] = "未知选择"
+		return 结果
+	结果["成功"] = true
+	添加纪事("战争", "阵营战争", "玩家选择：%s" % str(结果.get("描述", "")), 2)
+	return 结果
+
+func 推进阵营战争月度() -> Dictionary:
+	if 进行中阵营战争.is_empty():
+		return {"成功": false, "原因": "无进行中的阵营战争"}
+	var 战争: Dictionary = 进行中阵营战争
+	战争["已过月数"] = int(战争.get("已过月数", 0)) + 1
+	# 月度战斗
+	var 正道胜: bool = randf() < 0.5
+	if 正道胜:
+		战争["正道战绩"] = int(战争.get("正道战绩", 0)) + 1
+	else:
+		战争["魔道战绩"] = int(战争.get("魔道战绩", 0)) + 1
+	# 检查战争结束
+	var 战争结束: bool = false
+	var 战争结果: String = ""
+	if int(战争.get("已过月数", 0)) >= int(战争.get("持续月数", 3)):
+		战争结束 = true
+		if int(战争.get("正道战绩", 0)) > int(战争.get("魔道战绩", 0)):
+			战争结果 = "正道大胜！魔道败退，正道诸宗声势大振！"
+			增加阵营声望("fz_zhengdao", 30)
+		else:
+			战争结果 = "魔道大胜！正道退守，魔道气焰嚣张！"
+			增加阵营声望("fz_mo", 30)
+		添加纪事("战争", "阵营战争结束", 战争结果, 3)
+		进行中阵营战争 = {}
+	return {"成功": true, "战争结束": 战争结束, "战争结果": 战争结果, "当前战争": 战争.duplicate()}
+
+func 获取进行中阵营战争() -> Dictionary:
+	return 进行中阵营战争.duplicate()
+# ============ P2 敌对生态高阶系统（势力兴衰/宗门战争/幕后黑手/稀有刷新） ============
+
+# ---- P2-1 势力兴衰系统 ----
+var 势力状态: Dictionary = {}  # 势力名 -> 状态(崛起/鼎盛/衰落/灭亡)
+var 势力实力: Dictionary = {}  # 势力名 -> 实力值
+const _势力列表: Array = ["正道宗门", "魔道邪宗", "中立散修", "上古妖兽", "远古遗泽", "丹器师公会"]
+const _势力初始实力: Dictionary = {
+	"正道宗门": 8000, "魔道邪宗": 7500, "中立散修": 5000,
+	"上古妖兽": 6000, "远古遗泽": 4000, "丹器师公会": 5500
+}
+
+func _初始化势力状态() -> void:
+	for 势力 in _势力列表:
+		if not 势力状态.has(势力):
+			势力状态[势力] = "鼎盛"
+		if not 势力实力.has(势力):
+			势力实力[势力] = int(_势力初始实力.get(势力, 5000))
+
+func 势力兴衰月度检查() -> Array:
+	_初始化势力状态()
+	var 事件日志: Array = []
+	for 势力 in _势力列表:
+		var 状态: String = str(势力状态.get(势力, "鼎盛"))
+		var 实力: int = int(势力实力.get(势力, 5000))
+		# 实力自然波动
+		var 波动: int = randi() % 500 - 200
+		实力 = max(1000, 实力 + 波动)
+		势力实力[势力] =实力
+		# 状态转换
+		if 状态 == "崛起" and 实力 > 7000:
+			势力状态[势力] = "鼎盛"
+			事件日志.append("🌟 %s势力崛起，进入鼎盛时期！" % 势力)
+		elif 状态 == "鼎盛" and 实力 < 4000:
+			势力状态[势力] = "衰落"
+			事件日志.append("📉 %s势力衰落，内部混乱！" % 势力)
+		elif 状态 == "衰落" and 实力 < 2000:
+			势力状态[势力] = "灭亡"
+			事件日志.append("💀 %s势力灭亡！资源重新分配！" % 势力)
+			# 灭亡后资源分配给其他势力
+			var 存活势力: Array = []
+			for s in _势力列表:
+				if str(势力状态.get(s, "鼎盛")) != "灭亡":
+					存活势力.append(s)
+			if 存活势力.size() > 0:
+				var 分配: int = 实力 / 存活势力.size()
+				for s in 存活势力:
+					势力实力[s] = int(势力实力.get(s, 5000)) + 分配
+		elif 状态 == "灭亡" and randf() < 0.05:
+			# 小概率新势力崛起
+			势力状态[势力] = "崛起"
+			势力实力[势力] = 3000
+			事件日志.append("🌅 %s势力重新崛起！" % 势力)
+	return 事件日志
+
+func 获取势力状态(势力: String) -> Dictionary:
+	_初始化势力状态()
+	return {
+		"势力": 势力,
+		"状态": 势力状态.get(势力, "鼎盛"),
+		"实力": 势力实力.get(势力, 5000)
+	}
+
+func 获取所有势力状态() -> Array:
+	_初始化势力状态()
+	var result: Array = []
+	for 势力 in _势力列表:
+		result.append(获取势力状态(势力))
+	return result
+
+# ---- P2-2 宗门战争系统（灭宗/臣服） ----
+var 进行中宗门战争: Dictionary = {}
+
+func 发起宗门战争(目标宗门: String, 战争目标: String, 出战队伍: Array) -> Dictionary:
+	if not 进行中宗门战争.is_empty():
+		return {"成功": false, "原因": "已有进行中的宗门战争"}
+	if 出战队伍.is_empty():
+		return {"成功": false, "原因": "未选择出战队伍"}
+	# 计算攻方战力
+	var 攻方战力: int = 0
+	for d in 出战队伍:
+		if d != null:
+			攻方战力 += int(d.get("战力", 0))
+	# 守方战力（基于目标宗门）
+	var 守方战力: int = 攻方战力 / 2 + randi() % 攻方战力
+	if 战争目标 == "灭宗":
+		守方战力 = int(守方战力 * 1.5)  # 灭宗难度更高
+	# 创建战争
+	进行中宗门战争 = {
+		"目标宗门": 目标宗门,
+		"战争目标": 战争目标,  # 灭宗/臣服
+		"攻方战力": 攻方战力,
+		"守方战力": 守方战力,
+		"回合": 0,
+		"最大回合": 5,
+		"攻方损失": 0,
+		"守方损失": 0
+	}
+	添加纪事("战争", "宗门战争", "向%s发起%s战争！" % [目标宗门, 战争目标], 3)
+	return {"成功": true, "战争": 进行中宗门战争.duplicate()}
+
+func 推进宗门战争回合() -> Dictionary:
+	if 进行中宗门战争.is_empty():
+		return {"成功": false, "原因": "无进行中的宗门战争"}
+	var 战争: Dictionary = 进行中宗门战争
+	战争["回合"] = int(战争.get("回合", 0)) + 1
+	# 战斗结算（受策略影响）
+	var 攻方战力: int = int(战争.get("攻方战力", 1000))
+	var 守方战力: int = int(战争.get("守方战力", 1000))
+	var 策略: String = str(战争.get("当前策略", "进攻"))
+	var 攻方胜率: float = float(攻方战力) / float(攻方战力 + 守方战力)
+	var 损失倍率: float = 1.0
+	var 策略文本: String = ""
+	var 回合结果: String = ""
+	match 策略:
+		"进攻":
+			攻方胜率 += 0.1  # 激进进攻，胜率+10%
+			损失倍率 = 1.5   # 但失败时损失+50%
+			策略文本 = "（全力进攻）"
+		"防守":
+			攻方胜率 -= 0.1  # 稳守反击，胜率-10%
+			损失倍率 = 0.5   # 但失败时损失-50%
+			策略文本 = "（稳守反击）"
+		"偷袭":
+			if int(战争.get("回合", 0)) == 1:
+				攻方胜率 += 0.3  # 首回合偷袭，胜率+30%
+				策略文本 = "（夜袭敌营）"
+			else:
+				策略文本 = "（偷袭已被识破）"
+		"谈判":
+			# 谈判：有概率直接结束战争
+			var 谈判成功率: float = 0.3 + float(min(攻方战力, 守方战力)) / float(max(攻方战力, 守方战力)) * 0.3
+			if randf() < 谈判成功率:
+				战争["回合"] = int(战争.get("最大回合", 5))  # 直接结束
+				var 赔偿: int = min(攻方战力, 守方战力) / 10
+				if 攻方战力 >= 守方战力:
+					灵石 += 赔偿
+					战争["守方战力"] = max(0, 守方战力 - 赔偿)
+					回合结果 = "第%d回合：谈判成功，敌方赔偿%d灵石，双方罢兵" % [int(战争["回合"]), 赔偿]
+				else:
+					灵石 = max(0, 灵石 - 赔偿)
+					战争["攻方战力"] = max(0, 攻方战力 - 赔偿)
+					回合结果 = "第%d回合：谈判成功，我方赔偿%d灵石，双方罢兵" % [int(战争["回合"]), 赔偿]
+				添加纪事("战争", "宗门战争回合", 回合结果, 2)
+				进行中宗门战争 = {}
+				return {"成功": true, "回合结果": 回合结果, "战争结束": true, "战争结果": "谈判罢兵", "战后处理": "双方各退一步", "当前战争": 战争.duplicate()}
+			else:
+				攻方胜率 -= 0.05  # 谈判破裂，士气受损
+				策略文本 = "（谈判破裂）"
+	攻方胜率 = clamp(攻方胜率, 0.05, 0.95)
+	if randf() < 攻方胜率:
+		var 损失: int = int(守方战力 / 4 * 损失倍率)
+		战争["守方损失"] = int(战争.get("守方损失", 0)) + 损失
+		战争["守方战力"] = max(0, 守方战力 - 损失)
+		回合结果 = "第%d回合%s：攻方胜，守方损失%d战力" % [int(战争["回合"]), 策略文本, 损失]
+	else:
+		var 损失: int = int(攻方战力 / 4 * 损失倍率)
+		战争["攻方损失"] = int(战争.get("攻方损失", 0)) + 损失
+		战争["攻方战力"] = max(0, 攻方战力 - 损失)
+		回合结果 = "第%d回合%s：守方胜，攻方损失%d战力" % [int(战争["回合"]), 策略文本, 损失]
+	# 检查战争结束
+	var 战争结束: bool = false
+	var 战争结果: String = ""
+	var 战后处理: String = ""
+	if int(战争.get("回合", 0)) >= int(战争.get("最大回合", 5)):
+		战争结束 = true
+		if int(战争.get("攻方战力", 0)) > int(战争.get("守方战力", 0)):
+			战争结果 = "攻方胜利！"
+			if str(战争.get("战争目标", "")) == "灭宗":
+				战后处理 = "灭宗成功！获得对方全部资源"
+				灵石 += 2000
+				声望 += 100
+				业力 += 20
+			else:
+				战后处理 = "对方臣服！成为附庸宗门"
+				灵石 += 1000
+				声望 += 50
+		else:
+			战争结果 = "守方胜利！"
+			var 损失: int = 500 + randi() % 500
+			灵石 = max(0, 灵石 - 损失)
+			战后处理 = "攻方失利，损失%d灵石" % 损失
+	elif int(战争.get("攻方战力", 0)) <= 0:
+		战争结束 = true
+		战争结果 = "攻方全军覆没，守方胜利！"
+		灵石 = max(0, 灵石 - 1000)
+		战后处理 = "惨败，损失1000灵石"
+	elif int(战争.get("守方战力", 0)) <= 0:
+		战争结束 = true
+		战争结果 = "守方全军覆没，攻方胜利！"
+		if str(战争.get("战争目标", "")) == "灭宗":
+			战后处理 = "灭宗成功！获得对方全部资源"
+			灵石 += 3000
+			声望 += 150
+			业力 += 30
+		else:
+			战后处理 = "对方臣服！成为附庸宗门"
+			灵石 += 1500
+			声望 += 80
+	# 记录
+	添加纪事("战争", "宗门战争回合", 回合结果, 2)
+	if 战争结束:
+		添加纪事("战争", "宗门战争结束", 战争结果 + " " + 战后处理, 3)
+		进行中宗门战争 = {}
+	return {"成功": true, "回合结果": 回合结果, "战争结束": 战争结束, "战争结果": 战争结果, "战后处理": 战后处理, "当前战争": 战争.duplicate()}
+
+# 设置战争策略（进攻/防守/谈判/偷袭）
+func 设置战争策略(策略: String) -> Dictionary:
+	if 进行中宗门战争.is_empty():
+		return {"成功": false, "原因": "无进行中的宗门战争"}
+	var 合法策略: Array = ["进攻", "防守", "谈判", "偷袭"]
+	if 策略 not in 合法策略:
+		return {"成功": false, "原因": "未知策略"}
+	进行中宗门战争["当前策略"] = 策略
+	var 策略说明: Dictionary = {
+		"进攻": "全力进攻，胜率+10%，但失败损失+50%",
+		"防守": "稳守反击，胜率-10%，但失败损失-50%",
+		"谈判": "尝试谈判罢兵，成功则直接结束战争",
+		"偷袭": "首回合夜袭，胜率+30%，之后被识破"
+	}
+	添加纪事("战争", "战争策略", "我方改取【%s】之策：%s" % [策略, str(策略说明.get(策略, ""))], 1)
+	return {"成功": true, "策略": 策略, "说明": str(策略说明.get(策略, ""))}
+
+func 获取进行中宗门战争() -> Dictionary:
+	return 进行中宗门战争.duplicate()
+
+# ---- P2-3 幕后黑手/合纵连横 ----
+var 暗中支持势力: String = ""  # 暗中支持的势力
+var 挑拨离间记录: Array = []
+
+func 暗中支持(势力: String, 支持类型: String, 数量: int) -> Dictionary:
+	if 势力 == "":
+		return {"成功": false, "原因": "未选择支持势力"}
+	_初始化势力状态()
+	var 结果: Dictionary = {"支持势力": 势力, "支持类型": 支持类型}
+	if 支持类型 == "灵石":
+		if 灵石 < 数量:
+			return {"成功": false, "原因": "灵石不足"}
+		灵石 -= 数量
+		势力实力[势力] = int(势力实力.get(势力, 5000)) + 数量 / 2
+		结果["描述"] = "暗中向%s提供%d灵石支持" % [势力, 数量]
+	elif 支持类型 == "物资":
+		if 灵石 < 数量 / 2:
+			return {"成功": false, "原因": "灵石不足（物资折算）"}
+		灵石 -= 数量 / 2
+		势力实力[势力] = int(势力实力.get(势力, 5000)) + 数量 / 4
+		结果["描述"] = "暗中向%s提供物资支持" % 势力
+	elif 支持类型 == "情报":
+		if 灵石 < 数量 / 4:
+			return {"成功": false, "原因": "灵石不足（情报折算）"}
+		灵石 -= 数量 / 4
+		势力实力[势力] = int(势力实力.get(势力, 5000)) + 数量 / 8
+		结果["描述"] = "暗中向%s提供情报支持" % 势力
+	else:
+		return {"成功": false, "原因": "未知支持类型"}
+	暗中支持势力 = 势力
+	声望 -= 10  # 暗中操作降低声望
+	业力 += 5
+	添加纪事("外交", "暗中支持", 结果["描述"], 2)
+	结果["成功"] = true
+	return 结果
+
+func 挑拨离间(势力A: String, 势力B: String) -> Dictionary:
+	if 势力A == 势力B:
+		return {"成功": false, "原因": "不能挑拨同一势力"}
+	_初始化势力状态()
+	# 挑拨成功率（基于双方关系）
+	var 关系: String = 获取阵营关系(势力A, 势力B)
+	var 成功率: float = 0.3
+	if 关系 == "敌对":
+		成功率 = 0.6
+	elif 关系 == "友好":
+		成功率 = 0.1
+	if randf() < 成功率:
+		# 挑拨成功，双方实力下降
+		势力实力[势力A] = max(1000, int(势力实力.get(势力A, 5000)) - 200)
+		势力实力[势力B] = max(1000, int(势力实力.get(势力B, 5000)) - 200)
+		挑拨离间记录.append({"势力A": 势力A, "势力B": 势力B, "结果": "成功"})
+		声望 -= 20
+		业力 += 10
+		添加纪事("外交", "挑拨离间", "成功挑拨%s与%s的关系！" % [势力A, 势力B], 2)
+		return {"成功": true, "描述": "挑拨成功！%s与%s关系恶化，双方实力下降" % [势力A, 势力B]}
+	else:
+		挑拨离间记录.append({"势力A": 势力A, "势力B": 势力B, "结果": "失败"})
+		添加纪事("外交", "挑拨离间", "挑拨%s与%s失败" % [势力A, 势力B], 1)
+		return {"成功": false, "原因": "挑拨失败，对方不为所动"}
+
+func 合纵连横(目标势力: String, 结盟势力: Array) -> Dictionary:
+	if 结盟势力.size() < 2:
+		return {"成功": false, "原因": "至少需要2个势力结盟"}
+	_初始化势力状态()
+	# 合纵连横成功率
+	var 成功率: float = 0.4
+	if randf() < 成功率:
+		# 结盟成功，结盟势力实力提升
+		for 势力 in 结盟势力:
+			势力实力[势力] = int(势力实力.get(势力, 5000)) + 500
+		声望 += 30
+		添加纪事("外交", "合纵连横", "成功促成%s等%d个势力结盟！" % [目标势力, 结盟势力.size()], 3)
+		return {"成功": true, "描述": "合纵连横成功！%d个势力结盟，共同对抗%s" % [结盟势力.size(), 目标势力]}
+	else:
+		添加纪事("外交", "合纵连横", "合纵连横失败" , 1)
+		return {"成功": false, "原因": "合纵连横失败，势力间存在分歧"}
+
+func 获取暗中支持状态() -> Dictionary:
+	return {"暗中支持势力": 暗中支持势力, "挑拨记录": 挑拨离间记录.duplicate()}
+
+# ---- P2-4 龙族/上古凶兽稀有刷新 ----
+var 稀有怪物刷新: Dictionary = {}  # 当前刷新的稀有怪物
+var 稀有怪物刷新历史: Array = []
+
+func 稀有怪物月度刷新检查() -> Dictionary:
+	# 如果已有刷新中的稀有怪物，不重复刷新
+	if not 稀有怪物刷新.is_empty():
+		return {"刷新": false, "原因": "已有稀有怪物"}
+	# 低概率刷新（5%）
+	if randf() > 0.05:
+		return {"刷新": false}
+	# 随机选择稀有怪物类型
+	var 稀有类型: Array = ["龙族", "上古凶兽", "上古神兽", "域外天魔"]
+	var 类型: String = 稀有类型[randi() % 稀有类型.size()]
+	var 怪物名: String = ""
+	var 战力: int = 0
+	var 掉落: String = ""
+	if 类型 == "龙族":
+		var 龙族列表: Array = ["青龙", "应龙", "蛟龙", "火龙", "冰龙"]
+		怪物名 = 龙族列表[randi() % 龙族列表.size()]
+		战力 = 5000 + randi() % 3000
+		掉落 = "龙鳞+龙角+龙珠"
+	elif 类型 == "上古凶兽":
+		var 凶兽列表: Array = ["饕餮", "穷奇", "梼杌", "混沌", "相柳"]
+		怪物名 = 凶兽列表[randi() % 凶兽列表.size()]
+		战力 = 6000 + randi() % 4000
+		掉落 = "凶兽内丹+凶兽皮+上古材料"
+	elif 类型 == "上古神兽":
+		var 神兽列表: Array = ["白虎", "朱雀", "玄武", "麒麟", "白泽"]
+		怪物名 = 神兽列表[randi() % 神兽列表.size()]
+		战力 = 7000 + randi() % 3000
+		掉落 = "神兽精血+神兽羽+神兽传承"
+	else:
+		var 天魔列表: Array = ["域外天魔", "深渊恶魔", "虚空魔神", "混沌天魔"]
+		怪物名 = 天魔列表[randi() % 天魔列表.size()]
+		战力 = 8000 + randi() % 4000
+		掉落 = "天魔晶+魔核+域外材料"
+	# 创建稀有怪物
+	稀有怪物刷新 = {
+		"名称": 怪物名,
+		"类型": 类型,
+		"战力": 战力,
+		"掉落": 掉落,
+		"状态": "可挑战",
+		"剩余时间": 3  # 3个月后消失
+	}
+	稀有怪物刷新历史.append(稀有怪物刷新.duplicate())
+	添加纪事("事件", "稀有怪物刷新", "🌟 %s（%s）出现！战力%d，掉落：%s" % [怪物名, 类型, 战力, 掉落], 3)
+	return {"刷新": true, "怪物": 稀有怪物刷新.duplicate()}
+
+func 挑战稀有怪物(出战队伍: Array) -> Dictionary:
+	if 稀有怪物刷新.is_empty():
+		return {"成功": false, "原因": "当前无稀有怪物"}
+	if 出战队伍.is_empty():
+		return {"成功": false, "原因": "未选择出战队伍"}
+	# 计算攻方战力
+	var 攻方战力: int = 0
+	for d in 出战队伍:
+		if d != null:
+			攻方战力 += int(d.get("战力", 0))
+	var 守方战力: int = int(稀有怪物刷新.get("战力", 5000))
+	var 胜率: float = float(攻方战力) / float(攻方战力 + 守方战力)
+	胜率 = clamp(胜率, 0.1, 0.9)
+	var 结果: Dictionary = {"怪物名称": 稀有怪物刷新.get("名称", "")}
+	if randf() < 胜率:
+		# 胜利
+		灵石 += 1000 + randi() % 1000
+		悟道点 += 50
+		声望 += 30
+		结果["胜利"] = true
+		结果["奖励"] = "灵石%d、悟道点50、声望30、%s" % [1000 + randi() % 1000, str(稀有怪物刷新.get("掉落", ""))]
+		结果["描述"] = "击败%s！获得：%s" % [str(稀有怪物刷新.get("名称", "")), 结果["奖励"]]
+		添加纪事("战斗", "稀有怪物击杀", 结果["描述"], 3)
+	else:
+		# 失败
+		var 损失: int = 300 + randi() % 300
+		灵石 = max(0, 灵石 - 损失)
+		结果["胜利"] = false
+		结果["损失"] = 损失
+		结果["描述"] = "挑战%s失败，损失%d灵石" % [str(稀有怪物刷新.get("名称", "")), 损失]
+		添加纪事("战斗", "稀有怪物挑战失败", 结果["描述"], 2)
+	# 挑战后稀有怪物消失
+	稀有怪物刷新 = {}
+	结果["成功"] = true
+	return 结果
+
+func 稀有怪物月度推进() -> void:
+	if 稀有怪物刷新.is_empty():
+		return
+	var 剩余: int = int(稀有怪物刷新.get("剩余时间", 3)) - 1
+	if 剩余 <= 0:
+		添加纪事("事件", "稀有怪物消失", "%s消失了..." % str(稀有怪物刷新.get("名称", "")), 2)
+		稀有怪物刷新 = {}
+	else:
+		稀有怪物刷新["剩余时间"] = 剩余
+
+func 获取当前稀有怪物() -> Dictionary:
+	return 稀有怪物刷新.duplicate()
+
+func 获取稀有怪物刷新历史() -> Array:
+	return 稀有怪物刷新历史.duplicate()
