@@ -291,7 +291,17 @@ func _make_msg_row(m: Dictionary, y: float) -> void:
 func _build_input_bar() -> void:
 	var bar := Control.new()
 	bar.name = "InputBar"
-	_place(bar, 0.0, 798.0, 480.0, 56.0)
+	# 修复（实机验收抓出 · 2026-09-12）：本页按 480×854 设计画布硬坐标布局，×UI_SCALE(2.25)
+	# 得画布高 1921.5；但二级页容器高 = 视口 1920 − 顶栏 158 = 1762 → 输入栏被算到 y=1795.5，
+	# 整条「输入消息 / 发送」落在屏幕之外（用户既看不到也点不到）。改为贴父容器底部锚定。
+	bar.anchor_left = 0.0
+	bar.anchor_top = 1.0
+	bar.anchor_right = 1.0
+	bar.anchor_bottom = 1.0
+	bar.offset_left = 0.0
+	bar.offset_top = -56.0 * UITheme.UI_SCALE
+	bar.offset_right = 0.0
+	bar.offset_bottom = 0.0
 	add_child(bar)
 
 	var bg := ColorRect.new()

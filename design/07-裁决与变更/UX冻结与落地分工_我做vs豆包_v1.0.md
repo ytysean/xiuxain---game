@@ -1,7 +1,7 @@
 ---
 doc_id: UX冻结与落地分工
 doc_title: 《太玄宗门录》UX 冻结公告与落地分工（AI 工程线 vs 豆包美术线）
-doc_version: v1.11
+doc_version: v1.12
 update_date: 2026-09-12
 doc_type: 项目执行计划 / 分工单
 game_formal_name: 太玄宗门录
@@ -668,3 +668,89 @@ Parse Error: There is already a variable named "关" declared in this scope.
 - **再验（真实渲染，非 headless）**：虚拟宗门 **12** 个；宗门·探索榜 **9 行且严格降序** —— 万灵古族 87000 / 玄幽魔宗 61000 / 太虚观 61000 / 散修同盟会 52000 / 丹器师公会 48000 / … / 太玄宗（你方）3069（底部「↑ 距上一名差 44931 分」）；宗门·财富榜 9 行（东海商盟 980000 居首）。
 - **提交**：`[main 455c19f]`，1 file / +3。
 - **★ 教训**：**「门禁全绿 + 字段齐全」≠「系统真的转起来」** —— 榜单能渲染、函数有返回、字段都有值，但**喂进去的是空集合**。这类缺陷门禁 / 类型检查 / 单测**全都看不见**。**新增验收断言必须带「规模下界」**（本轮 `数据.size() > 1` 正是唯一抓到它的断言）；**真实渲染截图能靠「行数」肉眼抓到**（当时截图只有 1 行，一眼可疑）。
+
+### 12.9 B 类 UI 布局重构 · 全量 UI 实机验收（64 页）· 抓出并修复 26 页布局缺陷（2026-09-12 晚）
+
+**起因**：老大指令「你把 UI 全部重构了，我觉得还是要让你来一次实机验证才行」。
+**范围**：首页 → 底部 5 Tab → `ENTRY_SUB_PAGES` 全部 **51 个二级页**（绕过 gating 全量覆盖）→ 6 个特例页 → 首页入口路由完备性（静态）。**共 64 页 / 64 张真实渲染截图**。
+
+#### 一、为什么要真实渲染（真实渲染第 4 次救命）
+
+`--headless` 是 **dummy 渲染器**：**5 个 headless harness + `gate_all` 全绿，也验不出「布局塌陷 / 内容被裁 / 控件跑到屏幕外」**。
+本轮把这条固化成**第 6 道防线**：新建 `tests/ui_full_accept.gd|.tscn`（**非 headless** 真实渲染 + 逐页 Control 树自动体检 + 截图）。
+
+#### 二、第 1 批：20 个页面内容区整块空白（ScrollContainer 塌成 0×0）
+
+> 抓出路径：先由**肉眼 + 探针 dump** 抓到 `page_fengshui`，随后由新加的 `BADSCROLL` 规则一次扫出其余 **19 处**（1 处 `page_faction` + 18 页各 1 处），共修 **20 个文件**。
+
+| 项 | 内容 |
+| --- | --- |
+| 症状 | 页面只剩顶栏/标签栏，正文全黑（`S50_风水堪舆`、`S49_音律` 等） |
+| 根因 | 页面根是 `Control`（非容器）时 `_build()` 直接 `add_child(子节点)` → 子节点 anchors/offsets 全 0。`HBoxContainer` 有 min size 尚能被撑开（**顶栏/标签栏因此可见，造成「页面有内容」的假象**），而 **`ScrollContainer` 的 min size = (0,0)** → 塌成 0×0，叠加 `clip_contents=true` → **正文整块被裁掉** |
+| 修法 | 先挂全屏 `VBoxContainer` 作唯一布局宿主（`set_anchors_and_offsets_preset(PRESET_FULL_RECT)`），子节点改挂它；并 **`horizontal_scroll_mode = SCROLL_MODE_DISABLED`**（否则 autowrap Label 最小宽≈1px → 正文逐字竖排） |
+| 涉及 19 页（＋下格特例 `page_faction`，合计 **20 个文件**） | `page_fengshui` + 18 页：`ascension` `beast` `beast_raise` `brew` `chess` `divine` `family` `fishing` `guardian` `herb` `merchant` `master` `music` `opportunity` `poison` `relic` `tech` `treasure` |
+| 特例 | `page_faction`：5 个面板在 `VBox` 里平铺，min 高度之和 ≈ **10403** 超过整页 → 带 EXPAND 的 `FactionScroll` 只能拿 **0 高**（实测 `size=(1032, 0)`），`MarginContainer` 亦被自身 min 撑到 10565 溢出父容器。**改挂进 scroll 内部**（整页收成一个滚动容器，内容顺序不变） |
+
+#### 三、第 2 批：5 个页面的「详情面板」整体落在屏幕外（`BOTTOM_WIDE` 漏 offset）
+
+| 项 | 内容 |
+| --- | --- |
+| 症状 | `S39_药园` / `S42_装备图纸` / `S01_丹方` / `S03_傀儡` / `S41_藏书阁` 内容区近纯色；**放大提亮 4× 后确认「详情面板整块不在视口内」** |
+| 根因 | `set_anchors_preset(PRESET_BOTTOM_WIDE)` 只改 anchors（`anchor_top = anchor_bottom = 1`）并**保持当前 rect（0×0 于 (0,0)）** → 重算出的 **offsets 全为 0**；随后 `custom_minimum_size=(0,190)` **只把高度撑到 190，位置仍在「父容器底边」处** → 整块被算到可视区之外 |
+| 自证 | 同项目 `page_world_map_visual.gd` 的 `legend` 用**同一 preset**，但**显式写了 `offset_top=-52 / offset_bottom=-8`** → 正常。这 5 页漏了这两行 |
+| 修法 | 补齐 `offset_top = -190 / offset_bottom = 0`（与 `custom_minimum_size` 的 190 一致） |
+
+#### 四、第 3 批：`page_fishing` 8 处 `Game.UIHint` 悬空引用（专用审计抓到）
+
+`UIHint` 是**独立 autoload**（`ui/ui_hint.gd`，CanvasLayer），**不是** `Game`(game_state.gd) 的成员；且其签名是 **`show_hint(anchor, title, body)` 3 参**。
+`page_fishing.gd` 写成 `Game.UIHint.show_hint("一句话")` —— **前缀错 + 参数不足** → 点「命名混沌孑遗 / 使用回溯符」即抛错。
+**门禁四门 + 全链看不见**（`gate_all` / `compile_all` / `ui_compile` / `ui_decouple` / `smoke` 全绿），**只有 `.workbuddy/audit_autoload_refs.py` 抓得到**（本轮报 `悬空引用 8 处 / 1 个文件 → FAIL`）。修法：改为 `UIHint.show_hint(self, 标题, 正文)`。
+
+#### 五、第 4 批：`page_daoyou` 聊天输入栏落在屏幕外（功能不可用）
+
+`_build_input_bar()` 按 480×854 设计画布硬坐标 `_place(bar, 0, 798, 480, 56)` × `UI_SCALE(2.25)` = y **1795.5**；
+但二级页容器高 = 视口 1920 − 顶栏 `TOPBAR_H(158)` = **1762** → 输入栏整条「输入消息 / 发送」被推到屏幕外，**用户既看不到也点不到**（聊天功能等于不可用）。
+修法：改为**贴父容器底部锚定**（`anchor_top=1` + `offset_top = -56 × UI_SCALE`），不再依赖画布高度。
+
+#### 六、★ 自动化沉淀：三条自动断言（把盲区变成规则）
+
+`tests/ui_full_accept.gd::_walk()` 逐节点体检，命中即进 ISSUES：
+
+| 规则 | 判据 | 抓到的实例 |
+| --- | --- | --- |
+| `BADSCROLL` | `ScrollContainer` 且 `size.x<60 或 size.y<60`（内容被 clip 裁掉） | 第 1 批 19 处 |
+| `OVERFLOW` | `size.y>2800` 且**祖先链上无 ScrollContainer**（内容被硬裁） | 抓出 `page_faction` 面板溢出 |
+| `OFFSCREEN` | 可见且有尺寸的 Control，其**全局矩形纵向**落在视口之外 | 第 4 批 `page_daoyou` 输入栏 |
+
+`OFFSCREEN` 的两次收窄（均已写进代码注释）：
+1. 先排除 **SubViewport 内节点**（子视口坐标系与主视口矩形不可比）—— 否则地图页整列误报 28 条；
+2. 再**只判纵向**：横向越界在本项目多为**设计使然**（可平移大地图画布 28 条、屏外待滑入的详情浮层 10 条），纵向越界几乎必是缺陷。
+
+#### 七、验证
+
+- **全量验收**（非 headless，64 页）：`ACCEPT_ALL_DONE=True` · `SCAN=64` · **BADSCROLL=0 / OVERFLOW=0 / OFFSCREEN=0 / COLLAPSE=0 / SPARSE=0 / PAGE_FAIL=0 / SCRIPT_ERROR=0 / PARSE_ERROR=0**；唯一 ISSUE = `ROUTE_DUP`（**已核实为误报**：`MORE_ENTRIES` 是 id→图标映射表，与 `MORE_GROUPS` 分工不同，非死常量 —— `sect_home_page.gd:714` 在用，`headless_ui_decouple_check.gd:60` 断言 36 项）。
+- **路由完备性**：41 个唯一入口**全部有落点**（0 无落点）。
+- **数据侧复筛**（内容区 16 级量化颜色数，修复前 → 后）：`S49_音律 43→81` · `S50_风水堪舆 43→84` · `S28_毒道 47→81` · `S29_法宝 47→122` · `S43_论道棋弈 48→91` · `S23_护道人 54→74` · `S39_药园 63→86`。全 64 页**仅 1 张近纯色**（`X02_心弦`，已证被「初入仙途」成就弹窗遮挡，布局本身正常）。
+- **门禁** `gate_all.py` **EXIT=0**：门0 PASS · 门1 `ALL GDScript PARSE OK (200 files)` · 门2 73 表 / 1701 行 / 0 错 / 56 警 · 门3 **32/32**（死函数 389 / 水位 396 / 目标 380）。
+- **全链** `run_headless_chain.py` **7/7 exit=0，异常 0/7**（含唯一全量防线 `compile_all`）。
+
+#### 八、★ 本轮最大教训
+
+1. **「缩略拼版图」不能用来判定空白** —— `X02_心弦` 拼版图全黑（被成就弹窗遮挡 + 内容集中在 y54–102 落在测光采样框外），但探针 dump 证明 `ScrollContainer size=(1080,1786)`、正文 Label 正常可见。**判定必须用「数据」（节点尺寸 / 颜色数），不能用「看起来」。**
+2. **同一处缺陷会成批出现** —— 第 1 批 18 页**逐字同模板**、第 2 批 5 页**逐字同模板**。**发现一处要立刻全项目扫同源写法**（本轮一次 `set_anchors_preset(PRESET_BOTTOM_WIDE)` 目录扫描就锁定了全部 5 处；同时用 `page_world_map_visual` 的正确写法做了反向自证）。
+3. **门禁全绿 ⊅ 能跑** —— 第 3 批（悬空 `Game.<成员>`）四门 + 全链全绿，只有专用审计脚本抓得到；第 4 批（控件出屏）四门 + 全链全绿，只有真实渲染抓得到。
+
+#### 九、文件清单
+
+| 文件 | 改动 |
+| --- | --- |
+| `ui/page_fengshui.gd` + 18 页（见二） | 挂全屏 `main` 宿主 + 关横向滚动 |
+| `ui/page_faction.gd` | 5 个面板收进 scroll 内部（整页单滚动容器） |
+| `ui/page_herb_garden.gd` · `page_equipment_blueprint.gd` · `page_pill_formula.gd` · `page_library.gd` · `page_puppet.gd` | 详情面板补 `offset_top=-190 / offset_bottom=0` |
+| `ui/page_fishing.gd` | 8 处 `Game.UIHint` → `UIHint.show_hint(self, 标题, 正文)` |
+| `ui/page_daoyou.gd` | 输入栏改贴父容器底部锚定 |
+| `tests/ui_full_accept.gd` + `.tscn`（**新建**） | 第 6 道防线：64 页真实渲染 + 3 条自动断言 |
+| `accept_shots_full/`（64 张 PNG） | 验收截图；已加 `.gdignore` 并删 `*.import`（**不参与引擎导入**） |
+
+**全部改动均留 `.bak_<类别>_20260912` 备份**。`accept_shots_full/` 与本轮新增的 25 个 `.bak_*` 属**仓库卫生遗留**（与 §12.7 的 736 个未跟踪文件同批待裁决，**不要**一把 `git add -A`）。
+

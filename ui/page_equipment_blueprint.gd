@@ -140,8 +140,13 @@ func _build() -> void:
 	
 	# 详情面板
 	_详情面板 = Panel.new()
+	# 修复（实机验收抓出 · 2026-09-12）：BOTTOM_WIDE 只改 anchors（top=bottom=1），
+	# offsets 仍为 0 → 面板被算到父容器底边之下（屏幕外）；custom_minimum_size 只撑高度、
+	# 不把位置拉回视口。对照 page_world_map_visual 的 legend（显式 offset_top=-52）补齐偏移。
 	_详情面板.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_详情面板.custom_minimum_size = Vector2(0, 190)
+	_详情面板.offset_top = -190
+	_详情面板.offset_bottom = 0
 	_详情面板.offset_left = 10
 	_详情面板.offset_right = -10
 	_详情面板.add_theme_stylebox_override("panel", create_stylebox(C_DETAIL_BG, C_GOLD_DIM))

@@ -694,3 +694,31 @@ ui_compile exit=0 117.2s / ui_decouple exit=0 106.4s / smoke exit=0 41.5s / gate
 > **对策（已落地）**：新增 `gdscript-code-hygiene/scripts/audit_var_shadow.py`（缩进栈作用域模型，全项目扫同作用域重复声明；**已构造样本反向自检**：3 真阳性含参数 vs 顶层 var、0 误报兄弟块重名）。全项目 **`RESULT: PASS`（191 个 .gd，0 处）**。
 >
 > **流程修正**：改动 `.gd` 后**必须跑全链（含 `compile_all`）+ 真实渲染**，只跑 `gate_all` 不足以防此类问题。
+
+---
+
+## 【已完成】B 类 UI 布局重构 · 全量 UI 实机验收（64 页）· 修复 26 页布局缺陷
+
+**状态**：✅ 已完成（2026-09-12 晚） · **执行**：workbuddy（工程线） · **验收**：待老大/豆包复核
+**来源**：**非管道任务** —— 老大直接指令「你把 UI 全部重构了，我觉得还是要让你来一次实机验证才行」（= B 类本职任务收口）。
+
+**范围**：首页 → 底部 5 Tab → `ENTRY_SUB_PAGES` 全部 **51 个二级页**（绕过 gating 全量覆盖）→ 6 个特例页 → 首页入口路由完备性（静态）。**共 64 页真实渲染截图**。
+
+**新建第 6 道防线**：`tests/ui_full_accept.gd|.tscn`（**非 headless**）＋ `_walk()` 逐节点 3 条自动断言 `BADSCROLL` / `OVERFLOW` / `OFFSCREEN`；运行器 `.workbuddy/_run_full_accept.py`。
+> **headless 是 dummy 渲染器** —— 5 个 headless harness + `gate_all` 全绿也**验不出布局塌陷 / 内容被裁 / 控件出屏**。
+
+**修复 25 页 / 4 批**
+
+| 批次 | 缺陷 | 页数 | 根因 | 修法 |
+| --- | --- | --- | --- | --- |
+| 1 | 内容区整块空白 | 20 | 根 `Control` + `_build()` 直接 `add_child` → 子节点 anchors/offsets 全 0；`ScrollContainer` min=(0,0) → 塌 0×0，`clip_contents` 把正文整块裁掉（顶栏有此 `HBox` min size 故可见，**造成「页面有内容」的假象**） | 挂全屏 `main` VBox 宿主 + **关横向滚动**；`page_faction` 另改「面板收进 scroll 内部」 |
+| 2 | 详情面板整体落在屏幕外 | 5 | `set_anchors_preset(PRESET_BOTTOM_WIDE)` 只改 anchors 并保持当前 rect → offsets 全 0；`custom_minimum_size` 只撑高度、不把位置拉回视口 | 补 `offset_top=-190 / offset_bottom=0`（对照 `page_world_map_visual` 的 legend 正确写法） |
+| 3 | 点「命名混沌孑遗 / 使用回溯符」即抛错 | 1 | `page_fishing.gd` 8 处 `Game.UIHint` —— `UIHint` 是**独立 autoload**、非 `Game` 成员，且签名是 `show_hint(anchor, title, body)` **3 参** | 改 `UIHint.show_hint(self, 标题, 正文)` |
+| 4 | 聊天输入栏不可见不可点 | 1 | 480×854 画布硬坐标 ×`UI_SCALE(2.25)` = y1795.5，而二级页容器高 = 1920 − `TOPBAR_H(158)` = **1762** | 改**贴父容器底部锚定** |
+
+**验证**：全量验收 `ACCEPT_ALL_DONE=True` · `SCAN=64` · **BADSCROLL=0 / OVERFLOW=0 / OFFSCREEN=0 / COLLAPSE=0 / SPARSE=0 / SCRIPT_ERROR=0 / PARSE_ERROR=0**（唯一 ISSUE `ROUTE_DUP` **已核实为误报**：`MORE_ENTRIES` 是 id→图标映射表，非死常量）；路由 **41 入口 0 无落点**；数据复筛颜色数 音律 43→81 / 风水堪舆 43→84 / 药园 63→86 等；门禁 `EXIT=0`（门1 `PARSE OK (200 files)` / 门3 `32/32`，死函数 389）；全链 **7/7 exit=0，异常 0/7**。
+
+**文件**：第 1 批 20 页 + 第 2 批 5 页 + `ui/page_fishing.gd` + `ui/page_daoyou.gd` + `tests/ui_full_accept.gd|.tscn`（新建）+ `design/07-裁决与变更/UX冻结与落地分工_我做vs豆包_v1.0.md`（v1.12 + §12.9）。
+
+> ⚠ **仓库卫生提示**：第 1 批的 19 个页面 **从未入库**（`git status` 全为 `??`，与 §12.7 的 736 个未跟踪文件同源）→ 本轮**外科式 `git add <逐个文件>`** 会把这 19 页**首次入库**；**全程未用 `git add -A`**。本轮另新增 26 个 `.bak_<类别>_20260912` 备份与 `accept_shots_full/`（已加 `.gdignore` + 删 `*.import`），一并列入待裁决的仓库卫生清单。
+

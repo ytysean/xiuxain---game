@@ -62,11 +62,15 @@ func _build() -> void:
 
 	_build_header(root)
 	_build_scroll(root)
-	_build_comprehensive(root)
-	_build_campaign(root)  # P2接入：阵营战役入口
-	_build_hostile_npc(root)  # P2接入：敌对NPC列表
-	_build_npc_list(root)
-	_build_interactive_npc(root)
+	# 修复（实机验收抓出 · 2026-09-12）：这 5 个面板原以 root(VBox) 为父平铺，其最小高度
+	# 之和（≈10403）已超过整页；VBox 无剩余空间可分，带 EXPAND 的 FactionScroll 只能拿 0 高
+	# （实测 size=(1032.0, 0.0)），MarginContainer 亦被自身 min 撑到 10565 溢出父容器。
+	# 改挂进 FactionScroll 内的 _scroll_vbox：整页收成一个滚动容器，内容顺序不变。
+	_build_comprehensive(_scroll_vbox)
+	_build_campaign(_scroll_vbox)  # P2接入：阵营战役入口
+	_build_hostile_npc(_scroll_vbox)  # P2接入：敌对NPC列表
+	_build_npc_list(_scroll_vbox)
+	_build_interactive_npc(_scroll_vbox)
 
 func _build_header(parent: Control) -> void:
 	var panel := PanelContainer.new()
