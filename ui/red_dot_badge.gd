@@ -32,7 +32,7 @@ func _build() -> void:
 		_数字标签 = Label.new()
 		_数字标签.name = "Num"
 		_数字标签.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_数字标签.add_theme_font_size_override("font_size", 18)
+		_数字标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		_数字标签.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 		_数字标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_数字标签.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

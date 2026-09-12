@@ -353,17 +353,17 @@ func _build() -> void:
 	var name_ico := Label.new()
 	name_ico.text = "◆"
 	name_ico.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	name_ico.add_theme_font_size_override("font_size", 28)
+	name_ico.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	name_row.add_child(name_ico)
 	_power_name = Label.new()
 	_power_name.text = "—"
 	_power_name.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_power_name.add_theme_font_size_override("font_size", 36)
+	_power_name.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	name_row.add_child(_power_name)
 	_power_realm = Label.new()
 	_power_realm.text = ""
 	_power_realm.add_theme_color_override("font_color", Color(0.35, 0.68, 0.62))
-	_power_realm.add_theme_font_size_override("font_size", 22)
+	_power_realm.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	name_vb.add_child(_power_realm)
 	power_box.add_child(name_vb)
 	# 右：战力+摘要
@@ -375,18 +375,18 @@ func _build() -> void:
 	var sword := Label.new()
 	sword.text = "⚔"
 	sword.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	sword.add_theme_font_size_override("font_size", 32)
+	sword.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	prow.add_child(sword)
 	_power_label = Label.new()
 	_power_label.text = "—"
 	_power_label.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_power_label.add_theme_font_size_override("font_size", 40)
+	_power_label.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	prow.add_child(_power_label)
 	_power_summary = Label.new()
 	_power_summary.text = ""
 	_power_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_power_summary.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	_power_summary.add_theme_font_size_override("font_size", 18)
+	_power_summary.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	power_right.add_child(_power_summary)
 	power_box.add_child(power_right)
 	detail_vb.add_child(power_box)
@@ -426,7 +426,7 @@ func _build() -> void:
 	_护道人_label = Label.new()
 	_护道人_label.name = "HudaoLabel"
 	_护道人_label.text = "护道人：无"
-	_护道人_label.add_theme_font_size_override("font_size", 13)
+	_护道人_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	_护道人_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 	detail_vb.add_child(_护道人_label)
 
@@ -499,7 +499,7 @@ func _build() -> void:
 	var hudong_tip := Label.new()
 	hudong_tip.text = "互动可提升弟子属性，每日有次数限制。"
 	hudong_tip.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))
-	hudong_tip.add_theme_font_size_override("font_size", 16)
+	hudong_tip.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	hudong_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hudong_vb.add_child(hudong_tip)
 
@@ -513,7 +513,7 @@ func _build() -> void:
 	_gongfa_list_label = Label.new()
 	_gongfa_list_label.text = "尚无功法，静待机缘"
 	_gongfa_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	_gongfa_list_label.add_theme_font_size_override("font_size", 20)
+	_gongfa_list_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	gongfa_vb.add_child(_gongfa_list_label)
 	var learn_gongfa_btn := Button.new()
 	learn_gongfa_btn.text = "学习功法（悟道点：0）"
@@ -533,7 +533,7 @@ func _build() -> void:
 	_danyao_list_label = Label.new()
 	_danyao_list_label.text = "尚无丹药效果"
 	_danyao_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	_danyao_list_label.add_theme_font_size_override("font_size", 20)
+	_danyao_list_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	danyao_vb.add_child(_danyao_list_label)
 	var take_danyao_btn := Button.new()
 	take_danyao_btn.text = "服用丹药（宗门丹药库）"
@@ -553,7 +553,7 @@ func _build() -> void:
 	var chongzhu_desc := Label.new()
 	chongzhu_desc.text = "前往洗池·灵泉重铸命格/性格，改变弟子天赋与修行方向。"
 	chongzhu_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	chongzhu_desc.add_theme_font_size_override("font_size", 18)
+	chongzhu_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	chongzhu_vb.add_child(chongzhu_desc)
 	var chongzhu_btn := Button.new()
 	chongzhu_btn.text = "前往洗池重铸（消耗200仙玉）"
@@ -591,21 +591,21 @@ func _build() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = dim
 		name_lbl.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-		name_lbl.add_theme_font_size_override("font_size", 20)
+		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		name_lbl.custom_minimum_size = Vector2(70, 0)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(name_lbl)
 		var val_lbl := Label.new()
 		val_lbl.text = "—"
 		val_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		val_lbl.add_theme_font_size_override("font_size", 22)
+		val_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(val_lbl)
 		var hint := Label.new()
 		hint.text = "ⓘ"
 		hint.add_theme_color_override("font_color", Color(0.4, 0.45, 0.5))
-		hint.add_theme_font_size_override("font_size", 18)
+		hint.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(hint)
 		_six_labels[dim] = val_lbl
@@ -637,7 +637,7 @@ func _build() -> void:
 		var cn := Label.new()
 		cn.text = comp[0]
 		cn.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-		cn.add_theme_font_size_override("font_size", 20)
+		cn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		cn.custom_minimum_size = Vector2(100, 0)
 		cn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(cn)
@@ -658,7 +658,7 @@ func _build() -> void:
 		var vn := Label.new()
 		vn.text = "0"
 		vn.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		vn.add_theme_font_size_override("font_size", 20)
+		vn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		vn.custom_minimum_size = Vector2(80, 0)
 		vn.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		vn.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -679,13 +679,13 @@ func _build() -> void:
 	_breakthrough_label = Label.new()
 	_breakthrough_label.text = "练气·一层"
 	_breakthrough_label.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_breakthrough_label.add_theme_font_size_override("font_size", 24)
+	_breakthrough_label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	_breakthrough_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	break_row.add_child(_breakthrough_label)
 	var next_label := Label.new()
 	next_label.text = "自动突破中"
 	next_label.add_theme_color_override("font_color", Color(0.35, 0.80, 0.50))
-	next_label.add_theme_font_size_override("font_size", 20)
+	next_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	break_row.add_child(next_label)
 	break_vb.add_child(break_row)
 	var prog_bg := ColorRect.new()
@@ -701,7 +701,7 @@ func _build() -> void:
 	_breakthrough_pct = Label.new()
 	_breakthrough_pct.text = "0%"
 	_breakthrough_pct.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	_breakthrough_pct.add_theme_font_size_override("font_size", 18)
+	_breakthrough_pct.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	break_vb.add_child(_breakthrough_pct)
 
 	# ── 当前状态 ──
@@ -725,17 +725,17 @@ func _build() -> void:
 	_status_label = Label.new()
 	_status_label.text = "闭关修炼中"
 	_status_label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_status_label.add_theme_font_size_override("font_size", 24)
+	_status_label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	status_info.add_child(_status_label)
 	var status_desc := Label.new()
 	status_desc.text = "灵气吸收速率 +20%，期间不可参与历练"
 	status_desc.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	status_desc.add_theme_font_size_override("font_size", 18)
+	status_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	status_info.add_child(status_desc)
 	_status_timer = Label.new()
 	_status_timer.text = ""
 	_status_timer.add_theme_color_override("font_color", Color(0.35, 0.68, 0.90))
-	_status_timer.add_theme_font_size_override("font_size", 22)
+	_status_timer.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	status_hb.add_child(_status_timer)
 
 	# ── 底部操作按钮 ──
@@ -1030,7 +1030,7 @@ func _build_paper_doll(parent: VBoxContainer) -> void:
 	wear_sb.set_corner_radius_all(10)
 	btn_wear.add_theme_stylebox_override("normal", wear_sb)
 	btn_wear.add_theme_color_override("font_color", Color(0.18, 0.80, 0.44))
-	btn_wear.add_theme_font_size_override("font_size", 24)
+	btn_wear.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	btn_wear.pressed.connect(_on_auto_equip_pressed)
 	fabao_hb.add_child(btn_wear)
 
@@ -1046,7 +1046,7 @@ func _build_paper_doll(parent: VBoxContainer) -> void:
 	off_sb.set_corner_radius_all(10)
 	btn_off.add_theme_stylebox_override("normal", off_sb)
 	btn_off.add_theme_color_override("font_color", Color(0.78, 0.72, 0.59))
-	btn_off.add_theme_font_size_override("font_size", 24)
+	btn_off.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	btn_off.pressed.connect(_on_unequip_all_pressed)
 	fabao_hb.add_child(btn_off)
 
@@ -1096,7 +1096,7 @@ func _build_equip_slot(parent: Node, key: String, slot_size: int) -> void:
 	name_lbl.text = icon_text
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.add_theme_color_override("font_color", Color(0.83, 0.72, 0.42, 0.9))
-	name_lbl.add_theme_font_size_override("font_size", 19)
+	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	slot_vb.add_child(name_lbl)
 
@@ -1105,7 +1105,7 @@ func _build_equip_slot(parent: Node, key: String, slot_size: int) -> void:
 	hint_lbl.text = "＋"
 	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66, 0.7))
-	hint_lbl.add_theme_font_size_override("font_size", 22)
+	hint_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	hint_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	slot_vb.add_child(hint_lbl)
 
@@ -1153,14 +1153,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	power_val.text = "—"
 	power_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power_val.add_theme_color_override("font_color", Color(0.91, 0.77, 0.45))
-	power_val.add_theme_font_size_override("font_size", 32)
+	power_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	power_vb.add_child(power_val)
 	_power_total = power_val
 	var power_lbl := Label.new()
 	power_lbl.text = "总战力"
 	power_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	power_lbl.add_theme_font_size_override("font_size", 18)
+	power_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	power_vb.add_child(power_lbl)
 
 	# 分隔线
@@ -1178,14 +1178,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	bonus_val.text = "—"
 	bonus_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bonus_val.add_theme_color_override("font_color", Color(0.18, 0.80, 0.44))
-	bonus_val.add_theme_font_size_override("font_size", 28)
+	bonus_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	bonus_vb.add_child(bonus_val)
 	_power_bonus = bonus_val
 	var bonus_lbl := Label.new()
 	bonus_lbl.text = "装备加成"
 	bonus_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bonus_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	bonus_lbl.add_theme_font_size_override("font_size", 18)
+	bonus_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	bonus_vb.add_child(bonus_lbl)
 
 	var sep2 := VSeparator.new()
@@ -1202,14 +1202,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	count_val.text = "0/9"
 	count_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_val.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
-	count_val.add_theme_font_size_override("font_size", 28)
+	count_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	count_vb.add_child(count_val)
 	_power_count = count_val
 	var count_lbl := Label.new()
 	count_lbl.text = "已装备"
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	count_lbl.add_theme_font_size_override("font_size", 18)
+	count_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	count_vb.add_child(count_lbl)
 
 
@@ -1239,7 +1239,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	var title_lbl := Label.new()
 	title_lbl.text = "✨ 套装效果"
 	title_lbl.add_theme_color_override("font_color", Color(0.80, 0.55, 0.90))
-	title_lbl.add_theme_font_size_override("font_size", 22)
+	title_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	title_hb.add_child(title_lbl)
 	var count_lbl := Label.new()
 	count_lbl.name = "SetCount"
@@ -1247,7 +1247,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	count_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	count_lbl.add_theme_font_size_override("font_size", 20)
+	count_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title_hb.add_child(count_lbl)
 
 	# 2/3/5件效果横排
@@ -1261,7 +1261,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	set2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set2.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set2.add_theme_font_size_override("font_size", 16)
+	set2.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	effects_hb.add_child(set2)
 
 	var set3 := Label.new()
@@ -1270,7 +1270,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	set3.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set3.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set3.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set3.add_theme_font_size_override("font_size", 16)
+	set3.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	effects_hb.add_child(set3)
 
 	var set5 := Label.new()
@@ -1279,7 +1279,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	set5.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set5.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set5.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set5.add_theme_font_size_override("font_size", 16)
+	set5.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	effects_hb.add_child(set5)
 
 
@@ -1619,17 +1619,17 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	_beast_name = Label.new()
 	_beast_name.text = "尚未契约灵兽"
 	_beast_name.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_beast_name.add_theme_font_size_override("font_size", 30)
+	_beast_name.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	name_row.add_child(_beast_name)
 	_beast_info = Label.new()
 	_beast_info.text = ""
 	_beast_info.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	_beast_info.add_theme_font_size_override("font_size", 20)
+	_beast_info.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	name_vb.add_child(_beast_info)
 	_beast_power = Label.new()
 	_beast_power.text = ""
 	_beast_power.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_beast_power.add_theme_font_size_override("font_size", 22)
+	_beast_power.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	name_vb.add_child(_beast_power)
 	# 亲密度
 	main_vb.add_child(_make_progress_row("亲密度", "_beast_loyalty", Color(0.95, 0.75, 0.20)))
@@ -1639,7 +1639,7 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var skill_title := Label.new()
 	skill_title.text = "灵兽技能"
 	skill_title.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	skill_title.add_theme_font_size_override("font_size", 22)
+	skill_title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	main_vb.add_child(skill_title)
 	# 技能2×2网格
 	_beast_skill_grid = GridContainer.new()
@@ -1664,7 +1664,7 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var dep_icon := Label.new()
 	dep_icon.text = "＋"
 	dep_icon.add_theme_color_override("font_color", Color(0.5, 0.55, 0.55))
-	dep_icon.add_theme_font_size_override("font_size", 36)
+	dep_icon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	dep_hb.add_child(dep_icon)
 	var dep_vb := VBoxContainer.new()
 	dep_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1672,12 +1672,12 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var dep_name := Label.new()
 	dep_name.text = "灵兽·副（空槽）"
 	dep_name.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	dep_name.add_theme_font_size_override("font_size", 24)
+	dep_name.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	dep_vb.add_child(dep_name)
 	var dep_hint := Label.new()
 	dep_hint.text = "坊市招募，需要灵兽契约×1"
 	dep_hint.add_theme_color_override("font_color", Color(0.45, 0.50, 0.52))
-	dep_hint.add_theme_font_size_override("font_size", 18)
+	dep_hint.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	dep_vb.add_child(dep_hint)
 
 func _make_progress_row(label_text: String, bar_name: String, bar_color: Color) -> Control:
@@ -1688,14 +1688,14 @@ func _make_progress_row(label_text: String, bar_name: String, bar_color: Color) 
 	var name_lbl := Label.new()
 	name_lbl.text = label_text
 	name_lbl.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	name_lbl.add_theme_font_size_override("font_size", 20)
+	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_lbl)
 	var val_lbl := Label.new()
 	val_lbl.name = "ValLabel"
 	val_lbl.text = "—"
 	val_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	val_lbl.add_theme_font_size_override("font_size", 20)
+	val_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	row.add_child(val_lbl)
 	var bg := ColorRect.new()
 	bg.color = Color(1, 1, 1, 0.08)
@@ -1781,7 +1781,7 @@ func _build_record_page(parent: VBoxContainer) -> void:
 	title_panel.add_child(title_hb)
 	var trophy := Label.new()
 	trophy.text = "🏆"
-	trophy.add_theme_font_size_override("font_size", 32)
+	trophy.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	title_hb.add_child(trophy)
 	var title_vb := VBoxContainer.new()
 	title_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1789,12 +1789,12 @@ func _build_record_page(parent: VBoxContainer) -> void:
 	_record_title_text = Label.new()
 	_record_title_text.text = "尚无称号"
 	_record_title_text.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_record_title_text.add_theme_font_size_override("font_size", 26)
+	_record_title_text.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	title_vb.add_child(_record_title_text)
 	_record_title_desc = Label.new()
 	_record_title_desc.text = "修为达标、宗门任职、技艺精进皆可得道号尊称"
 	_record_title_desc.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	_record_title_desc.add_theme_font_size_override("font_size", 18)
+	_record_title_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title_vb.add_child(_record_title_desc)
 	# 已获得称号列表
 	parent.add_child(_make_section_title("道号尊称"))
@@ -1972,7 +1972,7 @@ func _refresh_equip_slots() -> void:
 			if name_lbl != null:
 				name_lbl.text = default_name
 				name_lbl.add_theme_color_override("font_color", Color(0.83, 0.72, 0.42, 0.9))
-				name_lbl.add_theme_font_size_override("font_size", 19)
+				name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			if hint_lbl != null:
 				hint_lbl.visible = true
 	# 同步刷新战力摘要
@@ -2079,12 +2079,12 @@ func _refresh_set_bonus() -> void:
 			var tn := Label.new()
 			tn.text = t[0]
 			tn.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if t[2] else Color(0.4,0.45,0.5))
-			tn.add_theme_font_size_override("font_size", 18)
+			tn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			eb.add_child(tn)
 			var td := Label.new()
 			td.text = t[1]
 			td.add_theme_color_override("font_color", Color(0.85,0.88,0.90) if t[2] else Color(0.35,0.4,0.45))
-			td.add_theme_font_size_override("font_size", 16)
+			td.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			td.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			eb.add_child(td)
 
@@ -2155,13 +2155,13 @@ func _refresh_beast_page() -> void:
 			var sk_name := Label.new()
 			sk_name.text = sk[0]
 			sk_name.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if sk[1] else Color(0.4,0.45,0.5))
-			sk_name.add_theme_font_size_override("font_size", 22)
+			sk_name.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 			sk_vb.add_child(sk_name)
 			if sk[1]:
 				var sk_hint := Label.new()
 				sk_hint.text = "已激活"
 				sk_hint.add_theme_color_override("font_color", Color(0.35,0.80,0.50))
-				sk_hint.add_theme_font_size_override("font_size", 16)
+				sk_hint.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 				sk_vb.add_child(sk_hint)
 
 # §4.0 弟子自主层：查抄私藏
@@ -2198,7 +2198,7 @@ func _refresh_record_page() -> void:
 		var 目标行 := Label.new()
 		目标行.text = "当前志向：%s" % 目标名
 		目标行.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		目标行.add_theme_font_size_override("font_size", 24)
+		目标行.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		_record_goal_vbox.add_child(目标行)
 		var 描述文: String = Goal.取描述(目标名)
 		if 描述文 != "":
@@ -2217,7 +2217,7 @@ func _refresh_record_page() -> void:
 			var 史标题 := Label.new()
 			史标题.text = "── 志业演变 ──"
 			史标题.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-			史标题.add_theme_font_size_override("font_size", 20)
+			史标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			_record_goal_vbox.add_child(史标题)
 			for 项 in 栈:
 				if not (项 is Dictionary):
@@ -2323,12 +2323,12 @@ func _refresh_record_page() -> void:
 			var sn := Label.new()
 			sn.text = s[0]
 			sn.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-			sn.add_theme_font_size_override("font_size", 22)
+			sn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 			svb.add_child(sn)
 			var sv := Label.new()
 			sv.text = s[1]
 			sv.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			sv.add_theme_font_size_override("font_size", 20)
+			sv.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			svb.add_child(sv)
 	# 心理状态（拟真NPC系统）
 	if _record_psyche_vbox:
@@ -2348,13 +2348,13 @@ func _refresh_record_page() -> void:
 			var 性格标签 := Label.new()
 			性格标签.text = "🧠 性格：%s" % 性格
 			性格标签.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-			性格标签.add_theme_font_size_override("font_size", 20)
+			性格标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			psyche_hb.add_child(性格标签)
 			var 情绪标签 := Label.new()
 			var 情绪图标: String = {"喜悦":"😊","愤怒":"😠","恐惧":"😨","悲伤":"😢","平静":"😐"}.get(情绪, "😐")
 			情绪标签.text = "%s 情绪：%s" % [情绪图标, 情绪]
 			情绪标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			情绪标签.add_theme_font_size_override("font_size", 20)
+			情绪标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			psyche_hb.add_child(情绪标签)
 			# 需求进度条
 			var 需求列表: Array = [["修炼", float(心理状态.get("需求修炼", 0))], ["社交", float(心理状态.get("需求社交", 0))], ["休息", float(心理状态.get("需求休息", 0))], ["安全", float(心理状态.get("需求安全", 0))]]
@@ -2368,7 +2368,7 @@ func _refresh_record_page() -> void:
 				需求名标签.text = "  %s" % 需求名
 				需求名标签.custom_minimum_size = Vector2(60, 0)
 				需求名标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-				需求名标签.add_theme_font_size_override("font_size", 18)
+				需求名标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 				需求_hb.add_child(需求名标签)
 				var 需求进度 := ProgressBar.new()
 				需求进度.min_value = 0
@@ -2387,17 +2387,17 @@ func _refresh_record_page() -> void:
 			var 需求标签 := Label.new()
 			需求标签.text = "⚡ 最迫切：%s" % 最迫切需求
 			需求标签.add_theme_color_override("font_color", Color(0.95,0.7,0.4))
-			需求标签.add_theme_font_size_override("font_size", 18)
+			需求标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			info_hb.add_child(需求标签)
 			var 心境标签 := Label.new()
 			心境标签.text = "💭 心境：%d" % 心境
 			心境标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			心境标签.add_theme_font_size_override("font_size", 18)
+			心境标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			info_hb.add_child(心境标签)
 			var 互动标签 := Label.new()
 			互动标签.text = "💬 互动：%d次" % 互动计数
 			互动标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			互动标签.add_theme_font_size_override("font_size", 18)
+			互动标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			info_hb.add_child(互动标签)
 	# 互动历史（拟真NPC系统）
 	if _record_interaction_vbox:
@@ -2409,7 +2409,7 @@ func _refresh_record_page() -> void:
 				var empty := Label.new()
 				empty.text = "  尚无互动记录"
 				empty.add_theme_color_override("font_color", Color(0.5,0.55,0.6))
-				empty.add_theme_font_size_override("font_size", 18)
+				empty.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 				_record_interaction_vbox.add_child(empty)
 			else:
 				for 互动 in 互动历史:
@@ -2424,14 +2424,14 @@ func _refresh_record_page() -> void:
 					var 类型标签 := Label.new()
 					类型标签.text = "  %s" % 类型图标
 					类型标签.custom_minimum_size = Vector2(40, 0)
-					类型标签.add_theme_font_size_override("font_size", 18)
+					类型标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 					互动_hb.add_child(类型标签)
 					var 内容标签 := Label.new()
 					内容标签.text = 内容
 					内容标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					var 内容颜色: Color = Color(0.7,0.9,0.7) if 类型 == "正面" else (Color(0.9,0.6,0.6) if 类型 == "负面" else Color(0.85,0.88,0.90))
 					内容标签.add_theme_color_override("font_color", 内容颜色)
-					内容标签.add_theme_font_size_override("font_size", 18)
+					内容标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 					互动_hb.add_child(内容标签)
 					if 好感影响 != 0:
 						var 好感标签 := Label.new()
@@ -2439,7 +2439,7 @@ func _refresh_record_page() -> void:
 						好感标签.custom_minimum_size = Vector2(50, 0)
 						好感标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 						好感标签.add_theme_color_override("font_color", Color(0.5,0.8,0.5) if 好感影响 > 0 else Color(0.9,0.5,0.5))
-						好感标签.add_theme_font_size_override("font_size", 18)
+						好感标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 						互动_hb.add_child(好感标签)
 	# 羁绊
 	if _record_bond_list:
@@ -2538,14 +2538,14 @@ func _refresh_record_page() -> void:
 			var aicon := Label.new()
 			aicon.text = "🏆" if unlocked else "？"
 			aicon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			aicon.add_theme_font_size_override("font_size", 32)
+			aicon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 			aicon.modulate = Color(1,1,1) if unlocked else Color(0.3,0.3,0.3)
 			avb.add_child(aicon)
 			var aname := Label.new()
 			aname.text = achs[i] if unlocked else "未解锁"
 			aname.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			aname.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if unlocked else Color(0.35,0.38,0.4))
-			aname.add_theme_font_size_override("font_size", 16)
+			aname.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			avb.add_child(aname)
 	# 历练时间线
 	if _record_timeline:
@@ -2566,13 +2566,13 @@ func _refresh_record_page() -> void:
 				var dot := Label.new()
 				dot.text = "●"
 				dot.add_theme_color_override("font_color", Color(0.95,0.80,0.30))
-				dot.add_theme_font_size_override("font_size", 16)
+				dot.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 				dot.custom_minimum_size = Vector2(30, 0)
 				row.add_child(dot)
 				var evl := Label.new()
 				evl.text = ev_text.left(60)
 				evl.add_theme_color_override("font_color", Color(0.75,0.80,0.82))
-				evl.add_theme_font_size_override("font_size", 20)
+				evl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 				evl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				evl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				row.add_child(evl)
@@ -2586,13 +2586,13 @@ func _make_info_row(name: String, value: String) -> Control:
 	var nl := Label.new()
 	nl.text = name
 	nl.add_theme_color_override("font_color", Color(0.54,0.61,0.66))
-	nl.add_theme_font_size_override("font_size", 22)
+	nl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	nl.custom_minimum_size = Vector2(140, 0)
 	hb.add_child(nl)
 	var vl := Label.new()
 	vl.text = value
 	vl.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-	vl.add_theme_font_size_override("font_size", 22)
+	vl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	vl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(vl)
 	return hb
@@ -2676,7 +2676,7 @@ func _refresh_equip_detail() -> void:
 			var set_title := Label.new()
 			set_title.text = "◆ 套装共鸣"
 			set_title.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-			set_title.add_theme_font_size_override("font_size", 20)
+			set_title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			_equip_set_panel.add_child(set_title)
 			for 套装 in 套装列表:
 				var set_lbl := Label.new()
@@ -2692,7 +2692,7 @@ func _refresh_equip_detail() -> void:
 					效果文本 = "2件激活: " + str(套装["2件效果"])
 				set_lbl.text = "%s (%d/5件) %s" % [str(套装["名称"]), 数量, 效果文本]
 				set_lbl.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
-				set_lbl.add_theme_font_size_override("font_size", 16)
+				set_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 				set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_equip_set_panel.add_child(set_lbl)
 
@@ -2708,7 +2708,7 @@ func _refresh_equip_detail() -> void:
 			var 词标 := Label.new()
 			词标.text = "◆ 装备词条"
 			词标.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-			词标.add_theme_font_size_override("font_size", 20)
+			词标.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 			_equip_detail_affixes.add_child(词标)
 			for t in 词列:
 				var 类型名 = {"战力":"战力", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
@@ -2722,7 +2722,7 @@ func _refresh_equip_detail() -> void:
 				var 行 := Label.new()
 				行.text = "  %s·%s %s" % [类型名, t.get("中文名", ""), 值文本]
 				行.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
-				行.add_theme_font_size_override("font_size", 16)
+				行.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 				行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_equip_detail_affixes.add_child(行)
 
@@ -3177,14 +3177,14 @@ func _show_info_popup(title: String, body: String, anchor_pos: Vector2 = Vector2
 	var tl := Label.new()
 	tl.text = title
 	tl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	tl.add_theme_font_size_override("font_size", 22)
+	tl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	vb.add_child(tl)
 	var bl := Label.new()
 	bl.text = body
 	bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bl.custom_minimum_size = Vector2(600, 0)
 	bl.add_theme_color_override("font_color", Color(0.85, 0.88, 0.90))
-	bl.add_theme_font_size_override("font_size", 20)
+	bl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	vb.add_child(bl)
 	# 定位：跟随点击位置，确保不出屏
 	await get_tree().process_frame
@@ -3549,13 +3549,13 @@ func _refresh_bonds() -> void:
 		var bn: Label = Label.new()
 		bn.text = b[0]
 		UITheme.apply_body_text(bn)
-		bn.add_theme_font_size_override("font_size", 22)
+		bn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		bn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		br.add_child(bn)
 		var bv: Label = Label.new()
 		bv.text = b[1]
 		UITheme.apply_aux_text(bv)
-		bv.add_theme_font_size_override("font_size", 22)
+		bv.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		br.add_child(bv)
 		_record_bond_list.add_child(br)
 	# S30 性格相冲提示
@@ -3574,7 +3574,7 @@ func _refresh_bonds() -> void:
 		wl.text = 相冲提示
 		UITheme.apply_aux_text(wl)
 		wl.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
-		wl.add_theme_font_size_override("font_size", 20)
+		wl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		wr.add_child(wl)
 		_record_bond_list.add_child(wr)
 	var bond_title = _record_bond_list.get_parent().get_parent().get_node_or_null("BondTitle")

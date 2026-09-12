@@ -105,7 +105,7 @@ func _build_ui() -> void:
 
 	var title: Label = Label.new()
 	title.text = "🗺️ 天下舆图"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	header.add_child(title)
 
@@ -122,7 +122,7 @@ func _build_ui() -> void:
 	zoom_label.text = "%d%%" % int(_缩放 * 100)
 	zoom_label.name = "ZoomLabel"
 	zoom_label.custom_minimum_size = Vector2(50, 0)
-	zoom_label.add_theme_font_size_override("font_size", 12)
+	zoom_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	zoom_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_child(zoom_label)
@@ -210,7 +210,7 @@ func _build_ui() -> void:
 		item.add_child(dot)
 		var label: Label = Label.new()
 		label.text = 类型
-		label.add_theme_font_size_override("font_size", 11)
+		label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		item.add_child(label)
 
@@ -353,7 +353,7 @@ func _绘制区域背景() -> void:
 		区域块.add_theme_stylebox_override("panel", style)
 		var 标签: Label = Label.new()
 		标签.text = 区域
-		标签.add_theme_font_size_override("font_size", 32)
+		标签.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 		标签.add_theme_color_override("font_color", Color(1, 1, 1, 0.3))
 		标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		标签.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -414,7 +414,7 @@ func _添加地点标记(名称: String, 类型: String, x: float, y: float, 是
 	标记.add_theme_color_override("font_color", Color.WHITE)
 	var 名称标签: Label = Label.new()
 	名称标签.text = 名称
-	名称标签.add_theme_font_size_override("font_size", 10)
+	名称标签.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
 	名称标签.add_theme_color_override("font_color", Color.WHITE if 是玩家宗门 else Color(0.9, 0.9, 0.9))
 	名称标签.position = Vector2(-20, 大小 * 2 + 2)
 	名称标签.custom_minimum_size = Vector2(60, 14)
@@ -433,13 +433,13 @@ func _添加说明行(vbox: VBoxContainer, 标签: String, 值: String) -> void:
 	行.add_theme_constant_override("separation", 6)
 	var a: Label = Label.new()
 	a.text = 标签
-	a.add_theme_font_size_override("font_size", 12)
+	a.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	a.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	a.custom_minimum_size = Vector2(76, 0)
 	行.add_child(a)
 	var b: Label = Label.new()
 	b.text = 值
-	b.add_theme_font_size_override("font_size", 12)
+	b.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	b.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# 修复（实机验收 dump 抓出）：HBox 主轴水平，无 EXPAND_FILL 的子节点只拿最小宽度，
@@ -459,7 +459,7 @@ func _显示地点详情(名称: String, 类型: String, x: float, y: float, 是
 
 	var title: Label = Label.new()
 	title.text = "%s %s" % [地点类型.get(类型, {}).get("图标", "●"), 名称]
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	vbox.add_child(title)
 	_添加说明行(vbox, "类型", 类型)
@@ -743,13 +743,13 @@ func _触发事件(标题: String, 描述: String, 选项: Array) -> void:
 
 	var title: Label = Label.new()
 	title.text = "⚡ %s" % 标题
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title.add_theme_color_override("font_color", Color(0.95, 0.7, 0.3))
 	vbox.add_child(title)
 
 	var desc: Label = Label.new()
 	desc.text = 描述
-	desc.add_theme_font_size_override("font_size", 13)
+	desc.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	desc.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
@@ -899,7 +899,7 @@ func _每日刷新() -> void:
 func _总览标题(parent: VBoxContainer, 文本: String) -> void:
 	var l: Label = Label.new()
 	l.text = "— " + 文本
-	l.add_theme_font_size_override("font_size", 15)
+	l.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	l.add_theme_color_override("font_color", Color(0.9, 0.78, 0.45))
 	parent.add_child(l)
 
@@ -929,7 +929,7 @@ func _刷新天下总览() -> void:
 	外壳.add_child(顶)
 	var 题: Label = Label.new()
 	题.text = "天下总览"
-	题.add_theme_font_size_override("font_size", 20)
+	题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	题.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	顶.add_child(题)
 	顶.add_spacer(false)
@@ -976,7 +976,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行)
 		var 名: Label = Label.new()
 		名.text = "%s（%s·第%d阶）" % [str(r.get("名称", "")), str(r.get("类型", "")), int(r.get("等级", 1))]
-		名.add_theme_font_size_override("font_size", 12)
+		名.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		名.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行.add_child(名)
@@ -1008,7 +1008,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行2)
 		var 名2: Label = Label.new()
 		名2.text = "%s（%s·战力 %d）" % [str(兽.get("名", "")), str(兽.get("品阶名", "")), int(兽.get("战力", 0))]
-		名2.add_theme_font_size_override("font_size", 12)
+		名2.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		名2.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行2.add_child(名2)
@@ -1037,7 +1037,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行3)
 		var 名3: Label = Label.new()
 		名3.text = "%s（%s）" % [str(d.姓名), str(d.境界)]
-		名3.add_theme_font_size_override("font_size", 12)
+		名3.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		名3.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名3.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行3.add_child(名3)
@@ -1075,7 +1075,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行4)
 		var 名4: Label = Label.new()
 		名4.text = "%s（%s）" % [str(化.get("姓名", "化身")), str(化.get("境界", ""))]
-		名4.add_theme_font_size_override("font_size", 12)
+		名4.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		名4.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名4.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行4.add_child(名4)
@@ -1119,7 +1119,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行5)
 		var 名5: Label = Label.new()
 		名5.text = "%s · 风水%s · 修炼%+d%%" % [区, str(评.get("评级", "平")), int(float(评.get("修炼差", 0.0)) * 100.0)]
-		名5.add_theme_font_size_override("font_size", 12)
+		名5.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 		名5.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名5.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行5.add_child(名5)

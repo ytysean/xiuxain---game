@@ -451,7 +451,7 @@ func _populate_master_title() -> void:
 			cur_hb.add_theme_constant_override("separation", 12)
 			var icon := Label.new()
 			icon.text = "👑"
-			icon.add_theme_font_size_override("font_size", 32)
+			icon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 			cur_hb.add_child(icon)
 			var cur_vb := VBoxContainer.new()
 			cur_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -459,7 +459,7 @@ func _populate_master_title() -> void:
 			name_lbl.text = str(t.get("title_name", ""))
 			var 品质: String = str(t.get("quality", "凡品"))
 			name_lbl.add_theme_color_override("font_color", Game.获取称号品质颜色(品质))
-			name_lbl.add_theme_font_size_override("font_size", 24)
+			name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 			cur_vb.add_child(name_lbl)
 			var desc_lbl := Label.new()
 			var 加成类型: String = str(t.get("bonus_type", ""))
@@ -3421,13 +3421,13 @@ func _populate_hudao() -> void:
 
 			var 弟子名label := Label.new()
 			弟子名label.text = "弟子：%s" % str(护道人.get("弟子姓名", ""))
-			弟子名label.add_theme_font_size_override("font_size", 14)
+			弟子名label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			弟子名label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
 			行1.add_child(弟子名label)
 
 			var 护道人名label := Label.new()
 			护道人名label.text = "护道人：%s（%s）" % [str(护道人.get("护道人姓名", "")), str(护道人.get("护道人等级", ""))]
-			护道人名label.add_theme_font_size_override("font_size", 14)
+			护道人名label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			护道人名label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 			行1.add_child(护道人名label)
 
@@ -3438,19 +3438,19 @@ func _populate_hudao() -> void:
 
 			var 功德label := Label.new()
 			功德label.text = "功德：%d" % int(护道人.get("功德", 0))
-			功德label.add_theme_font_size_override("font_size", 12)
+			功德label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			功德label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			行2.add_child(功德label)
 
 			var 剩余label := Label.new()
 			剩余label.text = "剩余：%d日" % int(护道人.get("剩余天数", 0))
-			剩余label.add_theme_font_size_override("font_size", 12)
+			剩余label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			剩余label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			行2.add_child(剩余label)
 
 			var 替死label := Label.new()
 			替死label.text = "替死玉符：%s" % ("已激活" if bool(护道人.get("替死玉符", false)) else "未激活")
-			替死label.add_theme_font_size_override("font_size", 12)
+			替死label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			替死label.add_theme_color_override("font_color", Color(0.9, 0.6, 0.3) if bool(护道人.get("替死玉符", false)) else Color(0.5, 0.5, 0.5))
 			行2.add_child(替死label)
 
@@ -3464,28 +3464,28 @@ func _populate_hudao() -> void:
 			var 续缘btn := Button.new()
 			续缘btn.text = "续缘（%d符）" % Game.护道续缘符
 			续缘btn.custom_minimum_size = Vector2(0, 28)
-			续缘btn.add_theme_font_size_override("font_size", 11)
+			续缘btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			续缘btn.pressed.connect(_on_hudao_xuyuan.bind(弟子ID))
 			行3.add_child(续缘btn)
 
 			var 功德btn := Button.new()
 			功德btn.text = "功德+200（%d牌）" % Game.功德玉牌
 			功德btn.custom_minimum_size = Vector2(0, 28)
-			功德btn.add_theme_font_size_override("font_size", 11)
+			功德btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			功德btn.pressed.connect(_on_hudao_gongde.bind(弟子ID))
 			行3.add_child(功德btn)
 
 			var 气运btn := Button.new()
 			气运btn.text = "气运加持（%d符）" % Game.气运符箓
 			气运btn.custom_minimum_size = Vector2(0, 28)
-			气运btn.add_theme_font_size_override("font_size", 11)
+			气运btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			气运btn.pressed.connect(_on_hudao_qiyun.bind(弟子ID))
 			行3.add_child(气运btn)
 
 			var 替死btn := Button.new()
 			替死btn.text = "替死玉符（%d符）" % Game.替死玉符
 			替死btn.custom_minimum_size = Vector2(0, 28)
-			替死btn.add_theme_font_size_override("font_size", 11)
+			替死btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			替死btn.pressed.connect(_on_hudao_tisi.bind(弟子ID))
 			行3.add_child(替死btn)
 
@@ -3502,7 +3502,7 @@ func _populate_hudao() -> void:
 	if not 待配备.is_empty():
 		var 待配备标题 := Label.new()
 		待配备标题.text = "待配备护道人（%d名）" % 待配备.size()
-		待配备标题.add_theme_font_size_override("font_size", 14)
+		待配备标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 		待配备标题.add_theme_color_override("font_color", Color(0.9, 0.6, 0.3))
 		_content.add_child(待配备标题)
 
@@ -3514,7 +3514,7 @@ func _populate_hudao() -> void:
 
 			var 名label := Label.new()
 			名label.text = "%s（%s）" % [d.姓名, 待["需求"]]
-			名label.add_theme_font_size_override("font_size", 12)
+			名label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			名label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			名label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			行.add_child(名label)
@@ -3522,7 +3522,7 @@ func _populate_hudao() -> void:
 			var 配备btn := Button.new()
 			配备btn.text = "自动配备"
 			配备btn.custom_minimum_size = Vector2(80, 28)
-			配备btn.add_theme_font_size_override("font_size", 11)
+			配备btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			配备btn.pressed.connect(_on_hudao_peibei.bind(d.弟子ID))
 			行.add_child(配备btn)
 

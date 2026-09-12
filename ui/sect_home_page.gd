@@ -596,7 +596,7 @@ func _build_more_panel() -> void:
 	var title := Label.new()
 	title.name = "Title"
 	title.text = "更多功能"
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -633,7 +633,7 @@ func _build_more_panel() -> void:
 	foot.text = "宗门舆图 · 全法门索引"
 	foot.custom_minimum_size = Vector2(0.0, MORE_FOOTER_H - 8.0)
 	foot.focus_mode = Control.FOCUS_NONE
-	foot.add_theme_font_size_override("font_size", 13)
+	foot.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	foot.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
 	UITheme.apply_secondary_button_style(foot)
 	foot.pressed.connect(_on_more_atlas_pressed)
@@ -656,7 +656,7 @@ func _make_more_group(parent: VBoxContainer, 组名: String, 可见: Array) -> v
 	head.custom_minimum_size = Vector2(0.0, 34.0)
 	head.focus_mode = Control.FOCUS_NONE
 	head.mouse_filter = Control.MOUSE_FILTER_STOP
-	head.add_theme_font_size_override("font_size", 14)
+	head.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	head.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
 	box.add_child(head)
 
@@ -701,7 +701,7 @@ func _make_more_entry(parent: GridContainer, cfg: Dictionary) -> void:
 	var label := Label.new()
 	label.name = "Label"
 	label.text = id
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 	label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

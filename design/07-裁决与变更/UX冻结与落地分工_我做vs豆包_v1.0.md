@@ -1,7 +1,7 @@
 ---
 doc_id: UX冻结与落地分工
 doc_title: 《太玄宗门录》UX 冻结公告与落地分工（AI 工程线 vs 豆包美术线）
-doc_version: v1.13
+doc_version: v1.14
 update_date: 2026-09-13
 doc_type: 项目执行计划 / 分工单
 game_formal_name: 太玄宗门录
@@ -818,7 +818,7 @@ Parse Error: There is already a variable named "关" declared in this scope.
 | # | 任务 | 规模 | 前置 | 归属 |
 | --- | --- | --- | --- | --- |
 | G1 | ✅ **完成** TextureRect 缺 `expand_mode`（4 处 / 3 文件） | 4 处 | — | 工程线 |
-| G2 | 字号收敛：442 处裸写值 → `UITheme` 6 档 | 442 处 | **先出 2–3 页打样** | 工程线 |
+| G2 | ✅ **完成** 字号收敛：43 文件裸写值清零（554 处常量引用） | 43 文件 | — | 工程线 |
 | G3 | 硬编码 `Color(...)` → `UITheme` 令牌 | 1446 处 / 76 文件 | G2 后 | 工程线 |
 | G4 | 字号 / 图标尺寸规范回写 `UX设计总纲 §4.1` | 文档 | G2 定稿后 | 工程线 |
 | G5 | 图标显示尺寸分级（`SIZE_SM/MD/LG/XL` 落到每处 TextureRect） | 62 处 | G1 后 | 工程线 |
@@ -827,12 +827,65 @@ Parse Error: There is already a variable named "关" declared in this scope.
 ### 13.5 排期（对老大的答复）
 
 ```
-现在     G1 图标超大           ✅ 已完成（本批）
-紧接着   G2 字号打样 2–3 页    ← 打样给老大看，认可后全量推 442 处
-然后     G3 色彩令牌收敛 ＋ G5 图标尺寸分级
+现在     G1 图标超大           ✅ 已完成
+紧接着   G2 字号收敛 43 文件    ✅ 已完成（打样 3 页 → 全量落地，见 §13.6）
+然后     G3 色彩令牌收敛 ＋ G5 图标尺寸分级   ← 下一步
 随后     A4 色彩回写 ＋ A5 复兴色彩派生（原计划 · 第 3 波）
 最后     D2 图标 / D3 背景（豆包 · 第 2 波）＋ G6 成套皮肤
 ```
+
+
+### 13.6 G2 字号收敛 · 打样 → 全量（2026-09-13）
+
+**先决条件实证（本轮锁死语义，避免方向性错误）**
+
+1. `project.godot`：`viewport 1080×1920` + `stretch/mode = canvas_items`
+   → 页面内 `font_size = N` **直接按 N px 渲染**，引擎不再做整体放大。
+2. `ui_theme.apply_*_font_sized(control, size)` 是**纯透传**
+   （`add_theme_font_size_override("font_size", size)`，**不乘 UI_SCALE**）。
+3. ⇒ 页面裸写的 10 / 11 / 12 在 1080×1920 上 ≈ 1.5pt，**人眼不可读**；
+   这是 bug，不是「设计得小巧」。
+4. **同页混写实证**：`ui/disciple_detail_page.gd` L246 坐标 `16 * UI_SCALE`（乘了）、
+   L361 字号 `36`（没乘）—— 同屏 32px 与 14px 混排，「不统一」的成因。
+
+**收敛映射（就近）**
+
+| 裸写值 | ×2.25 | 归入档位 | 常量 |
+| --- | --- | --- | --- |
+| 9 / 10 | 20.25 / 22.5 | 21 | `FONT_AUX` |
+| 11 / 12 / 13 | 24.75 / 27 / 29.25 | 27 | `FONT_BODY` |
+| 14 / 15 / 16 | 31.5 / 33.75 / 36 | 33 | `FONT_H2` |
+| 18 / 19 / 20 | 40.5 / 42.75 / 45 | 45 | `FONT_TITLE` |
+| 22 / 24 | 49.5 / 54 | 48 | `FONT_H1` |
+| 26 / 28 / 30 / 32 / 34 / 36 / 40 | 58.5 ~ 90 | 60 | `FONT_DISPLAY` |
+
+**打样 3 页 → 全量**
+
+- 打样：坊市 `page_shop.gd`(8) / 离线管理 `page_offline_manager.gd`(36) / 活动中心 `page_activity.gd`(21)
+  → 对比图 `accept_font_pilot_before_after.png`（3 组）+ `accept_font_pilot_zoom.png`（坊市 2× 放大细看）
+  → 效果：坊市商品名 / 描述 / 价格由「糊成一片」变清晰可读（一屏 10 件 → 9 件，密度略降，**可读信息量大增**）。
+- 全量：**43 个文件**裸写值清零，`UITheme.FONT_*` 常量引用 **554 次**
+  （BODY 183 / TITLE 126 / H2 117 / H1 62 / AUX 43 / DISPLAY 22）。
+
+**刻意保留的 36 处（非遗漏）**
+
+| 文件 | 处 | 理由 |
+| --- | --- | --- |
+| `main.gd` | 16 | **旧 UI 死代码**（`main.gd` 仅启动器，`_建_二级页` 系列全部不执行） |
+| `ui/battle_scene.gd` | 20 | **战斗红线**：同页混有已乘 UI_SCALE 的 72 / 96 与未乘的 14 / 16，需逐行人工判断；动战斗须跑 72 条断言 → 留独立任务 |
+
+**验证**：门禁 `EXIT 0`（`ALL GDScript PARSE OK (197 files)` / pre_f5 35 项全过）；
+**全量真实渲染 64 页 `collapse / tall / badscroll / overflow / offscreen` 全 0，非零告警 0**。
+
+**工具**
+
+- `.workbuddy/audit_ui_visual.py` —— 常驻守门（字号 / 色彩 / 图标超尺寸），防规范腐化
+- `.workbuddy/_g2_font_pilot.py` —— 收敛器（`--dry` 预览 / 显式文件列表 / `--all` 全项目）
+- `.workbuddy/G2_font_convergence_report.txt` —— 收敛报告
+
+> **纪律备忘（本轮踩坑）**：参数判定写成 `sys.argv[1] == "--dry"` 时，`--all --dry`
+> 会**绕过 dry 保护直接写盘**。多参数脚本一律用 `if "--dry" in sys.argv`。
+> 本轮因此提前触发全量执行（所幸映射规则已经 3 页打样验证 + 门禁 / 验收全绿）。
 
 > **两条关键前置关系**：
 > ① **G2 必须先于 D2/D3** —— 不先定「字号 / 图标显示尺寸」，豆包出的新图标接进来还是一团乱。

@@ -628,7 +628,7 @@ func _export_coordinates() -> void:
 	var title := Label.new()
 	title.text = "【坐标已导出】截图复制下方坐标，按F4或ESC关闭"
 	title.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	vbox.add_child(title)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -637,7 +637,7 @@ func _export_coordinates() -> void:
 	var label := Label.new()
 	label.text = 坐标文本
 	label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	scroll.add_child(label)
 	# 点击关闭
 	panel.gui_input.connect(func(e):
@@ -3047,7 +3047,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 	var 余额label := Label.new()
 	余额label.text = "当前悟道点：%d（每日产出+%d）" % [int(Game.悟道点), GongFaSystem.计算月产出(藏经阁等级)]
 	余额label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	余额label.add_theme_font_size_override("font_size", 22)
+	余额label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	余额区.add_child(余额label)
 	# 功法列表
 	var 功法区: VBoxContainer = _add_section("功法秘录（选中后参悟学习）")
@@ -3072,7 +3072,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 		var 自创标题 := Label.new()
 		自创标题.text = "—— 宗门自创功法 ——"
 		自创标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-		自创标题.add_theme_font_size_override("font_size", 18)
+		自创标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		功法grid.add_child(自创标题)
 		for 自创 in Game.自创功法列表:
 			var gid: String = str(自创.get("id", ""))
@@ -3484,13 +3484,13 @@ func _build_gongxun_ui(功勋堂等级: int) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = str(商品.get("名称", ""))
 		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.75))
-		name_lbl.add_theme_font_size_override("font_size", 20)
+		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_lbl)
 		var cost_lbl := Label.new()
 		cost_lbl.text = "%d贡献" % int(商品.get("消耗贡献", 0))
 		cost_lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-		cost_lbl.add_theme_font_size_override("font_size", 18)
+		cost_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		row.add_child(cost_lbl)
 		var buy_btn := Button.new()
 		buy_btn.text = "兑换"
@@ -3535,20 +3535,20 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = "%s [%s]" % [str(阵法.get("名称","")), str(阵法.get("类型",""))]
 		name_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60) if 已解锁 else Color(0.4, 0.4, 0.4))
-		name_lbl.add_theme_font_size_override("font_size", 22)
+		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_row.add_child(name_lbl)
 		var lv_lbl := Label.new()
 		lv_lbl.text = "Lv.%d" % 当前等级 if 当前等级 > 0 else "未激活"
 		lv_lbl.add_theme_color_override("font_color", Color(0.35, 0.68, 0.62) if 当前等级 > 0 else Color(0.5, 0.5, 0.5))
-		lv_lbl.add_theme_font_size_override("font_size", 20)
+		lv_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		name_row.add_child(lv_lbl)
 		card_vb.add_child(name_row)
 		# 描述
 		var desc_lbl := Label.new()
 		desc_lbl.text = str(阵法.get("描述", ""))
 		desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-		desc_lbl.add_theme_font_size_override("font_size", 16)
+		desc_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 		card_vb.add_child(desc_lbl)
 		# 效果
 		if 当前等级 > 0:
@@ -3562,7 +3562,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			if 产出 > 0: effect_text += "产出+%d%% " % 产出
 			effect_lbl.text = effect_text
 			effect_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
-			effect_lbl.add_theme_font_size_override("font_size", 16)
+			effect_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			card_vb.add_child(effect_lbl)
 			# 耐久度显示
 			var 最大耐久度: int = ZhenFaSystem.计算最大耐久度(当前等级)
@@ -3571,7 +3571,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			var 耐久度颜色 = Color(0.6, 0.8, 0.6) if 当前耐久度 > 最大耐久度 * 0.5 else (Color(0.9, 0.7, 0.3) if 当前耐久度 > 最大耐久度 * 0.2 else Color(0.9, 0.4, 0.4))
 			dur_lbl.text = "耐久度：%d/%d（%.0f%%）" % [当前耐久度, 最大耐久度, float(当前耐久度) / float(max(1, 最大耐久度)) * 100]
 			dur_lbl.add_theme_color_override("font_color", 耐久度颜色)
-			dur_lbl.add_theme_font_size_override("font_size", 16)
+			dur_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			card_vb.add_child(dur_lbl)
 			# 修复按钮（耐久度不满时显示）
 			if 当前耐久度 < 最大耐久度:
@@ -3597,7 +3597,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			var lock_lbl := Label.new()
 			lock_lbl.text = "🔒 需阵法堂Lv.%d解锁" % 解锁等级
 			lock_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.3))
-			lock_lbl.add_theme_font_size_override("font_size", 16)
+			lock_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			card_vb.add_child(lock_lbl)
 
 func _on_升级阵法(阵法ID: String, 当前等级: int, 阵法堂等级: int) -> void:
@@ -3888,7 +3888,7 @@ func _build_futang_ui(符堂等级: int) -> void:
 			var 符名: Label = Label.new()
 			符名.text = "◆ %s" % str(符.get("名称", ""))
 			符名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-			符名.add_theme_font_size_override("font_size", 14)
+			符名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			名栏.add_child(符名)
 
 			var 品阶: Label = Label.new()

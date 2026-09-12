@@ -49,7 +49,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  宗主修炼"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -136,13 +136,13 @@ func _render总览() -> void:
 	var 名: Label = Label.new()
 	名.text = "【宗主】%s" % str(m.姓名)
 	名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-	名.add_theme_font_size_override("font_size", 22)
+	名.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	名栏.add_child(名)
 
 	var 境界: Label = Label.new()
 	境界.text = "  %s%d层" % [str(m.境界), int(m.层数)]
 	境界.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
-	境界.add_theme_font_size_override("font_size", 18)
+	境界.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	名栏.add_child(境界)
 
 	# 属性网格
@@ -311,7 +311,7 @@ func _render修炼() -> void:
 	var 状态: Label = Label.new()
 	状态.text = "当前境界：%s%d层" % [str(m.境界), int(m.层数)]
 	状态.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	状态.add_theme_font_size_override("font_size", 18)
+	状态.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	区.add_child(状态)
 
 	# 修为进度

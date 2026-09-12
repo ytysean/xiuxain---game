@@ -55,7 +55,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  灵渊垂钓"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -110,7 +110,7 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "钓道境界：%s" % 钓.钓道境界名()
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 24)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	_content.add_child(标题)
 	var 进度文: Label = Label.new()
 	if 进度.get("满", false):
@@ -506,7 +506,7 @@ func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	return l
 
 func _晋升钓具() -> void:

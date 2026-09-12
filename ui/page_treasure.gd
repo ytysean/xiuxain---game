@@ -47,7 +47,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  法宝阁"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -291,7 +291,7 @@ func _填普通法宝() -> void:
 			var 名: Label = Label.new()
 			名.text = "◆ %s" % str(法宝.get("名", "未知"))
 			名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-			名.add_theme_font_size_override("font_size", 15)
+			名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			名栏.add_child(名)
 
 			var 品阶: Label = Label.new()
@@ -427,7 +427,7 @@ func _填本命法宝() -> void:
 			var 名: Label = Label.new()
 			名.text = "★ %s" % str(法宝.get("名", "未知"))
 			名.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
-			名.add_theme_font_size_override("font_size", 15)
+			名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			名栏.add_child(名)
 
 			var 品阶: Label = Label.new()
@@ -507,7 +507,7 @@ func _添加空状态(标题: String, 描述: String) -> void:
 	var 空标题: Label = Label.new()
 	空标题.text = 标题
 	空标题.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	空标题.add_theme_font_size_override("font_size", 18)
+	空标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	空标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	空状态.add_child(空标题)
 
@@ -527,7 +527,7 @@ func _添加面板标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "▎ %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题标签.add_theme_font_size_override("font_size", 16)
+	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	_content.add_child(标题标签)
 
 	var 分隔: HSeparator = HSeparator.new()
@@ -542,7 +542,7 @@ func _添加子标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "● %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.75, 0.65, 0.45))
-	标题标签.add_theme_font_size_override("font_size", 14)
+	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	_content.add_child(标题标签)
 
 

@@ -46,7 +46,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  灵兽苑"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -265,7 +265,7 @@ func _填灵兽库() -> void:
 		var 类型名: String = 类型显示.get(str(灵兽.get("类型", "")), str(灵兽.get("类型", "")))
 		名.text = "【%s】%s（%s）" % [品阶名, str(灵兽.get("种类名", "")), 类型名]
 		名.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-		名.add_theme_font_size_override("font_size", 15)
+		名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 		名栏.add_child(名)
 
 		var 状态: Label = Label.new()
@@ -344,7 +344,7 @@ func _填出战绑定() -> void:
 			var 弟子名: Label = Label.new()
 			弟子名.text = "弟子：%s（%s）" % [d.姓名, d.境界]
 			弟子名.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-			弟子名.add_theme_font_size_override("font_size", 15)
+			弟子名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			名栏.add_child(弟子名)
 
 			if d.主宠灵兽 != null:
@@ -447,7 +447,7 @@ func _填引育计划() -> void:
 			var 名: Label = Label.new()
 			名.text = "%s 引育计划 #%d" % [状态图标, i + 1]
 			名.add_theme_color_override("font_color", 状态颜色)
-			名.add_theme_font_size_override("font_size", 15)
+			名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			栏.add_child(名)
 
 			var 经费: Label = Label.new()
@@ -534,7 +534,7 @@ func _填坐骑() -> void:
 	var 当前名: Label = Label.new()
 	当前名.text = "坐骑：%s" % str(当前加成.get("名称", "无"))
 	当前名.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	当前名.add_theme_font_size_override("font_size", 16)
+	当前名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	当前栏.add_child(当前名)
 
 	var 加成标签: Label = Label.new()
@@ -558,7 +558,7 @@ func _填坐骑() -> void:
 		var 名: Label = Label.new()
 		名.text = "%s %s（%s）" % [状态图标, str(坐骑.get("名称", "")), str(坐骑.get("品阶", ""))]
 		名.add_theme_color_override("font_color", 状态颜色)
-		名.add_theme_font_size_override("font_size", 15)
+		名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 		名栏.add_child(名)
 
 		var 类型: Label = Label.new()
@@ -739,7 +739,7 @@ func _添加空状态(标题: String, 描述: String) -> void:
 	var 空标题: Label = Label.new()
 	空标题.text = 标题
 	空标题.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	空标题.add_theme_font_size_override("font_size", 18)
+	空标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	空标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	空状态.add_child(空标题)
 
@@ -759,7 +759,7 @@ func _添加面板标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "▎ %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题标签.add_theme_font_size_override("font_size", 16)
+	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	_content.add_child(标题标签)
 
 	var 分隔: HSeparator = HSeparator.new()
@@ -774,7 +774,7 @@ func _添加子标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "● %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.75, 0.65, 0.45))
-	标题标签.add_theme_font_size_override("font_size", 14)
+	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	_content.add_child(标题标签)
 
 

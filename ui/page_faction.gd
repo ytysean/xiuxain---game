@@ -132,7 +132,7 @@ func _build_scroll(parent: Control) -> void:
 	var 弟子阵营标题 := Label.new()
 	弟子阵营标题.text = "弟子阵营管理"
 	弟子阵营标题.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
-	弟子阵营标题.add_theme_font_size_override("font_size", 18)
+	弟子阵营标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	弟子阵营vbox.add_child(弟子阵营标题)
 
 	# 统计弟子阵营分布

@@ -188,12 +188,12 @@ func _populate() -> void:
 					panel.add_child(vb)
 					var title := Label.new()
 					title.text = "【宗门已启道法】"
-					UITheme.apply_aux_font_sized(title, 14)
+					UITheme.apply_aux_font_sized(title, UITheme.FONT_H2)
 					title.add_theme_color_override("font_color", Color(0.8, 0.7, 0.4))
 					vb.add_child(title)
 					var sys_label := Label.new()
 					sys_label.text = " · ".join(已解锁)
-					UITheme.apply_body_font_sized(sys_label, 12)
+					UITheme.apply_body_font_sized(sys_label, UITheme.FONT_BODY)
 					sys_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 					vb.add_child(sys_label)
 			if mains.is_empty():
@@ -957,7 +957,7 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 				var progress_text := Label.new()
 				progress_text.name = "ProgressText"
 				progress_text.text = "进度：%d / %d (%.0f%%)" % [int(当前值), int(目标值), 进度百分比 * 100]
-				progress_text.add_theme_font_size_override("font_size", 12)
+				progress_text.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 				progress_text.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
 				progress_container.add_child(progress_text)
 				

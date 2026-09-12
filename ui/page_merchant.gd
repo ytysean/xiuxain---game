@@ -42,7 +42,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  商道"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -93,7 +93,7 @@ func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	return l
 
 func _标(t: String, c: Color, 大: bool = false) -> Label:
@@ -101,7 +101,7 @@ func _标(t: String, c: Color, 大: bool = false) -> Label:
 	l.text = t
 	l.add_theme_color_override("font_color", c)
 	if 大:
-		l.add_theme_font_size_override("font_size", 22)
+		l.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
 

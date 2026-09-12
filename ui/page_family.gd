@@ -47,7 +47,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  家族系统"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -140,13 +140,13 @@ func _填总览() -> void:
 	var 家族名: Label = Label.new()
 	家族名.text = "「%s」" % str(基本信息.get("名", "未知"))
 	家族名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-	家族名.add_theme_font_size_override("font_size", 24)
+	家族名.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	名称栏.add_child(家族名)
 
 	var 等级标签: Label = Label.new()
 	等级标签.text = "  Lv.%d" % int(基本信息.get("等级", 1))
 	等级标签.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
-	等级标签.add_theme_font_size_override("font_size", 18)
+	等级标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	名称栏.add_child(等级标签)
 
 	var 兴衰标签: Label = Label.new()
@@ -173,7 +173,7 @@ func _填总览() -> void:
 	var 评分总: Label = Label.new()
 	评分总.text = "总评分：%d 分" % int(实力评分.get("评分", 0))
 	评分总.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5))
-	评分总.add_theme_font_size_override("font_size", 18)
+	评分总.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	_content.add_child(评分总)
 
 	var 评分网格: GridContainer = GridContainer.new()
@@ -415,7 +415,7 @@ func _填功法() -> void:
 		var 功法名: Label = Label.new()
 		功法名.text = "「%s」" % str(血脉功法.get("名", "未知"))
 		功法名.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
-		功法名.add_theme_font_size_override("font_size", 18)
+		功法名.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		_content.add_child(功法名)
 
 		var 功法描述: Label = Label.new()
@@ -491,7 +491,7 @@ func _填秘宝() -> void:
 			var 名: Label = Label.new()
 			名.text = "◆ %s" % str(秘宝配置.get("名", "未知"))
 			名.add_theme_color_override("font_color", Color(1.0, 0.85, 0.5))
-			名.add_theme_font_size_override("font_size", 16)
+			名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 			名栏.add_child(名)
 
 			var 类型: Label = Label.new()
@@ -675,7 +675,7 @@ func _添加空状态(标题: String, 描述: String) -> void:
 	var 空标题: Label = Label.new()
 	空标题.text = 标题
 	空标题.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	空标题.add_theme_font_size_override("font_size", 18)
+	空标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	空标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	空状态.add_child(空标题)
 
@@ -695,7 +695,7 @@ func _添加面板标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "▎ %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题标签.add_theme_font_size_override("font_size", 16)
+	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	_content.add_child(标题标签)
 
 	var 分隔: HSeparator = HSeparator.new()

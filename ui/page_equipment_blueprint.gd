@@ -95,7 +95,7 @@ func _build() -> void:
 	_标题标签 = Label.new()
 	_标题标签.text = "器谱阁"
 	_标题标签.position = Vector2(80, 18)
-	_标题标签.add_theme_font_size_override("font_size", 20)
+	_标题标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	_标题标签.add_theme_color_override("font_color", C_GOLD)
 	顶部栏.add_child(_标题标签)
 	
@@ -236,7 +236,7 @@ func refresh() -> void:
 			var 行 = Button.new()
 			行.text = "%s（%s）- 材料：%s" % [图纸.get("名称", ""), 图纸.get("品阶", ""), 图纸.get("材料", "")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", 13)
+			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
@@ -254,7 +254,7 @@ func refresh() -> void:
 			var 状态文本 = "已解锁" if 商品.get("已解锁", false) else "%d灵石" % 商品.get("价格", 0)
 			行.text = "%s（%s）- %s" % [商品.get("名称", ""), 商品.get("品阶", ""), 状态文本]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", 13)
+			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			if 商品.get("已解锁", false):
 				行.add_theme_color_override("font_color", C_GREEN)
 			if i == _选中索引:

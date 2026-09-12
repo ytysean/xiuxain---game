@@ -783,3 +783,38 @@ ui_compile exit=0 117.2s / ui_decouple exit=0 106.4s / smoke exit=0 41.5s / gate
 > **两条硬前置**：① **G2 早于 D2/D3**（不先定字号/图标显示尺寸，豆包新图接进来还是乱）；② **A4+A5 早于 G6**（「不好看」的解药是色彩基调与皮肤，不是排版）。
 
 **文件**：`ui/page_shop.gd` · `ui/collapsible_category.gd` · `ui/page_chronicle.gd` · `design/07-裁决与变更/UX冻结与落地分工_我做vs豆包_v1.0.md`（v1.12→v1.13，新增 §13）
+
+---
+
+## 【已完成】G 类 · G2 字号全项目收敛（43 文件）· 打样 → 全量
+
+**执行**：workbuddy（工程线）　**日期**：2026-09-13　**状态**：已完成（待豆包验收）
+
+### 起因
+老大反馈：「好多页面的字体大小风格等都不统一，坊市里面的图标超大，整体风格还是之前的样式，不好看」。
+
+### 实证（先锁语义，再动手）
+- `project.godot`：`viewport 1080×1920` + `stretch mode = canvas_items`
+  → 页面 `font_size = N` 直接按 N px 渲染，**引擎不再放大**
+- `ui_theme.apply_*_font_sized(ctrl, size)` 是**纯透传**（不乘 UI_SCALE）
+- ⇒ 全项目 **442 处裸写 10~40**，其中 10/11/12 在 1080 屏上 ≈ 1.5pt **不可读**；同屏还有走 `UITheme` 的 27/45 → **差 2.25 倍**，这就是「不统一」
+- 铁证：`ui/disciple_detail_page.gd` 同页 L246 坐标乘了 UI_SCALE、L361 字号没乘
+
+### 产出
+1. **打样 3 页**：坊市 / 离线管理 / 活动中心（对比图 2 张）
+2. **全量收敛 43 文件**：裸写值全部归入 `UITheme` 6 档（21/27/33/45/48/60）
+   - `UITheme.FONT_*` 常量引用 **554 次**
+   - 归入映射：9/10→AUX｜11/12/13→BODY｜14/15/16→H2｜18/19/20→TITLE｜22/24→H1｜26+→DISPLAY
+3. **刻意保留 36 处**：`main.gd` 16（旧 UI 死代码）+ `ui/battle_scene.gd` 20（战斗红线，混杂已乘值）
+4. 常驻工具 `.workbuddy/audit_ui_visual.py`（防规范腐化）+ 收敛器 `_g2_font_pilot.py`
+
+### 验证
+- 门禁 `EXIT 0`：`ALL GDScript PARSE OK (197 files)` / pre_f5 35 项全过 / 死函数 389（水位 396）
+- **全量真实渲染 64 页**：`collapse / tall / badscroll / overflow / offscreen` **全 0**，非零告警 **0**
+- 回退对照安全：SHA256 校验 `RESTORE_OK = True`
+
+### 交付物
+`accept_font_pilot_before_after.png`（3 组对比）｜`accept_font_pilot_zoom.png`（坊市 2× 放大）
+
+### 下一批
+G3 色彩令牌收敛（1446 处 / 76 文件）＋ G5 图标显示尺寸分级（62 处）

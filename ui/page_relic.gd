@@ -45,7 +45,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  探遗迹"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 20)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -96,7 +96,7 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "探遗迹·总览"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 24)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	_content.add_child(标题)
 	var 次: Label = Label.new()
 	次.text = "累计探秘 %d 次。所获天材地宝入宗门库房，反哺炼器炼丹。" % 探.累计探秘次数
@@ -270,7 +270,7 @@ func _建_图录() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "遗迹图录：已收录 %d / %d" % [已收.size(), 全部.size()]
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", 22)
+	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	_content.add_child(标题)
 	for 名 in 全部:
 		var l: Label = Label.new()
@@ -286,5 +286,5 @@ func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	return l

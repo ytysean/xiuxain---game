@@ -305,14 +305,14 @@ func _构建传讯通知条() -> void:
 	var icon := Label.new()
 	icon.text = "✉"
 	icon.add_theme_color_override("font_color", Color(0.95, 0.80, 0.40))
-	icon.add_theme_font_size_override("font_size", 24)
+	icon.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	hb.add_child(icon)
 	var msg := Label.new()
 	msg.name = "Msg"
 	msg.text = "传讯符燃，千里传音..."
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78))
-	msg.add_theme_font_size_override("font_size", 18)
+	msg.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(msg)
 	# 点击区域
@@ -369,13 +369,13 @@ func _显示传讯弹窗(传讯: Dictionary) -> void:
 	var title := Label.new()
 	title.text = "【传讯】%s" % str(传讯.get("发件人", ""))
 	title.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	vb.add_child(title)
 	var content := Label.new()
 	content.text = str(传讯.get("内容", ""))
 	content.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_theme_color_override("font_color", Color(0.88, 0.90, 0.88))
-	content.add_theme_font_size_override("font_size", 20)
+	content.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	vb.add_child(content)
 	# 选项按钮
 	var 选项: Array = 传讯.get("选项", [])
@@ -384,7 +384,7 @@ func _显示传讯弹窗(传讯: Dictionary) -> void:
 		var btn := Button.new()
 		btn.text = str(opt.get("文本", ""))
 		btn.custom_minimum_size = Vector2(0, 48)
-		btn.add_theme_font_size_override("font_size", 20)
+		btn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 		btn.pressed.connect(func(idx=i): _回复传讯(int(传讯.get("传讯ID", 0)), idx, shade))
 		vb.add_child(btn)
 
@@ -445,7 +445,7 @@ func _打开气象抽屉() -> void:
 	var title := Label.new()
 	title.text = "宗门气象"
 	title.position = Vector2(36.0, 24.0)
-	title.add_theme_font_size_override("font_size", 34)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE1)
 	panel.add_child(title)
 
@@ -491,7 +491,7 @@ func _打开气象抽屉() -> void:
 func _建抽屉段标题(parent: Control, 文本: String) -> void:
 	var lbl := Label.new()
 	lbl.text = 文本
-	lbl.add_theme_font_size_override("font_size", 26)
+	lbl.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	parent.add_child(lbl)
 
@@ -499,7 +499,7 @@ func _建抽屉段标题(parent: Control, 文本: String) -> void:
 func _建抽屉空态(parent: Control, 文本: String) -> void:
 	var lbl := Label.new()
 	lbl.text = 文本
-	lbl.add_theme_font_size_override("font_size", 24)
+	lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_DIM)
 	parent.add_child(lbl)
 
@@ -522,14 +522,14 @@ func _建传讯卡片(parent: Control, 传讯: Variant) -> void:
 
 	var 头 := Label.new()
 	头.text = "【%s】%s" % [str(传讯.get("发件人", "")), str(传讯.get("类型", ""))]
-	头.add_theme_font_size_override("font_size", 26)
+	头.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
 	头.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE1)
 	vb.add_child(头)
 
 	var 内容 := Label.new()
 	内容.text = str(传讯.get("内容", ""))
 	内容.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	内容.add_theme_font_size_override("font_size", 24)
+	内容.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	内容.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	vb.add_child(内容)
 
@@ -539,7 +539,7 @@ func _建传讯卡片(parent: Control, 传讯: Variant) -> void:
 		var btn := Button.new()
 		btn.text = str(opt.get("文本", ""))
 		btn.custom_minimum_size = Vector2(0, 64)
-		btn.add_theme_font_size_override("font_size", 24)
+		btn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 		UITheme.apply_secondary_button_style(btn)
 		# 用 bind 传参：立即求值，避免闭包捕获循环变量
 		btn.pressed.connect(_抽屉批复传讯.bind(int(传讯.get("传讯ID", 0)), i))

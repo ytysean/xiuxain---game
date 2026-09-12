@@ -65,7 +65,7 @@ func _build() -> void:
 
 	var title := Label.new()
 	title.text = "阵营任务与商店"
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
@@ -98,7 +98,7 @@ func _build() -> void:
 	# 阵营声望显示
 	var rep_label := Label.new()
 	rep_label.name = "声望标签"
-	rep_label.add_theme_font_size_override("font_size", 16)
+	rep_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
 	main.add_child(rep_label)
 
 	# 滚动列表
@@ -196,7 +196,7 @@ func _make_quest_card(q: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = str(q.get("quest_name", ""))
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	mid.add_child(title)
 
@@ -274,7 +274,7 @@ func _make_shop_card(item: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = str(item.get("item_name", ""))
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	mid.add_child(title)
 

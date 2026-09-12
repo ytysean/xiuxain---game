@@ -100,7 +100,7 @@ func _build() -> void:
 	_标题标签 = Label.new()
 	_标题标签.text = "药园"
 	_标题标签.position = Vector2(80, 18)
-	_标题标签.add_theme_font_size_override("font_size", 20)
+	_标题标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	_标题标签.add_theme_color_override("font_color", C_GOLD)
 	顶部栏.add_child(_标题标签)
 	
@@ -290,7 +290,7 @@ func refresh() -> void:
 			var 行 = Button.new()
 			行.text = "%s - 成熟%d日，收获%d个，类型：%s" % [作物名称, 作物配置.get("成熟天数", 3), 作物配置.get("收获数量", 1), 作物配置.get("收获类型", "材料")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", 13)
+			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i

@@ -37,14 +37,14 @@ func show_hint(anchor: Control, title: String, body: String) -> void:
 	var tl := Label.new()
 	tl.text = title
 	tl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	tl.add_theme_font_size_override("font_size", 22)
+	tl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
 	vb.add_child(tl)
 	var bl := Label.new()
 	bl.text = body
 	bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bl.custom_minimum_size = Vector2(600, 0)
 	bl.add_theme_color_override("font_color", Color(0.85, 0.88, 0.90))
-	bl.add_theme_font_size_override("font_size", 20)
+	bl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	vb.add_child(bl)
 	_locate_pending = true
 

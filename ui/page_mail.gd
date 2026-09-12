@@ -85,7 +85,7 @@ func _build() -> void:
 	detail_title_row.add_theme_constant_override("separation", 8)
 	_详情标题 = Label.new()
 	_详情标题.name = "DetailTitle"
-	UITheme.apply_title_font_sized(_详情标题, 20)
+	UITheme.apply_title_font_sized(_详情标题, UITheme.FONT_TITLE)
 	_详情标题.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_title_row.add_child(_详情标题)
 	var 关闭详情按钮 := Button.new()
