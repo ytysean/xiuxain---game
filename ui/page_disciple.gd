@@ -95,6 +95,8 @@ var _filter_linggen: String = "全部"   # 灵根品阶筛选
 var _filter_buttons: Dictionary = {}  # 身份名 -> Button
 var _filter_dropdowns: Dictionary = {}  # 筛选类型 -> OptionButton
 
+var _方针_btn: Button = null   # C3：突破方针切换（宗主干预接口③）
+
 # 排序模式循环（纯 UI 内部，不改 Game；与 _界序 一致的高阶境界权重）。
 const _SORT_MODES: Array = ["战力降", "境界降", "资质降", "灵根降", "年龄升", "年龄降", "司职", "默认"]
 const _境界序: Array = Disciple.境界序   # 唯一真源（2026-09-02）
@@ -358,6 +360,14 @@ func _build_list_scroll() -> void:
 	_望宗门_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	_望宗门_btn.pressed.connect(_on_望宗门)
 	山门盒.add_child(_望宗门_btn)
+	# C3 宗主干预接口③：突破方针（宗主定方向 → 整体平移弟子 AI 冲关阈值）
+	_方针_btn = Button.new()
+	_方针_btn.name = "BreakthroughPolicyBtn"
+	_方针_btn.text = "突破方针：%s" % _当前突破方针()
+	_方针_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	UITheme.apply_secondary_button_style(_方针_btn)
+	_方针_btn.pressed.connect(_on_切换突破方针)
+	山门盒.add_child(_方针_btn)
 	_list_root.add_child(山门)
 
 	var scroll := ScrollContainer.new()
@@ -371,6 +381,29 @@ func _build_list_scroll() -> void:
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list_vbox.add_theme_constant_override("separation", int(round(4 * UITheme.UI_SCALE)))
 	scroll.add_child(_list_vbox)
+
+## C3：当前突破方针（读 Game；缺省「顺其自然」）
+func _当前突破方针() -> String:
+	if not is_instance_valid(Game) or "突破方针" not in Game:
+		return "顺其自然"
+	return String(Game.突破方针)
+
+
+## C3：循环切换突破方针（稳中求进 → 顺其自然 → 搏一线天机），并回显方针释义
+func _on_切换突破方针() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 表: Array = Game.获取突破方针列表()
+	if 表.is_empty():
+		return
+	var idx: int = 表.find(_当前突破方针())
+	var 下一个: String = String(表[(idx + 1) % 表.size()])
+	var 结果: Dictionary = Game.设置突破方针(下一个)
+	if _方针_btn != null:
+		_方针_btn.text = "突破方针：%s" % _当前突破方针()
+	if UIHint != null and UIHint.has_method("show_hint"):
+		UIHint.show_hint(self, "突破方针 · %s" % 下一个, String(结果.get("说明", "")))
+
 
 func _build_decision_area() -> void:
 	var panel := PanelContainer.new()

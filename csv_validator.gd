@@ -38,6 +38,7 @@ const ACHIEVEMENT_CONDITION_TYPES := [
 	"library_book_count", "medicine_garden_plots", "unlocked_pill_formula_count",
 	"unlocked_equipment_blueprint_count", "all_factions_worship", "pill_and_equipment_all",
 	"trade_count", "trade_income",
+	"world_regions", "world_resource_collect", "world_event", "total_fish_caught",
 	"placeholder",
 ]
 # 日常/周常差事类型：取 config/quest_daily.csv 实际取值（2026-08-31 核准）

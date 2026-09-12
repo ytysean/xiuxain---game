@@ -281,3 +281,7 @@ ach_fishing_029,虚空垂钓,收集,传说,首次在虚空灵渊钓鱼,placehold
 ach_fishing_030,连续七日垂钓,收集,普通,连续7天每天钓鱼,placeholder,7,,道具,ling_er,5,0,0,0,10,连续七日，持之以恒,[PL]待接入 原条件=fishing_consecutive:7
 ach_fishing_031,连续三十日垂钓,收集,稀有,连续30天每天钓鱼,placeholder,30,,永久增益,xiulian_sudu,1,0,0,0,30,连续三十日，道心坚定,[PL]待接入 原条件=fishing_consecutive:30
 ach_fishing_032,连续百日垂钓,收集,传说,连续100天每天钓鱼,placeholder,100,,传说称号,lian_xu_bai_ri,1,0,0,0,100,连续百日，钓道入魔,[PL]待接入 原条件=fishing_consecutive:100
+ach_world_001,踏遍五洲,探索,传说,化身游历踏足天下五域,world_regions,5,,道具,ling_shi,5,0,500,50,50,五域尽在脚下，宗门声威远播,
+ach_world_002,资源猎手,探索,稀有,累计采集大地图资源30次,world_resource_collect,30,,道具,ling_shi,2,0,200,20,30,山川之利，尽入宗门库藏,
+ach_world_003,奇遇收藏家,探索,稀有,于大地图触发奇遇事件10次,world_event,10,,道具,ling_shi,2,0,200,20,30,奇遇连连，机缘不断,
+ach_fishing_033,钓圣,收集,传说,累计钓获灵鱼100尾,total_fish_caught,100,,传说称号,diao_sheng,1,0,300,30,50,垂钓之道，已臻化境,
