@@ -14,6 +14,55 @@ var _scroll_vbox: VBoxContainer
 var _余额标签: Label
 var _反馈标签: Label
 
+# ───────── emoji 收口（2026-09-15 统一）─────────
+# 项目铁则：UI 禁拿裸 emoji 字符当图标 —— 现代符号与修真世界观冲突，且字形随系统字体漂移、
+# 各平台宽度不一（老大截图：日供页 ◇◆◇ 直接当图标用）。
+# 已有资产：art/icons/emoji/ 58 张「圆形金框 + 黛底 + 金线描」由 UITheme.emoji_icon_sized()
+# 按像素光栅化；货币类资源图走 load_hd_icon("res_*")。
+func _图标文本(文本: String, 图标: String, 字号: int, 颜色: Color, 图标像素: int = 40, 粗体: bool = true) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	var tex: Texture2D = null
+	if 图标.begins_with("res_") or 图标.begins_with("entry_") or 图标.begins_with("emoji_"):
+		tex = UITheme.load_hd_icon(图标)
+	else:
+		tex = UITheme.emoji_icon_sized(图标, 图标像素)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.custom_minimum_size = Vector2(图标像素, 图标像素)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(tr)
+	var lb := Label.new()
+	lb.text = 文本
+	UITheme.apply_project_font(lb, 字号, 粗体)
+	lb.add_theme_color_override("font_color", 颜色)
+	lb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(lb)
+	return hb
+
+## 单个图标控件（替代「只放 emoji 的图标位」，如礼包卡左侧 72×72 位）
+func _图标控件(图标: String, 像素: int) -> Control:
+	var tex: Texture2D = null
+	if 图标.begins_with("res_") or 图标.begins_with("entry_") or 图标.begins_with("emoji_"):
+		tex = UITheme.load_hd_icon(图标)
+	else:
+		tex = UITheme.emoji_icon_sized(图标, 像素)
+	if tex == null:
+		return Label.new()
+	var tr := TextureRect.new()
+	tr.name = "IconTex"
+	tr.texture = tex
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return tr
+
 func _ready() -> void:
 	_build()
 	refresh()
@@ -96,6 +145,11 @@ func _populate() -> void:
 	日供按钮.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	日供按钮.pressed.connect(_on_领取日供)
 	_scroll_vbox.add_child(日供按钮)
+	# PH6·M5c：统一刷新时刻口径文案（与 game_state 每日重置小时=8 一致）
+	var 日供重置提示 := Label.new()
+	日供重置提示.text = "每日 08:00 更替"
+	UITheme.apply_aux_font_sized(日供重置提示, UITheme.FONT_AUX)
+	_scroll_vbox.add_child(日供重置提示)
 
 	var 状态行 := Label.new()
 	状态行.text = "连续理事天数：%d" % 连续天数
@@ -113,11 +167,7 @@ func _populate() -> void:
 	if is_instance_valid(Game) and Game.has_method("获取今日日贡奖励"):
 		var 今日奖励: Dictionary = Game.获取今日日贡奖励()
 		if not 今日奖励.is_empty():
-			var 奖励详情头 := Label.new()
-			奖励详情头.text = "🎁 今日供奉奖励"
-			奖励详情头.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-			奖励详情头.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-			_scroll_vbox.add_child(奖励详情头)
+			_scroll_vbox.add_child(_图标文本("今日供奉奖励", "emoji_shop_gift", UITheme.FONT_H2, UITheme.获取金文字色(), 44))
 			
 			var 奖励详情卡 := PanelContainer.new()
 			奖励详情卡.name = "TodayRewardCard"
@@ -138,8 +188,8 @@ func _populate() -> void:
 			# 连续天数
 			var 连续天数列 := Label.new()
 			连续天数列.text = "连续供奉：%d日" % int(今日奖励.get("连续天数", 0))
-			连续天数列.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-			连续天数列.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			UITheme.apply_project_font(连续天数列, UITheme.FONT_H2, true)
+			连续天数列.add_theme_color_override("font_color", UITheme.获取主文字色())
 			奖励详情vbox.add_child(连续天数列)
 			
 			# 奖励内容
@@ -151,37 +201,25 @@ func _populate() -> void:
 			# 灵石奖励
 			var 灵石奖励: int = int(今日奖励.get("灵石", 0))
 			if 灵石奖励 > 0:
-				var 灵石项 := Label.new()
-				灵石项.text = "💎 灵石 +%d" % 灵石奖励
-				灵石项.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-				灵石项.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-				奖励内容hb.add_child(灵石项)
+				奖励内容hb.add_child(_图标文本("灵石 +%d" % 灵石奖励, "res_lingshi_36", UITheme.FONT_H2, UITheme.获取金文字色(), 40))
 			
 			# 灵气奖励
 			var 灵气奖励: int = int(今日奖励.get("灵气", 0))
 			if 灵气奖励 > 0:
-				var 灵气项 := Label.new()
-				灵气项.text = "✨ 灵气 +%d" % 灵气奖励
-				灵气项.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-				灵气项.add_theme_color_override("font_color", UITheme.C05_REWARD_BLUE)
-				奖励内容hb.add_child(灵气项)
+				奖励内容hb.add_child(_图标文本("灵气 +%d" % 灵气奖励, "res_lingqi_36", UITheme.FONT_H2, UITheme.C05_REWARD_BLUE, 40))
 			
 			# 悟道点奖励
 			var 悟道点奖励: int = int(今日奖励.get("悟道点", 0))
 			if 悟道点奖励 > 0:
-				var 悟道点项 := Label.new()
-				悟道点项.text = "📖 悟道点 +%d" % 悟道点奖励
-				悟道点项.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-				悟道点项.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9, 1.0))
-				奖励内容hb.add_child(悟道点项)
+				奖励内容hb.add_child(_图标文本("悟道点 +%d" % 悟道点奖励, "emoji_general_book", UITheme.FONT_H2, Color(0.7, 0.5, 0.9, 1.0), 40))
 			
 			# 奖励描述
 			var 奖励描述: String = str(今日奖励.get("描述", ""))
 			if 奖励描述 != "":
 				var 描述列 := Label.new()
 				描述列.text = 奖励描述
-				描述列.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-				描述列.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+				UITheme.apply_project_font(描述列, UITheme.FONT_BODY, false)
+				描述列.add_theme_color_override("font_color", UITheme.获取弱文字色())
 				奖励详情vbox.add_child(描述列)
 			
 			_scroll_vbox.add_child(奖励详情卡)
@@ -190,11 +228,7 @@ func _populate() -> void:
 	if is_instance_valid(Game) and Game.has_method("获取累计签到奖励列表"):
 		var 累计奖励列表: Array = Game.获取累计签到奖励列表()
 		if not 累计奖励列表.is_empty():
-			var 累计奖励头 := Label.new()
-			累计奖励头.text = "🏆 累计供奉奖励"
-			累计奖励头.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-			累计奖励头.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-			_scroll_vbox.add_child(累计奖励头)
+			_scroll_vbox.add_child(_图标文本("累计供奉奖励", "emoji_activity_trophy", UITheme.FONT_H2, UITheme.获取金文字色(), 44))
 			
 			for 累计奖励 in 累计奖励列表:
 				var 天数: int = int(累计奖励.get("天数", 0))
@@ -207,7 +241,7 @@ func _populate() -> void:
 				var 累计卡样式 := StyleBoxFlat.new()
 				if 已达成:
 					累计卡样式.bg_color = Color(0.12, 0.18, 0.12, 1.0)
-					累计卡样式.border_color = UITheme.C01_TEXT_GOLD
+					累计卡样式.border_color = UITheme.获取金文字色()
 				else:
 					累计卡样式.bg_color = UITheme.C01_FLOAT_BG
 					累计卡样式.border_color = UITheme.C01_GOLD_LINE
@@ -220,49 +254,61 @@ func _populate() -> void:
 				累计奖励hb.name = "CumulativeRewardHBox"
 				累计奖励hb.add_theme_constant_override("separation", 12)
 				累计奖励卡.add_child(累计奖励hb)
+				累计奖励hb.modulate.a = 0.0
+				累计奖励hb.create_tween().tween_property(累计奖励hb, "modulate:a", 1.0, 0.25)
 				
-				# 天数图标
-				var 天数图标 := Label.new()
-				天数图标.text = "📅" if 已达成 else "🔒"
-				天数图标.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-				累计奖励hb.add_child(天数图标)
+				# 天数图标（达成=日历金框图标 / 未达成=锁形金框图标；原为 ◇/◇ 裸 emoji）
+				var _fb1 := _图标控件("emoji_activity_calendar" if 已达成 else "emoji_shop_lock", 40)
+				累计奖励hb.add_child(_fb1)
+				_fb1.modulate.a = 0.0
+				_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 				
 				var 累计奖励info := VBoxContainer.new()
 				累计奖励info.name = "CumulativeRewardInfo"
 				累计奖励info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				累计奖励info.add_theme_constant_override("separation", 4)
 				累计奖励hb.add_child(累计奖励info)
+				累计奖励info.modulate.a = 0.0
+				累计奖励info.create_tween().tween_property(累计奖励info, "modulate:a", 1.0, 0.25)
 				
 				# 天数标题
 				var 天数标题 := Label.new()
 				天数标题.text = "连续供奉 %d 日" % 天数
-				天数标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+				UITheme.apply_project_font(天数标题, UITheme.FONT_H2, true)
 				if 已达成:
-					天数标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+					天数标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 				else:
-					天数标题.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+					天数标题.add_theme_color_override("font_color", UITheme.获取主文字色())
 				累计奖励info.add_child(天数标题)
+				天数标题.modulate.a = 0.0
+				天数标题.create_tween().tween_property(天数标题, "modulate:a", 1.0, 0.25)
 				
 				# 奖励描述
 				var 累计描述 := Label.new()
 				累计描述.text = 描述
-				累计描述.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-				累计描述.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+				UITheme.apply_project_font(累计描述, UITheme.FONT_BODY, false)
+				累计描述.add_theme_color_override("font_color", UITheme.获取弱文字色())
 				累计奖励info.add_child(累计描述)
+				累计描述.modulate.a = 0.0
+				累计描述.create_tween().tween_property(累计描述, "modulate:a", 1.0, 0.25)
 				
 				# 状态标签
 				var 状态标签 := Label.new()
-				状态标签.text = "✅ 已达成" if 已达成 else "未达成"
+				状态标签.text = "已达成" if 已达成 else "未达成"
 				状态标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 				状态标签.size_flags_horizontal = Control.SIZE_SHRINK_END
-				状态标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+				UITheme.apply_project_font(状态标签, UITheme.FONT_BODY, false)
 				if 已达成:
 					状态标签.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5, 1.0))
 				else:
-					状态标签.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+					状态标签.add_theme_color_override("font_color", UITheme.获取弱文字色())
 				累计奖励hb.add_child(状态标签)
+				状态标签.modulate.a = 0.0
+				状态标签.create_tween().tween_property(状态标签, "modulate:a", 1.0, 0.25)
 				
 				_scroll_vbox.add_child(累计奖励卡)
+				累计奖励卡.modulate.a = 0.0
+				累计奖励卡.create_tween().tween_property(累计奖励卡, "modulate:a", 1.0, 0.25)
 
 	if 加成列表.size() > 0:
 		var 加成头 := Label.new()
@@ -274,6 +320,8 @@ func _populate() -> void:
 			加成项.text = "%s：%s" % [b.get("堂主", "—"), b.get("描述", "")]
 			UITheme.apply_aux_text(加成项)
 			_scroll_vbox.add_child(加成项)
+			加成项.modulate.a = 0.0
+			加成项.create_tween().tween_property(加成项, "modulate:a", 1.0, 0.25)
 
 	# 仙玉兑换（带每日上限）：数据层未就绪时显示为筹备中，按钮置灰
 	var 兑换就绪: bool = is_instance_valid(Game) and Game.has_method("仙玉兑换")
@@ -300,6 +348,8 @@ func _populate() -> void:
 		if 兑换就绪:
 			b.pressed.connect(_on_兑换.bind(类型))
 		_scroll_vbox.add_child(b)
+		b.modulate.a = 0.0
+		b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 
 	# 特权卡系统（月卡/季卡/永久卡）
 	var 特权卡头 := Label.new()
@@ -320,9 +370,9 @@ func _populate() -> void:
 		if Game.季卡到期日 >= Game.累计游戏日:
 			季卡剩余 = Game.季卡到期日 - Game.累计游戏日
 	卡状态行.text = "清修卡(月卡): %s | 悟道卡(季卡): %s | 道统卡(永久): %s" % [
-		"有效(%d日)" % 月卡剩余 if 月卡有效 else "未激活",
-		"有效(%d日)" % 季卡剩余 if 季卡有效 else "未激活",
-		"已激活" if 永久卡有效 else "未激活"
+		"有效(%d日)" % 月卡剩余 if 月卡有效 else "未开",
+		"有效(%d日)" % 季卡剩余 if 季卡有效 else "未开",
+		"已开" if 永久卡有效 else "未开"
 	]
 	UITheme.apply_aux_text(卡状态行)
 	_scroll_vbox.add_child(卡状态行)
@@ -376,11 +426,7 @@ func _populate() -> void:
 	if is_instance_valid(Game) and Game.has_method("获取限时礼包活动"):
 		var 限时活动列表: Array = Game.获取限时礼包活动()
 		if not 限时活动列表.is_empty():
-			var 限时活动头 := Label.new()
-			限时活动头.text = "🔥 限时特惠"
-			限时活动头.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-			限时活动头.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4, 1.0))
-			_scroll_vbox.add_child(限时活动头)
+			_scroll_vbox.add_child(_图标文本("限时缘法", "emoji_activity_fire", UITheme.FONT_TITLE, Color(1.0, 0.8, 0.4, 1.0), 48))
 			
 			for 活动礼包 in 限时活动列表:
 				var 礼包 = 活动礼包.get("礼包", {})
@@ -391,6 +437,8 @@ func _populate() -> void:
 				
 				var 礼包卡片 = _make_limited_gift_card(礼包, 原价, 活动价, 折扣百分比, 剩余天数)
 				_scroll_vbox.add_child(礼包卡片)
+				礼包卡片.modulate.a = 0.0
+				礼包卡片.create_tween().tween_property(礼包卡片, "modulate:a", 1.0, 0.25)
 
 	if is_instance_valid(Game):
 		for 礼包 in Game.礼包配置:
@@ -410,6 +458,8 @@ func _populate() -> void:
 			if 可购买:
 				礼包按钮.pressed.connect(_on_购买礼包.bind(礼包ID))
 			_scroll_vbox.add_child(礼包按钮)
+			礼包按钮.modulate.a = 0.0
+			礼包按钮.create_tween().tween_property(礼包按钮, "modulate:a", 1.0, 0.25)
 
 func _刷新余额() -> void:
 	if _余额标签 != null and is_instance_valid(Game):
@@ -427,7 +477,7 @@ func _反馈(文本: String) -> void:
 
 func _on_领取日供() -> void:
 	if not is_instance_valid(Game) or not Game.has_method("领取日供"):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	var r: Dictionary = Game.领取日供()
 	_反馈(str(r.get("msg", "—")))
@@ -437,7 +487,7 @@ func _on_领取日供() -> void:
 
 func _on_兑换(类型: String) -> void:
 	if not is_instance_valid(Game) or not Game.has_method("仙玉兑换"):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	var r: Dictionary = Game.仙玉兑换(类型, 10)
 	_反馈(str(r.get("msg", "—")))
@@ -446,7 +496,7 @@ func _on_兑换(类型: String) -> void:
 
 func _on_购买月卡() -> void:
 	if not is_instance_valid(Game):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	# 检查仙玉
 	if Game.仙玉_绑定 < 30 and Game.仙玉_非绑定 < 30:
@@ -466,7 +516,7 @@ func _on_购买月卡() -> void:
 
 func _on_购买季卡() -> void:
 	if not is_instance_valid(Game):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	if Game.仙玉_绑定 < 80 and Game.仙玉_非绑定 < 80:
 		_反馈("仙玉匮乏，需要80仙玉")
@@ -484,7 +534,7 @@ func _on_购买季卡() -> void:
 
 func _on_购买永久卡() -> void:
 	if not is_instance_valid(Game):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	if Game.永久卡有效():
 		_反馈("道统卡已激活")
@@ -505,7 +555,7 @@ func _on_购买永久卡() -> void:
 
 func _on_购买礼包(礼包ID: String) -> void:
 	if not is_instance_valid(Game):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	var 礼包 = null
 	for g in Game.礼包配置:
@@ -554,6 +604,8 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 	hb.name = "CardHBox"
 	hb.add_theme_constant_override("separation", 12)
 	card.add_child(hb)
+	hb.modulate.a = 0.0
+	hb.create_tween().tween_property(hb, "modulate:a", 1.0, 0.25)
 	
 	# 图标区域
 	var icon_panel := PanelContainer.new()
@@ -564,14 +616,14 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 	icon_style.set_corner_radius_all(10)
 	icon_panel.add_theme_stylebox_override("panel", icon_style)
 	
-	var icon_label := Label.new()
-	icon_label.name = "IconLabel"
-	icon_label.text = "🎁"
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
-	icon_panel.add_child(icon_label)
+	# 图标位：改用「圆形金框礼盒」资产（原为 ◇ 裸 emoji，字形随系统字体漂移）
+	var _fb2 := _图标控件("emoji_shop_gift", 60)
+	icon_panel.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	hb.add_child(icon_panel)
+	icon_panel.modulate.a = 0.0
+	icon_panel.create_tween().tween_property(icon_panel, "modulate:a", 1.0, 0.25)
 	
 	# 信息区域
 	var info := VBoxContainer.new()
@@ -579,19 +631,25 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 4)
 	hb.add_child(info)
+	info.modulate.a = 0.0
+	info.create_tween().tween_property(info, "modulate:a", 1.0, 0.25)
 	
 	# 礼包名称和限时标签
 	var name_hb := HBoxContainer.new()
 	name_hb.name = "NameHBox"
 	name_hb.add_theme_constant_override("separation", 8)
 	info.add_child(name_hb)
+	name_hb.modulate.a = 0.0
+	name_hb.create_tween().tween_property(name_hb, "modulate:a", 1.0, 0.25)
 	
 	var name_label := Label.new()
 	name_label.name = "GiftName"
 	name_label.text = str(礼包.get("名称", "未知礼包"))
-	name_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(name_label, UITheme.FONT_H2, true)
 	name_label.add_theme_color_override("font_color", Color(0.95, 0.9, 1.0, 1.0))
 	name_hb.add_child(name_label)
+	name_label.modulate.a = 0.0
+	name_label.create_tween().tween_property(name_label, "modulate:a", 1.0, 0.25)
 	
 	if 剩余天数 > 0:
 		var limited_badge := PanelContainer.new()
@@ -607,41 +665,49 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 		limited_label.text = "剩%d日" % 剩余天数
 		limited_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		limited_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		limited_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(limited_label, UITheme.FONT_BODY, false)
 		limited_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 		limited_badge.add_child(limited_label)
+		limited_label.modulate.a = 0.0
+		limited_label.create_tween().tween_property(limited_label, "modulate:a", 1.0, 0.25)
 		name_hb.add_child(limited_badge)
+		limited_badge.modulate.a = 0.0
+		limited_badge.create_tween().tween_property(limited_badge, "modulate:a", 1.0, 0.25)
 	
 	# 礼包描述
 	var desc_label := Label.new()
 	desc_label.name = "GiftDesc"
 	desc_label.text = str(礼包.get("描述", ""))
-	desc_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(desc_label, UITheme.FONT_BODY, false)
 	desc_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65, 1.0))
 	info.add_child(desc_label)
+	desc_label.modulate.a = 0.0
+	desc_label.create_tween().tween_property(desc_label, "modulate:a", 1.0, 0.25)
 	
 	# 价格区域
 	var price_hb := HBoxContainer.new()
 	price_hb.name = "PriceHBox"
 	price_hb.add_theme_constant_override("separation", 8)
 	info.add_child(price_hb)
+	price_hb.modulate.a = 0.0
+	price_hb.create_tween().tween_property(price_hb, "modulate:a", 1.0, 0.25)
 	
-	# 活动价
-	var special_price := Label.new()
-	special_price.name = "SpecialPrice"
-	special_price.text = "💎 %d" % 活动价
-	special_price.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	special_price.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4, 1.0))
-	price_hb.add_child(special_price)
+	# 活动价：仙玉图标（res_xianyu_36）+ 数字（原为「◇ %d」裸 emoji 前缀）
+	var _fb3 := _图标文本("%d" % 活动价, "res_xianyu_36", UITheme.FONT_TITLE, Color(1.0, 0.8, 0.4, 1.0), 44)
+	price_hb.add_child(_fb3)
+	_fb3.modulate.a = 0.0
+	_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 	
 	# 原价（划线）
 	if 原价 > 活动价:
 		var original_price := Label.new()
 		original_price.name = "OriginalPrice"
 		original_price.text = "%d" % 原价
-		original_price.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(original_price, UITheme.FONT_H2, true)
 		original_price.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55, 1.0))
 		price_hb.add_child(original_price)
+		original_price.modulate.a = 0.0
+		original_price.create_tween().tween_property(original_price, "modulate:a", 1.0, 0.25)
 	
 	# 折扣标签
 	if 折扣百分比 > 0:
@@ -658,15 +724,19 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 		discount_label.text = "-%d%%" % 折扣百分比
 		discount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		discount_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		discount_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(discount_label, UITheme.FONT_BODY, false)
 		discount_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 		discount_badge.add_child(discount_label)
+		discount_label.modulate.a = 0.0
+		discount_label.create_tween().tween_property(discount_label, "modulate:a", 1.0, 0.25)
 		price_hb.add_child(discount_badge)
+		discount_badge.modulate.a = 0.0
+		discount_badge.create_tween().tween_property(discount_badge, "modulate:a", 1.0, 0.25)
 	
 	# 购买按钮
 	var buy_btn := Button.new()
 	buy_btn.name = "BuyButton"
-	buy_btn.text = "立即抢购"
+	buy_btn.text = "立即请购"
 	buy_btn.custom_minimum_size = Vector2(0, 36)
 	buy_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 	var btn_style_normal := StyleBoxFlat.new()
@@ -678,10 +748,12 @@ func _make_limited_gift_card(礼包: Dictionary, 原价: int, 活动价: int, �
 	btn_style_hover.set_corner_radius_all(8)
 	buy_btn.add_theme_stylebox_override("hover", btn_style_hover)
 	buy_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-	buy_btn.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(buy_btn, UITheme.FONT_H2, true)
 	var 礼包ID = str(礼包.get("id", ""))
 	buy_btn.pressed.connect(_on_购买礼包.bind(礼包ID))
 	info.add_child(buy_btn)
+	buy_btn.modulate.a = 0.0
+	buy_btn.create_tween().tween_property(buy_btn, "modulate:a", 1.0, 0.25)
 	
 	return card
 
@@ -694,8 +766,10 @@ func _on_付费_全局增益() -> void:
 	if r.get("成功", false):
 		var g: float = float(r.get("当前增益", 0.0)) * 100.0
 		UIHint.show_hint(self, "全局增益+5%", "战斗通用增益提升至 %.0f%%" % g)
+		Game.添加提示("全局增益+5%")
 	else:
 		UIHint.show_hint(self, "仙玉匮乏", str(r.get("原因", "")))
+		Game.添加提示("仙玉匮乏")
 	refresh()
 
 # ===== VIP特权展示（P0新增）=====
@@ -717,7 +791,7 @@ func _build_vip_section() -> void:
 
 	# VIP标题
 	var vip头 := Label.new()
-	vip头.text = "◆ 仙阶礼遇（VIP%d）" % 当前等级
+	vip头.text = "◆ 仙阶礼遇 · 第 %d 阶" % 当前等级
 	UITheme.apply_section_title(vip头)
 	vip头.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 	_scroll_vbox.add_child(vip头)
@@ -745,22 +819,22 @@ func _build_vip_section() -> void:
 	vip卡vbox.add_child(等级行)
 
 	var 当前等级label := Label.new()
-	当前等级label.text = "当前仙阶：VIP%d" % 当前等级
-	当前等级label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	当前等级label.text = "当前仙阶：第 %d 阶" % 当前等级
+	UITheme.apply_project_font(当前等级label, UITheme.FONT_TITLE, true)
 	当前等级label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.5))
 	等级行.add_child(当前等级label)
 
 	var 累充label := Label.new()
 	累充label.text = "累充：%d元" % 累充额
-	累充label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(累充label, UITheme.FONT_H2, true)
 	累充label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
 	等级行.add_child(累充label)
 
 	# 升级进度条
 	if 当前等级 < 12:
 		var 进度label := Label.new()
-		进度label.text = "距VIP%d还需%d元（%.0f%%）" % [下一等级, max(0, 下一级金额 - 累充额), 升级进度 * 100]
-		进度label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		进度label.text = "距第 %d 阶还需%d元（%.0f%%）" % [下一等级, max(0, 下一级金额 - 累充额), 升级进度 * 100]
+		UITheme.apply_project_font(进度label, UITheme.FONT_BODY, false)
 		进度label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
 		vip卡vbox.add_child(进度label)
 
@@ -774,7 +848,7 @@ func _build_vip_section() -> void:
 	else:
 		var 已满级label := Label.new()
 		已满级label.text = "★ 已达最高仙阶 ★"
-		已满级label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(已满级label, UITheme.FONT_H2, true)
 		已满级label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 		已满级label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vip卡vbox.add_child(已满级label)
@@ -786,19 +860,19 @@ func _build_vip_section() -> void:
 
 	var 离线label := Label.new()
 	离线label.text = "离线上限：%d小时" % 离线上限
-	离线label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(离线label, UITheme.FONT_BODY, false)
 	离线label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 	权益概览行.add_child(离线label)
 
 	var 机缘label := Label.new()
 	机缘label.text = "机缘加成：+%d%%" % int(机缘加成 * 100)
-	机缘label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(机缘label, UITheme.FONT_BODY, false)
 	机缘label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
 	权益概览行.add_child(机缘label)
 
 	var 倍率label := Label.new()
 	倍率label.text = "战斗倍速：%.0fx" % float(统计.get("战斗倍率", 1.0))
-	倍率label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(倍率label, UITheme.FONT_BODY, false)
 	倍率label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.6))
 	权益概览行.add_child(倍率label)
 
@@ -809,7 +883,7 @@ func _build_vip_section() -> void:
 	if 已解锁.size() > 0:
 		var 已解锁头 := Label.new()
 		已解锁头.text = "【已解锁礼遇】"
-		已解锁头.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(已解锁头, UITheme.FONT_H2, true)
 		已解锁头.add_theme_color_override("font_color", Color(0.6, 0.9, 0.6))
 		_scroll_vbox.add_child(已解锁头)
 
@@ -820,10 +894,12 @@ func _build_vip_section() -> void:
 		权益网格.add_theme_constant_override("v_separation", 4)
 		for 权 in 已解锁:
 			var 权label := Label.new()
-			权label.text = "✓ %s" % str(权)
-			权label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			权label.text = str(权)
+			UITheme.apply_project_font(权label, UITheme.FONT_BODY, false)
 			权label.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
 			权益网格.add_child(权label)
+			权label.modulate.a = 0.0
+			权label.create_tween().tween_property(权label, "modulate:a", 1.0, 0.25)
 		_scroll_vbox.add_child(权益网格)
 
 	# 下一等级权益预览
@@ -831,17 +907,19 @@ func _build_vip_section() -> void:
 		var 下一级权益: Array = 权益.get("下一等级权益", [])
 		if 下一级权益.size() > 0:
 			var 下一级头 := Label.new()
-			下一级头.text = "【VIP%d新增礼遇】" % 下一等级
-			下一级头.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			下一级头.text = "【第 %d 阶新增礼遇】" % 下一等级
+			UITheme.apply_project_font(下一级头, UITheme.FONT_H2, true)
 			下一级头.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 			_scroll_vbox.add_child(下一级头)
 
 			for 权 in 下一级权益:
 				var 权label := Label.new()
 				权label.text = "○ %s" % str(权)
-				权label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+				UITheme.apply_project_font(权label, UITheme.FONT_BODY, false)
 				权label.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
 				_scroll_vbox.add_child(权label)
+				权label.modulate.a = 0.0
+				权label.create_tween().tween_property(权label, "modulate:a", 1.0, 0.25)
 
 	# 充值引导按钮
 	if 当前等级 < 12:
@@ -867,7 +945,8 @@ func _on_vip_recharge_guide() -> void:
 	var 下一级金额: int = int(统计.get("下一级金额", 0))
 	var 累充额: int = int(统计.get("累充额", 0))
 	var 还需: int = max(0, 下一级金额 - 累充额)
-	UIHint.show_hint(self, "仙阶提升", "累计充值%d元即可晋升VIP%d\n当前累充：%d元\n还需：%d元" % [下一级金额, 下一等级, 累充额, 还需])
+	UIHint.show_hint(self, "仙阶提升", "累计充值%d元即可晋升第 %d 阶\n当前累充：%d元\n还需：%d元" % [下一级金额, 下一等级, 累充额, 还需])
+	Game.添加提示("仙阶提升")
 
 # ===== P1：VIP专属活动入口 =====
 func _build_vip_activities() -> void:
@@ -884,11 +963,11 @@ func _build_vip_activities() -> void:
 
 	# VIP专属活动列表
 	var 活动列表: Array = [
-		{"名称": "每日仙阶礼遇", "描述": "VIP每日奖励领取", "最低VIP": 1, "入口": "日供"},
-		{"名称": "仙阶特惠礼包", "描述": "VIP专属折扣礼包", "最低VIP": 3, "入口": "礼包"},
+		{"名称": "每日仙阶礼遇", "描述": "仙阶每日奖励领取", "最低VIP": 1, "入口": "日供"},
+		{"名称": "仙阶缘法礼包", "描述": "仙阶专属让利礼包", "最低VIP": 3, "入口": "礼包"},
 		{"名称": "仙阶双倍日供", "描述": "永久卡用户日供翻倍", "最低VIP": 6, "入口": "日供"},
-		{"名称": "仙阶专属秘境", "描述": "高阶VIP专属秘境探索", "最低VIP": 9, "入口": "历练"},
-		{"名称": "仙阶专属拍卖", "描述": "高阶VIP专属拍卖场次", "最低VIP": 10, "入口": "拍卖行"},
+		{"名称": "仙阶专属秘境", "描述": "高阶仙阶专属秘境探索", "最低VIP": 9, "入口": "历练"},
+		{"名称": "仙阶专属拍卖", "描述": "高阶仙阶专属拍卖场次", "最低VIP": 10, "入口": "拍卖行"},
 	]
 
 	for 活动 in 活动列表:
@@ -908,24 +987,34 @@ func _build_vip_activities() -> void:
 		var 活动hb := HBoxContainer.new()
 		活动hb.add_theme_constant_override("separation", 12)
 		活动卡.add_child(活动hb)
+		活动hb.modulate.a = 0.0
+		活动hb.create_tween().tween_property(活动hb, "modulate:a", 1.0, 0.25)
 
 		var 活动信息vbox := VBoxContainer.new()
 		活动信息vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		活动hb.add_child(活动信息vbox)
+		活动信息vbox.modulate.a = 0.0
+		活动信息vbox.create_tween().tween_property(活动信息vbox, "modulate:a", 1.0, 0.25)
 
 		var 活动名称label := Label.new()
-		活动名称label.text = "%s%s" % ["✓ " if 已解锁 else "🔒 ", str(活动.get("名称", ""))]
-		活动名称label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		活动名称label.text = "%s%s" % [str(活动.get("名称", "")), "" if 已解锁 else "（未开启）"]
+		UITheme.apply_project_font(活动名称label, UITheme.FONT_H2, true)
 		活动名称label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5) if 已解锁 else Color(0.5, 0.5, 0.5))
 		活动信息vbox.add_child(活动名称label)
+		活动名称label.modulate.a = 0.0
+		活动名称label.create_tween().tween_property(活动名称label, "modulate:a", 1.0, 0.25)
 
 		var 活动描述label := Label.new()
-		活动描述label.text = "%s（需VIP%d）" % [str(活动.get("描述", "")), 最低VIP]
-		活动描述label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		活动描述label.text = "%s（需第 %d 阶）" % [str(活动.get("描述", "")), 最低VIP]
+		UITheme.apply_project_font(活动描述label, UITheme.FONT_BODY, false)
 		活动描述label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))
 		活动信息vbox.add_child(活动描述label)
+		活动描述label.modulate.a = 0.0
+		活动描述label.create_tween().tween_property(活动描述label, "modulate:a", 1.0, 0.25)
 
 		_scroll_vbox.add_child(活动卡)
+		活动卡.modulate.a = 0.0
+		活动卡.create_tween().tween_property(活动卡, "modulate:a", 1.0, 0.25)
 
 # ===== P1：VIP专属外观预览 =====
 func _build_vip_appearance() -> void:
@@ -943,7 +1032,7 @@ func _build_vip_appearance() -> void:
 	# 宗主头像专属外观
 	var 头像头 := Label.new()
 	头像头.text = "【宗主头像】"
-	头像头.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(头像头, UITheme.FONT_BODY, false)
 	头像头.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 	_scroll_vbox.add_child(头像头)
 
@@ -970,35 +1059,39 @@ func _build_vip_appearance() -> void:
 		var 最低VIP: int = int(头像.get("最低VIP", 1))
 		var 已解锁: bool = 当前等级 >= 最低VIP
 		var 头像label := Label.new()
-		头像label.text = "%s%s（VIP%d）" % ["✓ " if 已解锁 else "🔒 ", str(头像.get("名称", "")), 最低VIP]
-		头像label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		头像label.text = "%s（第 %d 阶）%s" % [str(头像.get("名称", "")), 最低VIP, "" if 已解锁 else " 未开启"]
+		UITheme.apply_project_font(头像label, UITheme.FONT_BODY, false)
 		头像label.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55) if 已解锁 else Color(0.45, 0.45, 0.45))
 		头像网格.add_child(头像label)
+		头像label.modulate.a = 0.0
+		头像label.create_tween().tween_property(头像label, "modulate:a", 1.0, 0.25)
 
 	_scroll_vbox.add_child(头像网格)
 
 	# 宗门外观专属
 	var 宗门外观头 := Label.new()
 	宗门外观头.text = "【宗门外观】"
-	宗门外观头.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(宗门外观头, UITheme.FONT_BODY, false)
 	宗门外观头.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 	_scroll_vbox.add_child(宗门外观头)
 
 	var 宗门外观列表: Array = [
 		{"名称": "青竹别院", "最低VIP": 1, "描述": "基础宗门外观"},
-		{"名称": "紫云仙府", "最低VIP": 4, "描述": "VIP4专属宗门外观"},
-		{"名称": "九霄天宫", "最低VIP": 7, "描述": "VIP7专属宗门外观"},
-		{"名称": "太玄圣殿", "最低VIP": 10, "描述": "VIP10专属宗门外观"},
+		{"名称": "紫云仙府", "最低VIP": 4, "描述": "第 4 阶专属宗门外观"},
+		{"名称": "九霄天宫", "最低VIP": 7, "描述": "第 7 阶专属宗门外观"},
+		{"名称": "太玄圣殿", "最低VIP": 10, "描述": "第 10 阶专属宗门外观"},
 	]
 
 	for 外观 in 宗门外观列表:
 		var 最低VIP: int = int(外观.get("最低VIP", 1))
 		var 已解锁: bool = 当前等级 >= 最低VIP
 		var 外观label := Label.new()
-		外观label.text = "%s%s - %s（VIP%d）" % ["✓ " if 已解锁 else "🔒 ", str(外观.get("名称", "")), str(外观.get("描述", "")), 最低VIP]
-		外观label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		外观label.text = "%s - %s（第 %d 阶）%s" % [str(外观.get("名称", "")), str(外观.get("描述", "")), 最低VIP, "" if 已解锁 else " 未开启"]
+		UITheme.apply_project_font(外观label, UITheme.FONT_BODY, false)
 		外观label.add_theme_color_override("font_color", Color(0.75, 0.7, 0.55) if 已解锁 else Color(0.45, 0.45, 0.45))
 		_scroll_vbox.add_child(外观label)
+		外观label.modulate.a = 0.0
+		外观label.create_tween().tween_property(外观label, "modulate:a", 1.0, 0.25)
 
 # ===== P1：VIP等级对比表 =====
 func _build_vip_comparison() -> void:
@@ -1025,10 +1118,12 @@ func _build_vip_comparison() -> void:
 	for 头 in 表头:
 		var 头label := Label.new()
 		头label.text = str(头)
-		头label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(头label, UITheme.FONT_BODY, false)
 		头label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
 		头label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		对比表.add_child(头label)
+		头label.modulate.a = 0.0
+		头label.create_tween().tween_property(头label, "modulate:a", 1.0, 0.25)
 
 	# 对比数据
 	var 对比数据: Array = [
@@ -1044,38 +1139,48 @@ func _build_vip_comparison() -> void:
 		var 是当前: bool = 等级 == 当前等级
 
 		var 等级label := Label.new()
-		等级label.text = "VIP%d%s" % [等级, " ←当前" if 是当前 else ""]
-		等级label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		等级label.text = "第 %d 阶%s" % [等级, " ←当前" if 是当前 else ""]
+		UITheme.apply_project_font(等级label, UITheme.FONT_AUX, false)
 		等级label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.5) if 是当前 else Color(0.7, 0.7, 0.65))
 		等级label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		对比表.add_child(等级label)
+		等级label.modulate.a = 0.0
+		等级label.create_tween().tween_property(等级label, "modulate:a", 1.0, 0.25)
 
 		var 离线label := Label.new()
 		离线label.text = str(数据.get("离线", ""))
-		离线label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(离线label, UITheme.FONT_AUX, false)
 		离线label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 		离线label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		对比表.add_child(离线label)
+		离线label.modulate.a = 0.0
+		离线label.create_tween().tween_property(离线label, "modulate:a", 1.0, 0.25)
 
 		var 机缘label := Label.new()
 		机缘label.text = str(数据.get("机缘", ""))
-		机缘label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(机缘label, UITheme.FONT_AUX, false)
 		机缘label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
 		机缘label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		对比表.add_child(机缘label)
+		机缘label.modulate.a = 0.0
+		机缘label.create_tween().tween_property(机缘label, "modulate:a", 1.0, 0.25)
 
 		var 倍速label := Label.new()
 		倍速label.text = str(数据.get("倍速", ""))
-		倍速label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(倍速label, UITheme.FONT_AUX, false)
 		倍速label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.6))
 		倍速label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		对比表.add_child(倍速label)
+		倍速label.modulate.a = 0.0
+		倍速label.create_tween().tween_property(倍速label, "modulate:a", 1.0, 0.25)
 
 		var 礼遇label := Label.new()
 		礼遇label.text = str(数据.get("礼遇", ""))
-		礼遇label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(礼遇label, UITheme.FONT_AUX, false)
 		礼遇label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.6))
 		对比表.add_child(礼遇label)
+		礼遇label.modulate.a = 0.0
+		礼遇label.create_tween().tween_property(礼遇label, "modulate:a", 1.0, 0.25)
 
 	_scroll_vbox.add_child(对比表)
 
@@ -1101,18 +1206,18 @@ func _build_recharge_recommendation() -> void:
 		var 还需: int = max(0, 下一级金额 - 累充额)
 		# 根据还需金额推荐最合适的套餐
 		if 还需 <= 6:
-			推荐套餐.append({"名称": "6元套餐", "价格": 6, "仙玉": 60, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+			推荐套餐.append({"名称": "6元套餐", "价格": 6, "仙玉": 60, "推荐": "刚好晋升第 %d 阶" % min(当前等级 + 1, 12)})
 		elif 还需 <= 30:
-			推荐套餐.append({"名称": "30元套餐", "价格": 30, "仙玉": 300, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+			推荐套餐.append({"名称": "30元套餐", "价格": 30, "仙玉": 300, "推荐": "刚好晋升第 %d 阶" % min(当前等级 + 1, 12)})
 		elif 还需 <= 68:
-			推荐套餐.append({"名称": "68元套餐", "价格": 68, "仙玉": 680, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+			推荐套餐.append({"名称": "68元套餐", "价格": 68, "仙玉": 680, "推荐": "刚好晋升第 %d 阶" % min(当前等级 + 1, 12)})
 		elif 还需 <= 128:
-			推荐套餐.append({"名称": "128元套餐", "价格": 128, "仙玉": 1280, "推荐": "刚好晋升VIP%d" % min(当前等级 + 1, 12)})
+			推荐套餐.append({"名称": "128元套餐", "价格": 128, "仙玉": 1280, "推荐": "刚好晋升第 %d 阶" % min(当前等级 + 1, 12)})
 		elif 还需 <= 298:
-			推荐套餐.append({"名称": "298元套餐", "价格": 298, "仙玉": 2980, "推荐": "刚好晋升VIP%d，含永久卡" % min(当前等级 + 1, 12)})
+			推荐套餐.append({"名称": "298元套餐", "价格": 298, "仙玉": 2980, "推荐": "刚好晋升第 %d 阶，含永久卡" % min(当前等级 + 1, 12)})
 		else:
 			推荐套餐.append({"名称": "648元套餐", "价格": 648, "仙玉": 6480, "推荐": "大额充值，快速提升仙阶"})
-			推荐套餐.append({"名称": "12888元套餐", "价格": 12888, "仙玉": 128880, "推荐": "直达VIP12，全功能解锁"})
+			推荐套餐.append({"名称": "12888元套餐", "价格": 12888, "仙玉": 128880, "推荐": "直达第 12 阶，全功能解锁"})
 
 	# 热门套餐（始终显示）
 	推荐套餐.append({"名称": "月卡（清修卡）", "价格": 30, "仙玉": 300, "推荐": "30天离线+20%、历练+1、一键收取"})
@@ -1133,32 +1238,45 @@ func _build_recharge_recommendation() -> void:
 		var 套餐hb := HBoxContainer.new()
 		套餐hb.add_theme_constant_override("separation", 12)
 		套餐卡.add_child(套餐hb)
+		套餐hb.modulate.a = 0.0
+		套餐hb.create_tween().tween_property(套餐hb, "modulate:a", 1.0, 0.25)
 
 		var 套餐信息vbox := VBoxContainer.new()
 		套餐信息vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		套餐hb.add_child(套餐信息vbox)
+		套餐信息vbox.modulate.a = 0.0
+		套餐信息vbox.create_tween().tween_property(套餐信息vbox, "modulate:a", 1.0, 0.25)
 
 		var 套餐名称label := Label.new()
 		套餐名称label.text = str(套餐.get("名称", ""))
-		套餐名称label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(套餐名称label, UITheme.FONT_H2, true)
 		套餐名称label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.7))
 		套餐信息vbox.add_child(套餐名称label)
+		套餐名称label.modulate.a = 0.0
+		套餐名称label.create_tween().tween_property(套餐名称label, "modulate:a", 1.0, 0.25)
 
 		var 套餐描述label := Label.new()
 		套餐描述label.text = "%s | %s" % [str(套餐.get("推荐", "")), "含%d仙玉" % int(套餐.get("仙玉", 0))]
-		套餐描述label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(套餐描述label, UITheme.FONT_BODY, false)
 		套餐描述label.add_theme_color_override("font_color", Color(0.6, 0.7, 0.6))
 		套餐信息vbox.add_child(套餐描述label)
+		套餐描述label.modulate.a = 0.0
+		套餐描述label.create_tween().tween_property(套餐描述label, "modulate:a", 1.0, 0.25)
 
 		var 购买btn := Button.new()
 		购买btn.text = "%d元" % int(套餐.get("价格", 0))
 		购买btn.custom_minimum_size = Vector2(80, 36)
-		购买btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(购买btn, UITheme.FONT_BODY, false)
 		购买btn.pressed.connect(_on_recharge_package.bind(str(套餐.get("名称", "")), int(套餐.get("价格", 0))))
 		套餐hb.add_child(购买btn)
+		购买btn.modulate.a = 0.0
+		购买btn.create_tween().tween_property(购买btn, "modulate:a", 1.0, 0.25)
 
 		_scroll_vbox.add_child(套餐卡)
+		套餐卡.modulate.a = 0.0
+		套餐卡.create_tween().tween_property(套餐卡, "modulate:a", 1.0, 0.25)
 
 # 充值套餐购买
 func _on_recharge_package(名称: String, 价格: int) -> void:
 	UIHint.show_hint(self, "充值指引", "选择【%s】（%d元）\n请前往充值中心完成支付\n支付成功后仙阶礼遇自动生效" % [名称, 价格])
+	Game.添加提示("充值指引")

@@ -14,6 +14,12 @@ var _列表: VBoxContainer
 var _状态标签: Label
 var _进度标签: Label
 var _奖励标签: Label
+# 分批渲染：典藏条目数以千计，一次建卡会拖慢首屏（实测 327ms）→ 首屏建一批，滚动近底再续建
+var _滚动: ScrollContainer
+var _待渲染: Array = []
+var _渲染游标: int = 0
+var _渲染上下文: Dictionary = {}
+const 每批: int = 30
 
 # 五大类分类映射（旧分类→新分类）
 # 先贤事迹、天机已移出典藏，归入宗门典籍/观星系统
@@ -53,15 +59,25 @@ func _build() -> void:
 	_built = true
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var content: Control = UITheme.make_scene_background(self)
+	# ★ 2026-09-16 修（#009 逐页精修 · 宗门典藏）：原代码把 margin_* 主题常量设在 **VBoxContainer**
+	#   上 —— 这四个常量是 MarginContainer 专有，VBox 不认（只认 separation）⇒ 实机上等于没设，
+	#   列表卡片直接贴死屏幕左右沿（实机截图可见，对照「阵营声望」同类卡片有边距）。
+	#   改为真正的外层 MarginContainer，边距值与全项目其它页一致（MARGIN 直接按设计像素用）。
+	var 边距 := MarginContainer.new()
+	边距.name = "PageMargin"
+	边距.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	边距.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	边距.add_theme_constant_override("margin_right", UITheme.MARGIN)
+	边距.add_theme_constant_override("margin_top", UITheme.GRID)
+	边距.add_theme_constant_override("margin_bottom", UITheme.GRID)
+	边距.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(边距)
 	var vbox := VBoxContainer.new()
 	vbox.name = "Root"
-	vbox.add_theme_constant_override("margin_left", UITheme.MARGIN)
-	vbox.add_theme_constant_override("margin_right", UITheme.MARGIN)
-	vbox.add_theme_constant_override("margin_top", UITheme.GRID)
-	vbox.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	vbox.add_theme_constant_override("separation", UITheme.GRID)
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	content.add_child(vbox)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	边距.add_child(vbox)
 
 	_build_header(vbox)
 	_build_progress(vbox)
@@ -74,11 +90,13 @@ func _build() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(scroll)
+	_滚动 = scroll
 	_列表 = VBoxContainer.new()
 	_列表.name = "List"
 	_列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_列表.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_列表)
+	_连接滚动信号()
 
 	var 说明 := Label.new()
 	说明.name = "Note"
@@ -92,34 +110,20 @@ func _build() -> void:
 		Game.图录更新.connect(_on_图录更新)
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "宗门典藏  ⓘ"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "宗门典藏", "宗门典藏阁，收录天下奇珍异宝、灵兽功法、遗迹秘闻。\n收集更多典藏可获宗门气运加持。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	var 右侧 := []
 	_状态标签 = Label.new()
 	_状态标签.name = "Status"
 	_状态标签.text = "供奉 0"
 	UITheme.apply_value_font(_状态标签, false)
 	_状态标签.add_theme_color_override("font_color", UITheme.color_text_title1())
-	bar.add_child(_状态标签)
-	parent.add_child(bar)
-
+	右侧.append(_状态标签)
+	parent.add_child(UITheme.建顶栏("宗门典藏", _on_back_pressed, 右侧, "宗门典藏", "宗门典藏阁，收录天下奇珍异宝、灵兽功法、遗迹秘闻。\n收集更多典藏可获宗门气运加持。"))
 func _build_progress(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "ProgressPanel"
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.050, 0.110, 0.140)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	sb.set_corner_radius_all(8)
 	panel.add_theme_stylebox_override("panel", sb)
 	var vb := VBoxContainer.new()
@@ -157,7 +161,7 @@ func _build_atmosphere(parent: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.name = "AtmospherePanel"
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.060, 0.130, 0.100)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	sb.set_corner_radius_all(8)
 	sb.border_width_left = 1
 	sb.border_width_right = 1
@@ -173,7 +177,7 @@ func _build_atmosphere(parent: Control) -> void:
 	vb.add_theme_constant_override("separation", 4)
 	panel.add_child(vb)
 	var 标题 := Label.new()
-	标题.text = "✦ 典藏阁序 ✦"
+	标题.text = "◆ 典藏阁序 ◆"
 	UITheme.apply_body_text(标题)
 	标题.add_theme_color_override("font_color", Color(0.95, 0.75, 0.2))
 	vb.add_child(标题)
@@ -202,11 +206,13 @@ func _build_segments(parent: Control) -> void:
 		_style_seg(b, c == _当前类别)
 		b.pressed.connect(_on_seg_pressed.bind(c, b))
 		_分段行.add_child(b)
+		b.modulate.a = 0.0
+		b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 	parent.add_child(_分段行)
 
 func _style_seg(b: Button, selected: bool) -> void:
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.784, 0.659, 0.416) if selected else Color(0.094, 0.176, 0.215)
+	sb.bg_color = Color(0.784, 0.659, 0.416) if selected else UITheme.获取面板底色()
 	sb.set_corner_radius_all(8)
 	b.add_theme_stylebox_override("normal", sb)
 	if selected:
@@ -264,7 +270,7 @@ func _update_progress() -> void:
 		if _当前类别 == "全部":
 			_奖励标签.text = "集齐各类典藏可获宗门气运加持，产出最高+30%。"
 		elif 已收数 >= 总数 and 总数 > 0:
-			_奖励标签.text = "✦ 已圆满集齐！宗门产出+%d%%气运加持。" % int(增益值 * 100)
+			_奖励标签.text = "◆ 已圆满集齐！宗门产出+%d%%气运加持。" % int(增益值 * 100)
 		elif 增益值 > 0:
 			_奖励标签.text = "集齐奖励：宗门产出+%d%%（还差%d件）" % [int(增益值 * 100), 总数 - 已收数]
 		else:
@@ -289,6 +295,10 @@ func _populate() -> void:
 			捐赠数 += 1
 	if _状态标签 != null:
 		_状态标签.text = "供奉 %d" % 捐赠数
+	# 只算该建哪些卡，卡片本身留到 _追加一批 按需建
+	_待渲染 = []
+	_渲染游标 = 0
+	_渲染上下文 = {"已收": 已收, "已捐": 已捐}
 	for r in 配置:
 		var 旧类别: String = str(r.get("类别", ""))
 		# 先贤事迹、天机已移出典藏，不显示
@@ -297,7 +307,39 @@ func _populate() -> void:
 		var 新类别: String = 分类映射.get(旧类别, "奇闻录")
 		if _当前类别 != "全部" and 新类别 != _当前类别:
 			continue
-		_列表.add_child(_建卡(r, 已收, 已捐, 新类别))
+		_待渲染.append([r, 新类别])
+	_追加一批()
+
+## 滚动近底时续建下一批
+func _on_scroll_changed(_v: float) -> void:
+	if _滚动 == null or _渲染游标 >= _待渲染.size():
+		return
+	var bar: ScrollBar = _滚动.get_v_scroll_bar()
+	if bar == null or bar.max_value <= 0.0:
+		return
+	if bar.value >= bar.max_value - bar.page * 0.8:
+		_追加一批()
+
+func _连接滚动信号() -> void:
+	if _滚动 == null or not is_instance_valid(_滚动):
+		return
+	var bar: ScrollBar = _滚动.get_v_scroll_bar()
+	if bar == null:
+		return
+	if not bar.value_changed.is_connected(_on_scroll_changed):
+		bar.value_changed.connect(_on_scroll_changed)
+
+func _追加一批() -> void:
+	if _渲染游标 >= _待渲染.size():
+		return
+	var 末: int = mini(_渲染游标 + 每批, _待渲染.size())
+	while _渲染游标 < 末:
+		var 项: Array = _待渲染[_渲染游标]
+		_列表.add_child(_建卡(项[0], _渲染上下文.get("已收", {}), _渲染上下文.get("已捐", {}), str(项[1])))
+		_渲染游标 += 1
+	# 首屏内容不足一屏时继续补，避免出现「还有条目却滚不动」的假底
+	if _渲染游标 < _待渲染.size() and _列表.size.y > 0.0 and _列表.size.y < _滚动.size.y:
+		_追加一批()
 
 func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: String) -> Control:
 	var 图录ID: String = str(r.get("图录ID", ""))
@@ -324,7 +366,7 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 	var card := PanelContainer.new()
 	card.name = "Card_" + 图录ID
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.050, 0.110, 0.140)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	sb.set_corner_radius_all(8)
 	# 仙品边框高亮
 	if 稀有度 == "仙品":
@@ -342,23 +384,31 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 	vbox.add_theme_constant_override("margin_bottom", 12)
 	vbox.add_theme_constant_override("separation", 6)
 	card.add_child(vbox)
+	vbox.modulate.a = 0.0
+	vbox.create_tween().tween_property(vbox, "modulate:a", 1.0, 0.25)
 
 	# 名称行（名称+稀有度标签）
 	var 名行 := HBoxContainer.new()
 	名行.add_theme_constant_override("separation", 8)
 	vbox.add_child(名行)
+	名行.modulate.a = 0.0
+	名行.create_tween().tween_property(名行, "modulate:a", 1.0, 0.25)
 
 	var 名 := Label.new()
 	名.text = 名称 if 已收录 else "？？？"
 	UITheme.apply_body_text(名)
-	名.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	名.add_theme_color_override("font_color", UITheme.获取主文字色())
 	名行.add_child(名)
+	名.modulate.a = 0.0
+	名.create_tween().tween_property(名, "modulate:a", 1.0, 0.25)
 
 	var 稀有标签 := Label.new()
 	稀有标签.text = "【%s】" % 稀有度
 	UITheme.apply_aux_text(稀有标签)
 	稀有标签.add_theme_color_override("font_color", 稀有度颜色.get(稀有度, Color(0.6, 0.6, 0.6)))
 	名行.add_child(稀有标签)
+	稀有标签.modulate.a = 0.0
+	稀有标签.create_tween().tween_property(稀有标签, "modulate:a", 1.0, 0.25)
 
 	# 描述
 	if 已收录 and 描述 != "":
@@ -368,6 +418,8 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 		UITheme.apply_aux_text(描述标签)
 		描述标签.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 		vbox.add_child(描述标签)
+		描述标签.modulate.a = 0.0
+		描述标签.create_tween().tween_property(描述标签, "modulate:a", 1.0, 0.25)
 
 	# 元信息
 	var 元 := Label.new()
@@ -375,6 +427,8 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 	UITheme.apply_aux_text(元)
 	元.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	vbox.add_child(元)
+	元.modulate.a = 0.0
+	元.create_tween().tween_property(元, "modulate:a", 1.0, 0.25)
 
 	# 状态
 	var 状态 := Label.new()
@@ -392,6 +446,8 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 	else:
 		状态.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	vbox.add_child(状态)
+	状态.modulate.a = 0.0
+	状态.create_tween().tween_property(状态, "modulate:a", 1.0, 0.25)
 
 	# 供奉按钮（仅仙品且已收录且未供奉）
 	if 稀有度 == "仙品" and 已收录 and not 已捐赠:
@@ -403,6 +459,8 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 		UITheme.apply_button_label(btn, true)
 		btn.pressed.connect(_on_捐赠.bind(图录ID, btn))
 		vbox.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 	elif 已捐赠:
 		var btn := Button.new()
 		btn.name = "Donated"
@@ -412,6 +470,8 @@ func _建卡(r: Dictionary, 已收: Dictionary, 已捐: Dictionary, 新类别: S
 		UITheme.apply_button_label(btn, false)
 		btn.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 		vbox.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 
 	return card
 

@@ -64,7 +64,7 @@ func _build() -> void:
 	_详情区域.visible = false
 	_详情区域.custom_minimum_size = Vector2(0, 180)
 	var detail_sb: StyleBoxFlat = StyleBoxFlat.new()
-	detail_sb.bg_color = Color(0.08, 0.12, 0.15)
+	detail_sb.bg_color = Color(0.110, 0.149, 0.173)
 	detail_sb.set_corner_radius_all(12)
 	detail_sb.border_width_left = 2
 	detail_sb.border_width_right = 2
@@ -89,7 +89,7 @@ func _build() -> void:
 	_详情标题.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_title_row.add_child(_详情标题)
 	var 关闭详情按钮 := Button.new()
-	关闭详情按钮.text = "✕"
+	关闭详情按钮.text = "◇"
 	关闭详情按钮.custom_minimum_size = Vector2(32, 32)
 	关闭详情按钮.pressed.connect(_on_关闭详情)
 	detail_title_row.add_child(关闭详情按钮)
@@ -101,7 +101,7 @@ func _build() -> void:
 	_详情发件人 = Label.new()
 	_详情发件人.name = "DetailSender"
 	UITheme.apply_aux_font(_详情发件人)
-	_详情发件人.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_详情发件人.add_theme_color_override("font_color", UITheme.获取主文字色())
 	detail_meta_row.add_child(_详情发件人)
 	_详情时间 = Label.new()
 	_详情时间.name = "DetailTime"
@@ -151,23 +151,8 @@ func _build() -> void:
 	scroll.add_child(_列表)
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "灵讯"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "灵讯", "接收系统消息、奖励发放、事件通知。\n带有附件的灵讯可领取道具奖励。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-	parent.add_child(bar)
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("灵讯", _on_back_pressed, [], "灵讯", "接收系统消息、奖励发放、事件通知。\n带有附件的灵讯可领取道具奖励。"))
 func refresh() -> void:
 	if not _built:
 		_build()
@@ -181,14 +166,24 @@ func _populate() -> void:
 		_列表.remove_child(c)
 		c.queue_free()
 	for i in range(_mails.size()):
-		_列表.add_child(_建卡(i, _mails[i]))
+		var _fb1 := _建卡(i, _mails[i])
+		_列表.add_child(_fb1)
+		_fb1.modulate.a = 0.0
+		_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
+	if _mails.is_empty():
+		# ★ 2026-09-16 补（#009 逐页精修）：原实现在「无邮件」时**什么都不建** ⇒ 整页只剩
+		#   顶栏与两个操作钮，下方千余像素纯空背景（验收实拍 vlab=1）。这是 52 个二级页里
+		#   唯一完全没有空态的页（其余 11 个「看似空白」的页经查源码都已有精心写的空态文案，
+		#   只是探针账号无数据）。此处补项目统一空态组件，保持与其余页一致。
+		_列表.add_child(UITheme.建空态(
+			"暂无灵讯", "系统消息、奖励发放与事件通知，都会送达此处。", "entry_feifuchuanxin_36"))
 
 func _建卡(idx: int, m: Dictionary) -> Control:
 	var card: PanelContainer = PanelContainer.new()
 	card.name = "Mail_%d" % idx
 	card.custom_minimum_size = Vector2(0, 84)
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.055, 0.114, 0.141)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	sb.set_corner_radius_all(10)
 	card.add_theme_stylebox_override("panel", sb)
 	var col := VBoxContainer.new()
@@ -198,6 +193,8 @@ func _建卡(idx: int, m: Dictionary) -> Control:
 	col.add_theme_constant_override("margin_bottom", 12)
 	col.add_theme_constant_override("separation", 6)
 	card.add_child(col)
+	col.modulate.a = 0.0
+	col.create_tween().tween_property(col, "modulate:a", 1.0, 0.25)
 	var r1 := HBoxContainer.new()
 	r1.add_theme_constant_override("separation", 8)
 	if bool(m.get("未读", false)):
@@ -209,11 +206,15 @@ func _建卡(idx: int, m: Dictionary) -> Control:
 		dsb.set_corner_radius_all(5)
 		dot.add_theme_stylebox_override("panel", dsb)
 		r1.add_child(dot)
+		dot.modulate.a = 0.0
+		dot.create_tween().tween_property(dot, "modulate:a", 1.0, 0.25)
 	var 发件人 := Label.new()
 	发件人.text = str(m.get("发件人", ""))
 	UITheme.apply_aux_text(发件人)
-	发件人.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	发件人.add_theme_color_override("font_color", UITheme.获取主文字色())
 	r1.add_child(发件人)
+	发件人.modulate.a = 0.0
+	发件人.create_tween().tween_property(发件人, "modulate:a", 1.0, 0.25)
 	var 时间 := Label.new()
 	时间.text = str(m.get("时间", ""))
 	时间.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -221,11 +222,17 @@ func _建卡(idx: int, m: Dictionary) -> Control:
 	UITheme.apply_aux_text(时间)
 	时间.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	r1.add_child(时间)
+	时间.modulate.a = 0.0
+	时间.create_tween().tween_property(时间, "modulate:a", 1.0, 0.25)
 	col.add_child(r1)
+	r1.modulate.a = 0.0
+	r1.create_tween().tween_property(r1, "modulate:a", 1.0, 0.25)
 	var 标题 := Label.new()
 	标题.text = str(m.get("标题", ""))
 	UITheme.apply_body_text(标题)
 	col.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	var 附件数据: Dictionary = m.get("附件", {})
 	if not 附件数据.is_empty():
 		var 已领: bool = bool(m.get("已领", false))
@@ -237,6 +244,8 @@ func _建卡(idx: int, m: Dictionary) -> Control:
 		UITheme.apply_aux_text(附件标签)
 		附件标签.add_theme_color_override("font_color", UITheme.color_text_title1())
 		col.add_child(附件标签)
+		附件标签.modulate.a = 0.0
+		附件标签.create_tween().tween_property(附件标签, "modulate:a", 1.0, 0.25)
 	card.gui_input.connect(_on_card_clicked.bind(idx))
 	return card
 
@@ -312,7 +321,9 @@ func _on_关闭详情() -> void:
 
 # 详情区域领取按钮
 func _on_详情领取() -> void:
+	# ★ 2026-09-16 修（死键扫描实测判 DEAD）：未择定信件时静默 return ⇒ 可点但无声。
 	if _当前选中索引 < 0:
+		Game.添加提示("尚未择定灵讯")
 		return
 	Game.领取邮件(_当前选中索引)
 	refresh()

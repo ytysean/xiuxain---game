@@ -92,6 +92,8 @@ func _build_ui() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 
 	# 标题栏
@@ -100,8 +102,8 @@ func _build_ui() -> void:
 	main.add_child(header)
 
 	var title: Label = Label.new()
-	title.text = "📜 修真消息阁"
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	title.text = "◇ 修真消息阁"
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	header.add_child(title)
 
@@ -118,7 +120,7 @@ func _build_ui() -> void:
 	header.add_child(全部已读钮)
 
 	var close_btn: Button = Button.new()
-	close_btn.text = "✕"
+	close_btn.text = "◇"
 	close_btn.custom_minimum_size = Vector2(40, 36)
 	UITheme.apply_secondary_button_style(close_btn)
 	close_btn.pressed.connect(_on_close)
@@ -144,6 +146,8 @@ func _build_ui() -> void:
 			_refresh()
 		)
 		tab_bar.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 
 	# 现有系统入口
 	var existing_bar: HBoxContainer = HBoxContainer.new()
@@ -151,7 +155,7 @@ func _build_ui() -> void:
 	main.add_child(existing_bar)
 
 	var 灵讯钮: Button = Button.new()
-	灵讯钮.text = "📨 灵讯（邮件）"
+	灵讯钮.text = "◇ 灵讯（邮件）"
 	灵讯钮.custom_minimum_size = Vector2(0, 30)
 	UITheme.apply_secondary_button_style(灵讯钮)
 	灵讯钮.pressed.connect(_open_mail)
@@ -185,15 +189,15 @@ func _build_ui() -> void:
 
 	# 传音符显示
 	var 传音符标签: Label = Label.new()
-	传音符标签.text = "🎵 传音符：%d" % Game.消息系统.传音符数量
-	传音符标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	传音符标签.text = "◇ 传音符：%d" % Game.消息系统.传音符数量
+	UITheme.apply_project_font(传音符标签, UITheme.FONT_BODY, false)
 	传音符标签.add_theme_color_override("font_color", Color(0.8, 0.7, 0.4))
 	p2_bar.add_child(传音符标签)
 
 	# 天机阁声望
 	var 声望标签: Label = Label.new()
-	声望标签.text = "🔮 天机阁声望：%d" % Game.消息系统.天机阁声望
-	声望标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	声望标签.text = "◇ 天机阁声望：%d" % Game.消息系统.天机阁声望
+	UITheme.apply_project_font(声望标签, UITheme.FONT_BODY, false)
 	声望标签.add_theme_color_override("font_color", Color(0.8, 0.5, 0.2))
 	p2_bar.add_child(声望标签)
 
@@ -204,7 +208,7 @@ func _build_ui() -> void:
 	if Game.消息系统.打探冷却 > 0:
 		打探钮.text = "打探冷却(%d日)" % Game.消息系统.打探冷却
 	else:
-		打探钮.text = "🔍 主动打探(500灵石+50贡献)"
+		打探钮.text = "◇ 主动打探(500灵石+50贡献)"
 	打探钮.custom_minimum_size = Vector2(0, 30)
 	UITheme.apply_secondary_button_style(打探钮)
 	打探钮.pressed.connect(_on_打探)
@@ -212,7 +216,7 @@ func _build_ui() -> void:
 
 	# 卧底管理按钮
 	var 卧底钮: Button = Button.new()
-	卧底钮.text = "🕵️ 卧底管理(%d人)" % Game.消息系统.卧底弟子.size()
+	卧底钮.text = "◇ 卧底管理(%d人)" % Game.消息系统.卧底弟子.size()
 	卧底钮.custom_minimum_size = Vector2(0, 30)
 	UITheme.apply_secondary_button_style(卧底钮)
 	卧底钮.pressed.connect(_on_卧底管理)
@@ -286,7 +290,7 @@ func _build消息卡片(msg: Dictionary) -> void:
 	var 类型标签: Label = Label.new()
 	类型标签.text = "%s [%s]" % [图标, 类型]
 	类型标签.add_theme_color_override("font_color", 颜色)
-	类型标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(类型标签, UITheme.FONT_H2, true)
 	title_row.add_child(类型标签)
 
 	if not 已读:
@@ -300,13 +304,13 @@ func _build消息卡片(msg: Dictionary) -> void:
 	var 日期标签: Label = Label.new()
 	日期标签.text = "第%d日" % int(msg.get("日", 0))
 	日期标签.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	日期标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(日期标签, UITheme.FONT_BODY, false)
 	title_row.add_child(日期标签)
 
 	# 标题
 	var 标题: Label = Label.new()
 	标题.text = str(msg.get("标题", ""))
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(标题, UITheme.FONT_H2, true)
 	if not 已读:
 		标题.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
 	else:
@@ -317,7 +321,7 @@ func _build消息卡片(msg: Dictionary) -> void:
 	var 内容: Label = Label.new()
 	内容.text = str(msg.get("内容", ""))
 	内容.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	内容.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(内容, UITheme.FONT_BODY, false)
 	内容.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	vbox.add_child(内容)
 
@@ -328,7 +332,7 @@ func _build消息卡片(msg: Dictionary) -> void:
 
 	var 发送者标签: Label = Label.new()
 	发送者标签.text = "传讯者：%s" % str(msg.get("发送者", ""))
-	发送者标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(发送者标签, UITheme.FONT_BODY, false)
 	发送者标签.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
 	发送者行.add_child(发送者标签)
 
@@ -348,9 +352,9 @@ func _build消息卡片(msg: Dictionary) -> void:
 				结果标签.text = "~ 已验证：半真半假"
 				结果标签.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
 			else:
-				结果标签.text = "✗ 已验证：不实"
+				结果标签.text = "× 已验证：不实"
 				结果标签.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
-			结果标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(结果标签, UITheme.FONT_BODY, false)
 			发送者行.add_child(结果标签)
 		else:
 			# 未验证，显示验证按钮
@@ -384,20 +388,20 @@ func _build消息卡片(msg: Dictionary) -> void:
 		else:
 			等级标签.text = "【稀有】"
 			等级标签.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
-		等级标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(等级标签, UITheme.FONT_BODY, false)
 		发送者行.add_child(等级标签)
 
 		if 已领取:
 			var 已领标签: Label = Label.new()
 			已领标签.text = "✓ 已领取"
 			已领标签.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
-			已领标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(已领标签, UITheme.FONT_BODY, false)
 			发送者行.add_child(已领标签)
 		elif 过期:
 			var 过期标签: Label = Label.new()
-			过期标签.text = "✗ 已过期"
+			过期标签.text = "× 已过期"
 			过期标签.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-			过期标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(过期标签, UITheme.FONT_BODY, false)
 			发送者行.add_child(过期标签)
 		else:
 			var 领取钮: Button = Button.new()

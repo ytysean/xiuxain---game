@@ -23,14 +23,14 @@ const 格间距: int = 12
 const 可见基础槽数: int = 24
 
 # Ardot 03 屏精确色值（按画布 60:1 节点取色）
-const C_BG_TOP: Color = Color(0.043, 0.086, 0.102)       # 背景渐变起点 #0B161A
-const C_BG_BOT: Color = Color(0.059, 0.133, 0.161)       # 背景渐变终点 #0F2229
-const C_TOPBAR_BG: Color = Color(0.039, 0.078, 0.094, 0.90)  # 60:2 顶部栏底
-const C_CATBAR_BG: Color = Color(0.035, 0.071, 0.086)    # 60:11 分类栏底
-const C_CELL_BG: Color = Color(0.051, 0.102, 0.125)       # 60:20 格子底 #0D1A20
-const C_CELL_EMPTY_BG: Color = Color(0.039, 0.078, 0.094, 0.60)  # 60:38 空槽底
-const C_CELL_EMPTY_STROKE: Color = Color(0.157, 0.290, 0.337)    # 60:38 空槽描边
-const C_DETAIL_BG: Color = Color(0.047, 0.090, 0.102)   # 60:48 详情面板底
+const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)       # 背景渐变起点 #0B161A
+const C_BG_BOT: Color = UITheme.获取面板底色()       # 背景渐变终点 #0F2229
+const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)  # 60:2 顶部栏底
+const C_CATBAR_BG: Color = Color(0.086, 0.125, 0.141)    # 60:11 分类栏底
+const C_CELL_BG: Color = Color(0.122, 0.169, 0.192)       # 60:20 格子底 #0D1A20
+const C_CELL_EMPTY_BG: Color = Color(0.106, 0.153, 0.169, 0.60)  # 60:38 空槽底
+const C_CELL_EMPTY_STROKE: Color = Color(0.431, 0.341, 0.149)    # 60:38 空槽描边
+const C_DETAIL_BG: Color = Color(0.110, 0.149, 0.173)   # 60:48 详情面板底
 const C_DETAIL_STROKE: Color = Color(0.839, 0.694, 0.416, 0.25)  # 60:48 描边
 const C_TOP_GOLD_LINE: Color = Color(0.910, 0.773, 0.447, 0.60)  # 60:49 顶金线
 const C_SELECTED_FILL: Color = Color(0.910, 0.773, 0.447, 0.12) # 60:44 选中填充
@@ -40,7 +40,7 @@ const C_TIER_PILL_STROKE: Color = Color(0.839, 0.694, 0.416, 0.80)
 const C_EQUIP_BTN_BG1: Color = Color(0.910, 0.773, 0.447)   # 60:59 装备按钮渐变亮
 const C_EQUIP_BTN_BG2: Color = Color(0.839, 0.694, 0.416)   # 60:59 装备按钮渐变暗
 const C_EQUIP_BTN_TEXT: Color = Color(0.086, 0.157, 0.173)  # 60:60 装备文字深色
-const C_SELL_BTN_BG: Color = Color(0.078, 0.157, 0.180)     # 60:61 出售按钮底
+const C_SELL_BTN_BG: Color = UITheme.获取面板底色()     # 60:61 出售按钮底
 
 var _built: bool = false
 var _当前分类: String = "全部"
@@ -118,7 +118,7 @@ func _build_top_bar(parent: Control) -> void:
 	cap_lbl.text = "容量"
 	_place(cap_lbl, 288.0, 28.0, 30.0, 19.0)
 	UITheme.apply_body_font_sized(cap_lbl, _fs(13))
-	cap_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	cap_lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	parent.add_child(cap_lbl)
 
 	# 数值 "42 / 80" @ (326,26) 15 Bold
@@ -127,7 +127,7 @@ func _build_top_bar(parent: Control) -> void:
 	_容量标签.text = "0 / %d" % 容量上限
 	_place(_容量标签, 326.0, 26.0, 60.0, 22.0)
 	UITheme.apply_title_font_sized(_容量标签, _fs(15))
-	_容量标签.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_容量标签.add_theme_color_override("font_color", UITheme.获取金文字色())
 	parent.add_child(_容量标签)
 
 	# 整理按钮 @ (400,18) 64×32
@@ -140,7 +140,7 @@ func _build_top_bar(parent: Control) -> void:
 	UITheme.apply_body_font_sized(tidy, _fs(14))
 	tidy.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	var tbs := StyleBoxFlat.new()
-	tbs.bg_color = Color(0.078, 0.157, 0.180)
+	tbs.bg_color = UITheme.获取面板底色()
 	tbs.border_color = UITheme.COLOR_TEXT_GOLD
 	tbs.set_corner_radius_all(_rc(16))
 	tbs.set_border_width_all(_bw(1))
@@ -182,6 +182,8 @@ func _build_categories(parent: Control) -> void:
 		_update_cat_style(b, cat == _当前分类)
 		b.pressed.connect(_on_cat_pressed.bind(cat))
 		_分类栏.add_child(b)
+		b.modulate.a = 0.0
+		b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 
 		var line := Panel.new()
 		line.name = "CatLine_" + cat
@@ -189,20 +191,22 @@ func _build_categories(parent: Control) -> void:
 		line.visible = (cat == _当前分类)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var lsb := StyleBoxFlat.new()
-		lsb.bg_color = UITheme.C01_TEXT_GOLD
+		lsb.bg_color = UITheme.获取金文字色()
 		lsb.set_corner_radius_all(_rc(1))
 		lsb.set_border_width_all(0)
 		line.add_theme_stylebox_override("panel", lsb)
 		_分类栏.add_child(line)
+		line.modulate.a = 0.0
+		line.create_tween().tween_property(line, "modulate:a", 1.0, 0.25)
 		_分类下划线[cat] = line
 
 func _update_cat_style(b: Button, sel: bool) -> void:
 	if sel:
 		UITheme.apply_title_font_sized(b, _fs(15))
-		b.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		b.add_theme_color_override("font_color", UITheme.获取金文字色())
 	else:
 		UITheme.apply_body_font_sized(b, _fs(15))
-		b.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		b.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0)
 	sb.set_border_width_all(0)
@@ -234,7 +238,12 @@ func _build_grid(parent: Control) -> void:
 func _build_detail(parent: Control) -> void:
 	_详情面板 = Panel.new()
 	_详情面板.name = "DetailPanel"
-	_place(_详情面板, 16.0, 590.0, 448.0, 180.0)
+	# ★ 2026-09-15 修：原为 y=590（590~770 逻辑）。二级页可视逻辑高 =
+	#   (1920 - TOPBAR_H 189) / 2.25 = 769.3 逻辑，590~770 已经贴死屏幕底边，
+	#   紧接着的 ActionBar(776~846) 整条落在屏外 ⇒ 装备/出售按钮**玩家根本点不到**。
+	#   （旧 TOPBAR_H=156 时可视高 784 逻辑，ActionBar 也只露出 8 逻辑单位，同样是坏的。）
+	#   故详情面板与操作栏一并上移，收进可视区，并留 13 逻辑余量。
+	_place(_详情面板, 16.0, 500.0, 448.0, 180.0)
 	_详情面板.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var psb := StyleBoxFlat.new()
 	psb.bg_color = C_DETAIL_BG
@@ -262,7 +271,7 @@ func _build_detail(parent: Control) -> void:
 	_详情图标.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var isb := StyleBoxFlat.new()
 	isb.bg_color = C_CELL_BG
-	isb.border_color = UITheme.C01_TEXT_GOLD
+	isb.border_color = UITheme.获取金文字色()
 	isb.set_corner_radius_all(_rc(12))
 	isb.set_border_width_all(_bw(1))
 	_详情图标.add_theme_stylebox_override("panel", isb)
@@ -275,7 +284,7 @@ func _build_detail(parent: Control) -> void:
 	_详情图标字.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_place(_详情图标字, 0.0, 0.0, 80.0, 80.0)
 	UITheme.apply_title_font_sized(_详情图标字, _fs(16))
-	_详情图标字.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_详情图标字.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_详情图标.add_child(_详情图标字)
 
 	# 物品名 @ (116,24) 20 Bold
@@ -284,7 +293,7 @@ func _build_detail(parent: Control) -> void:
 	_详情名.text = "—"
 	_place(_详情名, 116.0, 24.0, 312.0, 29.0)
 	UITheme.apply_title_font_sized(_详情名, _fs(20))
-	_详情名.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_详情名.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_详情面板.add_child(_详情名)
 
 	# 品阶药丸 @ (116,58)
@@ -316,7 +325,7 @@ func _build_detail(parent: Control) -> void:
 	_详情类别.text = "· 护甲"
 	_place(_详情类别, 174.0, 61.0, 80.0, 17.0)
 	UITheme.apply_body_font_sized(_详情类别, _fs(12))
-	_详情类别.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	_详情类别.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	_详情面板.add_child(_详情类别)
 
 	# 物品描述 @ (116,92) 宽 312
@@ -326,7 +335,7 @@ func _build_detail(parent: Control) -> void:
 	_详情描述.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_place(_详情描述, 116.0, 92.0, 312.0, 48.0)
 	UITheme.apply_body_font_sized(_详情描述, _fs(13))
-	_详情描述.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	_详情描述.add_theme_color_override("font_color", UITheme.获取次文字色())
 	_详情面板.add_child(_详情描述)
 
 	# 属性加成 @ (20,120) 13 Medium
@@ -336,14 +345,14 @@ func _build_detail(parent: Control) -> void:
 	_place(_详情属性, 20.0, 120.0, 408.0, 44.0)
 	_详情属性.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font_sized(_详情属性, _fs(13))
-	_详情属性.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	_详情属性.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_详情面板.add_child(_详情属性)
 
-# ───────── 底部操作栏（16,776,448,70）─────────
+# ───────── 底部操作栏（16,686,448,70 · 2026-09-15 由 776 上移，原位置整条在屏外）─────────
 func _build_actions(parent: Control) -> void:
 	var bar := Control.new()
 	bar.name = "ActionBar"
-	_place(bar, 16.0, 776.0, 448.0, 70.0)
+	_place(bar, 16.0, 686.0, 448.0, 70.0)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(bar)
 
@@ -507,6 +516,19 @@ func _populate(items_override: Array = []) -> void:
 	_格子列表.clear()
 
 	var items: Array = _筛选项(_当前分类, all)
+	# ★ 2026-09-16 修（#009 逐页精修 · 库藏）：原实现无论有无物品都铺满「可见基础槽数」
+	#   个「空」格子 —— 容量 0/80 时实机上就是 24 个灰格子满屏（本批最伤观感的一处）。
+	#   改为：无物品时单列展示统一空态引导；有物品时才铺空格子维持网格节奏。
+	if items.is_empty():
+		_网格.columns = 1
+		_网格.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_网格.add_child(UITheme.建空态("库藏空空如也", "可于坊市采买、山野采撷、丹房炼器，日久自积"))
+		_选中索引 = -1
+		_刷新格子样式()
+		_刷新详情()
+		return
+	_网格.columns = 每行列数
+	_网格.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	# 不截断：网格在 ScrollContainer 内且纵向滚动开启，超容量亦可滚动查看（原 mini(容量上限,…) 会让第 81 件起彻底不可达）
 	_槽位数 = maxi(可见基础槽数, items.size() + (每行列数 - items.size() % 每行列数) % 每行列数)
 
@@ -514,6 +536,8 @@ func _populate(items_override: Array = []) -> void:
 	for it in items:
 		var cell: Button = _make_cell(it, idx)
 		_网格.add_child(cell)
+		cell.modulate.a = 0.0
+		cell.create_tween().tween_property(cell, "modulate:a", 1.0, 0.25)
 		_格子列表.append({"btn": cell, "badge": cell.get_node("CornerBadge"), "it": it, "index": idx})
 		idx += 1
 	while idx < _槽位数:
@@ -582,8 +606,10 @@ func _make_cell(it: Variant, idx: int) -> Button:
 	txt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_place(txt, 0.0, 0.0, float(格尺寸), float(格尺寸))
 	UITheme.apply_body_font_sized(txt, _fs(13))
-	txt.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	txt.add_theme_color_override("font_color", UITheme.获取次文字色())
 	btn.add_child(txt)
+	txt.modulate.a = 0.0
+	txt.create_tween().tween_property(txt, "modulate:a", 1.0, 0.25)
 
 	var badge := TextureRect.new()
 	badge.name = "CornerBadge"
@@ -594,6 +620,8 @@ func _make_cell(it: Variant, idx: int) -> Button:
 	badge.visible = false
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(badge)
+	badge.modulate.a = 0.0
+	badge.create_tween().tween_property(badge, "modulate:a", 1.0, 0.25)
 
 	return btn
 
@@ -617,8 +645,10 @@ func _make_empty_cell(idx: int) -> Control:
 	txt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_place(txt, 0.0, 0.0, float(格尺寸), float(格尺寸))
 	UITheme.apply_body_font_sized(txt, _fs(13))
-	txt.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	txt.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	p.add_child(txt)
+	txt.modulate.a = 0.0
+	txt.create_tween().tween_property(txt, "modulate:a", 1.0, 0.25)
 	return p
 
 func _make_cell_stylebox(border: Color, selected: bool) -> StyleBox:
@@ -678,7 +708,7 @@ func _on_tidy_pressed() -> void:
 	# 真接入：调 game_state.整理库房()（按 品阶倒序 + 类别字典序），save_game 持久化
 	var sorted: Array = Game.整理库房() if Game.has_method("整理库房") else _本地整理()
 	_populate(sorted)
-	print("[库藏] 整理完成：%d 件" % sorted.size())
+	Game.添加提示("整理完成：%d 件" % sorted.size())
 
 func _本地整理() -> Array:
 	# Game 缺方法时的兜底（不写 GameState，纯本地排序）
@@ -743,14 +773,19 @@ func _on_action_pressed(kind: String) -> void:
 	# 按当前分类分派；装备 Tab 完全 S1 红线门控；材料/丹药的出售真发灵石；丹药"使用" 暂门控。
 	# 碎片：合成（调用Game.执行碎片合成）
 	# 宝箱：打开（调用Game.打开宝箱）
+	# ★ 2026-09-16 修（死键扫描实测判 DEAD）：未择定物品时静默 return ⇒ 可点但无声。
 	if _选中索引 < 0 or _选中索引 >= _格子列表.size():
+		Game.添加提示("尚未择定物品")
 		return
 	var it: Variant = _格子列表[_选中索引].it
 	if it == null:
+		Game.添加提示("尚未择定物品")
 		return
 	var 类别: String = ""
 	if it is Object:
-		类别 = str(it.get("类别", ""))
+		# ★ 2026-09-16 修（真 bug）：同 929 行 —— Item 是 RefCounted，双参 .get() 抛错中断。
+		var v类别: Variant = it.get("类别")
+		类别 = String(v类别) if v类别 != null else ""
 	elif it is Dictionary:
 		类别 = str(it.get("类别", ""))
 	match _当前分类:
@@ -759,7 +794,7 @@ func _on_action_pressed(kind: String) -> void:
 				_强化选中装备()
 		"丹药":
 			if kind == "使用":
-				print("[库藏] 丹药使用系统接入后开放")
+				Game.添加提示("丹药使用系统接入后开放")
 			elif kind == "出售":
 				_真出售(it, 类别)
 		"材料":
@@ -784,23 +819,23 @@ func _强化选中装备() -> void:
 	# 获取强化消耗
 	var 消耗: Dictionary = Game.获取装备强化消耗(_选中索引)
 	if 消耗.is_empty():
-		print("[库藏] 该装备无法强化")
+		Game.添加提示("该装备无法强化")
 		return
 	var 当前等级: int = int(消耗.get("当前等级", 1))
 	var 最大等级: int = int(消耗.get("最大等级", 10))
 	var 消耗灵石: int = int(消耗.get("消耗灵石", 0))
 	if 当前等级 >= 最大等级:
-		print("[库藏] 装备已达最高强化等级")
+		Game.添加提示("装备已达最高强化重数")
 		return
 	if Game.灵石 < 消耗灵石:
-		print("[库藏] 灵石不足（需%d灵石）" % 消耗灵石)
+		Game.添加提示("灵石不足（需%d灵石）" % 消耗灵石)
 		return
 	# 执行强化
 	var 结果: Dictionary = Game.强化装备(_选中索引)
 	if bool(结果.get("成功", false)):
-		print("[库藏] 强化成功！装备提升到+%d级" % int(结果.get("新等级", 当前等级 + 1)))
+		Game.添加提示("强化成功！装备提升到+%d级" % int(结果.get("新等级", 当前等级 + 1)))
 	else:
-		print("[库藏] 强化失败：%s" % str(结果.get("原因", "未知错误")))
+		Game.添加提示("强化失败：%s" % str(结果.get("原因", "未知错误")))
 	refresh()
 
 
@@ -817,9 +852,9 @@ func _合成碎片(it: Dictionary) -> void:
 		return
 	var 结果: Dictionary = Game.执行碎片合成(碎片ID)
 	if 结果.get("成功", false):
-		print("[库藏] 合成成功：%s" % str(结果.get("原因", "")))
+		Game.添加提示("合成成功：%s" % str(结果.get("原因", "")))
 	else:
-		print("[库藏] 合成失败：%s" % str(结果.get("原因", "")))
+		Game.添加提示("合成失败：%s" % str(结果.get("原因", "")))
 	_populate()
 
 # 打开宝箱
@@ -838,9 +873,9 @@ func _打开宝箱(it: Dictionary) -> void:
 		var 掉落文本: String = ""
 		for 掉落 in 结果.get("掉落列表", []):
 			掉落文本 += "%s×%d " % [str(掉落.get("物品ID", "")), int(掉落.get("数量", 1))]
-		print("[库藏] 打开成功：获得 %s" % 掉落文本)
+		Game.添加提示("打开成功：获得 %s" % 掉落文本)
 	else:
-		print("[库藏] 打开失败：%s" % str(结果.get("原因", "")))
+		Game.添加提示("打开失败：%s" % str(结果.get("原因", "")))
 	_populate()
 
 func _真出售(it: Variant, 类别: String) -> void:
@@ -851,10 +886,10 @@ func _真出售(it: Variant, 类别: String) -> void:
 		return
 	var 价: int = Game.出售库房物品(it)
 	if 价 > 0:
-		print("[库藏] 出售成功：%s 折算灵石 +%d" % [_名称(it), 价])
+		Game.添加提示("出售成功：%s 折算灵石 +%d" % [_名称(it), 价])
 		_populate()
 	else:
-		print("[库藏] 出售失败：%s（库藏全价渠道仅 基础灵材[草药/矿石]/基础丹药 可售，不含任何碎片类衍生材料；装备、碎片、特殊道具请走坊市回收·市价60%）" % _名称(it))
+		Game.添加提示("出售失败：%s（库藏全价渠道仅 基础灵材[草药/矿石]/基础丹药 可售，不含任何碎片类衍生材料；装备、碎片、特殊道具请走坊市回收·市价60%）" % _名称(it))
 
 # ───────── 视觉刷新 ─────────
 func _刷新格子样式() -> void:
@@ -873,10 +908,10 @@ func _刷新格子样式() -> void:
 		var txt: Label = btn.get_node("CellText")
 		if sel:
 			UITheme.apply_title_font_sized(txt, _fs(13))
-			txt.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			txt.add_theme_color_override("font_color", UITheme.获取主文字色())
 		else:
 			UITheme.apply_body_font_sized(txt, _fs(13))
-			txt.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+			txt.add_theme_color_override("font_color", UITheme.获取次文字色())
 
 func _刷新详情() -> void:
 	if _详情名 == null:
@@ -905,9 +940,17 @@ func _刷新详情() -> void:
 	var 极品标记: bool = false
 	var 数量: int = 1
 	if it is Object:
-		类别 = str(it.get("类别", ""))
-		穿戴位 = str(it.get("穿戴位", ""))
-		道途 = str(it.get("道途", ""))
+		# ★ 2026-09-16 修（真 bug · uifa 实测 SCRIPT ERROR）：
+		#   Item 是 RefCounted（**非字典型**），`.get(k, 默认)` 双参在 Godot 4.7 直接抛
+		#   「Invalid call. Nonexistent function 'get' in base 'RefCounted (Item)'.
+		#    Expected 1 argument(s).」且**当场中断本函数** ⇒ 库藏详情整块刷不出来。
+		#   本页既有正确范式见 `_名称()` / `_品阶()`：单参 `.get(key)` + null 兜底，照此统一。
+		var v类别: Variant = it.get("类别")
+		类别 = String(v类别) if v类别 != null else ""
+		var v穿戴: Variant = it.get("穿戴位")
+		穿戴位 = String(v穿戴) if v穿戴 != null else ""
+		var v道途: Variant = it.get("道途")
+		道途 = String(v道途) if v道途 != null else ""
 		var zhanli = it.get("战力加成")
 		if zhanli != null:
 			战力 = int(zhanli)
@@ -945,7 +988,7 @@ func _刷新详情() -> void:
 	# 仅装备 Tab 显示装备专属字段（战力/道途/词缀/极品），丹药/材料隐藏
 	if _当前分类 == "装备":
 		if 战力 != 0:
-			lines.append("战力 +%d" % 战力)
+			lines.append("道行 +%d" % 战力)
 		if 道途 != "":
 			lines.append("道途：%s" % 道途)
 		if 词缀列表 is Array and 词缀列表.size() > 0:
@@ -962,7 +1005,7 @@ func _刷新详情() -> void:
 		if 装备词条列表 is Array and 装备词条列表.size() > 0:
 			var s2: String = "装备词条："
 			for t in 装备词条列表:
-				var 类型名2: String = {"战力":"战力", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
+				var 类型名2: String = {"战力":"道行", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
 				var 值文本2: String = ""
 				if t.get("类型") == "战力":
 					值文本2 = "+%d" % int(t.get("数值", 0))
@@ -975,11 +1018,11 @@ func _刷新详情() -> void:
 	elif _当前分类 == "碎片":
 		# 碎片 Tab 显示数量和合成提示
 		lines.append("持有数量：%d" % 数量)
-		lines.append("点击「合成」按钮进行合成")
+		lines.append("轻触「合成」进行合成")
 	elif _当前分类 == "宝箱":
 		# 宝箱 Tab 显示数量和打开提示
 		lines.append("持有数量：%d" % 数量)
-		lines.append("点击「开启」按钮开启宝箱")
+		lines.append("轻触「开启」打开宝箱")
 	else:
 		# 丹药/材料 Tab 显示购买参考价（按品阶折算灵石），给出售决策给个锚点
 		lines.append("出售参考价：%d 灵石" % _品阶售价_本地(it))

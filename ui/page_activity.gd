@@ -1,8 +1,8 @@
 extends Control
 
-## 活动中心页面（整合所有活动，统一展示）
-## 活动分类：日常活动、周常活动、限时活动
-## 活动卡片：大厂标准UI，带图标、名称、描述、状态、参与按钮
+## 宗门时令页面（整合每日功课 / 周课 / 大典盛事，统一展示）
+## 时令分类：每日功课、周课、大典盛事
+## 时令卡片：带图标、名称、描述、状态、参与
 
 signal 返回请求()
 signal 活动参与请求(活动ID: String)
@@ -16,12 +16,12 @@ var _selected_activity: Dictionary = {}
 var _daily_msg: String = ""             # 最近一次打理结果（页内反馈，X15 必有反馈）
 var _daily_msg_lbl: Label = null
 
-# 活动分类配置
+# 时令分类配置
 const ACTIVITY_TABS: Array = [
-	{"key": "all", "name": "全部活动", "icon": "📋"},
-	{"key": "daily", "name": "日常活动", "icon": "📅"},
-	{"key": "weekly", "name": "周常活动", "icon": "📆"},
-	{"key": "limited", "name": "限时活动", "icon": "🔥"},
+	{"key": "all", "name": "时令一览", "icon": "emoji_offline_scroll"},
+	{"key": "daily", "name": "每日功课", "icon": "emoji_activity_calendar"},
+	{"key": "weekly", "name": "周课", "icon": "emoji_dynasty_news"},
+	{"key": "limited", "name": "大典盛事", "icon": "emoji_activity_fire"},
 ]
 
 func _ready() -> void:
@@ -50,13 +50,19 @@ func _build() -> void:
 	content.add_child(vbox)
 
 	_build_header(vbox)
-	# P2联动：显示当前活动名称（修真化描述）
+	# PH6·M5c：统一刷新时刻口径文案（与 game_state 每日重置小时=8 一致）
+	var 重置提示 := Label.new()
+	重置提示.text = "每日 08:00 更替"
+	重置提示.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UITheme.apply_aux_font_sized(重置提示, UITheme.FONT_AUX)
+	vbox.add_child(重置提示)
+	# P2联动：显示当前时令名称（修真化描述）
 	if Game != null and Game.has_method("获取当前活动名称"):
 		var 当前活动: String = Game.获取当前活动名称()
 		if 当前活动 != "平日（无加成）":
 			var activity_lbl := Label.new()
-			activity_lbl.text = "【时令盛典】%s" % 当前活动
-			UITheme.apply_aux_font_sized(activity_lbl, 14)
+			activity_lbl.text = "【当前时令】%s" % 当前活动
+			UITheme.apply_aux_font_sized(activity_lbl, UITheme.FONT_H2)
 			activity_lbl.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
 			activity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			vbox.add_child(activity_lbl)
@@ -64,26 +70,8 @@ func _build() -> void:
 	_build_main_area(vbox)
 
 func _build_header(parent: Control) -> void:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", UITheme.GRID)
-	parent.add_child(hb)
-
-	var back_btn: Button = UITheme.make_back_button(_on_back_pressed)
-	hb.add_child(back_btn)
-
-	var title := Label.new()
-	title.text = "机缘殿"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hb.add_child(title)
-
-	# 占位，让标题居中
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(48, 0)
-	hb.add_child(spacer)
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("宗门时令", _on_back_pressed, []))
 func _build_tabs(parent: Control) -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
@@ -91,12 +79,21 @@ func _build_tabs(parent: Control) -> void:
 
 	for t in ACTIVITY_TABS:
 		var btn := Button.new()
-		btn.text = "%s %s" % [t["icon"], t["name"]]
+		# 2026-09-14：emoji → 圆形金框图标（豆包资产 emoji_activity_*），无资产回退字符。
+		var 图标tex: Texture2D = UITheme.emoji_icon_sized(str(t["icon"]), 28)
+		if 图标tex != null:
+			btn.icon = 图标tex
+			btn.text = str(t["name"])
+		else:
+			# stem 是 ASCII 标识符，缺资产时不能当文案打给玩家
+			btn.text = str(t["name"])
 		btn.custom_minimum_size = Vector2(0, UITheme.GRID * 3)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var key = t["key"]
 		btn.pressed.connect(func(): _switch_tab(key))
 		hb.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 		btn.name = "Tab_" + key
 
 func _switch_tab(tab: String) -> void:
@@ -125,7 +122,7 @@ func _build_main_area(parent: Control) -> void:
 	hb.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	parent.add_child(hb)
 
-	# 左侧：活动列表
+	# 左侧：时令一览
 	var left_panel := PanelContainer.new()
 	left_panel.name = "ActivityListPanel"
 	left_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -145,9 +142,8 @@ func _build_main_area(parent: Control) -> void:
 	left_panel.add_child(left_vbox)
 
 	var list_title := Label.new()
-	list_title.text = "活动列表"
-	list_title.add_theme_font_size_override("font_size", 16)
-	list_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	list_title.text = "时令一览"
+	UITheme.apply_section_title(list_title)
 	left_vbox.add_child(list_title)
 
 	var scroll := ScrollContainer.new()
@@ -163,7 +159,7 @@ func _build_main_area(parent: Control) -> void:
 	_activity_list_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_activity_list_vbox)
 
-	# 右侧：活动详情
+	# 右侧：时令详情
 	_activity_detail_panel = PanelContainer.new()
 	_activity_detail_panel.name = "ActivityDetailPanel"
 	_activity_detail_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -197,12 +193,12 @@ func _refresh_activity_list() -> void:
 		child.queue_free()
 
 	if not is_instance_valid(Game) or not Game.has_method("获取所有活动列表"):
-		_add_empty_label("活动数据加载中...")
+		_add_empty_label("时令数据载入中…")
 		return
 
 	var all_activities: Array = Game.获取所有活动列表()
 	if all_activities.is_empty():
-		_add_empty_label("尚无活动")
+		_add_empty_label("尚无时令")
 		return
 
 	# 按分类筛选
@@ -216,12 +212,12 @@ func _refresh_activity_list() -> void:
 		elif _current_tab == "weekly" and activity_type == "周常":
 			filtered_activities.append(activity)
 		elif _current_tab == "limited":
-			# 限时活动暂时标记为有冷却日数>1的活动
+			# 大典盛事暂标记为冷却日数>1的时令
 			if int(activity.get("冷却日数", 1)) > 1:
 				filtered_activities.append(activity)
 
 	if filtered_activities.is_empty():
-		_add_empty_label("该分类尚无活动")
+		_add_empty_label("该分类尚无时令")
 		return
 
 	# 顶部操作区域：一键参与 + 积分兑换
@@ -230,8 +226,10 @@ func _refresh_activity_list() -> void:
 	for activity in filtered_activities:
 		var activity_card = _make_activity_card(activity)
 		_activity_list_vbox.add_child(activity_card)
+		activity_card.modulate.a = 0.0
+		activity_card.create_tween().tween_property(activity_card, "modulate:a", 1.0, 0.25)
 
-# 活动操作栏：一键参与日常 + 积分兑换
+# 时令操作栏：日常方针 + 积分兑换
 func _add_activity_action_bar() -> void:
 	var bar := PanelContainer.new()
 	var bar_style := StyleBoxFlat.new()
@@ -247,7 +245,7 @@ func _add_activity_action_bar() -> void:
 	vb.add_theme_constant_override("separation", UITheme.GRID)
 	bar.add_child(vb)
 
-	# 第一行：一键参与 + 积分显示
+	# 第一行：日常方针 + 积分显示
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	vb.add_child(hb)
@@ -256,7 +254,7 @@ func _add_activity_action_bar() -> void:
 	# 宗主在此定日常方针（养士/充库/扬名），门下弟子照此打理日常诸事。
 	var policy_btn := Button.new()
 	policy_btn.text = "日常方针：%s" % _当前日常方针()
-	policy_btn.tooltip_text = "点击切换方针 · " + _日常方针说明(_当前日常方针())
+	policy_btn.tooltip_text = "轻触切换方针 · " + _日常方针说明(_当前日常方针())
 	policy_btn.custom_minimum_size = Vector2(160, 40)
 	policy_btn.pressed.connect(_on_切换日常方针)
 	hb.add_child(policy_btn)
@@ -264,9 +262,9 @@ func _add_activity_action_bar() -> void:
 	# 当前积分显示
 	var 积分: int = int(Game.活动积分) if Game != null and "活动积分" in Game else 0
 	var points_lbl := Label.new()
-	points_lbl.text = "活动积分：%d" % 积分
-	points_lbl.add_theme_font_size_override("font_size", 14)
-	points_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	points_lbl.text = "时令积分：%d" % 积分
+	UITheme.apply_project_font(points_lbl, UITheme.FONT_H2, true)
+	points_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 	points_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(points_lbl)
 
@@ -285,8 +283,8 @@ func _add_activity_action_bar() -> void:
 	var 连续天数: int = int(Game.连续参与天数) if Game != null and "连续参与天数" in Game else 0
 	var streak_lbl := Label.new()
 	streak_lbl.text = "连续参与：%d天（加成%.1f倍）" % [连续天数, Game.获取连续参与加成() if Game != null else 1.0]
-	streak_lbl.add_theme_font_size_override("font_size", 12)
-	streak_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(streak_lbl, UITheme.FONT_BODY, false)
+	streak_lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	streak_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb2.add_child(streak_lbl)
 
@@ -299,8 +297,8 @@ func _add_activity_action_bar() -> void:
 	# 反馈行：最近一次打理结果（X15 点击必有反馈）
 	_daily_msg_lbl = Label.new()
 	_daily_msg_lbl.text = _daily_msg
-	_daily_msg_lbl.add_theme_font_size_override("font_size", 12)
-	_daily_msg_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(_daily_msg_lbl, UITheme.FONT_BODY, false)
+	_daily_msg_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_daily_msg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(_daily_msg_lbl)
 
@@ -362,15 +360,14 @@ func _show_exchange_panel(兑换列表: Array) -> void:
 
 	var title := Label.new()
 	title.text = "积分兑换阁"
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_section_title(title)
 	_activity_detail_vbox.add_child(title)
 
 	var 积分: int = int(Game.活动积分) if Game != null and "活动积分" in Game else 0
 	var points_lbl := Label.new()
 	points_lbl.text = "当前积分：%d" % 积分
-	points_lbl.add_theme_font_size_override("font_size", 14)
-	points_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(points_lbl, UITheme.FONT_H2, true)
+	points_lbl.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_activity_detail_vbox.add_child(points_lbl)
 
 	for item in 兑换列表:
@@ -381,11 +378,15 @@ func _show_exchange_panel(兑换列表: Array) -> void:
 		name_lbl.text = str(item.get("名称", ""))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_activity_detail_vbox.add_child(name_lbl)
+		name_lbl.modulate.a = 0.0
+		name_lbl.create_tween().tween_property(name_lbl, "modulate:a", 1.0, 0.25)
 
 		var cost_lbl := Label.new()
 		cost_lbl.text = "%d积分" % int(item.get("积分", 0))
 		cost_lbl.custom_minimum_size = Vector2(80, 0)
 		hb.add_child(cost_lbl)
+		cost_lbl.modulate.a = 0.0
+		cost_lbl.create_tween().tween_property(cost_lbl, "modulate:a", 1.0, 0.25)
 
 		var btn := Button.new()
 		btn.text = "兑换"
@@ -394,8 +395,12 @@ func _show_exchange_panel(兑换列表: Array) -> void:
 		var item_rank = str(item.get("品阶", ""))
 		btn.pressed.connect(func(): _on_exchange_item(item_type, item_rank))
 		hb.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 
 		_activity_detail_vbox.add_child(hb)
+		hb.modulate.a = 0.0
+		hb.create_tween().tween_property(hb, "modulate:a", 1.0, 0.25)
 
 	var close_btn := Button.new()
 	close_btn.text = "关闭"
@@ -429,43 +434,52 @@ func _make_activity_card(activity: Dictionary) -> Control:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	card.add_child(hb)
+	hb.modulate.a = 0.0
+	hb.create_tween().tween_property(hb, "modulate:a", 1.0, 0.25)
 
-	# 活动图标
-	var icon_label := Label.new()
-	icon_label.text = _get_activity_icon(activity)
-	icon_label.add_theme_font_size_override("font_size", 32)
-	icon_label.custom_minimum_size = Vector2(48, 48)
-	hb.add_child(icon_label)
+	# 时令图标（2026-09-14：emoji → 圆形金框图标，无资产回退字符）
+	var _fb1 := _make_activity_icon_node(activity, 48)
+	hb.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info.add_theme_constant_override("separation", 4)
 	hb.add_child(info)
+	info.modulate.a = 0.0
+	info.create_tween().tween_property(info, "modulate:a", 1.0, 0.25)
 
-	# 活动名称
+	# 时令名称
 	var name_label := Label.new()
-	name_label.text = str(activity.get("名称", "未知活动"))
-	name_label.add_theme_font_size_override("font_size", 16)
-	name_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	name_label.text = str(activity.get("名称", "未知时令"))
+	UITheme.apply_project_font(name_label, UITheme.FONT_H2, true)
+	name_label.add_theme_color_override("font_color", UITheme.获取主文字色())
 	info.add_child(name_label)
+	name_label.modulate.a = 0.0
+	name_label.create_tween().tween_property(name_label, "modulate:a", 1.0, 0.25)
 
-	# 活动描述
+	# 时令描述
 	var desc_label := Label.new()
 	desc_label.text = str(activity.get("描述", ""))
-	desc_label.add_theme_font_size_override("font_size", 12)
-	desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(desc_label, UITheme.FONT_BODY, false)
+	desc_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(desc_label)
+	desc_label.modulate.a = 0.0
+	desc_label.create_tween().tween_property(desc_label, "modulate:a", 1.0, 0.25)
 
-	# 活动类型和冷却
+	# 时令类型和冷却
 	var meta_hb := HBoxContainer.new()
 	meta_hb.add_theme_constant_override("separation", 8)
 	info.add_child(meta_hb)
+	meta_hb.modulate.a = 0.0
+	meta_hb.create_tween().tween_property(meta_hb, "modulate:a", 1.0, 0.25)
 
 	var type_label := Label.new()
 	var activity_type = str(activity.get("类型", ""))
 	type_label.text = "[%s]" % activity_type
-	type_label.add_theme_font_size_override("font_size", 12)
+	UITheme.apply_project_font(type_label, UITheme.FONT_BODY, false)
 	if activity_type == "日常":
 		type_label.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4, 1.0))
 	elif activity_type == "周常":
@@ -473,12 +487,16 @@ func _make_activity_card(activity: Dictionary) -> Control:
 	else:
 		type_label.add_theme_color_override("font_color", Color(0.9, 0.6, 0.2, 1.0))
 	meta_hb.add_child(type_label)
+	type_label.modulate.a = 0.0
+	type_label.create_tween().tween_property(type_label, "modulate:a", 1.0, 0.25)
 
 	var cooldown_label := Label.new()
 	cooldown_label.text = "冷却：%d日" % int(activity.get("冷却日数", 1))
-	cooldown_label.add_theme_font_size_override("font_size", 12)
-	cooldown_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(cooldown_label, UITheme.FONT_BODY, false)
+	cooldown_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	meta_hb.add_child(cooldown_label)
+	cooldown_label.modulate.a = 0.0
+	cooldown_label.create_tween().tween_property(cooldown_label, "modulate:a", 1.0, 0.25)
 
 	# 查看详情按钮
 	var detail_btn := Button.new()
@@ -488,34 +506,58 @@ func _make_activity_card(activity: Dictionary) -> Control:
 	var activity_ref = activity
 	detail_btn.pressed.connect(func(): _show_activity_detail(activity_ref))
 	hb.add_child(detail_btn)
+	detail_btn.modulate.a = 0.0
+	detail_btn.create_tween().tween_property(detail_btn, "modulate:a", 1.0, 0.25)
 
 	return card
+
+## 活动图标节点：优先用豆包圆形金框图标（emoji_activity_*），缺资产回退 emoji 字符。
+## 返回 Control（TextureRect 或 Label），调用方直接 add_child。
+func _make_activity_icon_node(activity: Dictionary, px: int) -> Control:
+	var 字符: String = _get_activity_icon(activity)
+	var tex: Texture2D = UITheme.emoji_icon_sized(字符, px)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.custom_minimum_size = Vector2(px, px)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return tr
+	var lb := Label.new()
+	lb.text = 字符
+	UITheme.apply_project_font(lb, UITheme.FONT_DISPLAY, true)
+	lb.custom_minimum_size = Vector2(px, px)
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	return lb
 
 func _get_activity_icon(activity: Dictionary) -> String:
 	var activity_id = str(activity.get("活动ID", ""))
 	match activity_id:
 		"daily_checkin":
-			return "📅"
+			return "emoji_activity_calendar"
 		"faction_activity":
-			return "⚔️"
+			return "emoji_activity_battle"
 		"faction_trial":
-			return "🏆"
+			return "emoji_activity_trophy"
 		"caravan_raid":
-			return "🗡️"
+			return "emoji_activity_sword"
 		"explore_event":
-			return "🗺️"
+			return "emoji_activity_map"
 		"disciple_cultivate":
-			return "👨‍🎓"
+			return "emoji_disciple_person"
 		"alchemy_session":
-			return "⚗️"
+			return "emoji_general_alchemy"
 		"artifact_forge":
-			return "🔨"
+			return "emoji_general_forge"
 		"zongmen_battle":
-			return "🏯"
+			return "emoji_world_city"
 		"faction_reputation":
-			return "⭐"
+			return "emoji_activity_star"
 		_:
-			return "🎯"
+			return "emoji_dynasty_target"
 
 func _show_activity_detail(activity: Dictionary) -> void:
 	_selected_activity = activity
@@ -534,50 +576,46 @@ func _show_activity_detail(activity: Dictionary) -> void:
 	title_hb.add_theme_constant_override("separation", UITheme.GRID)
 	_activity_detail_vbox.add_child(title_hb)
 
-	var icon_label := Label.new()
-	icon_label.text = _get_activity_icon(activity)
-	icon_label.add_theme_font_size_override("font_size", 40)
-	title_hb.add_child(icon_label)
+	title_hb.add_child(_make_activity_icon_node(activity, 28))
 
 	var title_vbox := VBoxContainer.new()
 	title_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_hb.add_child(title_vbox)
 
 	var name_label := Label.new()
-	name_label.text = str(activity.get("名称", "未知活动"))
-	name_label.add_theme_font_size_override("font_size", 20)
-	name_label.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	name_label.text = str(activity.get("名称", "未知时令"))
+	UITheme.apply_section_title(name_label)
 	title_vbox.add_child(name_label)
 
 	var type_label := Label.new()
 	type_label.text = "类型：%s | 冷却：%d日" % [str(activity.get("类型", "")), int(activity.get("冷却日数", 1))]
-	type_label.add_theme_font_size_override("font_size", 14)
-	type_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(type_label, UITheme.FONT_H2, true)
+	type_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	title_vbox.add_child(type_label)
 
 	# 分隔线
 	var separator := HSeparator.new()
 	_activity_detail_vbox.add_child(separator)
 
-	# 活动描述
+	# 时令描述
 	var desc_title := Label.new()
 	desc_title.text = "活动描述"
-	desc_title.add_theme_font_size_override("font_size", 16)
-	desc_title.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(desc_title, UITheme.FONT_H2, true)
+	desc_title.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_activity_detail_vbox.add_child(desc_title)
 
 	var desc_label := Label.new()
 	desc_label.text = str(activity.get("描述", "尚无描述"))
-	desc_label.add_theme_font_size_override("font_size", 14)
-	desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	UITheme.apply_project_font(desc_label, UITheme.FONT_H2, true)
+	desc_label.add_theme_color_override("font_color", UITheme.获取次文字色())
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_activity_detail_vbox.add_child(desc_label)
 
 	# 活动状态
 	var status_title := Label.new()
 	status_title.text = "活动状态"
-	status_title.add_theme_font_size_override("font_size", 16)
-	status_title.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(status_title, UITheme.FONT_H2, true)
+	status_title.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_activity_detail_vbox.add_child(status_title)
 
 	var can_participate = bool(activity.get("可参与", true))
@@ -588,7 +626,7 @@ func _show_activity_detail(activity: Dictionary) -> void:
 	else:
 		status_label.text = "冷却期，机缘未至"
 		status_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3, 1.0))
-	status_label.add_theme_font_size_override("font_size", 14)
+	UITheme.apply_project_font(status_label, UITheme.FONT_H2, true)
 	_activity_detail_vbox.add_child(status_label)
 
 	# 参与按钮
@@ -608,7 +646,7 @@ func _show_activity_detail(activity: Dictionary) -> void:
 	btn_style.set_content_margin_all(UITheme.GRID)
 	participate_btn.add_theme_stylebox_override("normal", btn_style)
 	participate_btn.add_theme_color_override("font_color", UITheme.C05_BTN_TEXT_DARK)
-	participate_btn.add_theme_font_size_override("font_size", 16)
+	UITheme.apply_project_font(participate_btn, UITheme.FONT_H2, true)
 	var activity_id = str(activity.get("活动ID", ""))
 	participate_btn.pressed.connect(func(): _on_participate_activity(activity_id))
 	_activity_detail_vbox.add_child(participate_btn)
@@ -626,21 +664,18 @@ func _on_participate_activity(activity_id: String) -> void:
 			# 参与成功，显示提示
 			var 消息 = str(结果.get("消息", "参与成功"))
 			# 这里可以添加toast提示
-			print("活动参与成功：%s" % 消息)
+			Game.添加提示("活动参与成功：%s" % 消息)
 		else:
 			# 参与失败，显示提示
 			var 原因 = str(结果.get("原因", "未知原因"))
-			print("活动参与失败：%s" % 原因)
+			Game.添加提示("活动参与失败：%s" % 原因)
 	_refresh_activity_list()
 	_hide_activity_detail()
 
 func _add_empty_label(text: String) -> void:
-	var empty_label := Label.new()
-	empty_label.text = text
-	empty_label.add_theme_font_size_override("font_size", 14)
-	empty_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
-	empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_activity_list_vbox.add_child(empty_label)
+	# ★ 2026-09-16（#009 逐页精修）：委托全项目统一空态组件（图标位 + 主文案 + 说明 + 淡入）。
+	#   原先各页自写一份、都只有「一行小字」，实机观感等同「这页没做」。
+	_activity_list_vbox.add_child(UITheme.建空态(text))
 
 func _on_back_pressed() -> void:
 	返回请求.emit()

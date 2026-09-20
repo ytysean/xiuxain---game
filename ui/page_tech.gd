@@ -30,6 +30,8 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 
 	# 顶部返回栏
@@ -46,7 +48,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  宗门科技院"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -54,13 +56,10 @@ func _build() -> void:
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
 
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(100, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 
 	# 内容滚动区
 	var 滚: ScrollContainer = ScrollContainer.new()
@@ -156,7 +155,7 @@ func _填总览() -> void:
 
 	var 效果列表: Array = [
 		["修炼速度加成", "修炼速度加成", Color(0.7, 1.0, 0.7)],
-		["战力加成", "战力加成", Color(1.0, 0.7, 0.7)],
+		["道行加成", "战力加成", Color(1.0, 0.7, 0.7)],
 		["产出加成", "产出加成", Color(0.7, 0.9, 1.0)],
 		["阵法加成", "阵法加成", Color(0.9, 0.7, 1.0)],
 		["丹药加成", "丹药加成", Color(1.0, 0.85, 0.5)]
@@ -171,26 +170,32 @@ func _填总览() -> void:
 		var 行: HBoxContainer = HBoxContainer.new()
 		行.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_content.add_child(行)
+		行.modulate.a = 0.0
+		行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 
 		var 名标签: Label = Label.new()
 		名标签.text = 效果名 + "："
 		名标签.custom_minimum_size = Vector2(120, 24)
 		名标签.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		行.add_child(名标签)
+		名标签.modulate.a = 0.0
+		名标签.create_tween().tween_property(名标签, "modulate:a", 1.0, 0.25)
 
 		var 值标签: Label = Label.new()
 		if 效果值 > 0:
 			值标签.text = "+%.1f%%" % [效果值 * 100]
 			值标签.add_theme_color_override("font_color", 效果颜色)
 		else:
-			值标签.text = "未激活"
+			值标签.text = "未启"
 			值标签.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
 		行.add_child(值标签)
+		值标签.modulate.a = 0.0
+		值标签.create_tween().tween_property(值标签, "modulate:a", 1.0, 0.25)
 
 	# 提示
 	if 可研究数 > 0:
 		var 提示: Label = Label.new()
-		提示.text = "💡 当前有 %d 项科技可研究，前往「科技树」查看详情" % 可研究数
+		提示.text = "◆ 当前有 %d 项科技可研究，前往「科技树」查看详情" % 可研究数
 		提示.add_theme_color_override("font_color", Color(0.8, 0.8, 0.5))
 		提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(提示)
@@ -232,47 +237,63 @@ func _填科技树() -> void:
 			var 卡片: VBoxContainer = VBoxContainer.new()
 			卡片.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_content.add_child(卡片)
+			卡片.modulate.a = 0.0
+			卡片.create_tween().tween_property(卡片, "modulate:a", 1.0, 0.25)
 
 			var 名栏: HBoxContainer = HBoxContainer.new()
 			卡片.add_child(名栏)
+			名栏.modulate.a = 0.0
+			名栏.create_tween().tween_property(名栏, "modulate:a", 1.0, 0.25)
 
 			var 科技名: String = str(科技.get("科技名称", ""))
 			var 已研究: bool = bool(科技.get("已研究", false))
 			var 可研究: bool = bool(科技.get("可研究", false))
 
-			var 状态图标: String = "✓" if 已研究 else ("○" if 可研究 else "🔒")
+			var 状态图标: String = "✓" if 已研究 else ("○" if 可研究 else "◇")
 			var 状态颜色: Color = Color(0.6, 1.0, 0.6) if 已研究 else (Color(1.0, 0.9, 0.5) if 可研究 else Color(0.5, 0.5, 0.5))
 
 			var 名: Label = Label.new()
 			名.text = "%s %s" % [状态图标, 科技名]
 			名.add_theme_color_override("font_color", 状态颜色)
-			名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(名, UITheme.FONT_H2, true)
 			名栏.add_child(名)
+			名.modulate.a = 0.0
+			名.create_tween().tween_property(名, "modulate:a", 1.0, 0.25)
 
 			var 等级: Label = Label.new()
-			等级.text = "  [Lv.%d]" % int(科技.get("等级", 1))
+			等级.text = "  [第 %d 重]" % int(科技.get("等级", 1))
 			等级.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 			名栏.add_child(等级)
+			等级.modulate.a = 0.0
+			等级.create_tween().tween_property(等级, "modulate:a", 1.0, 0.25)
 
 			var 描述: Label = Label.new()
 			描述.text = str(科技.get("描述", ""))
 			描述.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 			卡片.add_child(描述)
+			描述.modulate.a = 0.0
+			描述.create_tween().tween_property(描述, "modulate:a", 1.0, 0.25)
 
 			var 消耗栏: HBoxContainer = HBoxContainer.new()
 			卡片.add_child(消耗栏)
+			消耗栏.modulate.a = 0.0
+			消耗栏.create_tween().tween_property(消耗栏, "modulate:a", 1.0, 0.25)
 
 			var 灵石消耗: Label = Label.new()
 			灵石消耗.text = "消耗：%d灵石" % int(科技.get("消耗灵石", 0))
 			灵石消耗.custom_minimum_size = Vector2(120, 20)
 			灵石消耗.add_theme_color_override("font_color", Color(0.8, 0.7, 0.4))
 			消耗栏.add_child(灵石消耗)
+			灵石消耗.modulate.a = 0.0
+			灵石消耗.create_tween().tween_property(灵石消耗, "modulate:a", 1.0, 0.25)
 
 			var 悟道消耗: Label = Label.new()
 			悟道消耗.text = "+ %d悟道点" % int(科技.get("消耗悟道点", 0))
 			悟道消耗.custom_minimum_size = Vector2(120, 20)
 			悟道消耗.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
 			消耗栏.add_child(悟道消耗)
+			悟道消耗.modulate.a = 0.0
+			悟道消耗.create_tween().tween_property(悟道消耗, "modulate:a", 1.0, 0.25)
 
 			# 前置科技
 			var 前置列表: Array = 科技.get("前置科技", [])
@@ -281,11 +302,15 @@ func _填科技树() -> void:
 				前置.text = "前置：%s" % ", ".join(前置列表)
 				前置.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 				卡片.add_child(前置)
+				前置.modulate.a = 0.0
+				前置.create_tween().tween_property(前置, "modulate:a", 1.0, 0.25)
 
 			# 研究按钮
 			if not 已研究:
 				var 按钮栏: HBoxContainer = HBoxContainer.new()
 				卡片.add_child(按钮栏)
+				按钮栏.modulate.a = 0.0
+				按钮栏.create_tween().tween_property(按钮栏, "modulate:a", 1.0, 0.25)
 
 				var 研究按钮: Button = Button.new()
 				if 可研究:
@@ -298,9 +323,13 @@ func _填科技树() -> void:
 				研究按钮.custom_minimum_size = Vector2(100, 28)
 				研究按钮.pressed.connect(Callable(self, "_研究科技").bind(科技名))
 				按钮栏.add_child(研究按钮)
+				研究按钮.modulate.a = 0.0
+				研究按钮.create_tween().tween_property(研究按钮, "modulate:a", 1.0, 0.25)
 
 			var 分隔: HSeparator = HSeparator.new()
 			卡片.add_child(分隔)
+			分隔.modulate.a = 0.0
+			分隔.create_tween().tween_property(分隔, "modulate:a", 1.0, 0.25)
 
 
 func _研究科技(科技名: String) -> void:
@@ -344,7 +373,7 @@ func _添加空状态(标题: String, 描述: String) -> void:
 	var 空标题: Label = Label.new()
 	空标题.text = 标题
 	空标题.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	空标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(空标题, UITheme.FONT_TITLE, true)
 	空标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	空状态.add_child(空标题)
 
@@ -364,7 +393,7 @@ func _添加面板标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "▎ %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(标题标签, UITheme.FONT_H2, true)
 	_content.add_child(标题标签)
 
 	var 分隔: HSeparator = HSeparator.new()
@@ -379,7 +408,7 @@ func _添加子标题(标题: String) -> void:
 	var 标题标签: Label = Label.new()
 	标题标签.text = "● %s" % 标题
 	标题标签.add_theme_color_override("font_color", Color(0.75, 0.65, 0.45))
-	标题标签.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(标题标签, UITheme.FONT_H2, true)
 	_content.add_child(标题标签)
 
 

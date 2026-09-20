@@ -7,7 +7,7 @@ signal 返回主页
 
 var _built: bool = false
 var _榜单类型: String = "个人"
-var _指标: String = "战力"
+var _指标: String = "道行"
 var _范围: String = "本服"
 var _列表: VBoxContainer
 var _self_label: Label
@@ -65,23 +65,8 @@ func _build() -> void:
 	vbox.add_child(_self_label)
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "玄榜  ⓘ"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "玄榜", "天下宗门实力排行榜。\n含个人修士榜与宗门势力榜；宗门榜涵盖探索进度、天下财富、功勋、商道、名望诸维。\n排名根据宗门总战力、弟子数量、资源储备综合评定。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-	parent.add_child(bar)
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("玄榜", _on_back_pressed, [], "玄榜", "天下宗门实力排行榜。\n含个人修士榜与宗门势力榜；宗门榜涵盖探索进度、天下财富、功勋、商道、名望诸维。\n排名根据宗门总道行、弟子数量、资源储备综合评定。"))
 func _build_tabs(parent: Control) -> void:
 	var row := HBoxContainer.new()
 	row.name = "Tabs"
@@ -97,9 +82,9 @@ func _rebuild_metric_chips() -> void:
 	_指标chips.clear()
 	# 个人榜仅弟子真实可排维度（战力/境界）；宗门榜含虚拟对手的累计指标
 	# P2-3.2：宗门榜补「探索 / 财富」两维 → 对应任务书「探索进度榜 / 大地图财富榜」
-	var 集合: Array = ["战力", "境界"] if _榜单类型 == "个人" else ["战力", "探索", "财富", "功勋", "商道", "名望"]
+	var 集合: Array = ["道行", "境界"] if _榜单类型 == "个人" else ["道行", "探索", "财富", "功勋", "商道", "名望"]
 	if not 集合.has(_指标):
-		_指标 = "战力"
+		_指标 = "道行"
 	for m in 集合:
 		_指标chips[m] = _make_chip(m, m, m == _指标, _指标chips_row)
 
@@ -120,6 +105,8 @@ func _make_chip(text: String, key: String, selected: bool, parent: Control) -> B
 	_style_chip(b, selected)
 	b.pressed.connect(_on_chip_pressed.bind(key, b))
 	parent.add_child(b)
+	b.modulate.a = 0.0
+	b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 	return b
 
 func _style_chip(b: Button, selected: bool) -> void:
@@ -133,7 +120,7 @@ func _style_chip(b: Button, selected: bool) -> void:
 
 func _chip_style(selected: bool) -> StyleBoxFlat:
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.784, 0.659, 0.416) if selected else Color(0.094, 0.176, 0.215)
+	sb.bg_color = Color(0.784, 0.659, 0.416) if selected else UITheme.获取面板底色()
 	sb.set_corner_radius_all(8)
 	return sb
 
@@ -170,7 +157,10 @@ func _populate() -> void:
 	var 序号: int = 0
 	for e in 数据:
 		序号 += 1
-		_列表.add_child(_建行(序号, e))
+		var _fb1 := _建行(序号, e)
+		_列表.add_child(_fb1)
+		_fb1.modulate.a = 0.0
+		_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 	if _self_label != null:
 		var info: Dictionary = _self_info()
 		var gap_txt: String = ("↑ 距上一名差 %d 分" % int(info.get("gap", 0))) if int(info.get("gap", 0)) > 0 else "领先群雄"
@@ -197,6 +187,8 @@ func _建行(序号: int, e: Dictionary) -> Control:
 	else:
 		排名.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	行.add_child(排名)
+	排名.modulate.a = 0.0
+	排名.create_tween().tween_property(排名, "modulate:a", 1.0, 0.25)
 	var 名 := Label.new()
 	名.text = str(e.get("名", ""))
 	名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -204,14 +196,18 @@ func _建行(序号: int, e: Dictionary) -> Control:
 	if 冠:
 		名.add_theme_color_override("font_color", UITheme.color_text_title2())
 	else:
-		名.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		名.add_theme_color_override("font_color", UITheme.获取主文字色())
 	行.add_child(名)
+	名.modulate.a = 0.0
+	名.create_tween().tween_property(名, "modulate:a", 1.0, 0.25)
 	if str(e.get("称号", "")) != "":
 		var 号 := Label.new()
 		号.text = "「%s」" % str(e.get("称号", ""))
 		UITheme.apply_aux_text(号)
 		号.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 		行.add_child(号)
+		号.modulate.a = 0.0
+		号.create_tween().tween_property(号, "modulate:a", 1.0, 0.25)
 	var 值 := Label.new()
 	值.text = "%s %d" % [_指标, int(e.get("值", 0))]
 	值.custom_minimum_size = Vector2(160, 0)
@@ -219,6 +215,8 @@ func _建行(序号: int, e: Dictionary) -> Control:
 	UITheme.apply_value_text(值, false)
 	值.add_theme_color_override("font_color", UITheme.color_text_title1())
 	行.add_child(值)
+	值.modulate.a = 0.0
+	值.create_tween().tween_property(值, "modulate:a", 1.0, 0.25)
 	return 行
 
 func _self_info() -> Dictionary:

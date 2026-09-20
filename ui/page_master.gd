@@ -33,6 +33,8 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 
 	# 顶部返回栏
@@ -49,7 +51,7 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  宗主修炼"
 	标题.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
 	顶栏.add_child(标题)
 
 	# 标签栏
@@ -57,13 +59,10 @@ func _build() -> void:
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
 
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(80, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 
 	# 内容滚动区
 	var 滚: ScrollContainer = ScrollContainer.new()
@@ -103,7 +102,8 @@ func _render() -> void:
 
 	if Game == null or Game.宗主 == null:
 		var 提示: Label = Label.new()
-		提示.text = "宗主实体未初始化（旧档迁移中，请重新读档）"
+		提示.text = "宗主数据尚未就绪，请重新读档"
+		UITheme.apply_body_text(提示)
 		_content.add_child(提示)
 		return
 
@@ -136,13 +136,13 @@ func _render总览() -> void:
 	var 名: Label = Label.new()
 	名.text = "【宗主】%s" % str(m.姓名)
 	名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-	名.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(名, UITheme.FONT_H1, true)
 	名栏.add_child(名)
 
 	var 境界: Label = Label.new()
 	境界.text = "  %s%d层" % [str(m.境界), int(m.层数)]
 	境界.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
-	境界.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(境界, UITheme.FONT_TITLE, true)
 	名栏.add_child(境界)
 
 	# 属性网格
@@ -152,7 +152,7 @@ func _render总览() -> void:
 	信息区.add_child(属性表)
 
 	var 属性: Array = [
-		["战力", str(m.战力)],
+		["道行", str(m.战力)],
 		["寿元", "%d年" % int(m.寿元)],
 		["年龄", "%.1f岁" % float(m.年龄)],
 		["心境", str(m.心境)],
@@ -224,7 +224,7 @@ func _render总览() -> void:
 	# E：传承选项（寿元耗尽时显示）
 	if Game.宗主传承触发中:
 		var 传承标题: Label = Label.new()
-		传承标题.text = "\n⚠️ 宗主寿元耗尽！请选择传承方式："
+		传承标题.text = "\n⚠ 宗主寿元耗尽！请选择传承方式："
 		传承标题.add_theme_color_override("font_color", Color(0.9, 0.5, 0.5))
 		信息区.add_child(传承标题)
 
@@ -245,7 +245,7 @@ func _render总览() -> void:
 			if d == null:
 				continue
 			var 传位按钮: Button = Button.new()
-			传位按钮.text = "传位：%s（%s境，战力%d）" % [str(d.姓名), str(d.境界), int(d.战力)]
+			传位按钮.text = "传位：%s（%s境，道行%d）" % [str(d.姓名), str(d.境界), int(d.战力)]
 			传位按钮.custom_minimum_size = Vector2(0, 32)
 			传位按钮.pressed.connect(Callable(self, "_on宗主传位").bind(int(d.弟子ID)))
 			信息区.add_child(传位按钮)
@@ -259,9 +259,11 @@ func _render总览() -> void:
 	var 修条: ProgressBar = ProgressBar.new()
 	修条.min_value = 0.0
 	修条.max_value = 1.0
-	修条.value = float(m.修炼进度)
+	修条.value = 0.0
 	修条.custom_minimum_size = Vector2(0, 20)
 	信息区.add_child(修条)
+	# ★ 2026-09-16（#18）：修为条自 0 生长到当前值（数值瞬跳观感廉价，成长反馈是修仙游戏的核心爽点）。
+	UITheme.进度缓动(修条, float(m.修炼进度))
 
 	# 瓶颈打磨
 	if m.瓶颈打磨值 > 0:
@@ -273,9 +275,11 @@ func _render总览() -> void:
 		var 瓶条: ProgressBar = ProgressBar.new()
 		瓶条.min_value = 0.0
 		瓶条.max_value = 1.0
-		瓶条.value = float(m.瓶颈打磨值)
+		瓶条.value = 0.0
 		瓶条.custom_minimum_size = Vector2(0, 16)
 		信息区.add_child(瓶条)
+		# ★ 2026-09-16（#18）：瓶颈条自 0 生长
+		UITheme.进度缓动(瓶条, float(m.瓶颈打磨值))
 
 	# 宗主探索秘境入口
 	var 探索标题: Label = Label.new()
@@ -306,25 +310,30 @@ func _render修炼() -> void:
 	var 区: VBoxContainer = VBoxContainer.new()
 	区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.add_child(区)
+	区.modulate.a = 0.0
+	区.create_tween().tween_property(区, "modulate:a", 1.0, 0.25)
 
 	# 修炼状态
 	var 状态: Label = Label.new()
 	状态.text = "当前境界：%s%d层" % [str(m.境界), int(m.层数)]
 	状态.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
-	状态.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(状态, UITheme.FONT_TITLE, true)
 	区.add_child(状态)
 
 	# 修为进度
 	var 修文: Label = Label.new()
 	修文.text = "修为：%.1f%%" % (float(m.修炼进度) * 100.0)
+	UITheme.apply_aux_text(修文)
 	区.add_child(修文)
 
 	var 修条: ProgressBar = ProgressBar.new()
 	修条.min_value = 0.0
 	修条.max_value = 1.0
-	修条.value = float(m.修炼进度)
+	修条.value = 0.0
 	修条.custom_minimum_size = Vector2(0, 24)
 	区.add_child(修条)
+	# ★ 2026-09-16（#18）：修为条自 0 生长
+	UITheme.进度缓动(修条, float(m.修炼进度))
 
 	# 突破按钮
 	if int(m.层数) >= 10 and float(m.修炼进度) >= 1.0:
@@ -411,6 +420,8 @@ func _render技艺() -> void:
 	var 区: VBoxContainer = VBoxContainer.new()
 	区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.add_child(区)
+	区.modulate.a = 0.0
+	区.create_tween().tween_property(区, "modulate:a", 1.0, 0.25)
 
 	var 技艺表: Array = [
 		["炼丹", int(m.炼丹等级)],
@@ -428,13 +439,13 @@ func _render技艺() -> void:
 		区.add_child(行)
 
 		var 名: Label = Label.new()
-		名.text = "%s等级：" % str(s[0])
+		名.text = "%s品级：" % str(s[0])
 		名.custom_minimum_size = Vector2(120, 0)
 		名.add_theme_color_override("font_color", Color(0.8, 0.75, 0.5))
 		行.add_child(名)
 
 		var 级: Label = Label.new()
-		级.text = "Lv.%d" % int(s[1])
+		级.text = "第 %d 重" % int(s[1])
 		级.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
 		行.add_child(级)
 
@@ -508,11 +519,11 @@ func _render技艺() -> void:
 	var 境界行: HBoxContainer = HBoxContainer.new()
 	境界行.add_theme_constant_override("separation", 20)
 	var 毒道境界标签: Label = Label.new()
-	毒道境界标签.text = "毒道境界：%s（%d经验）" % [str(毒道总览["毒道境界"]), int(毒道总览["毒道经验"])]
+	毒道境界标签.text = "毒道境界：%s（%d修为）" % [str(毒道总览["毒道境界"]), int(毒道总览["毒道经验"])]
 	毒道境界标签.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
 	境界行.add_child(毒道境界标签)
 	var 毒体标签: Label = Label.new()
-	毒体标签.text = "毒体：%s（%d经验）" % [str(毒道总览["毒体境界"]), int(毒道总览["毒体经验"])]
+	毒体标签.text = "毒体：%s（%d修为）" % [str(毒道总览["毒体境界"]), int(毒道总览["毒体经验"])]
 	毒体标签.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))
 	境界行.add_child(毒体标签)
 	总览内框.add_child(境界行)
@@ -528,7 +539,7 @@ func _render技艺() -> void:
 	炼丹标签.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
 	加成行.add_child(炼丹标签)
 	var 毒室标签: Label = Label.new()
-	毒室标签.text = "毒室：%d级 | 库存：%d种" % [int(毒道总览["毒室等级"]), int(毒道总览["毒药数量"])]
+	毒室标签.text = "毒室：%d 重 | 存量：%d 种" % [int(毒道总览["毒室等级"]), int(毒道总览["毒药数量"])]
 	毒室标签.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
 	加成行.add_child(毒室标签)
 	总览内框.add_child(加成行)
@@ -634,6 +645,8 @@ func _render装备() -> void:
 	var 区: VBoxContainer = VBoxContainer.new()
 	区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.add_child(区)
+	区.modulate.a = 0.0
+	区.create_tween().tween_property(区, "modulate:a", 1.0, 0.25)
 
 	if m.装备.is_empty():
 		var 空: Label = Label.new()
@@ -666,6 +679,8 @@ func _render背包() -> void:
 	var 区: VBoxContainer = VBoxContainer.new()
 	区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.add_child(区)
+	区.modulate.a = 0.0
+	区.create_tween().tween_property(区, "modulate:a", 1.0, 0.25)
 
 	if m.背包.is_empty():
 		var 空: Label = Label.new()
@@ -736,8 +751,10 @@ func _on升级宗主场所(场所: String) -> void:
 	var 结果: Dictionary = Game.升级宗主场所(场所)
 	if bool(结果.get("成功", false)):
 		UIHint.show_hint(self, "场所升级", "%s升级至%d级！" % [场所, int(结果["新等级"])])
+		Game.添加提示("场所升级")
 	else:
 		UIHint.show_hint(self, "升级失败", str(结果.get("原因", "")))
+		Game.添加提示("升级失败")
 	_render()
 
 
@@ -747,8 +764,10 @@ func _on炼制毒药(毒药名: String) -> void:
 	var 结果: Dictionary = Game.炼制毒药(毒药名, Game.宗主)
 	if bool(结果.get("成功", false)):
 		UIHint.show_hint(self, "炼制成功", "获得%s（%s）" % [毒药名, 结果["品阶"]])
+		Game.添加提示("炼制成功")
 	else:
 		UIHint.show_hint(self, "炼制失败", str(结果.get("原因", "")))
+		Game.添加提示("炼制失败")
 	_render()
 
 
@@ -758,8 +777,10 @@ func _on炼制毒丹(毒丹名: String) -> void:
 	var 结果: Dictionary = Game.炼制毒丹(毒丹名, Game.宗主)
 	if bool(结果.get("成功", false)):
 		UIHint.show_hint(self, "炼制成功", "获得%s（%s/%s）" % [毒丹名, 结果["品阶"], 结果["类型"]])
+		Game.添加提示("炼制成功")
 	else:
 		UIHint.show_hint(self, "炼制失败", str(结果.get("原因", "")))
+		Game.添加提示("炼制失败")
 	_render()
 
 func _on服用毒丹(毒丹名: String) -> void:
@@ -768,8 +789,10 @@ func _on服用毒丹(毒丹名: String) -> void:
 	var 结果: Dictionary = Game.服用毒丹(毒丹名, Game.宗主)
 	if bool(结果.get("成功", false)):
 		UIHint.show_hint(self, "服用成功", "%s服用%s，%s" % [Game.宗主.姓名, 毒丹名, str(结果.get("效果", ""))])
+		Game.添加提示("服用成功")
 	else:
 		UIHint.show_hint(self, "服用失败", str(结果.get("原因", "")))
+		Game.添加提示("服用失败")
 	_render()
 
 
@@ -851,6 +874,8 @@ func _render管理() -> void:
 	var 区: VBoxContainer = VBoxContainer.new()
 	区.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content.add_child(区)
+	区.modulate.a = 0.0
+	区.create_tween().tween_property(区, "modulate:a", 1.0, 0.25)
 
 	# 宗门资源（基础资源+新材料）
 	var 资源标题: Label = Label.new()
@@ -933,7 +958,7 @@ func _render管理() -> void:
 	var 副宗主: Disciple = Game.获取副宗主()
 	if 副宗主 != null:
 		var 信息: Label = Label.new()
-		信息.text = "现任副宗主：%s（%s境，战力%d）" % [str(副宗主.姓名), str(副宗主.境界), int(副宗主.战力)]
+		信息.text = "现任副宗主：%s（%s境，道行%d）" % [str(副宗主.姓名), str(副宗主.境界), int(副宗主.战力)]
 		信息.add_theme_color_override("font_color", Color(0.7, 0.9, 0.7))
 		区.add_child(信息)
 
@@ -965,7 +990,7 @@ func _render管理() -> void:
 				if d == null:
 					continue
 				var 任命按钮: Button = Button.new()
-				任命按钮.text = "任命：%s（%s境，战力%d）" % [str(d.姓名), str(d.境界), int(d.战力)]
+				任命按钮.text = "任命：%s（%s境，道行%d）" % [str(d.姓名), str(d.境界), int(d.战力)]
 				任命按钮.custom_minimum_size = Vector2(0, 32)
 				任命按钮.pressed.connect(Callable(self, "_on任命副宗主").bind(int(d.弟子ID)))
 				区.add_child(任命按钮)
@@ -1039,7 +1064,7 @@ func _render管理() -> void:
 	# 灵脉升级
 	var 灵脉消耗: Dictionary = Game.获取灵脉升级消耗()
 	var 灵脉按钮: Button = Button.new()
-	灵脉按钮.text = "升级灵脉（Lv.%d→%d，消耗%d灵石+%d灵晶）" % [int(Game.灵脉等级), int(Game.灵脉等级)+1, int(灵脉消耗.get("灵石", 0)), int(灵脉消耗.get("灵晶", 0))]
+	灵脉按钮.text = "升级灵脉（%d 品→%d 品，消耗%d灵石+%d灵晶）" % [int(Game.灵脉等级), int(Game.灵脉等级)+1, int(灵脉消耗.get("灵石", 0)), int(灵脉消耗.get("灵晶", 0))]
 	灵脉按钮.custom_minimum_size = Vector2(0, 32)
 	灵脉按钮.pressed.connect(_on升级灵脉)
 	区.add_child(灵脉按钮)
@@ -1101,7 +1126,7 @@ func _on升级灵脉() -> void:
 		return
 	var 结果: Dictionary = Game.升级灵脉()
 	if bool(结果.get("成功", false)):
-		_加提示("灵脉升级成功！Lv.%d" % int(Game.灵脉等级))
+		_加提示("灵脉升级成功！%d 品" % int(Game.灵脉等级))
 	else:
 		_加提示("升级失败：%s" % str(结果.get("原因", "")))
 	_render()

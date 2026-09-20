@@ -4,7 +4,6 @@ extends Control
 # P1：灵植境界进度段  P2：灵肥/引灵露 求购与切换  P3：灵植博览周赛参与
 # 颜色一律走 UITheme 真实 const，禁硬编码
 
-const UITheme = preload("res://ui_theme.gd")
 
 signal 返回主页
 
@@ -33,6 +32,8 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 	var 顶栏: HBoxContainer = HBoxContainer.new()
 	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -45,18 +46,15 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  药圃经营"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(100, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -77,8 +75,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -96,20 +93,29 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "药圃经营·总览"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	var 次: Label = Label.new()
 	次.text = "累计种植 %d 次。播灵植、育异种，所产丹材皆归宗门库房，反哺炼丹。" % 圃.累计种植次数
 	次.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	次.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(次)
+	次.modulate.a = 0.0
+	次.create_tween().tween_property(次, "modulate:a", 1.0, 0.25)
 	var 提示: Label = Label.new()
 	提示.text = "药圃经营为灵植种植子型：播种浇灌、催熟灵植，异种灵根皆入灵植志。"
 	提示.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(提示)
+	提示.modulate.a = 0.0
+	提示.create_tween().tween_property(提示, "modulate:a", 1.0, 0.25)
 	# P1 灵植境界进度段
-	_content.add_child(_分隔("灵植境界"))
+	var _fb1 := _分隔("灵植境界")
+	_content.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 	var 境文: String = "当前境界：%s" % 圃.灵植境界名()
 	var 进: Dictionary = 圃.灵植进度()
 	if 进.满:
@@ -121,8 +127,13 @@ func _建_总览() -> void:
 	境.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
 	境.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(境)
+	境.modulate.a = 0.0
+	境.create_tween().tween_property(境, "modulate:a", 1.0, 0.25)
 	# P3 灵植博览段
-	_content.add_child(_分隔("灵植博览"))
+	var _fb2 := _分隔("灵植博览")
+	_content.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	var 周: Dictionary = 圃.获取本周观博周()
 	var 周文: String = "本周擂台【%s】：%s（威望 %d）" % [周.get("名称", ""), 周.get("描述", ""), int(周.get("奖励威望", 0))]
 	var 周标: Label = Label.new()
@@ -130,66 +141,96 @@ func _建_总览() -> void:
 	周标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	周标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(周标)
+	周标.modulate.a = 0.0
+	周标.create_tween().tween_property(周标, "modulate:a", 1.0, 0.25)
 	var 余: Label = Label.new()
 	余.text = "本周已参与 %d / 3（年份评比，威望入账）" % 圃.本周观博参与
 	余.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	_content.add_child(余)
+	余.modulate.a = 0.0
+	余.create_tween().tween_property(余, "modulate:a", 1.0, 0.25)
 	var 参: Button = Button.new()
 	参.text = "参与本周灵植博览"
 	参.custom_minimum_size = Vector2(0, 48)
 	参.pressed.connect(_参与观博周)
 	_content.add_child(参)
+	参.modulate.a = 0.0
+	参.create_tween().tween_property(参, "modulate:a", 1.0, 0.25)
 
 func _建_种植() -> void:
-	_content.add_child(_分隔("种植培育"))
+	var _fb3 := _分隔("种植培育")
+	_content.add_child(_fb3)
+	_fb3.modulate.a = 0.0
+	_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 	var 种: Button = Button.new()
 	种.text = "播种浇灌·种植"
 	种.custom_minimum_size = Vector2(0, 48)
 	种.pressed.connect(_种植)
 	_content.add_child(种)
+	种.modulate.a = 0.0
+	种.create_tween().tween_property(种, "modulate:a", 1.0, 0.25)
 	_状态文本 = Label.new()
 	_状态文本.text = "点按种植，灵植生长。"
 	_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	_状态文本.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(_状态文本)
+	_状态文本.modulate.a = 0.0
+	_状态文本.create_tween().tween_property(_状态文本, "modulate:a", 1.0, 0.25)
 	# P2 消耗品区块
-	_content.add_child(_分隔("辅助消耗品"))
+	var _fb4 := _分隔("辅助消耗品")
+	_content.add_child(_fb4)
+	_fb4.modulate.a = 0.0
+	_fb4.create_tween().tween_property(_fb4, "modulate:a", 1.0, 0.25)
 	var 肥文: String = "灵肥（加速年份档）：%s" % ("已持" if Game.药圃系统.库房计数("灵肥") > 0 else "未持")
 	var 肥: Label = Label.new()
 	肥.text = 肥文
 	肥.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	_content.add_child(肥)
+	肥.modulate.a = 0.0
+	肥.create_tween().tween_property(肥, "modulate:a", 1.0, 0.25)
 	var 求肥: Button = Button.new()
 	求肥.text = "求购灵肥（160灵石）"
 	求肥.custom_minimum_size = Vector2(0, 44)
 	求肥.pressed.connect(_求购灵肥)
 	_content.add_child(求肥)
+	求肥.modulate.a = 0.0
+	求肥.create_tween().tween_property(求肥, "modulate:a", 1.0, 0.25)
 	var 切肥: Button = Button.new()
 	切肥.text = "种植用灵肥：%s" % ("是" if _用灵肥 else "否")
 	切肥.custom_minimum_size = Vector2(0, 44)
 	切肥.pressed.connect(_切换用灵肥)
 	_content.add_child(切肥)
+	切肥.modulate.a = 0.0
+	切肥.create_tween().tween_property(切肥, "modulate:a", 1.0, 0.25)
 	var 露文: String = "引灵露（提异种率）：%s" % ("已持" if Game.药圃系统.库房计数("引灵露") > 0 else "未持")
 	var 露: Label = Label.new()
 	露.text = 露文
 	露.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	_content.add_child(露)
+	露.modulate.a = 0.0
+	露.create_tween().tween_property(露, "modulate:a", 1.0, 0.25)
 	var 求露: Button = Button.new()
 	求露.text = "求购引灵露（200灵石）"
 	求露.custom_minimum_size = Vector2(0, 44)
 	求露.pressed.connect(_求购引灵露)
 	_content.add_child(求露)
+	求露.modulate.a = 0.0
+	求露.create_tween().tween_property(求露, "modulate:a", 1.0, 0.25)
 	var 切露: Button = Button.new()
 	切露.text = "种植用引灵露：%s" % ("是" if _用引灵露 else "否")
 	切露.custom_minimum_size = Vector2(0, 44)
 	切露.pressed.connect(_切换用引灵露)
 	_content.add_child(切露)
+	切露.modulate.a = 0.0
+	切露.create_tween().tween_property(切露, "modulate:a", 1.0, 0.25)
 	if not _最近结果.is_empty():
 		var r: Label = Label.new()
 		r.text = _格式结果(_最近结果)
 		r.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS if _最近结果.get("成功", false) else UITheme.COLOR_TEXT_RED)
 		r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(r)
+		r.modulate.a = 0.0
+		r.create_tween().tween_property(r, "modulate:a", 1.0, 0.25)
 
 func _种植() -> void:
 	_最近结果 = Game.药圃系统.结算种植(_用灵肥, _用引灵露)
@@ -259,21 +300,25 @@ func _建_灵植志() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "灵植志：已收录 %d / %d" % [已收.size(), 全部.size()]
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	for 名 in 全部:
 		var l: Label = Label.new()
 		if 已收.has(名):
 			l.text = "✓ %s" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS)
 		else:
-			l.text = "✗ %s（未收录）" % 名
+			l.text = "× %s（未收录）" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 		_content.add_child(l)
+		l.modulate.a = 0.0
+		l.create_tween().tween_property(l, "modulate:a", 1.0, 0.25)
 
 func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(l, UITheme.FONT_TITLE, true)
 	return l

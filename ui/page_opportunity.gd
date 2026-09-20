@@ -3,7 +3,6 @@ extends Control
 # 后端：Game.每日机缘配置 / Game.检查机缘(类型) / Game.使用机缘符(符类型) / Game.使用悟道令()
 # 颜色一律走 UITheme 真实 const，禁硬编码
 
-const UITheme = preload("res://ui_theme.gd")
 
 signal 返回主页
 
@@ -30,29 +29,15 @@ func _build() -> void:
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
 	add_child(main)
-	var 顶栏: HBoxContainer = HBoxContainer.new()
-	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var 顶栏: PanelContainer = UITheme.建顶栏("机缘", Callable(self, "_on返回"))
 	main.add_child(顶栏)
-	var 返回按钮: Button = Button.new()
-	返回按钮.text = "← 返回宗门"
-	返回按钮.custom_minimum_size = Vector2(120, 36)
-	返回按钮.pressed.connect(_on返回)
-	顶栏.add_child(返回按钮)
-	var 标题: Label = Label.new()
-	标题.text = "  机缘"
-	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(110, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -60,6 +45,8 @@ func _build() -> void:
 	main.add_child(滚)
 	_content = VBoxContainer.new()
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	_content.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	滚.add_child(_content)
 	_状态文本 = Label.new()
 	_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
@@ -74,8 +61,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -88,19 +74,34 @@ func _on返回() -> void:
 	返回主页.emit()
 
 func _建_总览() -> void:
-	_content.add_child(_标题("每日机缘"))
-	_content.add_child(_说明("机缘为跨系统通用资粮：探秘、游历、历练、征伐、入山各有其缘，用尽须待明日。"))
+	var _fb1 := _标题("每日机缘")
+	_content.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
+	var _fb2 := _说明("机缘为跨系统通用资粮：探秘、游历、历练、征伐、入山各有其缘，用尽须待明日。")
+	_content.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	for 类型 in Game.每日机缘配置:
 		var 配置 = Game.每日机缘配置[类型]
 		if 配置 == null:
 			continue
 		var 查: Dictionary = Game.检查机缘(str(类型))
 		var 剩余: int = int(查.get("剩余", 0))
-		_content.add_child(_行("%s：剩余 %d / %d" % [str(配置.get("描述", 类型)), 剩余, int(查.get("上限", 0))], UITheme.COLOR_TEXT_BODY_GOLD if 剩余 > 0 else UITheme.COLOR_TEXT_AUX))
+		var _fb3 := _行("%s：剩余 %d / %d" % [str(配置.get("描述", 类型)), 剩余, int(查.get("上限", 0))], UITheme.COLOR_TEXT_BODY_GOLD if 剩余 > 0 else UITheme.COLOR_TEXT_AUX)
+		_content.add_child(_fb3)
+		_fb3.modulate.a = 0.0
+		_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 
 func _建_机缘符() -> void:
-	_content.add_child(_标题("机缘符"))
-	_content.add_child(_说明("机缘符可补一次对应机缘；悟道令可补全部机缘各一次。"))
+	var _fb4 := _标题("机缘符")
+	_content.add_child(_fb4)
+	_fb4.modulate.a = 0.0
+	_fb4.create_tween().tween_property(_fb4, "modulate:a", 1.0, 0.25)
+	var _fb5 := _说明("机缘符可补一次对应机缘；悟道令可补全部机缘各一次。")
+	_content.add_child(_fb5)
+	_fb5.modulate.a = 0.0
+	_fb5.create_tween().tween_property(_fb5, "modulate:a", 1.0, 0.25)
 	for 符 in 符表:
 		var 持: int = _库房数(str(符))
 		var 按钮: Button = Button.new()
@@ -109,7 +110,12 @@ func _建_机缘符() -> void:
 		按钮.disabled = 持 <= 0
 		按钮.pressed.connect(Callable(self, "_用符").bind(str(符)))
 		_content.add_child(按钮)
-	_content.add_child(_分隔("悟道令"))
+		按钮.modulate.a = 0.0
+		按钮.create_tween().tween_property(按钮, "modulate:a", 1.0, 0.25)
+	var _fb6 := _分隔("悟道令")
+	_content.add_child(_fb6)
+	_fb6.modulate.a = 0.0
+	_fb6.create_tween().tween_property(_fb6, "modulate:a", 1.0, 0.25)
 	var 令数: int = _库房数("悟道令")
 	var 令钮: Button = Button.new()
 	令钮.text = "使用【悟道令】（持有 %d）· 全部机缘各 +1" % 令数
@@ -117,6 +123,8 @@ func _建_机缘符() -> void:
 	令钮.disabled = 令数 <= 0
 	令钮.pressed.connect(_用悟道令)
 	_content.add_child(令钮)
+	令钮.modulate.a = 0.0
+	令钮.create_tween().tween_property(令钮, "modulate:a", 1.0, 0.25)
 
 func _库房数(名: String) -> int:
 	var n: int = 0
@@ -142,15 +150,13 @@ func _update状态(t: String) -> void:
 func _标题(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
-	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_section_title(l)
 	return l
 
 func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
-	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_section_title(l)
 	return l
 
 func _行(t: String, 色: Color) -> Label:

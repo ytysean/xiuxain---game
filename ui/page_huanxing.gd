@@ -27,7 +27,11 @@ const CARD_H: float = 208.0
 const CARD_X0: float = 16.0
 const CARD_X1: float = 248.0
 const GRID_TOP: float = 120.0          # 滚动区起始
-const GRID_BOTTOM: float = 688.0       # 底栏起始：二级页容器可视高 854-84=770，底栏高 82，故 770-82=688
+# 底栏起始。2026-09-15 修：原 688（按「容器可视高 854-84=770，减去底栏 82」推出）
+#   让底栏落在 688~770 = **屏幕最底边**，实测「穿戴」按钮在逻辑 y788~838、距屏底仅 16 逻辑
+#   （≈36 物理），被 Windows 任务栏（约 32 逻辑 / 65 物理）整条吃掉 —— 玩家看不到按钮，
+#   表现为老大报的「皮肤能点击但不能更换，以前有个穿戴按钮」。现上移到安全区。
+const GRID_BOTTOM: float = 644.0       # 底栏 644~726；底部留 43 逻辑（≈65 窗口px）安全余量
 const GRID_DY: float = 224.0           # CARD_H 208 + 间隙 16
 const BOTTOM_H: float = 82.0
 
@@ -81,7 +85,7 @@ func _build_top_bar() -> void:
 
 	# 已拥有计数（顶部右侧）
 	_owned_label = _mk_label(self, "OwnedCounter", "已拥有 0/0", 300.0, 24.0, 164.0, 20.0, 14,
-		UITheme.C01_TEXT_TERTIARY, false, HORIZONTAL_ALIGNMENT_RIGHT, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取弱文字色(), false, HORIZONTAL_ALIGNMENT_RIGHT, VERTICAL_ALIGNMENT_CENTER, false)
 
 func _build_filter() -> void:
 	# 三等分列：列中心 80 / 240 / 400，标签宽 80
@@ -93,7 +97,7 @@ func _build_filter() -> void:
 	for d in defs:
 		var key: String = d["key"]
 		var lbl: Label = _mk_label(self, "Filter_" + key, d["label"], float(d["x"]), 60.0, 80.0, 28.0, 20,
-			UITheme.C01_TEXT_TERTIARY, true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
+			UITheme.获取弱文字色(), true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
 		_filter_labels[key] = lbl
 		var ul := Control.new()
 		ul.name = "Underline_" + key
@@ -102,6 +106,8 @@ func _build_filter() -> void:
 		var ul_sb: StyleBox = UITheme.make_panel_stylebox_flat(UITheme.COLOR_TEXT_GOLD, Color(0,0,0,0), 1, 0)
 		ul.add_theme_stylebox_override("panel", ul_sb)
 		add_child(ul)
+		ul.modulate.a = 0.0
+		ul.create_tween().tween_property(ul, "modulate:a", 1.0, 0.25)
 		_filter_underlines[key] = ul
 		var hit := Button.new()
 		hit.name = "FilterHit_" + key
@@ -116,6 +122,8 @@ func _build_filter() -> void:
 		hit.add_theme_stylebox_override("focus", hsb)
 		hit.pressed.connect(_on_filter_pressed.bind(key))
 		add_child(hit)
+		hit.modulate.a = 0.0
+		hit.create_tween().tween_property(hit, "modulate:a", 1.0, 0.25)
 
 func _build_grid() -> void:
 	# 滚动容器：固定占用顶部与底栏之间的区域
@@ -160,12 +168,16 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	_place(root, x, y, CARD_W, CARD_H)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	_grid_content.add_child(root)
+	root.modulate.a = 0.0
+	root.create_tween().tween_property(root, "modulate:a", 1.0, 0.25)
 
 	var panel := Panel.new()
 	panel.name = "Panel"
 	_place(panel, 0.0, 0.0, CARD_W, CARD_H)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(panel)
+	panel.modulate.a = 0.0
+	panel.create_tween().tween_property(panel, "modulate:a", 1.0, 0.25)
 
 	# 皮肤预览图（等比铺满，缺图回落默认）
 	var tex := TextureRect.new()
@@ -176,6 +188,8 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(tex)
+	tex.modulate.a = 0.0
+	tex.create_tween().tween_property(tex, "modulate:a", 1.0, 0.25)
 
 	# 底部压暗渐变（让名称可读）
 	var shade := Panel.new()
@@ -185,8 +199,10 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	shade.add_theme_stylebox_override("panel",
 		UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE.r, UITheme.C01_SCENE_BASE.g, UITheme.C01_SCENE_BASE.b, 0.78), Color(0,0,0,0), 0, 0))
 	panel.add_child(shade)
+	shade.modulate.a = 0.0
+	shade.create_tween().tween_property(shade, "modulate:a", 1.0, 0.25)
 	var nm: Label = _mk_label(panel, "Name", skin["name"], 12.0, CARD_H - 30.0, CARD_W - 24.0, 20.0, 16,
-		UITheme.C01_TEXT_PRIMARY, true, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, true)
+		UITheme.获取主文字色(), true, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, true)
 
 	# 品阶标签（canonical 品阶色）
 	var badge := Panel.new()
@@ -197,8 +213,10 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	badge.add_theme_stylebox_override("panel",
 		UITheme.make_panel_stylebox_flat(Color(tier_col.r, tier_col.g, tier_col.b, 0.92), Color(0,0,0,0), 11, 0))
 	panel.add_child(badge)
+	badge.modulate.a = 0.0
+	badge.create_tween().tween_property(badge, "modulate:a", 1.0, 0.25)
 	_mk_label(badge, "TierText", skin["tier_name"], 0.0, 1.0, 42.0, 20.0, 13,
-		UITheme.C01_TEXT_PRIMARY, true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取主文字色(), true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
 
 	# 装备中标签（仅装备时显示）
 	var eq := Panel.new()
@@ -208,6 +226,8 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	eq.add_theme_stylebox_override("panel",
 		UITheme.make_panel_stylebox_flat(UITheme.COLOR_TEXT_GOLD, Color(0,0,0,0), 12, 0))
 	panel.add_child(eq)
+	eq.modulate.a = 0.0
+	eq.create_tween().tween_property(eq, "modulate:a", 1.0, 0.25)
 	_mk_label(eq, "EquipText", "装备中", 0.0, 2.0, 56.0, 20.0, 12,
 		UITheme.C01_SCENE_BASE, true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
 
@@ -224,6 +244,8 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	lock_bg.add_theme_stylebox_override("panel",
 		UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE.r, UITheme.C01_SCENE_BASE.g, UITheme.C01_SCENE_BASE.b, 0.68), Color(0,0,0,0), 0, 0))
 	lock.add_child(lock_bg)
+	lock_bg.modulate.a = 0.0
+	lock_bg.create_tween().tween_property(lock_bg, "modulate:a", 1.0, 0.25)
 	var lic := TextureRect.new()
 	lic.name = "LockIcon"
 	_place(lic, (CARD_W - 36.0) / 2.0, 62.0, 36.0, 36.0)
@@ -232,11 +254,15 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	lic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	lic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lock.add_child(lic)
+	lic.modulate.a = 0.0
+	lic.create_tween().tween_property(lic, "modulate:a", 1.0, 0.25)
 	_mk_label(lock, "LockText", "未解锁", 0.0, 104.0, CARD_W, 20.0, 15,
-		UITheme.C01_TEXT_SECONDARY, true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取次文字色(), true, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
 	_mk_label(lock, "CondText", "", 12.0, CARD_H - 26.0, CARD_W - 24.0, 16.0, 11,
-		UITheme.C01_TEXT_TERTIARY, false, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取弱文字色(), false, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER, false)
 	panel.add_child(lock)
+	lock.modulate.a = 0.0
+	lock.create_tween().tween_property(lock, "modulate:a", 1.0, 0.25)
 
 	# 点击热区
 	var hit := Button.new()
@@ -252,6 +278,8 @@ func _make_card(skin: Dictionary, x: float, y: float) -> void:
 	hit.add_theme_stylebox_override("focus", hsb)
 	hit.pressed.connect(_on_card_pressed.bind(id))
 	root.add_child(hit)
+	hit.modulate.a = 0.0
+	hit.create_tween().tween_property(hit, "modulate:a", 1.0, 0.25)
 
 	_cards[id] = {"root": root, "panel": panel, "tex": tex, "equip_tag": eq, "lock_overlay": lock, "name": nm}
 
@@ -286,13 +314,18 @@ func _build_bottom_bar() -> void:
 	bar.add_child(_thumb)
 
 	_bottom_name = _mk_label(bar, "BottomName", "", 84.0, 14.0, 240.0, 22.0, 18,
-		UITheme.C01_TEXT_PRIMARY, true, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取主文字色(), true, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, false)
 	_bottom_tier = _mk_label(bar, "BottomTier", "", 84.0, 42.0, 240.0, 16.0, 12,
-		UITheme.C01_TEXT_SECONDARY, false, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, false)
+		UITheme.获取次文字色(), false, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER, false)
 
 	_wear_btn = Button.new()
 	_wear_btn.name = "WearBtn"
-	_wear_btn.flat = true
+	# ★ 2026-09-15 修「穿戴按钮看不到」：原为 flat = true —— Godot 的 flat Button 在
+	#   **normal 态不绘制 stylebox**（只在 hover/pressed 才画），于是「未装备」态的金色胶囊底
+	#   整块消失，只剩 C01_SCENE_BASE（深绿）文字压在深绿底栏上 ⇒ 完全隐形。
+	#   「已装备」态的「装备中」是次文字色（浅），所以那一态看得见 —— 这正是老大
+	#   图5 能看到、图6 看不到的原因。
+	_wear_btn.flat = false
 	_wear_btn.text = ""
 	_place(_wear_btn, 336.0, 16.0, 128.0, 50.0)
 	_wear_btn.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -327,7 +360,7 @@ func _refresh_filter_styles() -> void:
 			UITheme.apply_title_font_sized(lbl, UITheme.FONT_TITLE)
 			ul.visible = true
 		else:
-			lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+			lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 			UITheme.apply_title_font_sized(lbl, UITheme.FONT_H2)
 			ul.visible = false
 
@@ -377,11 +410,22 @@ func _refresh_bottom_bar() -> void:
 		var state: String = "已装备" if _selected_id == _equipped_id else ("已拥有" if owned else "未解锁")
 		_bottom_tier.text = "%s阶 · %s" % [skin["tier_name"], state]
 	if _wear_btn != null and _wear_label != null:
+		var 已拥有: bool = _is_owned(skin)
 		var sb: StyleBox
 		if _selected_id == _equipped_id:
 			sb = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_GOLD_LINE.r, UITheme.C01_GOLD_LINE.g, UITheme.C01_GOLD_LINE.b, 0.45), Color(0,0,0,0), 25, 0)
 			_wear_label.text = "装备中"
-			_wear_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+			_wear_label.add_theme_color_override("font_color", UITheme.获取次文字色())
+			_wear_btn.disabled = true
+		elif not 已拥有:
+			# ★ 2026-09-16 修（真缺陷 · 点击静默）：旧实现只挡了「装备中」一档，
+			#   选中**未拥有**的皮肤时按钮仍是可点的（disabled=false），
+			#   而 _on_wear_pressed() 里 `if not _is_owned(skin): return` 直接静默返回
+			#   ⇒ 玩家点「穿戴」毫无反应，以为卡死。
+			#   改为同款置灰 + 「未解锁」文案：不可用的动作就该 disabled（大厂通行做法）。
+			sb = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_GOLD_LINE.r, UITheme.C01_GOLD_LINE.g, UITheme.C01_GOLD_LINE.b, 0.14), Color(0,0,0,0), 25, 0)
+			_wear_label.text = "未解锁"
+			_wear_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 			_wear_btn.disabled = true
 		else:
 			sb = UITheme.make_panel_stylebox_flat(UITheme.COLOR_TEXT_GOLD, Color(0,0,0,0), 25, 0)
@@ -392,6 +436,9 @@ func _refresh_bottom_bar() -> void:
 		_wear_btn.add_theme_stylebox_override("pressed", sb)
 		_wear_btn.add_theme_stylebox_override("hover", sb)
 		_wear_btn.add_theme_stylebox_override("focus", sb)
+		# disabled 必须一起套：旧实现漏了这一档，「装备中」时按钮按主题默认 disabled 样式
+		# 渲染（无底色/半透明），视觉上像凭空消失，只剩旁边一行浅色文字。
+		_wear_btn.add_theme_stylebox_override("disabled", sb)
 
 func _apply_filter_visibility() -> void:
 	var xs: Array = [CARD_X0, CARD_X1]
@@ -500,7 +547,7 @@ func _unlock_desc(skin: Dictionary) -> String:
 	var u: Dictionary = skin["unlock"]
 	match u.get("type", "always"):
 		"sect_level":
-			return "宗门 Lv.%d 解锁" % int(u.get("value", 0))
+			return "宗门 %d 品 解锁" % int(u.get("value", 0))
 		"days":
 			return "累计登录 %d 日解锁" % int(u.get("value", 0))
 		_:

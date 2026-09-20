@@ -11,6 +11,9 @@ var _built: bool = false
 var _scroll_vbox: VBoxContainer
 var _faction_cards: Dictionary = {}
 var _campaign_vbox: VBoxContainer = null  # P2接入：阵营战役列表容器
+# 延迟构建：整页单 ScrollContainer，5 个二级面板一次建完 1372 节点（打开 545ms）→ 滚动近底再建
+var _滚动: ScrollContainer
+var _延迟面板: Array = []
 
 const FACTION_LIST: Array = ["正道宗门", "魔道邪宗", "中立散修", "上古妖兽", "远古遗泽"]
 const FACTION_SHORT: Dictionary = {
@@ -66,38 +69,70 @@ func _build() -> void:
 	# 之和（≈10403）已超过整页；VBox 无剩余空间可分，带 EXPAND 的 FactionScroll 只能拿 0 高
 	# （实测 size=(1032.0, 0.0)），MarginContainer 亦被自身 min 撑到 10565 溢出父容器。
 	# 改挂进 FactionScroll 内的 _scroll_vbox：整页收成一个滚动容器，内容顺序不变。
-	_build_comprehensive(_scroll_vbox)
-	_build_campaign(_scroll_vbox)  # P2接入：阵营战役入口
-	_build_hostile_npc(_scroll_vbox)  # P2接入：敌对NPC列表
-	_build_npc_list(_scroll_vbox)
-	_build_interactive_npc(_scroll_vbox)
+	# 整页是单个 ScrollContainer，5 个二级面板一次建完达 1372 节点（实测打开 545ms）；
+	# 改为滚动近底时逐个构建，首屏只建前两个（综合权益为常看信息）。
+	_登记延迟面板("ComprehensivePanel", func(): _build_comprehensive(_scroll_vbox), _update_comprehensive)
+	_登记延迟面板("CampaignPanel", func(): _build_campaign(_scroll_vbox), _update_campaign)
+	_登记延迟面板("HostileNPCPanel", func(): _build_hostile_npc(_scroll_vbox), _update_hostile_npc)
+	_登记延迟面板("NPCPanel", func(): _build_npc_list(_scroll_vbox), _update_npc_list)
+	_登记延迟面板("InteractiveNPCPanel", func(): _build_interactive_npc(_scroll_vbox), _update_interactive_npc)
+	_建下一批面板(true)
+
+## 登记一个延迟构建的面板（构建与刷新成对，建完立即刷新一次拿当前数据）
+func _登记延迟面板(名: String, 构建: Callable, 更新: Callable) -> void:
+	_延迟面板.append({"名": 名, "构建": 构建, "更新": 更新, "已建": false})
+
+## 构建一个未建面板；返回是否真的建了
+func _建下一面板() -> bool:
+	for 项 in _延迟面板:
+		if bool(项.get("已建", false)):
+			continue
+		var 构建: Callable = 项.get("构建", Callable())
+		if 构建.is_valid():
+			构建.call()
+		项["已建"] = true
+		var 更新: Callable = 项.get("更新", Callable())
+		if 更新.is_valid():
+			更新.call()
+		return true
+	return false
+
+## 首屏固定建前 N 个；之后滚动触发时建到够一屏为止，避免「还有面板却滚不动」的假底
+const 首屏面板数: int = 2
+
+func _建下一批面板(首屏: bool = false) -> void:
+	if _滚动 == null:
+		return
+	var 建了: int = 0
+	while _建下一面板():
+		建了 += 1
+		if 首屏:
+			if 建了 >= 首屏面板数:
+				break
+		elif _scroll_vbox.size.y >= _滚动.size.y:
+			break
+
+func _on_scroll_changed(_v: float) -> void:
+	if _滚动 == null:
+		return
+	var bar: ScrollBar = _滚动.get_v_scroll_bar()
+	if bar == null or bar.max_value <= 0.0:
+		return
+	if bar.value >= bar.max_value - bar.page * 0.8:
+		_建下一批面板()
+
+func _连接滚动信号() -> void:
+	if _滚动 == null or not is_instance_valid(_滚动):
+		return
+	var bar: ScrollBar = _滚动.get_v_scroll_bar()
+	if bar == null:
+		return
+	if not bar.value_changed.is_connected(_on_scroll_changed):
+		bar.value_changed.connect(_on_scroll_changed)
 
 func _build_header(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "HeaderBar"
-	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
-	parent.add_child(panel)
-
-	var bar := HBoxContainer.new()
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	bar.alignment = BoxContainer.ALIGNMENT_BEGIN
-	panel.add_child(bar)
-
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-
-	var title := Label.new()
-	title.text = "阵营声望"
-	UITheme.apply_title_font(title)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bar.add_child(title)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(UITheme.BACK_BTN_SIZE, 0)
-	bar.add_child(spacer)
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("阵营声望", _on_back_pressed, []))
 func _build_scroll(parent: Control) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.name = "FactionScroll"
@@ -110,10 +145,14 @@ func _build_scroll(parent: Control) -> void:
 	_scroll_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	_scroll_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_scroll_vbox)
+	_滚动 = scroll
+	_连接滚动信号()
 
 	for faction in FACTION_LIST:
 		var card = _build_faction_card(faction)
 		_scroll_vbox.add_child(card)
+		card.modulate.a = 0.0
+		card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 		_faction_cards[faction] = card
 
 	# 弟子阵营管理
@@ -123,16 +162,16 @@ func _build_scroll(parent: Control) -> void:
 
 	var 弟子阵营vbox := VBoxContainer.new()
 	弟子阵营vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	弟子阵营vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	弟子阵营vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	弟子阵营vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	弟子阵营vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	弟子阵营vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	弟子阵营vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	弟子阵营vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	弟子阵营vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	弟子阵营面板.add_child(弟子阵营vbox)
 
 	var 弟子阵营标题 := Label.new()
 	弟子阵营标题.text = "弟子阵营管理"
 	弟子阵营标题.add_theme_color_override("font_color", Color(0.9, 0.8, 0.6))
-	弟子阵营标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(弟子阵营标题, UITheme.FONT_TITLE, true)
 	弟子阵营vbox.add_child(弟子阵营标题)
 
 	# 统计弟子阵营分布
@@ -182,10 +221,10 @@ func _build_faction_card(faction: String) -> Control:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	card.add_child(vbox)
 
 	# 阵营名称 + 等级
@@ -247,10 +286,10 @@ func _build_comprehensive(parent: Control) -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var title := Label.new()
@@ -267,7 +306,7 @@ func _build_comprehensive(parent: Control) -> void:
 	vbox.add_child(grid)
 
 	var items: Array = [
-		{"label": "最高商店折扣", "key": "discount"},
+		{"label": "最高让利", "key": "discount"},
 		{"label": "最高任务加成", "key": "bonus"},
 		{"label": "解锁特殊商品", "key": "special"},
 		{"label": "解锁专属任务", "key": "exclusive"},
@@ -276,13 +315,15 @@ func _build_comprehensive(parent: Control) -> void:
 		var item_panel := PanelContainer.new()
 		item_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(true))
 		grid.add_child(item_panel)
+		item_panel.modulate.a = 0.0
+		item_panel.create_tween().tween_property(item_panel, "modulate:a", 1.0, 0.25)
 
 		var item_vbox := VBoxContainer.new()
 		item_vbox.add_theme_constant_override("separation", 4)
-		item_vbox.add_theme_constant_override("offset_left", 12)
-		item_vbox.add_theme_constant_override("offset_right", 12)
-		item_vbox.add_theme_constant_override("offset_top", 8)
-		item_vbox.add_theme_constant_override("offset_bottom", 8)
+		item_vbox.add_theme_constant_override("margin_left", 12)
+		item_vbox.add_theme_constant_override("margin_right", 12)
+		item_vbox.add_theme_constant_override("margin_top", 8)
+		item_vbox.add_theme_constant_override("margin_bottom", 8)
 		item_panel.add_child(item_vbox)
 
 		var label := Label.new()
@@ -308,14 +349,14 @@ func _build_campaign(parent: Control) -> void:
 	var vbox := VBoxContainer.new()
 	vbox.name = "CampaignList"
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "⚔ 阵营战役"
+	title.text = "◆ 阵营战役"
 	title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	UITheme.apply_body_text(title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -377,7 +418,7 @@ func _update_campaign() -> void:
 		var 当前声望: int = int(战役.get("当前声望", 0))
 		var 已解锁: bool = bool(战役.get("已解锁", false))
 		var 告捷次数: int = int(战役.get("告捷次数", 0))
-		var 状态文本: String = "🔒 未解锁" if not 已解锁 else "✅ 已解锁"
+		var 状态文本: String = "◇ 未解锁" if not 已解锁 else "✓ 已解锁"
 		详情.text = "%s | 声望：%d/%d | 告捷：%d次 | %s" % [阵营, 当前声望, 需声望, 告捷次数, 状态文本]
 		UITheme.apply_aux_text(详情)
 		信息.add_child(详情)
@@ -471,14 +512,14 @@ func _build_hostile_npc(parent: Control) -> void:
 	var vbox := VBoxContainer.new()
 	vbox.name = "HostileNPCList"
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "⚔ 敌对势力"
+	title.text = "◆ 敌对势力"
 	title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	UITheme.apply_body_text(title)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -529,7 +570,7 @@ func _update_hostile_npc() -> void:
 		var 战力: int = int(NPC.get("战力", 0))
 		var 势力: String = str(NPC.get("势力", ""))
 		var 仇恨: int = int(NPC.get("当前仇恨", 0))
-		详情.text = "%s | 战力：%d | %s | 仇恨：%d" % [境界, 战力, 势力, 仇恨]
+		详情.text = "%s | 道行：%d | %s | 仇恨：%d" % [境界, 战力, 势力, 仇恨]
 		UITheme.apply_aux_text(详情)
 		信息.add_child(详情)
 		var 挑战按钮 := Button.new()
@@ -586,10 +627,10 @@ func _build_npc_list(parent: Control) -> void:
 	var vbox := VBoxContainer.new()
 	vbox.name = "NPCList"
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var title := Label.new()
@@ -646,16 +687,12 @@ func refresh() -> void:
 		var benefits_label = card.find_child("BenefitsLabel", true, false)
 		if benefits_label != null:
 			benefits_label.text = _get_benefits_text(faction, level_idx)
-	# 更新综合权益
-	_update_comprehensive()
-	# 更新NPC列表
-	_update_npc_list()
-	# 更新可交互NPC列表
-	_update_interactive_npc()
-	# P2接入：更新阵营战役列表
-	_update_campaign()
-	# P2接入：更新敌对NPC列表
-	_update_hostile_npc()
+	# 延迟面板：未建的不刷新（构建时会自带一次刷新），已建的才更新
+	for 项 in _延迟面板:
+		if bool(项.get("已建", false)):
+			var 更新: Callable = 项.get("更新", Callable())
+			if 更新.is_valid():
+				更新.call()
 
 func _get_level_index(rep_value: int) -> int:
 	for i in range(REPUTATION_THRESHOLDS.size()):
@@ -667,7 +704,7 @@ func _get_benefits_text(faction: String, level_idx: int) -> String:
 	var benefits: Array = []
 	match faction:
 		"正道宗门":
-			if level_idx >= 2: benefits.append("商店95折")
+			if level_idx >= 2: benefits.append("商店让利5%")
 			if level_idx >= 3: benefits.append("正道高阶功法")
 			if level_idx >= 4: benefits.append("正道专属皮肤")
 		"魔道邪宗":
@@ -710,13 +747,13 @@ func _update_comprehensive() -> void:
 	var root = find_child("ComprehensivePanel", true, false)
 	if root != null:
 		var discount_val = root.find_child("Value_discount", true, false)
-		if discount_val != null: discount_val.text = "%d折" % int(best_discount * 100)
+		if discount_val != null: discount_val.text = "让利%d%%" % int(round((1.0 - best_discount) * 100))
 		var bonus_val = root.find_child("Value_bonus", true, false)
 		if bonus_val != null: bonus_val.text = "+%d%%" % int((best_bonus - 1.0) * 100)
 		var special_val = root.find_child("Value_special", true, false)
-		if special_val != null: special_val.text = "✅" if has_special else "❌"
+		if special_val != null: special_val.text = "✓" if has_special else "×"
 		var exclusive_val = root.find_child("Value_exclusive", true, false)
-		if exclusive_val != null: exclusive_val.text = "✅" if has_exclusive else "❌"
+		if exclusive_val != null: exclusive_val.text = "✓" if has_exclusive else "×"
 
 ## P2 更新阵营NPC列表
 func _update_npc_list() -> void:
@@ -746,12 +783,14 @@ func _update_npc_list() -> void:
 			var NPC卡: PanelContainer = PanelContainer.new()
 			NPC卡.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(true))
 			content.add_child(NPC卡)
+			NPC卡.modulate.a = 0.0
+			NPC卡.create_tween().tween_property(NPC卡, "modulate:a", 1.0, 0.25)
 			var NPCvbox: VBoxContainer = VBoxContainer.new()
 			NPCvbox.add_theme_constant_override("separation", 4)
-			NPCvbox.add_theme_constant_override("offset_left", 12)
-			NPCvbox.add_theme_constant_override("offset_right", 12)
-			NPCvbox.add_theme_constant_override("offset_top", 8)
-			NPCvbox.add_theme_constant_override("offset_bottom", 8)
+			NPCvbox.add_theme_constant_override("margin_left", 12)
+			NPCvbox.add_theme_constant_override("margin_right", 12)
+			NPCvbox.add_theme_constant_override("margin_top", 8)
+			NPCvbox.add_theme_constant_override("margin_bottom", 8)
 			NPC卡.add_child(NPCvbox)
 			# NPC名称和身份
 			var 名称行: HBoxContainer = HBoxContainer.new()
@@ -779,10 +818,10 @@ func _update_npc_list() -> void:
 			var 解锁提示: String = str(NPC.get("解锁提示", ""))
 			var 状态: Label = Label.new()
 			if 已解锁:
-				状态.text = "✅ 已解锁"
+				状态.text = "✓ 已解锁"
 				状态.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 			else:
-				状态.text = "🔒 %s" % 解锁提示
+				状态.text = "◇ %s" % 解锁提示
 				状态.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 			UITheme.apply_aux_text(状态)
 			NPCvbox.add_child(状态)
@@ -798,10 +837,10 @@ func _build_interactive_npc(parent: Control) -> void:
 	var vbox := VBoxContainer.new()
 	vbox.name = "InteractiveNPCList"
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var title := Label.new()
@@ -812,7 +851,7 @@ func _build_interactive_npc(parent: Control) -> void:
 	vbox.add_child(title)
 
 	var desc := Label.new()
-	desc.text = "点击人物可对话，了解宗门动态"
+	desc.text = "轻触人物可对话，了解宗门动态"
 	UITheme.apply_aux_text(desc)
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -835,10 +874,10 @@ func _build_interactive_npc(parent: Control) -> void:
 
 	var dialog_vbox := VBoxContainer.new()
 	dialog_vbox.add_theme_constant_override("separation", 4)
-	dialog_vbox.add_theme_constant_override("offset_left", 12)
-	dialog_vbox.add_theme_constant_override("offset_right", 12)
-	dialog_vbox.add_theme_constant_override("offset_top", 8)
-	dialog_vbox.add_theme_constant_override("offset_bottom", 8)
+	dialog_vbox.add_theme_constant_override("margin_left", 12)
+	dialog_vbox.add_theme_constant_override("margin_right", 12)
+	dialog_vbox.add_theme_constant_override("margin_top", 8)
+	dialog_vbox.add_theme_constant_override("margin_bottom", 8)
 	dialog_panel.add_child(dialog_vbox)
 
 	var dialog_title := Label.new()
@@ -886,12 +925,14 @@ func _update_interactive_npc() -> void:
 		var NPC卡: PanelContainer = PanelContainer.new()
 		NPC卡.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(true))
 		content.add_child(NPC卡)
+		NPC卡.modulate.a = 0.0
+		NPC卡.create_tween().tween_property(NPC卡, "modulate:a", 1.0, 0.25)
 		var NPCvbox: VBoxContainer = VBoxContainer.new()
 		NPCvbox.add_theme_constant_override("separation", 4)
-		NPCvbox.add_theme_constant_override("offset_left", 12)
-		NPCvbox.add_theme_constant_override("offset_right", 12)
-		NPCvbox.add_theme_constant_override("offset_top", 8)
-		NPCvbox.add_theme_constant_override("offset_bottom", 8)
+		NPCvbox.add_theme_constant_override("margin_left", 12)
+		NPCvbox.add_theme_constant_override("margin_right", 12)
+		NPCvbox.add_theme_constant_override("margin_top", 8)
+		NPCvbox.add_theme_constant_override("margin_bottom", 8)
 		NPC卡.add_child(NPCvbox)
 		# NPC名称和身份
 		var 名称行: HBoxContainer = HBoxContainer.new()
@@ -912,7 +953,7 @@ func _update_interactive_npc() -> void:
 		状态行.add_theme_constant_override("separation", UITheme.GRID)
 		NPCvbox.add_child(状态行)
 		var 位置: Label = Label.new()
-		位置.text = "📍 %s" % str(NPC.get("位置", ""))
+		位置.text = "◇ %s" % str(NPC.get("位置", ""))
 		UITheme.apply_aux_text(位置)
 		状态行.add_child(位置)
 		var 状态: Label = Label.new()
@@ -922,11 +963,11 @@ func _update_interactive_npc() -> void:
 		var 心情: Label = Label.new()
 		var 心情值: int = int(NPC.get("心情", 50))
 		if 心情值 > 80:
-			心情.text = "😊 心情愉悦"
+			心情.text = "◇ 心情愉悦"
 		elif 心情值 < 40:
-			心情.text = "😞 心情不佳"
+			心情.text = "◇ 心情不佳"
 		else:
-			心情.text = "😐 心情一般"
+			心情.text = "◇ 心情一般"
 		UITheme.apply_aux_text(心情)
 		状态行.add_child(心情)
 		# P2 第二阶段：好感度显示
@@ -935,16 +976,18 @@ func _update_interactive_npc() -> void:
 		好感行.add_theme_constant_override("separation", UITheme.GRID / 2)
 		NPCvbox.add_child(好感行)
 		var 好感标签: Label = Label.new()
-		好感标签.text = "❤️ 好感度"
+		好感标签.text = "◇ 好感度"
 		UITheme.apply_aux_text(好感标签)
 		好感行.add_child(好感标签)
 		var 好感进度: ProgressBar = ProgressBar.new()
 		好感进度.min_value = 0
 		好感进度.max_value = 100
-		好感进度.value = 好感度
+		好感进度.value = 0
 		好感进度.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		好感进度.custom_minimum_size = Vector2(0, 16)
 		好感行.add_child(好感进度)
+		# ★ 2026-09-16（#18）：好感度自 0 生长
+		UITheme.进度缓动(好感进度, float(好感度))
 		var 好感数值: Label = Label.new()
 		好感数值.text = "%d/100" % 好感度
 		UITheme.apply_aux_text(好感数值)
@@ -959,32 +1002,32 @@ func _update_interactive_npc() -> void:
 			var 任务: Dictionary = 任务状态.get("任务", {})
 			if bool(任务状态.get("已接取", false)):
 				if bool(任务状态.get("可完成", false)):
-					任务信息.text = "📋 任务：%s（可完成）" % str(任务.get("名称", ""))
+					任务信息.text = "◇ 差事：%s（可完成）" % str(任务.get("名称", ""))
 					任务信息.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 				else:
-					任务信息.text = "📋 任务：%s（%d/%d）" % [str(任务.get("名称", "")), int(任务状态.get("进度", 0)), int(任务状态.get("目标", 1))]
+					任务信息.text = "◇ 差事：%s（%d/%d）" % [str(任务.get("名称", "")), int(任务状态.get("进度", 0)), int(任务状态.get("目标", 1))]
 			else:
-				任务信息.text = "📋 可接任务：%s" % str(任务.get("名称", ""))
+				任务信息.text = "◇ 可接差事：%s" % str(任务.get("名称", ""))
 			UITheme.apply_aux_text(任务信息)
 			任务行.add_child(任务信息)
 			# 任务按钮
 			var 任务按钮: Button = Button.new()
 			if bool(任务状态.get("已接取", false)):
 				if bool(任务状态.get("可完成", false)):
-					任务按钮.text = "✅ 完成任务"
+					任务按钮.text = "✓ 了却差事"
 					任务按钮.connect("pressed", func():
 						var 结果: Dictionary = Game.完成NPC任务(NPCID)
-						_show_simple_dialog(root, "任务结果", str(结果.get("msg", "")))
+						_show_simple_dialog(root, "差事结果", str(结果.get("msg", "")))
 						_update_interactive_npc()
 					)
 				else:
 					任务按钮.text = "进行中..."
 					任务按钮.disabled = true
 			else:
-				任务按钮.text = "📋 接取任务"
+				任务按钮.text = "◇ 接取差事"
 				任务按钮.connect("pressed", func():
 					var 结果: Dictionary = Game.接取NPC任务(NPCID)
-					_show_simple_dialog(root, "任务接取", str(结果.get("msg", "")))
+					_show_simple_dialog(root, "差事接取", str(结果.get("msg", "")))
 					_update_interactive_npc()
 				)
 			任务行.add_child(任务按钮)
@@ -994,7 +1037,7 @@ func _update_interactive_npc() -> void:
 		NPCvbox.add_child(按钮行)
 		# 对话按钮（增强版：记忆+随机事件）
 		var 对话按钮: Button = Button.new()
-		对话按钮.text = "💬 对话"
+		对话按钮.text = "◇ 对话"
 		对话按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var NPC名称: String = str(NPC.get("名称", ""))
 		对话按钮.connect("pressed", func():
@@ -1020,7 +1063,7 @@ func _update_interactive_npc() -> void:
 		按钮行.add_child(对话按钮)
 		# P2 第二阶段：送礼按钮
 		var 送礼按钮: Button = Button.new()
-		送礼按钮.text = "🎁 送礼"
+		送礼按钮.text = "◇ 送礼"
 		送礼按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var 喜欢礼物: String = Game.获取NPC喜欢礼物(NPCID)
 		送礼按钮.connect("pressed", func():
@@ -1029,7 +1072,7 @@ func _update_interactive_npc() -> void:
 		按钮行.add_child(送礼按钮)
 		# P2 第三阶段：记忆按钮
 		var 记忆按钮: Button = Button.new()
-		记忆按钮.text = "📝 记忆"
+		记忆按钮.text = "◇ 记忆"
 		记忆按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		记忆按钮.connect("pressed", func():
 			var 记忆列表: Array = Game.获取NPC记忆(NPCID)
@@ -1045,7 +1088,7 @@ func _update_interactive_npc() -> void:
 		按钮行.add_child(记忆按钮)
 		# P2 第三阶段：关系按钮
 		var 关系按钮: Button = Button.new()
-		关系按钮.text = "👥 关系"
+		关系按钮.text = "◇ 关系"
 		关系按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		关系按钮.connect("pressed", func():
 			var 关系列表: Array = Game.获取NPC关系(NPCID)
@@ -1073,6 +1116,13 @@ func _show_simple_dialog(root: Control, 标题: String, 内容: String) -> void:
 	if dialog_content != null:
 		dialog_content.text = 内容
 	dialog_panel.visible = true
+	# ★ 2026-09-16 修（死键扫描实测：阵营 3 个批量按钮全判 DEAD）：
+	#   本函数把结果写进「可交互NPC」区块内的 DialogPanel。若玩家当前不在该页签，
+	#   panel 自身 visible=true 但**父链仍是隐藏的** ⇒ is_visible_in_tree() 依旧 false
+	#   ⇒ 操作结果落在看不见的地方，观感等同按钮坏了（点了毫无反应）。
+	#   故仅在 panel 实际不可见时补一次全局轻提示，保证任何页签下都有明确回应。
+	if not dialog_panel.is_visible_in_tree() and is_instance_valid(ToastManager):
+		ToastManager.show_tip("%s：%s" % [标题, 内容])
 
 ## P2 第二阶段：显示送礼对话框
 func _show_gift_dialog(root: Control, NPCID: String, NPC名称: String, 喜欢礼物: String) -> void:
@@ -1081,7 +1131,7 @@ func _show_gift_dialog(root: Control, NPCID: String, NPC名称: String, 喜欢�
 		return
 	var dialog_title = dialog_panel.find_child("DialogTitle", true, false)
 	if dialog_title != null:
-		dialog_title.text = "🎁 给【%s】送礼" % NPC名称
+		dialog_title.text = "◇ 给【%s】送礼" % NPC名称
 	var dialog_content = dialog_panel.find_child("DialogContent", true, false)
 	if dialog_content != null:
 		dialog_content.text = "喜欢的礼物：%s（送喜欢的礼物好感度翻倍）\n\n选择礼物价值：" % 喜欢礼物

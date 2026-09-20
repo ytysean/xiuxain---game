@@ -5,13 +5,13 @@ extends Control
 
 signal 返回主页
 
-const C_BG_TOP: Color = Color(0.043, 0.086, 0.102)
-const C_BG_BOT: Color = Color(0.059, 0.133, 0.161)
-const C_TOPBAR_BG: Color = Color(0.039, 0.078, 0.094, 0.90)
-const C_TAB_BG: Color = Color(0.035, 0.071, 0.086)
+const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)
+const C_BG_BOT: Color = UITheme.获取面板底色()
+const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)
+const C_TAB_BG: Color = Color(0.086, 0.125, 0.141)
 const C_TAB_ACTIVE: Color = Color(0.910, 0.773, 0.447, 0.3)
-const C_CELL_BG: Color = Color(0.051, 0.102, 0.125)
-const C_DETAIL_BG: Color = Color(0.047, 0.090, 0.102)
+const C_CELL_BG: Color = Color(0.122, 0.169, 0.192)
+const C_DETAIL_BG: Color = Color(0.110, 0.149, 0.173)
 const C_GOLD: Color = Color(0.910, 0.773, 0.447)
 const C_GOLD_DIM: Color = Color(0.839, 0.694, 0.416, 0.60)
 const C_GREEN: Color = Color(0.4, 0.8, 0.4)
@@ -32,7 +32,7 @@ func _生成傀儡描述(傀儡: Dictionary) -> String:
 		"劳作": "此傀儡为劳作型，以精铁为骨，灵晶为心，可代弟子从事灵田耕种、矿场开采等繁重劳作。不知疲倦，任劳任怨，是宗门发展的坚实后盾。",
 		"炼丹": "此傀儡为炼丹辅助型，内置丹火核心，可精准控制火候，辅助弟子炼丹。虽不能独立成丹，却能大幅提升炼丹成功率与品质，是丹堂的得力助手。",
 		"炼器": "此傀儡为炼器辅助型，以锻打核心驱动，可千锤百炼而不倦。辅助弟子锻造装备，提升锻造速度与成品品质，是器堂不可或缺的助力。",
-		"战斗": "此傀儡为战斗型，内嵌战斗核心，可在宗门战中协同弟子作战。铜皮铁骨，悍不畏死，是护宗卫道的重要战力。",
+		"战斗": "此傀儡为战斗型，内嵌战斗核心，可在宗门战中协同弟子作战。铜皮铁骨，悍不畏死，是护宗卫道的重要道行。",
 		"守护": "此傀儡为守护型，常驻山门要害，遇敌则自动激活防御。坚不可摧，稳如磐石，是护山大阵的重要补充。",
 	}
 	var 品阶描述 = {
@@ -43,11 +43,11 @@ func _生成傀儡描述(傀儡: Dictionary) -> String:
 		"圣阶": "圣级傀儡，上古传承，蕴含大道至理，几乎有自主意识。",
 	}
 	var 基础描述 = 品阶描述.get(品阶, "珍贵傀儡，工艺精湛。")
-	var 专业描述 = 类型描述.get(类型, "此傀儡功能多样，可胜任多种任务。")
+	var 专业描述 = 类型描述.get(类型, "此傀儡功能多样，可胜任多种差事。")
 	var 装备信息 = ""
 	if 傀儡.get("装备名称", "无") != "无":
 		装备信息 = "\n\n当前装备：%s，装备可进一步提升傀儡性能。" % 傀儡.get("装备名称", "无")
-	return "%s（%s Lv.%d）\n\n%s\n\n%s%s\n\n傀儡需定期维护，消耗灵晶修复耐久。等级越高，性能越强，可装备的部件也越多。" % [名称, 品阶, 等级, 基础描述, 专业描述, 装备信息]
+	return "%s（%s 第%d重）\n\n%s\n\n%s%s\n\n傀儡需定期维护，消耗灵晶修复耐久。品级越高，性能越强，可装备的部件也越多。" % [名称, 品阶, 等级, 基础描述, 专业描述, 装备信息]
 
 var _bg: ColorRect
 var _标题标签: Label
@@ -102,12 +102,17 @@ func _build() -> void:
 	_返回按钮.size = Vector2(60, 30)
 	_返回按钮.pressed.connect(_on返回)
 	顶部栏.add_child(_返回按钮)
+	# ★ 2026-09-16（老模板页头升级）：换用全站标准返回钮外观（圆环 + 内嵌金色箭头，
+	#   同 make_back_button / Ardot 01 屏页头）。**保留原热区 60×30 ⇒ 布局零变动**，
+	#   图标按 KEEP_ASPECT_CENTERED 居中 ⇒ 视觉为 30 直径圆环。原为写死「折返」的方钮，
+	#   与其余 60 个二级页的返回键不一致。
+	UITheme.装饰为返回钮(_返回按钮)
 	
 	# 标题
 	_标题标签 = Label.new()
 	_标题标签.text = "机关阁"
 	_标题标签.position = Vector2(80, 18)
-	_标题标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(_标题标签, UITheme.FONT_TITLE, true)
 	_标题标签.add_theme_color_override("font_color", C_GOLD)
 	顶部栏.add_child(_标题标签)
 	
@@ -148,7 +153,7 @@ func _build() -> void:
 	var 列表区域 = ScrollContainer.new()
 	列表区域.set_anchors_preset(Control.PRESET_FULL_RECT)
 	列表区域.offset_top = 110
-	列表区域.offset_bottom = -200
+	列表区域.offset_bottom = -254
 	列表区域.offset_left = 10
 	列表区域.offset_right = -10
 	add_child(列表区域)
@@ -165,8 +170,10 @@ func _build() -> void:
 	# 不把位置拉回视口。对照 page_world_map_visual 的 legend（显式 offset_top=-52）补齐偏移。
 	_详情面板.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_详情面板.custom_minimum_size = Vector2(0, 190)
-	_详情面板.offset_top = -190
-	_详情面板.offset_bottom = 0
+	# ★ 2026-09-16 修（#009 逐页精修 · 老模板）：详情面板原 offset_bottom = 0 ⇒ 贴死屏幕
+	#   下沿，面板内操作按钮触底。下移 MARGIN（24 逻辑 = 54 设计），与列表区 offset_bottom 同步。
+	_详情面板.offset_top = -244
+	_详情面板.offset_bottom = -54
 	_详情面板.offset_left = 10
 	_详情面板.offset_right = -10
 	_详情面板.add_theme_stylebox_override("panel", create_stylebox(C_DETAIL_BG, C_GOLD_DIM))
@@ -199,7 +206,7 @@ func _build() -> void:
 	_详情装备 = create_label("装备：-", 13)
 	详情内容.add_child(_详情装备)
 	
-	_详情描述 = create_label("", 12, Color.GRAY)
+	_详情描述 = create_label("", 12, UITheme.获取弱文字色())
 	详情内容.add_child(_详情描述)
 	
 	# 按钮区域
@@ -230,7 +237,7 @@ func _build() -> void:
 func create_label(text: String, size: int = 14, color: Color = Color.WHITE) -> Label:
 	var 标签 = Label.new()
 	标签.text = text
-	标签.add_theme_font_size_override("font_size", size)
+	UITheme.apply_project_font(标签, size, false)
 	标签.add_theme_color_override("font_color", color)
 	return 标签
 
@@ -261,24 +268,25 @@ func refresh() -> void:
 	if _当前标签 == "已炼制":
 		_傀儡列表 = Game.获取傀儡列表()
 		if _傀儡列表.is_empty():
-			var 空标签 = create_label("尚无傀儡，点击「炼制」按钮制作", 14, Color.GRAY)
-			_列表.add_child(空标签)
+			_列表.add_child(UITheme.建空态("尚无傀儡，轻触「炼制」制作"))
 			return
 		for i in _傀儡列表.size():
 			var 傀儡 = _傀儡列表[i]
 			var 行 = Button.new()
-			行.text = "%s（%s）- Lv.%d - %s" % [傀儡.get("名称", ""), 傀儡.get("品阶", ""), 傀儡.get("等级", 1), 傀儡.get("类型", "")]
+			行.text = "%s（%s）- 第 %d 重 - %s" % [傀儡.get("名称", ""), 傀儡.get("品阶", ""), 傀儡.get("等级", 1), 傀儡.get("类型", "")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
 			行.pressed.connect(func(): _on选中傀儡(索引))
 			_列表.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 	else:
 		_类型列表 = Game.获取所有傀儡类型()
 		if _类型列表.is_empty():
-			var 空标签 = create_label("尚未分类", 14, Color.GRAY)
+			var 空标签 = create_label("尚未分类", 14, UITheme.获取弱文字色())
 			_列表.add_child(空标签)
 			return
 		for i in _类型列表.size():
@@ -286,12 +294,14 @@ func refresh() -> void:
 			var 行 = Button.new()
 			行.text = "%s - %s" % [类型.get("类型", ""), 类型.get("描述", "")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
 			行.pressed.connect(func(): _on选中类型(索引))
 			_列表.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 	
 	_更新详情()
 
@@ -314,8 +324,8 @@ func _更新详情() -> void:
 		_详情名.text = "名称：%s" % 傀儡.get("名称", "")
 		_详情品阶.text = "品阶：%s" % 傀儡.get("品阶", "")
 		_详情类型.text = "类型：%s" % 傀儡.get("类型", "")
-		_详情等级.text = "等级：%d" % 傀儡.get("等级", 1)
-		_详情效果.text = "效果：修炼+%.0f%%，产出+%.0f%%，战力+%d" % [傀儡.get("修炼加成", 0.0) * 100, 傀儡.get("产出加成", 0.0) * 100, 傀儡.get("战力加成", 0)]
+		_详情等级.text = "品级：%d" % 傀儡.get("等级", 1)
+		_详情效果.text = "效果：修炼+%.0f%%，产出+%.0f%%，道行+%d" % [傀儡.get("修炼加成", 0.0) * 100, 傀儡.get("产出加成", 0.0) * 100, 傀儡.get("战力加成", 0)]
 		_详情装备.text = "装备：%s" % 傀儡.get("装备名称", "无")
 		_详情描述.text = _生成傀儡描述(傀儡)
 		_升级按钮.visible = true
@@ -341,7 +351,7 @@ func _更新详情() -> void:
 		_详情品阶.text = ""
 		_详情类型.text = ""
 		_详情等级.text = ""
-		_详情效果.text = "效果：修炼+%.0f%%，产出+%.0f%%，战力+%d" % [类型.get("修炼加成", 0.0) * 100, 类型.get("产出加成", 0.0) * 100, 类型.get("战力加成", 0)]
+		_详情效果.text = "效果：修炼+%.0f%%，产出+%.0f%%，道行+%d" % [类型.get("修炼加成", 0.0) * 100, 类型.get("产出加成", 0.0) * 100, 类型.get("战力加成", 0)]
 		_详情装备.text = ""
 		_详情描述.text = 类型.get("描述", "")
 		_升级按钮.visible = false
@@ -368,7 +378,9 @@ func _on炼制() -> void:
 		UIHint.show_hint(self, "炼制失败", str(结果.get("原因", "")))
 
 func _on制作类型() -> void:
+	# ★ 2026-09-16 修（死键扫描实测判 DEAD）：未择定样式时静默 return ⇒ 可点但无声。
 	if _选中索引 < 0 or _选中索引 >= _类型列表.size():
+		Game.添加提示("尚未择定傀儡样式")
 		return
 	var 类型 = _类型列表[_选中索引]
 	var 结果 = Game.宗主制作傀儡(类型.get("类型", "全能型") + "傀儡", "凡品", 类型.get("类型", "全能型"))

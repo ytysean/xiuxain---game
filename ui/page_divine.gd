@@ -3,8 +3,12 @@ extends Control
 # 后端：Game.卜算系统；图录复用 Game.收藏图录_已收集（天机录）
 # P1：天机境界进度段 + 宗门运势  P2：星盘玉 求购与切换  P3：观星大会周赛参与
 # 颜色一律走 UITheme 真实 const，禁硬编码
+# ★ PH7-10 逐页精修（2026-09-18）：手搓 66 高顶栏（文字方钮「← 返回宗门」120×36 + FONT_TITLE 标题）
+#   → UITheme.建顶栏（金环返回键 + 统一页面标题）；正文/辅助 Label 补字号收口（引擎默认 15 → 27/21）；
+#   分区标题 FONT_TITLE(45,正文金) → apply_section_title（33 Bold 米白，语义角色）；
+#   2 处硬编码 modulate Color( → token；3 枚操作钮高 44 → 48（对齐全站主流）。
+#   注：正文/辅助**字色**本次不动（PH7-COLOR-3 已作废、配色口径未重裁 ⇒ 不擅自改色）。
 
-const UITheme = preload("res://ui_theme.gd")
 
 signal 返回主页
 
@@ -33,30 +37,19 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
-	var 顶栏: HBoxContainer = HBoxContainer.new()
-	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main.add_child(顶栏)
-	var 返回按钮: Button = Button.new()
-	返回按钮.text = "← 返回宗门"
-	返回按钮.custom_minimum_size = Vector2(120, 36)
-	返回按钮.pressed.connect(_on返回)
-	顶栏.add_child(返回按钮)
-	var 标题: Label = Label.new()
-	标题.text = "  卜算星盘"
-	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	顶栏.add_child(标题)
+	# ★ PH7-10：手搓 66 高顶栏（文字方钮 + FONT_TITLE 标题、标题紧贴按钮仅 4px 无 GRID 间隔）
+	#   → 收口到 建顶栏（金环返回键 + 亮金页面标题 + 72 高，全站二级页同款）。
+	main.add_child(UITheme.建顶栏("卜算星盘", _on返回))
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(100, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -77,8 +70,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -96,20 +88,31 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "卜算星盘·总览"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	var 次: Label = Label.new()
 	次.text = "累计卜算 %d 次。夜观天象、卜算吉凶，机缘所至皆入天机录。" % 卜.累计卜算次数
 	次.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	UITheme.apply_project_font(次, UITheme.FONT_BODY)
 	次.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(次)
+	次.modulate.a = 0.0
+	次.create_tween().tween_property(次, "modulate:a", 1.0, 0.25)
 	var 提示: Label = Label.new()
 	提示.text = "卜算星盘为天机卜算子型：卜算吉凶、观星应验，吉兆机缘、天机秘示皆受控触发。"
 	提示.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+	UITheme.apply_project_font(提示, UITheme.FONT_AUX)
 	提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(提示)
+	提示.modulate.a = 0.0
+	提示.create_tween().tween_property(提示, "modulate:a", 1.0, 0.25)
 	# P1 天机境界进度段
-	_content.add_child(_分隔("天机境界"))
+	var _fb1 := _分隔("天机境界")
+	_content.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 	var 境文: String = "当前境界：%s" % 卜.天机境界名()
 	var 进: Dictionary = 卜.天机进度()
 	if 进.满:
@@ -119,80 +122,123 @@ func _建_总览() -> void:
 	var 境: Label = Label.new()
 	境.text = 境文
 	境.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
+	UITheme.apply_project_font(境, UITheme.FONT_BODY)
 	境.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(境)
+	境.modulate.a = 0.0
+	境.create_tween().tween_property(境, "modulate:a", 1.0, 0.25)
 	# 宗门运势段
-	_content.add_child(_分隔("宗门运势"))
+	var _fb2 := _分隔("宗门运势")
+	_content.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	var 运: Label = Label.new()
 	运.text = "当前宗门运势：%d / 100（吉兆增、凶兆减，本系统内部追踪）" % 卜.宗门运势
 	运.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	UITheme.apply_project_font(运, UITheme.FONT_BODY)
 	运.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(运)
+	运.modulate.a = 0.0
+	运.create_tween().tween_property(运, "modulate:a", 1.0, 0.25)
 	# P3 观星大会段
-	_content.add_child(_分隔("观星大会"))
+	var _fb3 := _分隔("观星大会")
+	_content.add_child(_fb3)
+	_fb3.modulate.a = 0.0
+	_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 	var 周: Dictionary = 卜.获取本周观星周()
 	var 周文: String = "本周擂台【%s】：%s（威望 %d）" % [周.get("名称", ""), 周.get("描述", ""), int(周.get("奖励威望", 0))]
 	var 周标: Label = Label.new()
 	周标.text = 周文
 	周标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	UITheme.apply_project_font(周标, UITheme.FONT_BODY)
 	周标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(周标)
+	周标.modulate.a = 0.0
+	周标.create_tween().tween_property(周标, "modulate:a", 1.0, 0.25)
 	var 余: Label = Label.new()
 	余.text = "本周已参与 %d / 3（应验积分排行，威望入账）" % 卜.本周观星参与
 	余.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+	UITheme.apply_project_font(余, UITheme.FONT_AUX)
 	_content.add_child(余)
+	余.modulate.a = 0.0
+	余.create_tween().tween_property(余, "modulate:a", 1.0, 0.25)
 	var 参: Button = Button.new()
 	参.text = "参与本周观星大会"
 	参.custom_minimum_size = Vector2(0, 48)
 	参.pressed.connect(_参与观星周)
 	_content.add_child(参)
+	参.modulate.a = 0.0
+	参.create_tween().tween_property(参, "modulate:a", 1.0, 0.25)
 
 func _建_卜算() -> void:
-	_content.add_child(_分隔("卜算类型"))
+	var _fb4 := _分隔("卜算类型")
+	_content.add_child(_fb4)
+	_fb4.modulate.a = 0.0
+	_fb4.create_tween().tween_property(_fb4, "modulate:a", 1.0, 0.25)
 	for t in Game.卜算系统.卜算类型表:
 		var 名: String = t.get("类型", "")
 		var 资: int = int(t.get("卦资", 0))
 		var 按钮: Button = Button.new()
 		按钮.text = "%s（卦资 %d）" % [名, 资]
-		按钮.custom_minimum_size = Vector2(0, 44)
+		按钮.custom_minimum_size = Vector2(0, 48)
 		if 名 == _当前类型:
-			按钮.modulate = Color(1, 0.95, 0.6, 1)
+			按钮.modulate = UITheme.COLOR_TEXT_GOLD
 		else:
-			按钮.modulate = Color(1, 1, 1, 1)
+			按钮.modulate = Color.WHITE
 		按钮.pressed.connect(Callable(self, "_选类型").bind(名))
 		_content.add_child(按钮)
-	_content.add_child(_分隔("辅助消耗品"))
+		按钮.modulate.a = 0.0
+		按钮.create_tween().tween_property(按钮, "modulate:a", 1.0, 0.25)
+	var _fb5 := _分隔("辅助消耗品")
+	_content.add_child(_fb5)
+	_fb5.modulate.a = 0.0
+	_fb5.create_tween().tween_property(_fb5, "modulate:a", 1.0, 0.25)
 	var 玉文: String = "星盘玉（提应验率）：%s" % ("已持" if Game.卜算系统.库房计数("星盘玉") > 0 else "未持")
 	var 玉: Label = Label.new()
 	玉.text = 玉文
 	玉.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	UITheme.apply_project_font(玉, UITheme.FONT_BODY)
 	_content.add_child(玉)
+	玉.modulate.a = 0.0
+	玉.create_tween().tween_property(玉, "modulate:a", 1.0, 0.25)
 	var 求玉: Button = Button.new()
 	求玉.text = "求购星盘玉（300灵石）"
-	求玉.custom_minimum_size = Vector2(0, 44)
+	求玉.custom_minimum_size = Vector2(0, 48)
 	求玉.pressed.connect(_求购星盘玉)
 	_content.add_child(求玉)
+	求玉.modulate.a = 0.0
+	求玉.create_tween().tween_property(求玉, "modulate:a", 1.0, 0.25)
 	var 切玉: Button = Button.new()
 	切玉.text = "卜算用星盘玉：%s" % ("是" if _用星盘玉 else "否")
-	切玉.custom_minimum_size = Vector2(0, 44)
+	切玉.custom_minimum_size = Vector2(0, 48)
 	切玉.pressed.connect(_切换用星盘玉)
 	_content.add_child(切玉)
+	切玉.modulate.a = 0.0
+	切玉.create_tween().tween_property(切玉, "modulate:a", 1.0, 0.25)
 	var 卜按钮: Button = Button.new()
 	卜按钮.text = "卜算（%s）" % _当前类型
 	卜按钮.custom_minimum_size = Vector2(0, 48)
 	卜按钮.pressed.connect(_卜算)
 	_content.add_child(卜按钮)
+	卜按钮.modulate.a = 0.0
+	卜按钮.create_tween().tween_property(卜按钮, "modulate:a", 1.0, 0.25)
 	_状态文本 = Label.new()
 	_状态文本.text = "选类型、卜算吉凶。"
 	_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+	UITheme.apply_project_font(_状态文本, UITheme.FONT_AUX)
 	_状态文本.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(_状态文本)
+	_状态文本.modulate.a = 0.0
+	_状态文本.create_tween().tween_property(_状态文本, "modulate:a", 1.0, 0.25)
 	if not _最近结果.is_empty():
 		var r: Label = Label.new()
 		r.text = _格式结果(_最近结果)
 		r.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS if _最近结果.get("成功", false) else UITheme.COLOR_TEXT_RED)
+		UITheme.apply_project_font(r, UITheme.FONT_BODY)
 		r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(r)
+		r.modulate.a = 0.0
+		r.create_tween().tween_property(r, "modulate:a", 1.0, 0.25)
 
 func _选类型(名: String) -> void:
 	_当前类型 = 名
@@ -248,21 +294,27 @@ func _建_天机录() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "天机录：已收录 %d / %d" % [已收.size(), 全部.size()]
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	for 名 in 全部:
 		var l: Label = Label.new()
 		if 已收.has(名):
 			l.text = "✓ %s" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS)
 		else:
-			l.text = "✗ %s（未收录）" % 名
+			l.text = "× %s（未收录）" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+		UITheme.apply_project_font(l, UITheme.FONT_BODY)
 		_content.add_child(l)
+		l.modulate.a = 0.0
+		l.create_tween().tween_property(l, "modulate:a", 1.0, 0.25)
 
 func _分隔(t: String) -> Label:
+	# ★ PH7-10：分区标题收口到语义角色 apply_section_title（33 Bold 米白）。
+	#   原 FONT_TITLE(45) 与页面标题 FONT_H1(48) 视觉同级 ⇒ 层级塌陷。
 	var l: Label = Label.new()
 	l.text = t
-	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_section_title(l)
 	return l

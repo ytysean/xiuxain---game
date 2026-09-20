@@ -197,10 +197,10 @@ func _populate_sect() -> void:
 	for d in 列表:
 		if d == null:
 			continue
-		var 名: String = str(d.get("姓名", "—")) if d is Object else "—"
-		var 境界: String = str(d.get("境界", "")) if d is Object else ""
-		var 战力: int = int(d.get("战力", 0)) if d is Object and d.get("战力") != null else 0
-		var f: Dictionary = {"name": 名, "status": ("%s · 战力 %d" % [境界, 战力]) if 境界 != "" else "· 战力 %d" % 战力, "sel": false}
+		var 名: String = str(d.姓名) if d is Disciple else "—"
+		var 境界: String = str(d.境界) if d is Disciple else ""
+		var 战力: int = int(d.战力) if d is Disciple else 0
+		var f: Dictionary = {"name": 名, "status": ("%s · 道行 %d" % [境界, 战力]) if 境界 != "" else "· 道行 %d" % 战力, "sel": false}
 		_make_friend_card(f, LIST_X, float(i) * LIST_DY + 40.0)
 		i += 1
 
@@ -236,6 +236,8 @@ func _make_friend_card(f: Dictionary, x: float, y: float) -> void:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	card.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(UITheme.C01_FLOAT_BG, Color(0, 0, 0, 0), 10, 0))
 	_list_parent.add_child(card)
+	card.modulate.a = 0.0
+	card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 
 	# 头像（选中青描边 / 未选中暗青描边）
 	var av := Panel.new()
@@ -274,6 +276,8 @@ func _make_msg_row(m: Dictionary, y: float) -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_STOP
 	row.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0))
 	_chat_parent.add_child(row)
+	row.modulate.a = 0.0
+	row.create_tween().tween_property(row, "modulate:a", 1.0, 0.25)
 
 	var av := Panel.new()
 	av.name = "Avatar"

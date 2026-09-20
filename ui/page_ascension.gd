@@ -3,7 +3,6 @@ extends Control
 # 后端：Game.飞升前兆队列 / Game.举办飞升大典(弟子ID) / Game.散仙列表
 # 颜色一律走 UITheme 真实 const，禁硬编码
 
-const UITheme = preload("res://ui_theme.gd")
 
 signal 返回主页
 
@@ -28,6 +27,8 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 	var 顶栏: HBoxContainer = HBoxContainer.new()
 	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -40,18 +41,15 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  飞升"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(110, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -73,8 +71,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -87,35 +84,70 @@ func _on返回() -> void:
 	返回主页.emit()
 
 func _建_前兆() -> void:
-	_content.add_child(_标题("飞升前兆"))
-	_content.add_child(_说明("门下修为圆满者，天地感应，飞升之兆先现。兆现三十日内，可设大典助其渡劫。"))
+	var _fb1 := _标题("飞升前兆")
+	_content.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
+	var _fb2 := _说明("门下修为圆满者，天地感应，飞升之兆先现。兆现三十日内，可设大典助其渡劫。")
+	_content.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	if Game.飞升前兆队列.is_empty():
-		_content.add_child(_行("门下暂无飞升之兆。渡劫大圆满者方有感召。", UITheme.COLOR_TEXT_AUX))
+		var _fb3 := _行("门下暂无飞升之兆。渡劫大圆满者方有感召。", UITheme.COLOR_TEXT_AUX)
+		_content.add_child(_fb3)
+		_fb3.modulate.a = 0.0
+		_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 		return
 	for 兆 in Game.飞升前兆队列:
 		if 兆 == null:
 			continue
 		var 余: int = int(兆.get("飞升日", 0)) - int(Game.累计游戏日)
-		_content.add_child(_分隔("%s · %s" % [str(兆.get("姓名", "")), str(兆.get("境界", ""))]))
-		_content.add_child(_行("兆现于第 %d 日 · 飞升之期尚余 %d 日" % [int(兆.get("预警日", 0)), max(0, 余)], UITheme.COLOR_TEXT_BODY_GOLD))
+		var _fb4 := _分隔("%s · %s" % [str(兆.get("姓名", "")), str(兆.get("境界", ""))])
+		_content.add_child(_fb4)
+		_fb4.modulate.a = 0.0
+		_fb4.create_tween().tween_property(_fb4, "modulate:a", 1.0, 0.25)
+		var _fb5 := _行("兆现于第 %d 日 · 飞升之期尚余 %d 日" % [int(兆.get("预警日", 0)), max(0, 余)], UITheme.COLOR_TEXT_BODY_GOLD)
+		_content.add_child(_fb5)
+		_fb5.modulate.a = 0.0
+		_fb5.create_tween().tween_property(_fb5, "modulate:a", 1.0, 0.25)
 		var 按钮: Button = Button.new()
 		按钮.text = "举办飞升大典（灵石 1000 · 灵草 100）"
 		按钮.custom_minimum_size = Vector2(0, 48)
 		按钮.pressed.connect(Callable(self, "_办大典").bind(str(兆.get("弟子ID", "0"))))
 		_content.add_child(按钮)
+		按钮.modulate.a = 0.0
+		按钮.create_tween().tween_property(按钮, "modulate:a", 1.0, 0.25)
 
 func _建_散仙() -> void:
-	_content.add_child(_标题("散仙名录"))
-	_content.add_child(_说明("渡劫失败而兵解者，舍肉身以元婴存世，不占弟子编制，可护宗门。"))
+	var _fb6 := _标题("散仙名录")
+	_content.add_child(_fb6)
+	_fb6.modulate.a = 0.0
+	_fb6.create_tween().tween_property(_fb6, "modulate:a", 1.0, 0.25)
+	var _fb7 := _说明("渡劫失败而兵解者，舍肉身以元婴存世，不占弟子编制，可护宗门。")
+	_content.add_child(_fb7)
+	_fb7.modulate.a = 0.0
+	_fb7.create_tween().tween_property(_fb7, "modulate:a", 1.0, 0.25)
 	if Game.散仙列表.is_empty():
-		_content.add_child(_行("暂无散仙。", UITheme.COLOR_TEXT_AUX))
+		var _fb8 := _行("暂无散仙。", UITheme.COLOR_TEXT_AUX)
+		_content.add_child(_fb8)
+		_fb8.modulate.a = 0.0
+		_fb8.create_tween().tween_property(_fb8, "modulate:a", 1.0, 0.25)
 		return
 	for 仙 in Game.散仙列表:
 		if 仙 == null:
 			continue
-		_content.add_child(_分隔("%s · %s" % [str(仙.get("姓名", "")), str(仙.get("类型", ""))]))
-		_content.add_child(_行("寿元 %d 年 · 已渡劫 %d 次 · 战力 %d" % [int(仙.get("寿元", 0)), int(仙.get("已渡劫数", 0)), int(仙.get("战力", 0))], UITheme.COLOR_TEXT_BODY))
-		_content.add_child(_说明("    功德 %d · 业力 %d" % [int(仙.get("功德", 0)), int(仙.get("业力", 0))]))
+		var _fb9 := _分隔("%s · %s" % [str(仙.get("姓名", "")), str(仙.get("类型", ""))])
+		_content.add_child(_fb9)
+		_fb9.modulate.a = 0.0
+		_fb9.create_tween().tween_property(_fb9, "modulate:a", 1.0, 0.25)
+		var _fb10 := _行("寿元 %d 年 · 已渡劫 %d 次 · 道行 %d" % [int(仙.get("寿元", 0)), int(仙.get("已渡劫数", 0)), int(仙.get("战力", 0))], UITheme.COLOR_TEXT_BODY)
+		_content.add_child(_fb10)
+		_fb10.modulate.a = 0.0
+		_fb10.create_tween().tween_property(_fb10, "modulate:a", 1.0, 0.25)
+		var _fb11 := _说明("    功德 %d · 业力 %d" % [int(仙.get("功德", 0)), int(仙.get("业力", 0))])
+		_content.add_child(_fb11)
+		_fb11.modulate.a = 0.0
+		_fb11.create_tween().tween_property(_fb11, "modulate:a", 1.0, 0.25)
 
 func _办大典(id文: String) -> void:
 	var r: Dictionary = Game.举办飞升大典(int(id文))
@@ -133,14 +165,14 @@ func _标题(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(l, UITheme.FONT_H1, true)
 	return l
 
 func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(l, UITheme.FONT_TITLE, true)
 	return l
 
 func _行(t: String, 色: Color) -> Label:

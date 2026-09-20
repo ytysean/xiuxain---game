@@ -5,13 +5,13 @@ extends Control
 
 signal 返回主页
 
-const C_BG_TOP: Color = Color(0.043, 0.086, 0.102)
-const C_BG_BOT: Color = Color(0.059, 0.133, 0.161)
-const C_TOPBAR_BG: Color = Color(0.039, 0.078, 0.094, 0.90)
-const C_TAB_BG: Color = Color(0.035, 0.071, 0.086)
+const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)
+const C_BG_BOT: Color = UITheme.获取面板底色()
+const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)
+const C_TAB_BG: Color = Color(0.086, 0.125, 0.141)
 const C_TAB_ACTIVE: Color = Color(0.910, 0.773, 0.447, 0.3)
-const C_CELL_BG: Color = Color(0.051, 0.102, 0.125)
-const C_DETAIL_BG: Color = Color(0.047, 0.090, 0.102)
+const C_CELL_BG: Color = Color(0.122, 0.169, 0.192)
+const C_DETAIL_BG: Color = Color(0.110, 0.149, 0.173)
 const C_GOLD: Color = Color(0.910, 0.773, 0.447)
 const C_GOLD_DIM: Color = Color(0.839, 0.694, 0.416, 0.60)
 const C_GREEN: Color = Color(0.4, 0.8, 0.4)
@@ -103,12 +103,17 @@ func _build() -> void:
 	_返回按钮.size = Vector2(60, 30)
 	_返回按钮.pressed.connect(_on返回)
 	顶部栏.add_child(_返回按钮)
+	# ★ 2026-09-16（老模板页头升级）：换用全站标准返回钮外观（圆环 + 内嵌金色箭头，
+	#   同 make_back_button / Ardot 01 屏页头）。**保留原热区 60×30 ⇒ 布局零变动**，
+	#   图标按 KEEP_ASPECT_CENTERED 居中 ⇒ 视觉为 30 直径圆环。原为写死「折返」的方钮，
+	#   与其余 60 个二级页的返回键不一致。
+	UITheme.装饰为返回钮(_返回按钮)
 	
 	# 标题
 	_标题标签 = Label.new()
 	_标题标签.text = "藏书阁"
 	_标题标签.position = Vector2(80, 18)
-	_标题标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(_标题标签, UITheme.FONT_TITLE, true)
 	_标题标签.add_theme_color_override("font_color", C_GOLD)
 	顶部栏.add_child(_标题标签)
 	
@@ -157,7 +162,7 @@ func _build() -> void:
 	var 列表区域 = ScrollContainer.new()
 	列表区域.set_anchors_preset(Control.PRESET_FULL_RECT)
 	列表区域.offset_top = 110
-	列表区域.offset_bottom = -200
+	列表区域.offset_bottom = -254
 	列表区域.offset_left = 10
 	列表区域.offset_right = -10
 	add_child(列表区域)
@@ -174,8 +179,10 @@ func _build() -> void:
 	# 不把位置拉回视口。对照 page_world_map_visual 的 legend（显式 offset_top=-52）补齐偏移。
 	_详情面板.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_详情面板.custom_minimum_size = Vector2(0, 190)
-	_详情面板.offset_top = -190
-	_详情面板.offset_bottom = 0
+	# ★ 2026-09-16 修（#009 逐页精修 · 老模板）：详情面板原 offset_bottom = 0 ⇒ 贴死屏幕
+	#   下沿，面板内操作按钮触底。下移 MARGIN（24 逻辑 = 54 设计），与列表区 offset_bottom 同步。
+	_详情面板.offset_top = -244
+	_详情面板.offset_bottom = -54
 	_详情面板.offset_left = 10
 	_详情面板.offset_right = -10
 	_详情面板.add_theme_stylebox_override("panel", create_stylebox(C_DETAIL_BG, C_GOLD_DIM))
@@ -205,7 +212,7 @@ func _build() -> void:
 	_详情效果 = create_label("效果：-", 13)
 	详情内容.add_child(_详情效果)
 	
-	_详情描述 = create_label("", 12, Color.GRAY)
+	_详情描述 = create_label("", 12, UITheme.获取弱文字色())
 	详情内容.add_child(_详情描述)
 	
 	# 按钮区域
@@ -262,7 +269,7 @@ func _填充指派弟子() -> void:
 func create_label(text: String, size: int = 14, color: Color = Color.WHITE) -> Label:
 	var 标签 = Label.new()
 	标签.text = text
-	标签.add_theme_font_size_override("font_size", size)
+	UITheme.apply_project_font(标签, size, false)
 	标签.add_theme_color_override("font_color", color)
 	return 标签
 
@@ -294,24 +301,25 @@ func refresh() -> void:
 	if _当前标签 == "已入阁":
 		_典籍列表 = Game.获取藏书阁列表()
 		if _典籍列表.is_empty():
-			var 空标签 = create_label("尚无典籍，点击「入阁」按钮收录", 14, Color.GRAY)
-			_列表.add_child(空标签)
+			_列表.add_child(UITheme.建空态("尚无典籍，轻触「入阁」收录"))
 			return
 		for i in _典籍列表.size():
 			var 典籍 = _典籍列表[i]
 			var 行 = Button.new()
-			行.text = "%s（%s）- %s - 注释Lv.%d" % [典籍.get("名称", ""), 典籍.get("品阶", ""), 典籍.get("类型", ""), 典籍.get("注释等级", 0)]
+			行.text = "%s（%s）- %s - 注释 第 %d 重" % [典籍.get("名称", ""), 典籍.get("品阶", ""), 典籍.get("类型", ""), 典籍.get("注释等级", 0)]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
 			行.pressed.connect(func(): _on选中典籍(索引))
 			_列表.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 	else:
 		_类型列表 = Game.获取所有典籍类型()
 		if _类型列表.is_empty():
-			var 空标签 = create_label("尚未分类", 14, Color.GRAY)
+			var 空标签 = create_label("尚未分类", 14, UITheme.获取弱文字色())
 			_列表.add_child(空标签)
 			return
 		for i in _类型列表.size():
@@ -319,17 +327,19 @@ func refresh() -> void:
 			var 行 = Button.new()
 			行.text = "%s - %s" % [类型.get("类型", ""), 类型.get("描述", "")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
 			行.pressed.connect(func(): _on选中类型(索引))
 			_列表.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 
 	if _当前标签 == "技能":
 		_技能列表 = Game.获取所有技能()
 		if _技能列表.is_empty():
-			var 空标签 = create_label("暂无技能配置", 14, Color.GRAY)
+			var 空标签 = create_label("暂无技能配置", 14, UITheme.获取弱文字色())
 			_列表.add_child(空标签)
 		else:
 			for i in _技能列表.size():
@@ -337,10 +347,12 @@ func refresh() -> void:
 				var 行 = Button.new()
 				行.text = "%s（%s）- %s - 消耗%d贡献" % [技能.get("skill_name", ""), 技能.get("grade", ""), 技能.get("skill_type", ""), int(技能.get("learn_cost", 0))]
 				行.custom_minimum_size = Vector2(0, 45)
-				行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+				UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 				var 索引 = i
 				行.pressed.connect(func(): _on学习技能(索引))
 				_列表.add_child(行)
+				行.modulate.a = 0.0
+				行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 	
 	_更新详情()
 
@@ -361,7 +373,7 @@ func _更新详情() -> void:
 		_详情名.text = "名称：%s" % 典籍.get("名称", "")
 		_详情品阶.text = "品阶：%s" % 典籍.get("品阶", "")
 		_详情类型.text = "类型：%s" % 典籍.get("类型", "")
-		_详情注释.text = "注释：Lv.%d（+%.0f%%阅读加成）" % [典籍.get("注释等级", 0), 典籍.get("注释等级", 0) * 2]
+		_详情注释.text = "注释：第 %d 重（+%.0f%%阅读加成）" % [典籍.get("注释等级", 0), 典籍.get("注释等级", 0) * 2]
 		_详情效果.text = "效果：阅读获得悟道点，临时修炼加成"
 		_详情描述.text = _生成典籍描述(典籍)
 		_阅读按钮.visible = true
@@ -407,7 +419,9 @@ func _on入阁() -> void:
 		refresh()
 
 func _on收录类型() -> void:
+	# ★ 2026-09-16 修（死键扫描实测判 DEAD）：未择定类别时静默 return ⇒ 可点但无声。
 	if _选中索引 < 0 or _选中索引 >= _类型列表.size():
+		Game.添加提示("尚未择定典籍类别")
 		return
 	var 类型 = _类型列表[_选中索引]
 	var 结果 = Game.收录典籍("随机典籍", "灵品", 类型.get("类型", "修炼类"))
@@ -453,7 +467,7 @@ func _on学习技能(索引: int) -> void:
 		var 弟子技能: Array = Game.获取弟子技能(int(d.弟子ID))
 		for sk in 弟子技能:
 			if str(sk.get("skill_id", "")) == str(技能.get("skill_id", "")):
-				已学会 += "%s(Lv.%d/%s) " % [str(d.姓名), int(sk.get("level", 1)), str(sk.get("来源", ""))]
+				已学会 += "%s(第 %d 重/%s) " % [str(d.姓名), int(sk.get("level", 1)), str(sk.get("来源", ""))]
 				计数 += 1
 				break
 	if 计数 > 0:

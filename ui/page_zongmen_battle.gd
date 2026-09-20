@@ -16,6 +16,13 @@ var _队伍编制: Array = [[null, null, null, null, null], [null, null, null, n
 var _槽位名: Array = ["前", "前", "中", "中", "后"]
 
 const BATTLE_TYPES: Array = ["宗门攻防战", "秘境争夺战", "妖兽围剿战", "阵营围剿战"]
+# 四类战事的专属图标：一律用项目既有 emoji 资产 stem（art/icons/emoji/，禁自造图标）。
+const BATTLE_TYPE_ICON: Dictionary = {
+	"宗门攻防战": "emoji_offline_hall",
+	"秘境争夺战": "emoji_world_location",
+	"妖兽围剿战": "emoji_world_beast",
+	"阵营围剿战": "emoji_faction_cross",
+}
 const BATTLE_TYPE_DESC: Dictionary = {
 	"宗门攻防战": "攻破护山大阵｜宣战占领城池",
 	"秘境争夺战": "争夺秘境资源｜宣战占领矿脉",
@@ -72,43 +79,18 @@ func _build() -> void:
 	_build_battle_button(root)
 
 func _build_header(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "HeaderBar"
-	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
-	parent.add_child(panel)
-
-	var bar := HBoxContainer.new()
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	bar.alignment = BoxContainer.ALIGNMENT_BEGIN
-	panel.add_child(bar)
-
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-
-	var title := Label.new()
-	title.text = "宗门战"
-	title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
-	UITheme.apply_title_font(title)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bar.add_child(title)
-
-	# P0修复：显示今日征伐机缘
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	var 右侧 := []
 	var 机缘label := Label.new()
 	机缘label.name = "JiyuanLabel"
 	if is_instance_valid(Game):
 		var 检查: Dictionary = Game.检查机缘("征伐机缘")
 		var VIP等级: int = Game.当前VIP等级()
-		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+		机缘label.text = "机缘：%d/%d（仙阶 %d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
 	UITheme.apply_aux_font(机缘label)
 	机缘label.custom_minimum_size = Vector2(180, 0)
-	bar.add_child(机缘label)
-
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(UITheme.BACK_BTN_SIZE, 0)
-	bar.add_child(spacer)
-
+	右侧.append(机缘label)
+	parent.add_child(UITheme.建顶栏("宗门战", _on_back_pressed, 右侧))
 func _build_battle_types(parent: Control) -> void:
 	var grid := GridContainer.new()
 	grid.name = "BattleTypes"
@@ -121,9 +103,15 @@ func _build_battle_types(parent: Control) -> void:
 		var card := Button.new()
 		card.name = "Type_" + btype
 		card.custom_minimum_size = Vector2(0, UITheme.SIZE_MD)
+		# ★ 2026-09-16 修（#009 逐页精修 · 宗门战）：Grid 列宽按子项「最小宽」分配，
+		#   而 Button 的最小宽不含其子节点 ⇒ 列宽没有任何外部依据，卡片文案一折行整列就塌成
+		#   w=24 的竖排条（验收器实拍）。给卡片 EXPAND，让 Grid 把整行宽度均分到各列。
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.clip_text = true
 		card.pressed.connect(_on_type_pressed.bind(btype))
 		grid.add_child(card)
+		card.modulate.a = 0.0
+		card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 
 		var vbox := VBoxContainer.new()
 		vbox.name = "TypeVBox"
@@ -132,13 +120,24 @@ func _build_battle_types(parent: Control) -> void:
 		vbox.add_theme_constant_override("separation", 4)
 		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 		card.add_child(vbox)
+		vbox.modulate.a = 0.0
+		vbox.create_tween().tween_property(vbox, "modulate:a", 1.0, 0.25)
 
-		var icon := Label.new()
-		icon.text = "⚔️"
+		var icon := TextureRect.new()
+		# ★ 2026-09-16 修（#009 逐页精修 · 宗门战）：原实现四张卡顶部都顶着一个放大的「战」字
+		#   （更早是 emoji「◆」，因项目字体不含 emoji 而显示成豆腐块 ⇒ 换成汉字兜底）。
+		#   但「战」与卡名末字重复，视觉上等同缺图占位。改用项目既有 emoji 资产（58 张），
+		#   四类战事各有专属图形，零新增出图成本，也符合「不许自造图标」的 UI 三连。
+		icon.name = "TypeIcon"
+		icon.texture = UITheme.emoji_icon_sized(
+			String(BATTLE_TYPE_ICON.get(btype, "emoji_activity_battle")), 96)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		UITheme.apply_title_font(icon)
+		icon.custom_minimum_size = Vector2(0, 40)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		vbox.add_child(icon)
+		icon.modulate.a = 0.0
+		icon.create_tween().tween_property(icon, "modulate:a", 1.0, 0.25)
 
 		var name := Label.new()
 		name.text = btype
@@ -146,6 +145,8 @@ func _build_battle_types(parent: Control) -> void:
 		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_body_text(name)
 		vbox.add_child(name)
+		name.modulate.a = 0.0
+		name.create_tween().tween_property(name, "modulate:a", 1.0, 0.25)
 
 		var desc := Label.new()
 		desc.text = BATTLE_TYPE_DESC[btype]
@@ -153,6 +154,8 @@ func _build_battle_types(parent: Control) -> void:
 		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_aux_text(desc)
 		vbox.add_child(desc)
+		desc.modulate.a = 0.0
+		desc.create_tween().tween_property(desc, "modulate:a", 1.0, 0.25)
 	刷新类型卡()
 
 func _build_power_comparison(parent: Control) -> void:
@@ -171,7 +174,7 @@ func _build_power_comparison(parent: Control) -> void:
 	hbox.add_child(attacker)
 
 	var attacker_label := Label.new()
-	attacker_label.text = "我方战力"
+	attacker_label.text = "我方道行"
 	attacker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_aux_text(attacker_label)
 	attacker.add_child(attacker_label)
@@ -197,7 +200,7 @@ func _build_power_comparison(parent: Control) -> void:
 	hbox.add_child(defender)
 
 	var defender_label := Label.new()
-	defender_label.text = "敌方战力"
+	defender_label.text = "敌方道行"
 	defender_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_aux_text(defender_label)
 	defender.add_child(defender_label)
@@ -218,10 +221,10 @@ func _build_team_section(parent: Control) -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var header := HBoxContainer.new()
@@ -251,11 +254,17 @@ func _build_team_section(parent: Control) -> void:
 		tab.name = "TeamTab_%d" % i
 		tab.text = "第%d队" % (i + 1)
 		tab.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
+		# ★ 2026-09-16 修：① 不给 EXPAND ⇒ HBox 只按「最小宽」排，三个队签挤在左侧一小撮；
+		#   ② 不设字体 ⇒ 落到引擎默认 font_size 17（≈11dp）几乎不可读。两处一并收口。
+		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UITheme.apply_project_font(tab, UITheme.FONT_BODY, true)
 		UITheme.apply_secondary_button_style(tab)
 		if i == 0:
 			UITheme.apply_primary_button_style(tab)
 		tab.pressed.connect(_on_team_tab_pressed.bind(i))
 		team_tabs.add_child(tab)
+		tab.modulate.a = 0.0
+		tab.create_tween().tween_property(tab, "modulate:a", 1.0, 0.25)
 
 	# 队员格子：S1-3 改为可点击槽位（点击弹弟子选择）
 	var grid := GridContainer.new()
@@ -269,14 +278,23 @@ func _build_team_section(parent: Control) -> void:
 		var slot := Button.new()
 		slot.name = "Slot_%d" % i
 		slot.custom_minimum_size = Vector2(0, UITheme.SIZE_MD)
-		slot.clip_text = true
+		# ★ 2026-09-16 修（真缺陷 · 静默不可见）：与 page_atlas 意图 chip 同一根因 ——
+		#   Button 在 clip_text=true 时最小宽度**不含文字宽**，而 GridContainer 列宽只按
+		#   子项最小宽、只有子项带 EXPAND 才会被撑开。两者叠加 ⇒ 5 个队员槽位全塌成
+		#   24 逻辑宽的竖条，`刷新槽位()` 写入的「前／＋／空位」三行字被整段裁掉，
+		#   实机只见 5 个空框（静态闸门 + 布局扫描全绿，只有肉眼能看见）。
+		slot.clip_text = false
+		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UITheme.apply_project_font(slot, UITheme.FONT_AUX, true)
 		UITheme.apply_secondary_button_style(slot)
 		slot.pressed.connect(_on_slot_pressed.bind(i))
 		grid.add_child(slot)
+		slot.modulate.a = 0.0
+		slot.create_tween().tween_property(slot, "modulate:a", 1.0, 0.25)
 
 	# 站位说明
 	var legend := Label.new()
-	legend.text = "前排×2（抗伤）  中排×2（输出）  后排×1（辅助）｜点击槽位安排弟子"
+	legend.text = "前排×2（抗伤）  中排×2（输出）  后排×1（辅助）｜轻触槽位安排弟子"
 	legend.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_aux_text(legend)
@@ -291,10 +309,10 @@ func _build_array_section(parent: Control) -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var header := HBoxContainer.new()
@@ -324,7 +342,7 @@ func _build_array_section(parent: Control) -> void:
 	info.add_child(array_name)
 
 	var array_level := Label.new()
-	array_level.text = "Lv.1"
+	array_level.text = "第 %d 重" % int(Game.阵法等级.get("hushan", 0))
 	UITheme.apply_aux_text(array_level)
 	info.add_child(array_level)
 
@@ -379,10 +397,10 @@ func _build_buff_section(parent: Control) -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 
 	var header := HBoxContainer.new()
@@ -415,22 +433,30 @@ func _build_buff_section(parent: Control) -> void:
 		var item := HBoxContainer.new()
 		item.add_theme_constant_override("separation", UITheme.GRID / 2)
 		vbox.add_child(item)
+		item.modulate.a = 0.0
+		item.create_tween().tween_property(item, "modulate:a", 1.0, 0.25)
 
 		var info := VBoxContainer.new()
 		info.add_theme_constant_override("separation", 2)
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		item.add_child(info)
+		info.modulate.a = 0.0
+		info.create_tween().tween_property(info, "modulate:a", 1.0, 0.25)
 
 		var name := Label.new()
 		name.text = buff["name"]
 		name.add_theme_color_override("font_color", Color(1.0, 0.78, 0.39))
 		UITheme.apply_body_text(name)
 		info.add_child(name)
+		name.modulate.a = 0.0
+		name.create_tween().tween_property(name, "modulate:a", 1.0, 0.25)
 
 		var effect := Label.new()
 		effect.text = buff["effect"]
 		UITheme.apply_aux_text(effect)
 		info.add_child(effect)
+		effect.modulate.a = 0.0
+		effect.create_tween().tween_property(effect, "modulate:a", 1.0, 0.25)
 
 		var cost := Label.new()
 		cost.text = buff["cost"]
@@ -439,6 +465,8 @@ func _build_buff_section(parent: Control) -> void:
 		cost.name = "BuffCost_" + str(buff["name"])
 		cost.custom_minimum_size = Vector2(80, 0)
 		item.add_child(cost)
+		cost.modulate.a = 0.0
+		cost.create_tween().tween_property(cost, "modulate:a", 1.0, 0.25)
 
 		var toggle := Button.new()
 		toggle.name = "Toggle_" + buff["name"]
@@ -447,11 +475,13 @@ func _build_buff_section(parent: Control) -> void:
 		UITheme.apply_secondary_button_style(toggle)
 		toggle.pressed.connect(_on_buff_toggle.bind(buff["name"]))
 		item.add_child(toggle)
+		toggle.modulate.a = 0.0
+		toggle.create_tween().tween_property(toggle, "modulate:a", 1.0, 0.25)
 
 func _build_battle_button(parent: Control) -> void:
 	var btn := Button.new()
 	btn.name = "StartBattleBtn"
-	btn.text = "⚔️ 开始战斗"
+	btn.text = "◆ 开始战斗"
 	btn.custom_minimum_size = Vector2(0, UITheme.BTN_H_PRIMARY)
 	UITheme.apply_primary_button_style(btn)
 	btn.pressed.connect(_on_start_battle)
@@ -465,10 +495,10 @@ func _build_territory_section(parent: Control) -> void:
 	parent.add_child(panel)
 	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UITheme.GRID / 2)
-	vbox.add_theme_constant_override("offset_left", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_right", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_top", UITheme.PAD_PANEL)
-	vbox.add_theme_constant_override("offset_bottom", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_left", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_right", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_top", UITheme.PAD_PANEL)
+	vbox.add_theme_constant_override("margin_bottom", UITheme.PAD_PANEL)
 	panel.add_child(vbox)
 	var header: HBoxContainer = HBoxContainer.new()
 	header.add_theme_constant_override("separation", UITheme.GRID)
@@ -515,14 +545,20 @@ func 刷新领地() -> void:
 			var 行: HBoxContainer = HBoxContainer.new()
 			行.add_theme_constant_override("separation", UITheme.GRID / 2)
 			list.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 			var info: VBoxContainer = VBoxContainer.new()
 			info.add_theme_constant_override("separation", 2)
 			info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			行.add_child(info)
+			info.modulate.a = 0.0
+			info.create_tween().tween_property(info, "modulate:a", 1.0, 0.25)
 			var l: Label = Label.new()
 			l.text = "· %s（%s） 灵石%d/月 声望%d/月" % [str(领.get("名称", "")), str(领.get("类型", "")), int(领.get("月灵石", 0)), int(领.get("月声望", 0))]
 			UITheme.apply_aux_text(l)
 			info.add_child(l)
+			l.modulate.a = 0.0
+			l.create_tween().tween_property(l, "modulate:a", 1.0, 0.25)
 			var 守军: Array = 领.get("守军", [])
 			var 防守线: int = int(领.get("防守线", 500))
 			var 守力: int = 0
@@ -536,19 +572,23 @@ func 刷新领地() -> void:
 				守标.text = "无守军 · 周结算 25%% 失守风险（防守线%d）" % 防守线
 				守标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
 			else:
-				守标.text = "守军 %s ｜ 战力%d/%d" % [", ".join(PackedStringArray(守军)), 守力, 防守线]
+				守标.text = "守军 %s ｜ 道行%d/%d" % [", ".join(PackedStringArray(守军)), 守力, 防守线]
 				if 守力 >= 防守线:
 					守标.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS)
 				else:
 					守标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
 			UITheme.apply_aux_text(守标)
 			info.add_child(守标)
+			守标.modulate.a = 0.0
+			守标.create_tween().tween_property(守标, "modulate:a", 1.0, 0.25)
 			var 驻钮: Button = Button.new()
 			驻钮.text = "守备"
 			驻钮.custom_minimum_size = Vector2(72, UITheme.BTN_H_SECONDARY)
 			UITheme.apply_secondary_button_style(驻钮)
 			驻钮.pressed.connect(_show_garrison_panel.bind(i))
 			行.add_child(驻钮)
+			驻钮.modulate.a = 0.0
+			驻钮.create_tween().tween_property(驻钮, "modulate:a", 1.0, 0.25)
 func refresh() -> void:
 	if not _built:
 		return
@@ -563,7 +603,7 @@ func refresh() -> void:
 	if 机缘label != null and is_instance_valid(Game):
 		var 检查: Dictionary = Game.检查机缘("征伐机缘")
 		var VIP等级: int = Game.当前VIP等级()
-		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+		机缘label.text = "机缘：%d/%d（仙阶 %d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
 
 # 我方战力 = 已编入槽位弟子的战力合计（未编制时为 0，不再用「全宗门战力」虚高误导）
 func _编制战力() -> int:
@@ -606,10 +646,10 @@ func 刷新槽位() -> void:
 			continue
 		var d = _队伍编制[_当前队伍索引][i]
 		if d == null or not is_instance_valid(d):
-			slot.text = "%s\n➕\n空位" % _槽位名[i]
+			slot.text = "%s\n＋\n空位" % _槽位名[i]
 			UITheme.apply_secondary_button_style(slot)
 		else:
-			slot.text = "%s\n%s\n战%d" % [_槽位名[i], d.姓名, int(d.总战力())]
+			slot.text = "%s\n%s\n道%d" % [_槽位名[i], d.姓名, int(d.总战力())]
 			UITheme.apply_primary_button_style(slot)
 
 func _on_back_pressed() -> void:
@@ -674,7 +714,7 @@ func _on_slot_pressed(槽位: int) -> void:
 		可选.sort_custom(func(a, b): return int(a.总战力()) > int(b.总战力()))
 		for d in 可选:
 			var b := Button.new()
-			b.text = "%s（%s 战%d）" % [d.姓名, d.境界, int(d.总战力())]
+			b.text = "%s（%s 道%d）" % [d.姓名, d.境界, int(d.总战力())]
 			b.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
 			UITheme.apply_secondary_button_style(b)
 			b.pressed.connect(func():
@@ -684,6 +724,8 @@ func _on_slot_pressed(槽位: int) -> void:
 				刷新战力对比()
 			)
 			内列.add_child(b)
+			b.modulate.a = 0.0
+			b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 	var 清 := Button.new()
 	清.text = "清空此位"
 	清.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
@@ -696,7 +738,7 @@ func _on_slot_pressed(槽位: int) -> void:
 	)
 	列.add_child(清)
 	var 撤 := Button.new()
-	撤.text = "折返"
+	撤.text = "返回"
 	撤.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
 	UITheme.apply_secondary_button_style(撤)
 	撤.pressed.connect(func(): 遮.queue_free())
@@ -752,7 +794,7 @@ func _on_start_battle() -> void:
 			continue
 		var 道id: String = str(战功道具映射[道名])
 		if int(Game.战功道具库存.get(道id, 0)) <= 0:
-			Game.添加提示("「%s」库存不足，请先在战功商店兑换" % 道名)
+			Game.添加提示("「%s」存量不足，请先在战功商店兑换" % 道名)
 			return
 	# 2 编制校验
 	var 出战队伍: Array = []
@@ -774,7 +816,7 @@ func _on_start_battle() -> void:
 	# 4 发起宗门战（战斗逻辑全在 Game.发起宗门战，UI 不碰结算核心）
 	if not Game.has_method("发起宗门战"):
 		Game.灵石 += 灵石消耗
-		Game.添加提示("宗门战后端未就绪")
+		Game.添加提示("宗门战尚未开启")
 		return
 	var 结果: Dictionary = Game.宣战(_当前战斗类型, 出战队伍, _buffs)
 	if not bool(结果.get("ok", false)):
@@ -846,7 +888,7 @@ func _显示战报(结果: Dictionary) -> void:
 	外.add_child(列)
 
 	var 头 := Label.new()
-	头.text = "⚔ %s：%s" % [str(战报.get("战斗类型", "")), 结果文本]
+	头.text = "◆ %s：%s" % [str(战报.get("战斗类型", "")), 结果文本]
 	头.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD if 胜 else UITheme.COLOR_TEXT_RED)
 	UITheme.apply_title_font(头)
 	列.add_child(头)
@@ -873,7 +915,7 @@ func _显示战报(结果: Dictionary) -> void:
 	if 结果.has("占领领地"):
 		var 领地信息: Dictionary = 结果["占领领地"]
 		var 领地标: Label = Label.new()
-		领地标.text = "🏯 占领领地【%s】（%s） 岁入 灵石%d/月" % [str(领地信息.get("名称", "")), str(领地信息.get("类型", "")), int(领地信息.get("月灵石", 0))]
+		领地标.text = "◇ 占领领地【%s】（%s） 岁入 灵石%d/月" % [str(领地信息.get("名称", "")), str(领地信息.get("类型", "")), int(领地信息.get("月灵石", 0))]
 		领地标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 		UITheme.apply_body_text(领地标)
 		列.add_child(领地标)
@@ -896,6 +938,8 @@ func _显示战报(结果: Dictionary) -> void:
 		行标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		UITheme.apply_aux_text(行标)
 		日志列.add_child(行标)
+		行标.modulate.a = 0.0
+		行标.create_tween().tween_property(行标, "modulate:a", 1.0, 0.25)
 
 	var 确 := Button.new()
 	确.text = "可"
@@ -1016,26 +1060,36 @@ func _show_merit_shop() -> void:
 		var 类标: Label = Label.new()
 		类标.text = "【%s】" % 类
 		UITheme.apply_body_text(类标)
-		类标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE2)
+		类标.add_theme_color_override("font_color", UITheme.获取次文字色())
 		内.add_child(类标)
+		类标.modulate.a = 0.0
+		类标.create_tween().tween_property(类标, "modulate:a", 1.0, 0.25)
 		for it in 本类:
 			var 行: HBoxContainer = HBoxContainer.new()
 			行.add_theme_constant_override("separation", UITheme.GRID / 2)
 			内.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 			var 信: VBoxContainer = VBoxContainer.new()
 			信.add_theme_constant_override("separation", 2)
 			信.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			行.add_child(信)
+			信.modulate.a = 0.0
+			信.create_tween().tween_property(信, "modulate:a", 1.0, 0.25)
 			var 名标: Label = Label.new()
 			名标.text = "%s（%s）×%d" % [str(it.get("名称", "")), str(it.get("品阶", "")), int(it.get("数量", 1))]
 			UITheme.apply_body_text(名标)
 			名标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 			信.add_child(名标)
+			名标.modulate.a = 0.0
+			名标.create_tween().tween_property(名标, "modulate:a", 1.0, 0.25)
 			var 说标: Label = Label.new()
 			说标.text = str(it.get("说明", ""))
 			说标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			UITheme.apply_aux_text(说标)
 			信.add_child(说标)
+			说标.modulate.a = 0.0
+			说标.create_tween().tween_property(说标, "modulate:a", 1.0, 0.25)
 			var 买: Button = Button.new()
 			买.text = "%d功" % int(it.get("价格", 0))
 			买.custom_minimum_size = Vector2(84, UITheme.BTN_H_SECONDARY)
@@ -1046,6 +1100,8 @@ func _show_merit_shop() -> void:
 				买.disabled = true
 			买.pressed.connect(_on_merit_buy.bind(str(it.get("id", "")), 遮))
 			行.add_child(买)
+			买.modulate.a = 0.0
+			买.create_tween().tween_property(买, "modulate:a", 1.0, 0.25)
 	var 关: Button = Button.new()
 	关.text = "关闭"
 	关.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
@@ -1109,6 +1165,8 @@ func _show_garrison_panel(领地索引: int) -> void:
 		UITheme.apply_secondary_button_style(撤)
 		撤.pressed.connect(_on_garrison_remove.bind(领地索引, str(名), 遮))
 		内.add_child(撤)
+		撤.modulate.a = 0.0
+		撤.create_tween().tween_property(撤, "modulate:a", 1.0, 0.25)
 	var 可标: Label = Label.new()
 	可标.text = "可派驻弟子（养伤者不可派）"
 	UITheme.apply_aux_text(可标)
@@ -1134,11 +1192,13 @@ func _show_garrison_panel(领地索引: int) -> void:
 		内.add_child(空)
 	for d in 可选:
 		var b: Button = Button.new()
-		b.text = "派驻 %s（%s 战%d）" % [str(d.姓名), str(d.境界), int(d.总战力())]
+		b.text = "派驻 %s（%s 道%d）" % [str(d.姓名), str(d.境界), int(d.总战力())]
 		b.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
 		UITheme.apply_secondary_button_style(b)
 		b.pressed.connect(_on_garrison_add.bind(领地索引, d, 遮))
 		内.add_child(b)
+		b.modulate.a = 0.0
+		b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 	var 关: Button = Button.new()
 	关.text = "关闭"
 	关.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)

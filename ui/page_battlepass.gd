@@ -60,7 +60,7 @@ func _build() -> void:
 	主标题.mouse_filter = Control.MOUSE_FILTER_STOP
 	主标题.gui_input.connect(func(e):
 		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(主标题, "功勋", "宗门功勋通过完成任务、参与宗门活动获得。\n功勋可用于兑换珍贵道具与特殊奖励。"))
+			UIHint.show_hint(主标题, "功勋", "宗门功勋通过了却差事、参与宗门活动获得。\n功勋可用于兑换珍贵道具与特殊奖励。"))
 	UITheme.apply_page_title(主标题)
 	vbox.add_child(主标题)
 	_副标题标签 = Label.new()
@@ -140,14 +140,20 @@ func _populate() -> void:
 	UITheme.apply_section_title(免头)
 	_scroll_vbox.add_child(免头)
 	for lv in range(1, 最大 + 1):
-		_scroll_vbox.add_child(_建奖励行("免费", lv, 已购付费, lv in 已领免费))
+		var _fb1 := _建奖励行("免费", lv, 已购付费, lv in 已领免费)
+		_scroll_vbox.add_child(_fb1)
+		_fb1.modulate.a = 0.0
+		_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 
 	var 付头 := Label.new()
 	付头.text = "付费轨道（%s）" % ("已解锁" if 已购付费 else "未解锁")
 	UITheme.apply_section_title(付头)
 	_scroll_vbox.add_child(付头)
 	for lv in range(1, 最大 + 1):
-		_scroll_vbox.add_child(_建奖励行("付费", lv, 已购付费, lv in 已领付费))
+		var _fb2 := _建奖励行("付费", lv, 已购付费, lv in 已领付费)
+		_scroll_vbox.add_child(_fb2)
+		_fb2.modulate.a = 0.0
+		_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 
 	# 解锁付费轨按钮
 	var 付费按钮: Button = SecondaryButton.new() if 已购付费 else PrimaryButton.new()
@@ -166,10 +172,12 @@ func _建奖励行(轨道: String, lv: int, 已购付费: bool, 已领: bool) ->
 	行.name = "Row_%s_%d" % [轨道, lv]
 	行.add_theme_constant_override("separation", UITheme.GRID)
 	var lv标签 := Label.new()
-	lv标签.text = "Lv.%d" % lv
+	lv标签.text = "第 %d 重" % lv
 	lv标签.custom_minimum_size = Vector2(48, 0)
 	UITheme.apply_value_font(lv标签, false)
 	行.add_child(lv标签)
+	lv标签.modulate.a = 0.0
+	lv标签.create_tween().tween_property(lv标签, "modulate:a", 1.0, 0.25)
 
 	var 奖: Dictionary = {}
 	for r in BattlePass.等级表:
@@ -190,6 +198,8 @@ func _建奖励行(轨道: String, lv: int, 已购付费: bool, 已领: bool) ->
 	else:
 		格.pressed.connect(_on_领奖.bind(轨道, lv))
 	行.add_child(格)
+	格.modulate.a = 0.0
+	格.create_tween().tween_property(格, "modulate:a", 1.0, 0.25)
 	return 行
 
 func _奖文本(奖: Dictionary) -> String:
@@ -212,13 +222,15 @@ func _刷新等级与余额() -> void:
 	if _余额标签 != null:
 		_余额标签.text = "仙玉：%d" % int(Game.仙玉_非绑定)
 	if _等级标签 != null:
-		_等级标签.text = "第%d期法旨 · 功绩 Lv.%d / %d" % [int(信息.get("赛季", 1)), int(信息.get("等级", 0)), int(信息.get("最大等级", 0))]
+		_等级标签.text = "第%d期法旨 · 功勋 第%d重 / %d重" % [int(信息.get("赛季", 1)), int(信息.get("等级", 0)), int(信息.get("最大等级", 0))]
 	if _副标题标签 != null:
 		_副标题标签.text = "宗门季度法旨 · 第%d期" % int(信息.get("赛季", 1))
 	if _进度条 != null:
 		var 本级所需: int = int(信息.get("本级所需", 0))
 		_进度条.max_value = maxi(1, 本级所需)
-		_进度条.value = int(信息.get("经验", 0))
+		# ★ 2026-09-16（#18）：本条的实例是复用的（_ready 建、refresh 改值）
+		#   ⇒ 只在值真变化时平滑过渡，值没变则完全不动（不会因重复 refresh 抖动）。
+		UITheme.进度缓动(_进度条, float(int(信息.get("经验", 0))))
 
 func _反馈(文本: String) -> void:
 	if _反馈标签 != null:
@@ -226,7 +238,7 @@ func _反馈(文本: String) -> void:
 
 func _on_领奖(轨道: String, lv: int) -> void:
 	if not is_instance_valid(Game) or not Game.has_method("领战令奖励"):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	var r: Dictionary = Game.领战令奖励(轨道, lv)
 	_反馈(str(r.get("msg", "—")))
@@ -235,7 +247,7 @@ func _on_领奖(轨道: String, lv: int) -> void:
 
 func _on_解锁付费轨() -> void:
 	if not is_instance_valid(Game) or not Game.has_method("购战令付费轨"):
-		_反馈("数据未就绪")
+		_反馈("天机未定，稍后再观")
 		return
 	var r: Dictionary = Game.购战令付费轨()
 	_反馈(str(r.get("msg", "—")))

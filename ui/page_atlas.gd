@@ -25,7 +25,7 @@ const CARD_H: float = 92.0
 const 柱释义: Dictionary = {
 	"门下（人柱）": "谁在修炼",
 	"征伐（战柱）": "去哪打、打谁",
-	"百工（产柱）": "把材料变成战力",
+	"百工（产柱）": "把材料变成道行",
 	"四方（世柱）": "宗门之外的世界",
 }
 
@@ -86,25 +86,8 @@ func _build() -> void:
 
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "宗门舆图  ⓘ"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "宗门舆图", "全宗门法门总目录（四柱 → 主题组）。\n「知其在何处」在此直入；「知其有何用」看顶部意图。\n未开启的法门亦列明缘由，免你错过。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-	bar.add_spacer(true)
-	parent.add_child(bar)
-
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("宗门舆图", _on_back_pressed, [], "宗门舆图", "全宗门法门总目录（四柱 → 主题组）。\n「知其在何处」在此直入；「知其有何用」看顶部意图。\n未开启的法门亦列明缘由，免你错过。"))
 func refresh() -> void:
 	if not _built:
 		return
@@ -124,8 +107,10 @@ func _建_意图区(parent: VBoxContainer) -> void:
 	标.name = "IntentTitle"
 	标.text = "我想……（点一按，高亮可用的法门）"
 	UITheme.apply_section_title(标)
-	标.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	标.add_theme_color_override("font_color", UITheme.获取金文字色())
 	parent.add_child(标)
+	标.modulate.a = 0.0
+	标.create_tween().tween_property(标, "modulate:a", 1.0, 0.25)
 
 	var grid := GridContainer.new()
 	grid.name = "IntentGrid"
@@ -133,8 +118,13 @@ func _建_意图区(parent: VBoxContainer) -> void:
 	grid.add_theme_constant_override("h_separation", UITheme.GRID_SM)
 	grid.add_theme_constant_override("v_separation", UITheme.GRID_SM)
 	parent.add_child(grid)
+	grid.modulate.a = 0.0
+	grid.create_tween().tween_property(grid, "modulate:a", 1.0, 0.25)
 	for cfg in _意图:
-		grid.add_child(_make_intent_chip(cfg))
+		var _fb1 := _make_intent_chip(cfg)
+		grid.add_child(_fb1)
+		_fb1.modulate.a = 0.0
+		_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 
 
 func _make_intent_chip(cfg: Dictionary) -> Control:
@@ -144,8 +134,19 @@ func _make_intent_chip(cfg: Dictionary) -> Control:
 	btn.name = "Intent_" + 意图
 	btn.text = 意图
 	btn.focus_mode = Control.FOCUS_NONE
-	btn.clip_text = true
+	# ★ 2026-09-16 修（真缺陷 · 静默不可见）：原实现 clip_text=true + 默认 size_flags(FILL)
+	#   在 GridContainer 里**双双致盲** ——
+	#   ① Godot 4 的 Button 在 clip_text=true 时，最小宽度**不含文字宽**（微探针实测只剩
+	#      content margin 24 逻辑）；
+	#   ② GridContainer 列宽只按子项最小宽，且**只有子项带 EXPAND 才会被撑开**。
+	#   两者叠加 ⇒ chip 实宽 24、文字宽 78，6 个意图标签的文字被整段裁掉，实机只见空框
+	#   （静态闸门 + 布局扫描全绿，只有肉眼能看见）。
+	#   修法：关掉 clip_text（最小宽重新含文字）+ 给 EXPAND_FILL 让 Grid 均分整行
+	#   （微探针实测 32 → 198，文字放得下）。
+	btn.clip_text = false
 	btn.custom_minimum_size = Vector2(0.0, UITheme.SIZE_SM)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_project_font(btn, UITheme.FONT_AUX, true)
 	UITheme.apply_secondary_button_style(btn)
 	var 选中: bool = false
 	for t in 目标:
@@ -153,7 +154,7 @@ func _make_intent_chip(cfg: Dictionary) -> Control:
 			选中 = true
 			break
 	if 选中:
-		btn.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		btn.add_theme_color_override("font_color", UITheme.获取金文字色())
 	var tex: Texture2D = UITheme.load_hd_icon(String(cfg.get("图标", "")))
 	if tex != null:
 		btn.icon = tex
@@ -176,20 +177,30 @@ func _建_索引区(parent: VBoxContainer) -> void:
 			当前柱 = 柱
 			当前组 = ""
 			grid = null
-			parent.add_child(_make_pillar_head(柱))
+			var _fb2 := _make_pillar_head(柱)
+			parent.add_child(_fb2)
+			_fb2.modulate.a = 0.0
+			_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 		if 组 != 当前组:
 			当前组 = 组
-			parent.add_child(_make_group_head(组))
+			var _fb3 := _make_group_head(组)
+			parent.add_child(_fb3)
+			_fb3.modulate.a = 0.0
+			_fb3.create_tween().tween_property(_fb3, "modulate:a", 1.0, 0.25)
 			grid = GridContainer.new()
 			grid.name = "Grid_" + 柱 + "_" + 组
 			grid.columns = 2
 			grid.add_theme_constant_override("h_separation", UITheme.GRID_SM)
 			grid.add_theme_constant_override("v_separation", UITheme.GRID_SM)
 			parent.add_child(grid)
+			grid.modulate.a = 0.0
+			grid.create_tween().tween_property(grid, "modulate:a", 1.0, 0.25)
 		if grid == null:
 			continue
 		var card: Control = _make_system_card(cfg)
 		grid.add_child(card)
+		card.modulate.a = 0.0
+		card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 		_卡片[String(cfg.get("入口id", ""))] = card
 
 
@@ -199,7 +210,7 @@ func _make_pillar_head(柱: String) -> Control:
 	标.text = "%s · %s" % [柱, String(柱释义.get(柱, ""))]
 	标.custom_minimum_size = Vector2(0.0, UITheme.SIZE_SM)
 	UITheme.apply_section_title(标)
-	标.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	标.add_theme_color_override("font_color", UITheme.获取金文字色())
 	return 标
 
 
@@ -207,8 +218,8 @@ func _make_group_head(组: String) -> Control:
 	var 标 := Label.new()
 	标.name = "Group_" + 组
 	标.text = "— " + 组
-	标.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	标.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	UITheme.apply_project_font(标, UITheme.FONT_BODY, false)
+	标.add_theme_color_override("font_color", UITheme.获取次文字色())
 	return 标
 
 
@@ -238,15 +249,19 @@ func _make_system_card(cfg: Dictionary) -> Control:
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_place(icon, 10.0, 14.0, 40.0, 40.0)
 		btn.add_child(icon)
+		icon.modulate.a = 0.0
+		icon.create_tween().tween_property(icon, "modulate:a", 1.0, 0.25)
 
 	var 名标 := Label.new()
 	名标.name = "Name"
 	名标.text = String(cfg.get("系统名", ""))
 	名标.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UITheme.apply_title_font_sized(名标, UITheme.FONT_BODY)
-	名标.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	名标.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_place(名标, 56.0, 12.0, CARD_W - 66.0, 20.0)
 	btn.add_child(名标)
+	名标.modulate.a = 0.0
+	名标.create_tween().tween_property(名标, "modulate:a", 1.0, 0.25)
 
 	var 述标 := Label.new()
 	述标.name = "Desc"
@@ -254,9 +269,11 @@ func _make_system_card(cfg: Dictionary) -> Control:
 	述标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	述标.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UITheme.apply_aux_font_sized(述标, UITheme.FONT_AUX)
-	述标.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	述标.add_theme_color_override("font_color", UITheme.获取次文字色())
 	_place(述标, 56.0, 33.0, CARD_W - 66.0, 32.0)
 	btn.add_child(述标)
+	述标.modulate.a = 0.0
+	述标.create_tween().tween_property(述标, "modulate:a", 1.0, 0.25)
 
 	if not 已解锁:
 		var 缘由: String = SystemUnlock.入口解锁提示(id)
@@ -267,9 +284,11 @@ func _make_system_card(cfg: Dictionary) -> Control:
 		态标.text = "未启 · " + 缘由
 		态标.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		UITheme.apply_aux_font_sized(态标, UITheme.FONT_AUX)
-		态标.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		态标.add_theme_color_override("font_color", UITheme.获取金文字色())
 		_place(态标, 10.0, 68.0, CARD_W - 20.0, 16.0)
 		btn.add_child(态标)
+		态标.modulate.a = 0.0
+		态标.create_tween().tween_property(态标, "modulate:a", 1.0, 0.25)
 
 	return btn
 
@@ -277,10 +296,10 @@ func _make_system_card(cfg: Dictionary) -> Control:
 # 卡片蒙皮：命中（意图反查）时暗金双线高亮，常态为既有入口底 + 细暗金描边。
 func _样式卡片(btn: Button, 命中: bool) -> void:
 	var bg: Color = UITheme.C01_TAB_ACTIVE if 命中 else UITheme.C01_ENTRY_BG
-	var bd: Color = UITheme.C01_TEXT_GOLD if 命中 else UITheme.C01_GOLD_LINE
+	var bd: Color = UITheme.获取金文字色() if 命中 else UITheme.C01_GOLD_LINE
 	var bw: int = 2 if 命中 else 1
 	var 常态: StyleBox = UITheme.make_panel_stylebox_flat(bg, bd, 8, bw)
-	var 悬停: StyleBox = UITheme.make_panel_stylebox_flat(bg, UITheme.C01_TEXT_GOLD, 8, bw)
+	var 悬停: StyleBox = UITheme.make_panel_stylebox_flat(bg, UITheme.获取金文字色(), 8, bw)
 	btn.add_theme_stylebox_override("normal", 常态)
 	btn.add_theme_stylebox_override("hover", 悬停)
 	btn.add_theme_stylebox_override("pressed", 悬停)
@@ -369,7 +388,8 @@ func _on_系统跳转(id: String, 已解锁: bool) -> void:
 		var 缘由: String = SystemUnlock.入口解锁提示(id)
 		if 缘由 == "":
 			缘由 = "随宗门壮大自会显现"
-		UIHint.show_hint(self, "尚未开启 · " + id, 缘由)
+		UIHint.show_hint(self, "尚未开启", 缘由)
+		Game.添加提示("尚未开启")
 		return
 	打开请求.emit(id)
 

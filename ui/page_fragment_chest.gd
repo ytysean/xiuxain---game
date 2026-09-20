@@ -49,20 +49,8 @@ func _build() -> void:
 
 # ───────── 顶部导航栏 ─────────
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "碎片 & 宝箱"
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-	parent.add_child(bar)
-
-# ───────── 标签栏 ─────────
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("碎片 & 宝箱", _on_back_pressed, []))
 func _build_tabs(parent: Control) -> void:
 	var tab_bar := HBoxContainer.new()
 	tab_bar.name = "TabBar"
@@ -76,6 +64,8 @@ func _build_tabs(parent: Control) -> void:
 		_style_tab_button(btn, 标签名 == _当前标签)
 		_标签按钮[标签名] = btn
 		tab_bar.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 	parent.add_child(tab_bar)
 
 func _style_tab_button(btn: Button, 选中: bool) -> void:
@@ -85,8 +75,8 @@ func _style_tab_button(btn: Button, 选中: bool) -> void:
 		sb.border_color = Color(0.910, 0.773, 0.447)
 		sb.set_border_width_all(2)
 	else:
-		sb.bg_color = Color(0.051, 0.102, 0.125)
-		sb.border_color = Color(0.157, 0.290, 0.337)
+		sb.bg_color = Color(0.122, 0.169, 0.192)
+		sb.border_color = Color(0.431, 0.341, 0.149)
 		sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
 	btn.add_theme_stylebox_override("normal", sb)
@@ -97,7 +87,7 @@ func _style_tab_button(btn: Button, 选中: bool) -> void:
 	if 选中:
 		btn.add_theme_color_override("font_color", Color(0.910, 0.773, 0.447))
 	else:
-		btn.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		btn.add_theme_color_override("font_color", UITheme.获取主文字色())
 
 # ───────── 内容区域 ─────────
 func _build_content(parent: Control) -> void:
@@ -157,7 +147,7 @@ func _build_fragment_content() -> void:
 		card.name = "Fragment_" + 碎片ID
 		card.custom_minimum_size = Vector2(0, 80)
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(0.055, 0.114, 0.141)
+		sb.bg_color = Color(0.122, 0.169, 0.192)
 		sb.set_corner_radius_all(8)
 		card.add_theme_stylebox_override("panel", sb)
 
@@ -169,29 +159,39 @@ func _build_fragment_content() -> void:
 		hbox.add_theme_constant_override("separation", UITheme.GRID)
 		hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_child(hbox)
+		hbox.modulate.a = 0.0
+		hbox.create_tween().tween_property(hbox, "modulate:a", 1.0, 0.25)
 
 		# 左侧：图标 + 名称 + 类型
 		var left_vbox := VBoxContainer.new()
 		left_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		left_vbox.add_theme_constant_override("separation", 4)
 		hbox.add_child(left_vbox)
+		left_vbox.modulate.a = 0.0
+		left_vbox.create_tween().tween_property(left_vbox, "modulate:a", 1.0, 0.25)
 
 		var 名称标签 := Label.new()
 		名称标签.text = 名称
 		UITheme.apply_body_text(名称标签)
 		left_vbox.add_child(名称标签)
+		名称标签.modulate.a = 0.0
+		名称标签.create_tween().tween_property(名称标签, "modulate:a", 1.0, 0.25)
 
 		var 类型标签 := Label.new()
 		类型标签.text = "类型：%s | 数量：%d/%d | 灵石：%d" % [类型, 当前数量, 所需数量, 额外灵石]
-		类型标签.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+		类型标签.add_theme_color_override("font_color", UITheme.获取次文字色())
 		UITheme.apply_body_font_sized(类型标签, UITheme.FONT_AUX)
 		left_vbox.add_child(类型标签)
+		类型标签.modulate.a = 0.0
+		类型标签.create_tween().tween_property(类型标签, "modulate:a", 1.0, 0.25)
 
 		var 描述标签 := Label.new()
 		描述标签.text = 描述
-		描述标签.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		描述标签.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		UITheme.apply_body_font_sized(描述标签, UITheme.FONT_AUX)
 		left_vbox.add_child(描述标签)
+		描述标签.modulate.a = 0.0
+		描述标签.create_tween().tween_property(描述标签, "modulate:a", 1.0, 0.25)
 
 		# 右侧：合成按钮
 		var 合成按钮 := Button.new()
@@ -202,8 +202,12 @@ func _build_fragment_content() -> void:
 		合成按钮.pressed.connect(_on_craft_fragment.bind(碎片ID))
 		_style_craft_button(合成按钮, 可合成)
 		hbox.add_child(合成按钮)
+		合成按钮.modulate.a = 0.0
+		合成按钮.create_tween().tween_property(合成按钮, "modulate:a", 1.0, 0.25)
 
 		_内容容器.add_child(card)
+		card.modulate.a = 0.0
+		card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 		_碎片列表.append({"碎片ID": 碎片ID, "名称": 名称, "数量": 当前数量, "所需数量": 所需数量, "可合成": 可合成, "按钮": 合成按钮})
 
 func _style_craft_button(btn: Button, 可合成: bool) -> void:
@@ -212,8 +216,8 @@ func _style_craft_button(btn: Button, 可合成: bool) -> void:
 		sb.bg_color = Color(0.910, 0.773, 0.447)
 		btn.add_theme_color_override("font_color", Color(0.086, 0.157, 0.173))
 	else:
-		sb.bg_color = Color(0.078, 0.157, 0.180)
-		btn.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		sb.bg_color = UITheme.获取面板底色()
+		btn.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	sb.set_corner_radius_all(8)
 	btn.add_theme_stylebox_override("normal", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
@@ -224,10 +228,10 @@ func _style_craft_button(btn: Button, 可合成: bool) -> void:
 func _on_craft_fragment(碎片ID: String) -> void:
 	var 结果: Dictionary = Game.执行碎片合成(碎片ID)
 	if 结果.get("成功", false):
-		_结果标签.text = "✅ " + str(结果.get("原因", "合成成功"))
+		_结果标签.text = "✓ " + str(结果.get("原因", "合成成功"))
 		_结果标签.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
 	else:
-		_结果标签.text = "❌ " + str(结果.get("原因", "炼化失败"))
+		_结果标签.text = "× " + str(结果.get("原因", "炼化失败"))
 		_结果标签.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))
 	refresh()
 
@@ -257,7 +261,7 @@ func _build_chest_content() -> void:
 		card.name = "Chest_" + 宝箱ID
 		card.custom_minimum_size = Vector2(0, 80)
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(0.055, 0.114, 0.141)
+		sb.bg_color = Color(0.122, 0.169, 0.192)
 		sb.set_corner_radius_all(8)
 		card.add_theme_stylebox_override("panel", sb)
 
@@ -269,29 +273,39 @@ func _build_chest_content() -> void:
 		hbox.add_theme_constant_override("separation", UITheme.GRID)
 		hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_child(hbox)
+		hbox.modulate.a = 0.0
+		hbox.create_tween().tween_property(hbox, "modulate:a", 1.0, 0.25)
 
 		# 左侧：名称 + 类型 + 描述
 		var left_vbox := VBoxContainer.new()
 		left_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		left_vbox.add_theme_constant_override("separation", 4)
 		hbox.add_child(left_vbox)
+		left_vbox.modulate.a = 0.0
+		left_vbox.create_tween().tween_property(left_vbox, "modulate:a", 1.0, 0.25)
 
 		var 名称标签 := Label.new()
 		名称标签.text = 名称
 		UITheme.apply_body_text(名称标签)
 		left_vbox.add_child(名称标签)
+		名称标签.modulate.a = 0.0
+		名称标签.create_tween().tween_property(名称标签, "modulate:a", 1.0, 0.25)
 
 		var 类型标签 := Label.new()
 		类型标签.text = "类型：%s | 数量：%d" % [类型, 当前数量]
-		类型标签.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+		类型标签.add_theme_color_override("font_color", UITheme.获取次文字色())
 		UITheme.apply_body_font_sized(类型标签, UITheme.FONT_AUX)
 		left_vbox.add_child(类型标签)
+		类型标签.modulate.a = 0.0
+		类型标签.create_tween().tween_property(类型标签, "modulate:a", 1.0, 0.25)
 
 		var 描述标签 := Label.new()
 		描述标签.text = 描述
-		描述标签.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		描述标签.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		UITheme.apply_body_font_sized(描述标签, UITheme.FONT_AUX)
 		left_vbox.add_child(描述标签)
+		描述标签.modulate.a = 0.0
+		描述标签.create_tween().tween_property(描述标签, "modulate:a", 1.0, 0.25)
 
 		# 右侧：打开按钮
 		var 打开按钮 := Button.new()
@@ -302,8 +316,12 @@ func _build_chest_content() -> void:
 		打开按钮.pressed.connect(_on_open_chest.bind(宝箱ID))
 		_style_open_button(打开按钮, 可打开)
 		hbox.add_child(打开按钮)
+		打开按钮.modulate.a = 0.0
+		打开按钮.create_tween().tween_property(打开按钮, "modulate:a", 1.0, 0.25)
 
 		_内容容器.add_child(card)
+		card.modulate.a = 0.0
+		card.create_tween().tween_property(card, "modulate:a", 1.0, 0.25)
 		_宝箱列表.append({"宝箱ID": 宝箱ID, "名称": 名称, "数量": 当前数量, "可打开": 可打开, "按钮": 打开按钮})
 
 func _style_open_button(btn: Button, 可打开: bool) -> void:
@@ -312,8 +330,8 @@ func _style_open_button(btn: Button, 可打开: bool) -> void:
 		sb.bg_color = Color(0.910, 0.773, 0.447)
 		btn.add_theme_color_override("font_color", Color(0.086, 0.157, 0.173))
 	else:
-		sb.bg_color = Color(0.078, 0.157, 0.180)
-		btn.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		sb.bg_color = UITheme.获取面板底色()
+		btn.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	sb.set_corner_radius_all(8)
 	btn.add_theme_stylebox_override("normal", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
@@ -327,10 +345,10 @@ func _on_open_chest(宝箱ID: String) -> void:
 		var 掉落文本: String = ""
 		for 掉落 in 结果.get("掉落列表", []):
 			掉落文本 += "%s×%d " % [str(掉落.get("物品ID", "")), int(掉落.get("数量", 1))]
-		_结果标签.text = "✅ 打开成功！获得：" + 掉落文本
+		_结果标签.text = "✓ 打开成功！获得：" + 掉落文本
 		_结果标签.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))
 	else:
-		_结果标签.text = "❌ " + str(结果.get("原因", "启封失败"))
+		_结果标签.text = "× " + str(结果.get("原因", "启封失败"))
 		_结果标签.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))
 	refresh()
 

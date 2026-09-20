@@ -56,34 +56,20 @@ func _build() -> void:
 	], 150))
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "宗规  ⓘ"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "宗规", "宗门门规戒律。\n违反宗规的弟子将受到相应处罚，严重者可被驱逐师门。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	var 右侧 := []
 	_状态标签 = Label.new()
 	_状态标签.name = "Status"
 	UITheme.apply_value_text(_状态标签)
-	bar.add_child(_状态标签)
-	parent.add_child(bar)
-
+	右侧.append(_状态标签)
+	parent.add_child(UITheme.建顶栏("宗规", _on_back_pressed, 右侧, "宗规", "宗门门规戒律。\n违反宗规的弟子将受到相应处罚，严重者可被驱逐师门。"))
 func _建卡(卡名: String, 标题: String, 行: Array, 高: int) -> PanelContainer:
 	var card: PanelContainer = PanelContainer.new()
 	card.name = 卡名
 	card.custom_minimum_size = Vector2(0, 高)
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.050, 0.110, 0.140)
-	sb.border_color = Color(0.170, 0.290, 0.340)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
+	sb.border_color = Color(0.431, 0.341, 0.149)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(10)
 	card.add_theme_stylebox_override("panel", sb)
@@ -94,16 +80,22 @@ func _建卡(卡名: String, 标题: String, 行: Array, 高: int) -> PanelConta
 	col.add_theme_constant_override("margin_bottom", 12)
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
+	col.modulate.a = 0.0
+	col.create_tween().tween_property(col, "modulate:a", 1.0, 0.25)
 	var t := Label.new()
 	t.text = 标题
 	UITheme.apply_section_title(t)
 	col.add_child(t)
+	t.modulate.a = 0.0
+	t.create_tween().tween_property(t, "modulate:a", 1.0, 0.25)
 	for line in 行:
 		var l := Label.new()
 		l.text = str(line)
 		UITheme.apply_aux_text(l)
 		l.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 		col.add_child(l)
+		l.modulate.a = 0.0
+		l.create_tween().tween_property(l, "modulate:a", 1.0, 0.25)
 	return card
 
 func _严格度() -> String:
@@ -139,15 +131,15 @@ func _正邪当前() -> String:
 
 func _严格度说明(v: String) -> String:
 	match v:
-		"宽松": return "宽松：弟子心性散漫，战力成长 -5%，叛门率 -10%，声望获取 -10%。"
-		"严苛": return "严苛：弟子战力成长 +15%，叛门率 +8%，声望获取 +20%。"
+		"宽松": return "宽松：弟子心性散漫，道行成长 -5%，叛门率 -10%，声望获取 -10%。"
+		"严苛": return "严苛：弟子道行成长 +15%，叛门率 +8%，声望获取 +20%。"
 		_: return "中庸：收支平衡，宗门稳步前行（默认）。"
 
 func _正邪说明(v: String) -> String:
 	match v:
 		"玄门正道": return "持正守心：正道弟子心魔抗性强，邪修功法不可习，叛门代价更高。"
 		"逍遥中立": return "逍遥中立：功法兼修，行事无拘，声望涨落平缓。"
-		"九幽邪道": return "九幽邪道：邪修功法可习，战力暴涨但心魔缠身、正道排斥。"
+		"九幽邪道": return "九幽邪道：邪修功法可习，道行暴涨但心魔缠身、正道排斥。"
 		_: return "未定路线：掌门可于此处抉择宗门正邪归属。"
 
 func _建选择卡(卡名: String, 标题: String, 选项: Array, 当前: String, 说明: String) -> PanelContainer:
@@ -155,8 +147,8 @@ func _建选择卡(卡名: String, 标题: String, 选项: Array, 当前: String
 	card.name = 卡名
 	card.custom_minimum_size = Vector2(0, 132)
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.050, 0.110, 0.140)
-	sb.border_color = Color(0.170, 0.290, 0.340)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
+	sb.border_color = Color(0.431, 0.341, 0.149)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(10)
 	card.add_theme_stylebox_override("panel", sb)
@@ -167,10 +159,14 @@ func _建选择卡(卡名: String, 标题: String, 选项: Array, 当前: String
 	col.add_theme_constant_override("margin_bottom", 12)
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
+	col.modulate.a = 0.0
+	col.create_tween().tween_property(col, "modulate:a", 1.0, 0.25)
 	var t := Label.new()
 	t.text = 标题
 	UITheme.apply_section_title(t)
 	col.add_child(t)
+	t.modulate.a = 0.0
+	t.create_tween().tween_property(t, "modulate:a", 1.0, 0.25)
 	var hint := Label.new()
 	hint.name = "Hint"
 	hint.text = 说明
@@ -179,10 +175,14 @@ func _建选择卡(卡名: String, 标题: String, 选项: Array, 当前: String
 	hint.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	hint.custom_minimum_size = Vector2(0, 40)
 	col.add_child(hint)
+	hint.modulate.a = 0.0
+	hint.create_tween().tween_property(hint, "modulate:a", 1.0, 0.25)
 	var row := HBoxContainer.new()
 	row.name = "Opts"
 	row.add_theme_constant_override("separation", 8)
 	col.add_child(row)
+	row.modulate.a = 0.0
+	row.create_tween().tween_property(row, "modulate:a", 1.0, 0.25)
 	for opt in 选项:
 		var b := Button.new()
 		b.name = "Opt_" + str(opt)
@@ -191,6 +191,8 @@ func _建选择卡(卡名: String, 标题: String, 选项: Array, 当前: String
 		b.custom_minimum_size = Vector2(110, 32)
 		b.pressed.connect(_on_选择.bind(卡名, str(opt)))
 		row.add_child(b)
+		b.modulate.a = 0.0
+		b.create_tween().tween_property(b, "modulate:a", 1.0, 0.25)
 	_刷新选择卡(card, 当前)
 	return card
 
@@ -215,10 +217,10 @@ func _刷新选择卡(card: PanelContainer, 当前: String) -> void:
 			hint.text = _正邪说明(当前)
 
 func _style_选择(b: Button, sel: bool) -> void:
-	b.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if sel else UITheme.C01_TEXT_SECONDARY)
+	b.add_theme_color_override("font_color", UITheme.获取金文字色() if sel else UITheme.获取次文字色())
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.910, 0.773, 0.447, 0.18) if sel else Color(0.055, 0.114, 0.141)
-	sb.border_color = UITheme.C01_TEXT_GOLD if sel else Color(0.170, 0.290, 0.340)
+	sb.bg_color = Color(0.910, 0.773, 0.447, 0.18) if sel else Color(0.122, 0.169, 0.192)
+	sb.border_color = UITheme.获取金文字色() if sel else Color(0.431, 0.341, 0.149)
 	sb.set_corner_radius_all(8)
 	sb.set_border_width_all(1)
 	b.add_theme_stylebox_override("normal", sb)

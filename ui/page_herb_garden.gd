@@ -5,14 +5,14 @@ extends Control
 
 signal 返回主页
 
-const C_BG_TOP: Color = Color(0.043, 0.086, 0.102)
-const C_BG_BOT: Color = Color(0.059, 0.133, 0.161)
-const C_TOPBAR_BG: Color = Color(0.039, 0.078, 0.094, 0.90)
-const C_TAB_BG: Color = Color(0.035, 0.071, 0.086)
+const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)
+const C_BG_BOT: Color = UITheme.获取面板底色()
+const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)
+const C_TAB_BG: Color = Color(0.086, 0.125, 0.141)
 const C_TAB_ACTIVE: Color = Color(0.910, 0.773, 0.447, 0.3)
-const C_CELL_BG: Color = Color(0.051, 0.102, 0.125)
-const C_CELL_EMPTY: Color = Color(0.039, 0.078, 0.094, 0.60)
-const C_DETAIL_BG: Color = Color(0.047, 0.090, 0.102)
+const C_CELL_BG: Color = Color(0.122, 0.169, 0.192)
+const C_CELL_EMPTY: Color = Color(0.106, 0.153, 0.169, 0.60)
+const C_DETAIL_BG: Color = Color(0.110, 0.149, 0.173)
 const C_GOLD: Color = Color(0.910, 0.773, 0.447)
 const C_GOLD_DIM: Color = Color(0.839, 0.694, 0.416, 0.60)
 const C_GREEN: Color = Color(0.4, 0.8, 0.4)
@@ -95,12 +95,17 @@ func _build() -> void:
 	_返回按钮.size = Vector2(60, 30)
 	_返回按钮.pressed.connect(_on返回)
 	顶部栏.add_child(_返回按钮)
+	# ★ 2026-09-16（老模板页头升级）：换用全站标准返回钮外观（圆环 + 内嵌金色箭头，
+	#   同 make_back_button / Ardot 01 屏页头）。**保留原热区 60×30 ⇒ 布局零变动**，
+	#   图标按 KEEP_ASPECT_CENTERED 居中 ⇒ 视觉为 30 直径圆环。原为写死「折返」的方钮，
+	#   与其余 60 个二级页的返回键不一致。
+	UITheme.装饰为返回钮(_返回按钮)
 	
 	# 标题
 	_标题标签 = Label.new()
 	_标题标签.text = "药园"
 	_标题标签.position = Vector2(80, 18)
-	_标题标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(_标题标签, UITheme.FONT_TITLE, true)
 	_标题标签.add_theme_color_override("font_color", C_GOLD)
 	顶部栏.add_child(_标题标签)
 	
@@ -141,7 +146,7 @@ func _build() -> void:
 	var 网格区域 = ScrollContainer.new()
 	网格区域.set_anchors_preset(Control.PRESET_FULL_RECT)
 	网格区域.offset_top = 110
-	网格区域.offset_bottom = -200
+	网格区域.offset_bottom = -254
 	网格区域.offset_left = 10
 	网格区域.offset_right = -10
 	add_child(网格区域)
@@ -157,7 +162,7 @@ func _build() -> void:
 	_作物列表容器 = VBoxContainer.new()
 	_作物列表容器.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_作物列表容器.offset_top = 110
-	_作物列表容器.offset_bottom = -200
+	_作物列表容器.offset_bottom = -254
 	_作物列表容器.offset_left = 10
 	_作物列表容器.offset_right = -10
 	_作物列表容器.visible = false
@@ -171,8 +176,10 @@ func _build() -> void:
 	# 不把位置拉回视口。对照 page_world_map_visual 的 legend（显式 offset_top=-52）补齐偏移。
 	_详情面板.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_详情面板.custom_minimum_size = Vector2(0, 190)
-	_详情面板.offset_top = -190
-	_详情面板.offset_bottom = 0
+	# ★ 2026-09-16 修（#009 逐页精修 · 老模板）：详情面板原 offset_bottom = 0 ⇒ 贴死屏幕
+	#   下沿，面板内操作按钮触底。下移 MARGIN（24 逻辑 = 54 设计），与列表区 offset_bottom 同步。
+	_详情面板.offset_top = -244
+	_详情面板.offset_bottom = -54
 	_详情面板.offset_left = 10
 	_详情面板.offset_right = -10
 	_详情面板.add_theme_stylebox_override("panel", create_stylebox(C_DETAIL_BG, C_GOLD_DIM))
@@ -202,7 +209,7 @@ func _build() -> void:
 	_详情效果 = create_label("效果：-", 13)
 	详情内容.add_child(_详情效果)
 	
-	_详情描述 = create_label("", 12, Color.GRAY)
+	_详情描述 = create_label("", 12, UITheme.获取弱文字色())
 	详情内容.add_child(_详情描述)
 	
 	# 按钮区域
@@ -228,7 +235,7 @@ func _build() -> void:
 func create_label(text: String, size: int = 14, color: Color = Color.WHITE) -> Label:
 	var 标签 = Label.new()
 	标签.text = text
-	标签.add_theme_font_size_override("font_size", size)
+	UITheme.apply_project_font(标签, size, false)
 	标签.add_theme_color_override("font_color", color)
 	return 标签
 
@@ -282,6 +289,8 @@ func refresh() -> void:
 			var 索引 = i
 			地块按钮.pressed.connect(func(): _on选中地块(索引))
 			_地块网格.add_child(地块按钮)
+			地块按钮.modulate.a = 0.0
+			地块按钮.create_tween().tween_property(地块按钮, "modulate:a", 1.0, 0.25)
 	else:
 		_作物列表 = Game.获取可种植作物列表()
 		for i in _作物列表.size():
@@ -290,12 +299,14 @@ func refresh() -> void:
 			var 行 = Button.new()
 			行.text = "%s - 成熟%d日，收获%d个，类型：%s" % [作物名称, 作物配置.get("成熟天数", 3), 作物配置.get("收获数量", 1), 作物配置.get("收获类型", "材料")]
 			行.custom_minimum_size = Vector2(0, 45)
-			行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 			if i == _选中索引:
 				行.add_theme_stylebox_override("normal", create_stylebox(C_GOLD_DIM))
 			var 索引 = i
 			行.pressed.connect(func(): _on选中作物(索引))
 			_作物列表容器.add_child(行)
+			行.modulate.a = 0.0
+			行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
 	
 	_更新详情()
 
@@ -320,17 +331,17 @@ func _更新详情() -> void:
 				_详情种植.text = "种植：%s" % 地块.get("种植物品", "")
 				_详情成熟.text = "成熟：%d日后" % max(0, 地块.get("成熟时间", 0) - Game.累计游戏日)
 				_详情效果.text = "效果：收获后获得对应资源"
-				_详情描述.text = "此地已种植%s，耐心等待成熟后即可收获。成熟时间受灵田等级、灵脉品质等因素影响。" % 地块.get("种植物品", "")
+				_详情描述.text = "此地已种植%s，耐心等待成熟后即可收获。成熟时日受灵田品级、灵脉品质等因素影响。" % 地块.get("种植物品", "")
 			else:
 				_详情种植.text = "种植：（空）"
 				_详情成熟.text = "成熟：-"
 				_详情效果.text = "效果：可以种植作物"
-				_详情描述.text = "此地灵气充沛，土壤肥沃，是种植灵草灵药的上佳之地。点击「播种」按钮选择作物开始种植。"
+				_详情描述.text = "此地灵气充沛，土壤肥沃，是种植灵草灵药的上佳之地。轻触「播种」选择作物开始种植。"
 		else:
 			_详情状态.text = "状态：未开垦"
 			_详情种植.text = "种植：-"
 			_详情成熟.text = "成熟：-"
-			_详情效果.text = "效果：点击「开辟灵田」按钮解锁"
+			_详情效果.text = "效果：轻触「开辟灵田」解锁"
 			_详情描述.text = "此地尚未开垦，杂草丛生，灵气稀薄。需消耗灵石和人力开垦后方可种植。解锁更多地块可同时种植更多作物，提升宗门资源产出。"
 		_种植按钮.visible = true
 		_收获按钮.visible = true
@@ -388,17 +399,26 @@ func _on种植() -> void:
 		refresh()
 
 func _on种植类型() -> void:
+	# ★ 2026-09-16 修（死键扫描实测判 DEAD）：未择定作物 / 无空闲地块 / 播种失败时全部静默
+	#   ⇒ 按钮亮着却毫无反馈。改为：每个失败分支都给出明确回应。
 	if _选中索引 < 0 or _选中索引 >= _作物列表.size():
+		Game.添加提示("尚未择定作物")
 		return
 	var 作物名称: String = str(_作物列表[_选中索引].get("名称", ""))
 	# 找到第一个空地块进行种植
+	var 找到了地块: bool = false
 	for i in _地块列表.size():
 		var 地块 = _地块列表[i]
 		if 地块.get("已解锁", false) and 地块.get("种植物品", "") == "":
+			找到了地块 = true
 			var 结果 = Game.种植药园(i, 作物名称)
 			if 结果.get("成功", false):
 				_切换标签("地块")
-			return
+			else:
+				Game.添加提示(str(结果.get("原因", "播种未成")))
+			break
+	if not 找到了地块:
+		Game.添加提示("灵田已满，无空闲地块可播种")
 
 func _on收获() -> void:
 	if _选中索引 < 0 or _选中索引 >= _地块列表.size():

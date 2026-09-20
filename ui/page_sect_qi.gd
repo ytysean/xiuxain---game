@@ -13,28 +13,28 @@ const QI_RESOURCES: Array = [
 	{
 		"name": "香火",
 		"field": "香火值",
-		"icon": "res_xianghuo",
+		"icon": "res_xianghuo_36",
 		"desc": "凡人供奉香火，凝聚宗门信仰之力。香火越盛，宗门气运越旺，可转化为愿力。",
 		"color": Color(0.95, 0.75, 0.35)  # 金黄
 	},
 	{
 		"name": "愿力",
 		"field": "愿力",
-		"icon": "res_yuanli",
+		"icon": "res_yuanli_36",
 		"desc": "香火凝炼而成的愿力，是宗门修士突破境界、施展大神通的关键资源。",
 		"color": Color(0.65, 0.85, 0.95)  # 淡蓝
 	},
 	{
 		"name": "功德",
 		"field": "功德",
-		"icon": "res_gongde",
+		"icon": "res_gongde_36",
 		"desc": "行善积德、济世救人所积累的功德。功德深厚者，天道庇佑，突破成功率提升。",
 		"color": Color(0.75, 0.95, 0.65)  # 淡绿
 	},
 	{
 		"name": "业力",
 		"field": "业力",
-		"icon": "res_yeli",
+		"icon": "res_yeli_36",
 		"desc": "杀生害命、作恶多端所积累的业力。业力深重者，天道谴罚，心魔滋生。",
 		"color": Color(0.95, 0.55, 0.55)  # 淡红
 	},
@@ -80,27 +80,13 @@ func _build() -> void:
 	inner.add_child(_建说明卡())
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "宗门气运  ⓘ"
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "宗门气运", "香火、愿力、功德、业力四大修真资源。\n气运盛衰影响宗门发展与修士突破。"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	var 右侧 := []
 	_状态标签 = Label.new()
 	_状态标签.name = "Status"
 	UITheme.apply_value_text(_状态标签)
-	bar.add_child(_状态标签)
-	parent.add_child(bar)
-
+	右侧.append(_状态标签)
+	parent.add_child(UITheme.建顶栏("宗门气运", _on_back_pressed, 右侧, "宗门气运", "香火、愿力、功德、业力四大修真资源。\n气运盛衰影响宗门发展与修士突破。"))
 func _建气运总览卡() -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = "CardOverview"
@@ -124,8 +110,8 @@ func _建气运总览卡() -> PanelContainer:
 	var 气运描述: String = _气运描述(气运值)
 	var val_label := Label.new()
 	val_label.text = "宗门气运：%d  ·  %s" % [气运值, 气运描述]
-	val_label.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-	val_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	val_label.add_theme_color_override("font_color", UITheme.获取金文字色())
+	UITheme.apply_project_font(val_label, UITheme.FONT_BODY, false)
 	vbox.add_child(val_label)
 	# 进度条
 	var bar := ProgressBar.new()
@@ -134,6 +120,9 @@ func _建气运总览卡() -> PanelContainer:
 	bar.value = clampi(气运值, 0, 100)
 	bar.custom_minimum_size = Vector2(0, 16)
 	vbox.add_child(bar)
+	panel.modulate.a = 0.0
+	var _t := panel.create_tween()
+	_t.tween_property(panel, "modulate:a", 1.0, 0.25)
 	return panel
 
 func _建资源卡(res: Dictionary) -> PanelContainer:
@@ -169,21 +158,24 @@ func _建资源卡(res: Dictionary) -> PanelContainer:
 	var name_label := Label.new()
 	name_label.text = res["name"]
 	name_label.add_theme_color_override("font_color", res["color"])
-	name_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(name_label, UITheme.FONT_H2, true)
 	title_row.add_child(name_label)
 	var val_label := Label.new()
 	val_label.name = "ValueLabel"
 	val_label.text = str(_读取资源值(res["field"]))
-	val_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
-	val_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	val_label.add_theme_color_override("font_color", UITheme.获取主文字色())
+	UITheme.apply_project_font(val_label, UITheme.FONT_BODY, false)
 	title_row.add_child(val_label)
 	# 说明
 	var desc_label := Label.new()
 	desc_label.text = res["desc"]
-	desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-	desc_label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	desc_label.add_theme_color_override("font_color", UITheme.获取次文字色())
+	UITheme.apply_project_font(desc_label, UITheme.FONT_AUX, false)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc_label)
+	panel.modulate.a = 0.0
+	var _t := panel.create_tween()
+	_t.tween_property(panel, "modulate:a", 1.0, 0.25)
 	return panel
 
 func _建说明卡() -> PanelContainer:
@@ -214,9 +206,12 @@ func _建说明卡() -> PanelContainer:
 	for line in lines:
 		var lbl := Label.new()
 		lbl.text = line
-		lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
-		lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		lbl.add_theme_color_override("font_color", UITheme.获取次文字色())
+		UITheme.apply_project_font(lbl, UITheme.FONT_AUX, false)
 		vbox.add_child(lbl)
+	panel.modulate.a = 0.0
+	var _t := panel.create_tween()
+	_t.tween_property(panel, "modulate:a", 1.0, 0.25)
 	return panel
 
 func _读取资源值(field: String) -> int:

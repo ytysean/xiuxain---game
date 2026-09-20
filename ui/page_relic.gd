@@ -3,7 +3,6 @@ extends Control
 # 后端：Game.探秘系统；图录复用 Game.收藏图录_已收集
 # 颜色一律走 UITheme 真实 const，禁硬编码
 
-const UITheme = preload("res://ui_theme.gd")
 
 signal 返回主页
 
@@ -33,6 +32,8 @@ func _build() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 	var 顶栏: HBoxContainer = HBoxContainer.new()
 	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -45,18 +46,15 @@ func _build() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "  探遗迹"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
 	顶栏.add_child(标题)
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(100, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -77,8 +75,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -96,18 +93,24 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "探遗迹·总览"
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	var 次: Label = Label.new()
 	次.text = "累计探秘 %d 次。所获天材地宝入宗门库房，反哺炼器炼丹。" % 探.累计探秘次数
 	次.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	次.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(次)
+	次.modulate.a = 0.0
+	次.create_tween().tween_property(次, "modulate:a", 1.0, 0.25)
 	var 提示: Label = Label.new()
 	提示.text = "探遗迹为秘境探秘子型：择遗迹、参悟阵法，机缘所得皆归宗门。"
 	提示.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(提示)
+	提示.modulate.a = 0.0
+	提示.create_tween().tween_property(提示, "modulate:a", 1.0, 0.25)
 	var 探2: RelicSystem = Game.探秘系统
 	var 境名: String = 探2.阵道境界名()
 	var 进度: Dictionary = 探2.阵道进度()
@@ -116,19 +119,26 @@ func _建_总览() -> void:
 		境.text = "阵道境界：【%s】（已臻圆满）  累计探秘 %d 次" % [境名, 探2.累计探秘次数]
 	else:
 		var 下名: String = 探2.阵道境界表[探2.阵道境界 + 1].get("名", "") if 探2.阵道境界 + 1 < 探2.阵道境界表.size() else ""
-		境.text = "阵道境界：【%s】  经验 %d / %d（再参悟得 %d 经验可晋%s）  累计探秘 %d 次" % [境名, 进度.get("已得", 0), 进度.get("需", 0), int(进度.get("需", 0)) - int(进度.get("已得", 0)), 下名, 探2.累计探秘次数]
+		境.text = "阵道境界：【%s】  修为 %d / %d（再参悟得 %d 修为可晋%s）  累计探秘 %d 次" % [境名, 进度.get("已得", 0), 进度.get("需", 0), int(进度.get("需", 0)) - int(进度.get("已得", 0)), 下名, 探2.累计探秘次数]
 	境.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	境.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(境)
+	境.modulate.a = 0.0
+	境.create_tween().tween_property(境, "modulate:a", 1.0, 0.25)
 	var 周规: Dictionary = 探2.获取本周探秘周()
 	var 周: Label = Label.new()
 	周.text = "本周探秘周：【%s】——%s（威望%d）  已参与 %d/3" % [周规.get("名称", ""), 周规.get("描述", ""), int(周规.get("奖励威望", 0)), 探2.本周探秘参与]
 	周.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
 	周.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(周)
+	周.modulate.a = 0.0
+	周.create_tween().tween_property(周, "modulate:a", 1.0, 0.25)
 
 func _建_探秘() -> void:
-	_content.add_child(_分隔("择遗迹·参悟阵法"))
+	var _fb1 := _分隔("择遗迹·参悟阵法")
+	_content.add_child(_fb1)
+	_fb1.modulate.a = 0.0
+	_fb1.create_tween().tween_property(_fb1, "modulate:a", 1.0, 0.25)
 	var 探: RelicSystem = Game.探秘系统
 	var n: int = 探.遗迹数()
 	for i in range(n):
@@ -142,49 +152,70 @@ func _建_探秘() -> void:
 		if i == _当前遗迹索引:
 			行.modulate = Color(1.0, 0.92, 0.6, 1.0)
 		_content.add_child(行)
-	_content.add_child(_分隔("破阵符·引灵香（消耗品）"))
+		行.modulate.a = 0.0
+		行.create_tween().tween_property(行, "modulate:a", 1.0, 0.25)
+	var _fb2 := _分隔("破阵符·引灵香（消耗品）")
+	_content.add_child(_fb2)
+	_fb2.modulate.a = 0.0
+	_fb2.create_tween().tween_property(_fb2, "modulate:a", 1.0, 0.25)
 	var 探3: RelicSystem = Game.探秘系统
 	var 求符: Button = Button.new()
 	求符.text = "求购破阵符（灵石%d）" % int(探3.消耗品配置("破阵符").get("价格", 0))
 	求符.custom_minimum_size = Vector2(0, 40)
 	求符.pressed.connect(_求购破阵符)
 	_content.add_child(求符)
+	求符.modulate.a = 0.0
+	求符.create_tween().tween_property(求符, "modulate:a", 1.0, 0.25)
 	var 求香: Button = Button.new()
 	求香.text = "求购引灵香（灵石%d）" % int(探3.消耗品配置("引灵香").get("价格", 0))
 	求香.custom_minimum_size = Vector2(0, 40)
 	求香.pressed.connect(_求购引灵香)
 	_content.add_child(求香)
+	求香.modulate.a = 0.0
+	求香.create_tween().tween_property(求香, "modulate:a", 1.0, 0.25)
 	var 用符: Button = Button.new()
 	用符.text = ("停用破阵符" if _用符 else "用破阵符（降难度）")
 	用符.custom_minimum_size = Vector2(0, 40)
 	用符.pressed.connect(_切换用符)
 	_content.add_child(用符)
+	用符.modulate.a = 0.0
+	用符.create_tween().tween_property(用符, "modulate:a", 1.0, 0.25)
 	var 用香: Button = Button.new()
 	用香.text = ("停用引灵香" if _用香 else "用引灵香（提秘藏率）")
 	用香.custom_minimum_size = Vector2(0, 40)
 	用香.pressed.connect(_切换用香)
 	_content.add_child(用香)
+	用香.modulate.a = 0.0
+	用香.create_tween().tween_property(用香, "modulate:a", 1.0, 0.25)
 	var 参: Button = Button.new()
 	参.text = "参悟阵法·入遗迹探秘"
 	参.custom_minimum_size = Vector2(0, 48)
 	参.pressed.connect(_探秘)
 	_content.add_child(参)
+	参.modulate.a = 0.0
+	参.create_tween().tween_property(参, "modulate:a", 1.0, 0.25)
 	var 周赛: Button = Button.new()
 	周赛.text = "参与本周探秘周赛"
 	周赛.custom_minimum_size = Vector2(0, 44)
 	周赛.pressed.connect(_参与探秘周)
 	_content.add_child(周赛)
+	周赛.modulate.a = 0.0
+	周赛.create_tween().tween_property(周赛, "modulate:a", 1.0, 0.25)
 	_状态文本 = Label.new()
 	_状态文本.text = "点按遗迹择之，再参悟阵法。"
 	_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	_状态文本.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(_状态文本)
+	_状态文本.modulate.a = 0.0
+	_状态文本.create_tween().tween_property(_状态文本, "modulate:a", 1.0, 0.25)
 	if not _最近结果.is_empty():
 		var r: Label = Label.new()
 		r.text = _格式结果(_最近结果)
 		r.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS if _最近结果.get("成功", false) else UITheme.COLOR_TEXT_RED)
 		r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(r)
+		r.modulate.a = 0.0
+		r.create_tween().tween_property(r, "modulate:a", 1.0, 0.25)
 
 func _探秘() -> void:
 	var 参: Dictionary = Game.探秘系统.开始探秘(_当前遗迹索引)
@@ -258,7 +289,7 @@ func _格式结果(r: Dictionary) -> String:
 	if r.get("传承", false):
 		s += "\n◆ 得上古传承残篇！"
 	if r.get("经验", 0) > 0:
-		s += "\n阵道经验 +%d" % r.get("经验", 0)
+		s += "\n阵道修为 +%d" % r.get("经验", 0)
 	return s
 
 func _建_图录() -> void:
@@ -270,21 +301,25 @@ func _建_图录() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "遗迹图录：已收录 %d / %d" % [已收.size(), 全部.size()]
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H1, true)
 	_content.add_child(标题)
+	标题.modulate.a = 0.0
+	标题.create_tween().tween_property(标题, "modulate:a", 1.0, 0.25)
 	for 名 in 全部:
 		var l: Label = Label.new()
 		if 已收.has(名):
 			l.text = "✓ %s" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS)
 		else:
-			l.text = "✗ %s（未收录）" % 名
+			l.text = "× %s（未收录）" % 名
 			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 		_content.add_child(l)
+		l.modulate.a = 0.0
+		l.create_tween().tween_property(l, "modulate:a", 1.0, 0.25)
 
 func _分隔(t: String) -> Label:
 	var l: Label = Label.new()
 	l.text = t
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(l, UITheme.FONT_TITLE, true)
 	return l

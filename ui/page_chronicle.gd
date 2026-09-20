@@ -119,6 +119,8 @@ func _build_header(parent: Control) -> void:
 		UITheme.apply_tab_style(btn, cat == _current_category)
 		btn.pressed.connect(_on_chip_pressed.bind(cat))
 		chip_row.add_child(btn)
+		btn.modulate.a = 0.0
+		btn.create_tween().tween_property(btn, "modulate:a", 1.0, 0.25)
 		_chips[cat] = btn
 
 	parent.add_child(panel)
@@ -195,7 +197,8 @@ func _add_entry_row(e: Dictionary, idx: int) -> void:
 	var l1 := HBoxContainer.new()
 	l1.add_theme_constant_override("separation", UITheme.GRID)
 	var 日 := Label.new()
-	日.text = "第" + str(e.get("日", "—")) + "日"
+	# 纪事写入侧键名为「日期」（game_state 全线），兼容旧「日」键
+	日.text = "第" + str(e.get("日", e.get("日期", "—"))) + "日"
 	UITheme.apply_aux_font(日)
 	l1.add_child(日)
 	var 稀有度 = str(e.get("稀有度", ""))
