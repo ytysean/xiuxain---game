@@ -1,0 +1,64 @@
+const_name,family,line_no,current_arg,inline_comment_hex,doc_token_value,asset_sample_hex,verdict_target,change_class
+MAT_BASE_TOP,MAT_,1470,"Color8(34,51,58)",#22333A,color.bg.page=#22333A / D1,panel_bg_center=#1C292F,#22333A,OK
+MAT_BASE_BOTTOM,MAT_,1471,"Color8(22,32,36)",#162024,color.bg.panel=#162024 / D1,panel_bg_low=#161C1F,#162024,OK
+MAT_SURFACE,MAT_,1472,"Color8(27,39,43)",#1B272B,color.bg.surface=#1B272B / D1,card_row_bg=#273438,#1B272B,OK
+MAT_ROW_TOP,MAT_,1473,"Color8(39,57,66)",#273942,color.bg.row.top=#273942 / D1,card_row_bg_top=#2E4049,#273942,OK
+MAT_ROW_BOTTOM,MAT_,1474,"Color8(28,38,44)",#1C262C,color.bg.row.bot=#1C262C / D1,card_row_bg=#273438,#1C262C,OK
+MAT_CARD_TOP,MAT_,1475,"Color8(43,64,73)",#2B4049,color.bg.card.top=#2B4049 / D1,card_bg_top=#344952,#2B4049,OK
+MAT_CARD_BOTTOM,MAT_,1476,"Color8(31,43,49)",#1F2B31,color.bg.card=#1F2B31 / D1,card_bg=#2B393E,#1F2B31,OK
+MAT_EDGE_DARK,MAT_,1477,"Color8(110,87,38)",#6E5726,color.gold.low=#6E5726 / D2,-,#6E5726,OK
+MAT_EDGE_LIGHT,MAT_,1478,"Color8(232,206,138)",#E8CE8A,color.gold.text=#E8CE8A / D2,corner_tab=#E8D8A0,#E8CE8A,OK
+MAT_GOLD_TOP,MAT_,1479,"Color8(200,168,106)",#C8A86A,color.gold.std=#C8A86A / D2,btn_fill_gold=#C8A860,#C8A86A,OK
+MAT_GOLD_BOTTOM,MAT_,1480,"Color8(140,110,46)",#8C6E2E,gold.std 次级物理值=#8C6E2E,btn_fill_low=#886828,#8C6E2E,OK
+MAT_GOLD_HI,MAT_,1481,"Color8(240,220,160)",#F0DCA0,color.gold.hi=#F0DCA0 / D2,corner_tab=#E8D8A0,#F0DCA0,OK
+COLOR_BG_BASE,COLOR_,7,"Color(0.075,0.180,0.153)",-,color.bg.page=#1B272B(令牌:31/美规:235/mockup:778/RULING:242),panel_bg=#212D30,#1B272B,B
+COLOR_PANEL_BG,COLOR_,8,"Color(0.141,0.204,0.224)",#243439,color.bg.panel=#243439(令牌:32),panel_bg=#212D30,#243439,OK
+COLOR_STATUSBAR_BG,COLOR_,9,"Color(0.039,0.106,0.090)",-,color.bg.immersive=#0E1517(令牌:34/美规:237/收口:169/走查:27),-,#0E1517,B
+COLOR_TOPBAR_BG,COLOR_,10,"Color(0.075,0.180,0.153,0.88)",-,"color.bg.immersive=#0E1517@0.88(首页UI布局规格:166,346/线框规范:250)",-,#0E1517@0.88,B
+COLOR_BORDER_GOLD,COLOR_,11,"Color8(200,168,106)",#C8A86A,color.gold.std=#C8A86A(①压②令牌:57),btn_fill_gold=#C8A860,#C8A86A,OK
+COLOR_TEXT_GOLD,COLOR_,12,"Color(1.000,0.878,0.588)",-,color.text.accent=#FFD77A(令牌§1.2/美规:239/首页B:46),-,#FFD77A,B
+COLOR_TEXT_RED,COLOR_,13,"Color(0.878,0.471,0.471)",#E07878,color.status.danger=#E07878(令牌:64),-,#E07878,OK
+COLOR_TEXT_BODY,COLOR_,14,"Color(0.878,0.910,0.882)",-,color.text.body=#E0D5BE(令牌:45),-,#E0D5BE,B
+COLOR_TEXT_AUX,COLOR_,15,"Color(0.549,0.651,0.612)",-,color.text.aux=#8A7E68(令牌:47),-,#8A7E68,B
+COLOR_TEXT_BODY_GOLD,COLOR_,16,"Color8(212,184,106)",#D4B86A,暗金正文=#D4B86A(美规:240/首页B:47),-,#D4B86A,OK
+COLOR_TAB_UNSELECTED,COLOR_,17,"Color(0.749,0.690,0.498)",#C9A865,-（注释值是 border.gold 的值/无独立 token）,-,-,C
+COLOR_BTN_PRESSED,COLOR_,18,"Color(0.043,0.149,0.122)",-,control.pressed=#141B1C(令牌§1.7 ★派生/提案),-,-,C
+COLOR_BTN_DISABLED,COLOR_,19,"Color(0.235,0.298,0.278)",-,control.disabled=#2E3232(令牌§1.7 ★派生/提案),-,-,C
+COLOR_BTN_PRIMARY,COLOR_,20,"Color(0.173,0.373,0.322)",#2C5F52,主按钮#2C5F52(03分册:57),-,#2C5F52,OK
+COLOR_BG_CONTENT,COLOR_,24,"Color(0.114,0.259,0.220)",#2C3D43,bg.content=#2C3D43(令牌:33 ★提案 待美术确认),-,-,C
+COLOR_TEXT_TITLE1,COLOR_,26,"Color8(230,199,120)",#E6C778,color.text.title1=#E6C778(令牌:43/253),-,#E6C778,OK
+COLOR_TEXT_TITLE2,COLOR_,27,"Color8(240,230,210)",#F0E6D2,color.text.title2=#F0E6D2(令牌:44),-,#F0E6D2,OK
+COLOR_TEXT_BODY_DIM,COLOR_,28,"Color8(200,184,150)",#C8B896,color.text.body-dim=#C8B896(令牌:46),-,#C8B896,OK
+COLOR_TEXT_DISABLED,COLOR_,29,"Color8(85,85,79)",#55554F,color.text.disabled=#55554F(令牌:49),-,#55554F,OK
+COLOR_STATUS_SUCCESS,COLOR_,31,"Color(0.494,0.827,0.604)",#7ED39A,color.status.success=#7ED39A(令牌:63),-,#7ED39A,OK
+COLOR_HOME_BAR_BG,COLOR_,33,"Color8(30,43,40)",#1E2B28,墨青#1E2B28(S0-S1-S2:42/03分册:268),-,#1E2B28,OK
+COLOR_HOME_DIVIDER,COLOR_,34,"Color8(200,168,106)",#C8A86A,color.gold.std=#C8A86A(①D2),-,#C8A86A,OK
+C01_TOPBAR_BG,C01_,40,"Color(0.055,0.149,0.125)",-,-（注释仅指 2:181）,-,-,C
+C01_AVATAR_BG,C01_,41,"Color(0.110,0.259,0.220)",-,-（注释仅指 2:183）,-,-,C
+C01_GOLD_LINE,C01_,42,"Color(0.639,0.541,0.318)",-,-（MAP§1 仅列现状 #A38A51）,-,-,C
+C01_TEXT_PRIMARY,C01_,43,"Color8(242,245,243)",#F2F5F3,mockup:24 #F2F5F3(③),-,#F2F5F3,OK
+C01_TEXT_GOLD,C01_,44,"Color8(214,177,106)",#D6B16A,P2-宗主玉牒:211 #D6B16A(②),-,#D6B16A,OK
+C01_TEXT_SECONDARY,C01_,45,"Color8(207,198,178)",#CFC6B2,mockup:26 #CFC6B2(③),-,#CFC6B2,OK
+C01_TEXT_TERTIARY,C01_,46,"Color8(159,179,176)",#9FB3B0,mockup:27 #9FB3B0(③),-,#9FB3B0,OK
+C01_FLOAT_BG,C01_,47,"Color(0.075,0.180,0.153)",-,-（注释仅指 2:222）,-,-,C
+C01_CALENDAR_BG,C01_,48,"Color(0.055,0.149,0.125,0.90)",-,-（注释仅指 50:1）,-,-,C
+C01_ENTRY_BG,C01_,49,"Color(0.078,0.204,0.169,0.62)",-,P0-4记录目标#1B272B@0.55（与盘上不符·非token表）,-,-,C
+C01_PROG_TRACK,C01_,50,"Color(0.055,0.137,0.114,0.45)",-,-（注释仅指 2:224）,-,-,C
+C01_PROG_FILL,C01_,51,"Color(0.882,0.765,0.478)",-,-（MAP§1 仅列现状 #E1C37A）,-,-,C
+C01_TAB_CAPSULE,C01_,52,"Color(0.075,0.180,0.153,0.18)",-,-,-,-,C
+C01_TAB_ACTIVE,C01_,53,"Color(0.129,0.400,0.325,0.34)",-,mockup:29 #6E5726@0.42(③ only),-,-,C
+C01_TAB_IDLE,C01_,54,"Color(0.075,0.180,0.153,0.10)",-,mockup:30 #1B272B@0.55(=MAT_SURFACE复用 ⇒③不作权威),-,-,C
+C01_TAB_BAR_BG,C01_,55,"Color(0.055,0.145,0.122,0.94)",#071214,移出（③=mockup:28 复用 MAT_BASE_BOTTOM）,-,-,C
+C01_TAB_ICON_BG_SEL,C01_,56,"Color(0.106,0.298,0.247,0.85)",#0E2A30,移出（design/ 零命中 无权威 + 死码）,-,-,C
+C01_TAB_ICON_BG_IDLE,C01_,57,"Color(0.063,0.176,0.145,0.65)",#0C1E22,移出（无权威 + 死码 + α 死参数）,-,-,C
+C01_CLOUD,C01_,58,"Color(0.780,0.878,0.839,0.18)",-,-（注释仅指 2:203）,-,-,C
+C01_SCENE_BASE,C01_,59,"Color(0.039,0.106,0.090)",-,-（注释仅指 2:55 / 35:2）,-,-,C
+C01_EYE_BG,C01_,112,"Color(0.055,0.149,0.125,0.55)",-,-（注释仅指 35:5）,-,-,C
+C01_EYE_BORDER,C01_,113,"Color(0.216,0.400,0.353,0.80)",-,-（注释仅指 35:5）,-,-,C
+C01_EYE_ICON,C01_,114,"Color(0.878,0.812,0.616)",-,-（注释仅指 35:7）,-,-,C
+C01_PANEL_A,C01_,116,"Color(0.055,0.149,0.125,0.86)",-,-（注释仅指 2:181）,-,-,C
+C01_PANEL_LIGHT,C01_,117,"Color(0.098,0.212,0.180,0.74)",-,-（注释仅指 50:1）,-,-,C
+C01_PANEL_B,C01_,118,"Color(0.078,0.204,0.169,0.55)",-,-（REPORT-headless:89 记『缺失token』）,-,-,C
+C01_TEXT_JADE,C01_,119,"Color(0.435,0.906,0.769)",-,mockup:23/787 #6BC4B6(③ only),-,-,C
+C01_LINE_GOLD,C01_,120,"Color(0.847,0.722,0.416,0.50)",-,mockup:22 #D6B16A@0.47(③ only),-,-,C
+C01_SHADOW,C01_,122,"Color(0.031,0.098,0.078,0.60)",-,-（仅被 01首页/dock 期望表引用为近黑描边）,-,-,C

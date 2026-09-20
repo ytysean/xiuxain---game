@@ -6,12 +6,17 @@ extends Control
 
 
 # 地图配置
-const 地图宽度: float = 2000.0
-const 地图高度: float = 2000.0
-const 最小缩放: float = 0.3
+# 2026-09-14 无缝大地图 MVP：画布 2000² → 4000²（给内容扩展留空间）。
+# 「世界看起来多大」由 世界映射系数 决定；逻辑坐标（world_map_system，±200 域内）保持不变
+# ⇒ 商队运输 / 行军 / 被劫风险 / 资源衰减等平衡公式零适配，存档零迁移。
+const 地图宽度: float = 4000.0
+const 地图高度: float = 4000.0
+const 世界映射系数: float = 2.4   # 逻辑坐标 → 视觉坐标（尺度问题只关在渲染层）
+const 最小缩放: float = 0.3       # 绝对下限（实际下限由「视口覆盖法」动态抬高）
 const 最大缩放: float = 2.0
 const 缩放速度: float = 0.1
-const 迷雾网格大小: float = 100.0  # 迷雾网格大小
+const 迷雾网格大小: float = 200.0  # 迷雾网格（视觉单位；4000/200 = 20×20 = 400 格）
+const 拖动惯性衰减: float = 0.02   # 惯性：每秒末速度衰减至 2%
 
 # 区域颜色
 const 区域颜色: Dictionary = {
@@ -23,15 +28,18 @@ const 区域颜色: Dictionary = {
 }
 
 # 地点类型
+# 图标 = art/icons/emoji/ 资产 stem（ASCII）。此处原为 emoji 字符，批量字符清扫时
+# 被塌成同一符号 ⇒ 九种地点标记长得一模一样，且查表落空只剩裸字符。
 const 地点类型: Dictionary = {
-	"宗门": {"颜色": Color(0.9, 0.3, 0.3), "大小": 16, "图标": "🏯"},
-	"城镇": {"颜色": Color(0.3, 0.6, 0.9), "大小": 12, "图标": "🏘️"},
-	"秘境": {"颜色": Color(0.8, 0.4, 0.9), "大小": 14, "图标": "✨"},
-	"灵脉": {"颜色": Color(0.4, 0.9, 0.6), "大小": 10, "图标": "💎"},
-	"妖兽领": {"颜色": Color(0.9, 0.5, 0.2), "大小": 12, "图标": "🐺"},
-	"矿脉": {"颜色": Color(0.7, 0.7, 0.3), "大小": 10, "图标": "⛏️"},
-	"灵草从": {"颜色": Color(0.3, 0.8, 0.4), "大小": 10, "图标": "🌿"},
-	"钓点": {"颜色": Color(0.35, 0.75, 0.85), "大小": 11, "图标": "🎣"},
+	"宗门": {"颜色": Color(0.9, 0.3, 0.3), "大小": 16, "图标": "emoji_world_city"},
+	"城镇": {"颜色": Color(0.3, 0.6, 0.9), "大小": 12, "图标": "emoji_world_village"},
+	"秘境": {"颜色": Color(0.8, 0.4, 0.9), "大小": 14, "图标": "emoji_disciple_special"},
+	"灵脉": {"颜色": Color(0.4, 0.9, 0.6), "大小": 10, "图标": "emoji_world_gem"},
+	"妖兽领": {"颜色": Color(0.9, 0.5, 0.2), "大小": 12, "图标": "emoji_world_beast"},
+	"矿脉": {"颜色": Color(0.7, 0.7, 0.3), "大小": 10, "图标": "emoji_world_mine"},
+	"灵草丛": {"颜色": Color(0.3, 0.8, 0.4), "大小": 10, "图标": "emoji_world_herb"},
+	"灵泉": {"颜色": Color(0.4, 0.85, 0.9), "大小": 11, "图标": "emoji_world_location"},
+	"钓点": {"颜色": Color(0.35, 0.75, 0.85), "大小": 11, "图标": "emoji_world_fish"},
 }
 
 # 地形类型
@@ -66,7 +74,9 @@ var _拖动中: bool = false
 var _上次鼠标位置: Vector2 = Vector2.ZERO
 var _地点标记: Array = []
 var _详情面板: PanelContainer = null
-var _已探索网格: Dictionary = {}
+var _拖动速度: Vector2 = Vector2.ZERO   # 平移惯性速度（松手后按 拖动惯性衰减 滑行）
+var _迷雾图: Image = null               # 2026-09-14：迷雾遮罩位图（20×20，1 px = 1 格）
+var _迷雾遮罩: ImageTexture = null      # 由 _迷雾图 生成，供单个 TextureRect 铺满画布
 var _移动中队伍: Array = []
 var _事件面板: PanelContainer = null
 var _资源冷却: Dictionary = {}
@@ -78,18 +88,59 @@ func _ready() -> void:
 	_生成地形数据()
 	_生成地图内容()
 	_生成迷雾()
-	_定位到宗门()
 	_每日刷新()
-	# 自动探索宗门周围
-	_探索区域(地图宽度 / 2, 地图高度 / 2, 300)
+	# 初始揭示：宗门左近一圈 + 宗门所在整域（你自然知晓本域）
+	# 2026-09-14 实机验收：原半径 420 只揭 80/400 格（20%），首屏仍偏空；提到 520 ⇒ 约 113 格（28%）。
+	var 宗门位置: Dictionary = Game.世界地图系统.获取宗门位置()
+	var 宗门视: Vector2 = _域内转视觉(str(宗门位置["区域"]), float(宗门位置["x"]), float(宗门位置["y"]))
+	_探索区域(宗门视.x, 宗门视.y, 520.0 * 世界映射系数)
+	_揭示区域(str(Game.世界地图系统.宗门区域))
+	# _ready 时视口 size 尚未解析 → 等一帧再定位 / 装边界约束
+	await get_tree().process_frame
+	_定位到宗门()
+	resized.connect(_on_视口变化)
 
 func _process(delta: float) -> void:
 	_更新移动中队伍(delta)
+	_推进平移惯性(delta)
+
+# ===== 坐标双轨（本方案技术核心）=====
+# 逻辑坐标（玩法权威，±200 域内不变）↔ 视觉坐标（渲染层，可任意放大）。
+# 玩法看逻辑，好看靠映射：想「世界更大」只调 世界映射系数 / 画布，绝不碰逻辑坐标。
+func _逻辑转视觉(lx: float, ly: float) -> Vector2:
+	return Vector2(lx, ly) * 世界映射系数 + Vector2(地图宽度 / 2.0, 地图高度 / 2.0)
+
+func _视觉转逻辑(vx: float, vy: float) -> Vector2:
+	return (Vector2(vx, vy) - Vector2(地图宽度 / 2.0, 地图高度 / 2.0)) / 世界映射系数
+
+# 「域内口径」点位 → 视觉坐标（2026-09-14 修）
+# 背景：工程里并存两套逻辑口径，渲染层只认全局口径，此前却把两者一锅端地送进 _逻辑转视觉，
+#   于是 21 个模拟宗门 + 12 个城镇 + 玩家宗门（全是域内 ±200）统统落在中州板上 —— 中州挤爆、
+#   其余四域几乎空着，直接抵消了「内容密度」的观感。
+# 凡 点位数据里带「区域」字段的（城镇/模拟宗门/玩家宗门），都要走本函数而非 _逻辑转视觉。
+# 注：区域秘境 / 资源点 / 钓点 本就存全局口径，仍直接走 _逻辑转视觉。
+func _域内转视觉(域: String, lx: float, ly: float) -> Vector2:
+	var 全局: Vector2 = Game.世界地图系统.域内坐标转全局(域, lx, ly)
+	return _逻辑转视觉(全局.x, 全局.y)
+
+# 平移惯性：松手后按衰减滑行（"硬拖"→"顺滑"，无缝观感的一部分）
+func _推进平移惯性(delta: float) -> void:
+	if _拖动中:
+		return
+	if _拖动速度.length() < 1.0:
+		_拖动速度 = Vector2.ZERO
+		return
+	# 2026-09-14 实机修：原 `_偏移 += _拖动速度` 未乘 delta ⇒ 帧率依赖。
+	# 实测窗口 ~250fps 下每帧仅衰减 1.5%，滑行总里程约为 60fps 目标的 5 倍。
+	# 以 60fps 为基准归一化后，滑动手感与帧率解耦。
+	_偏移 += _拖动速度 * delta * 60.0
+	_拖动速度 *= pow(拖动惯性衰减, max(delta, 0.0001))
+	_更新地图变换()
 
 func _build_ui() -> void:
 	# 背景
 	var bg: ColorRect = ColorRect.new()
-	bg.color = Color(0.03, 0.05, 0.08, 1.0)
+	bg.color = Color(0.086, 0.125, 0.141, 1.00)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -104,38 +155,23 @@ func _build_ui() -> void:
 	add_child(header)
 
 	var title: Label = Label.new()
-	title.text = "🗺️ 天下舆图"
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	title.text = "天下舆图"
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	header.add_child(title)
 
 	header.add_spacer(false)
 
-	var zoom_out: Button = Button.new()
-	zoom_out.text = "−"
-	zoom_out.custom_minimum_size = Vector2(36, 32)
-	UITheme.apply_secondary_button_style(zoom_out)
-	zoom_out.pressed.connect(func(): _调整缩放(-缩放速度))
-	header.add_child(zoom_out)
-
-	var zoom_label: Label = Label.new()
-	zoom_label.text = "%d%%" % int(_缩放 * 100)
-	zoom_label.name = "ZoomLabel"
-	zoom_label.custom_minimum_size = Vector2(50, 0)
-	zoom_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	zoom_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_child(zoom_label)
-
-	var zoom_in: Button = Button.new()
-	zoom_in.text = "+"
-	zoom_in.custom_minimum_size = Vector2(36, 32)
-	UITheme.apply_secondary_button_style(zoom_in)
-	zoom_in.pressed.connect(func(): _调整缩放(缩放速度))
-	header.add_child(zoom_in)
+	# ★ 2026-09-16 修（顶栏挤压 · 实机截图抓出）：原实现把 9 个控件全塞进这一条 HBox
+	#   （标题 + −/%/+ + 宗门 + 舆图总览 + 天下 + ◇），固定宽合计 436 逻辑，
+	#   而可用宽只有 480 − 左右留白 24 = 456 ⇒ 标题「天下舆图」被压到约 20 逻辑宽，
+	#   实机上四个字竖排并与右侧按钮重叠。
+	#   按地图类 App 惯例重排：**缩放控件下沉为地图区右下悬浮条**（贴近地图、拇指可及），
+	#   顶栏只留「标题 + 三个入口 + 关闭」⇒ 标题恢复完整可读。
+	#   （缩放三件套的新位置见下方 ZoomBar）
 
 	var 定位钮: Button = Button.new()
-	定位钮.text = "📍宗门"
+	定位钮.text = "宗门"
 	定位钮.custom_minimum_size = Vector2(70, 32)
 	UITheme.apply_secondary_button_style(定位钮)
 	定位钮.pressed.connect(_定位到宗门)
@@ -159,7 +195,7 @@ func _build_ui() -> void:
 	header.add_child(天下钮)
 
 	var close_btn: Button = Button.new()
-	close_btn.text = "✕"
+	close_btn.text = "◇"
 	close_btn.custom_minimum_size = Vector2(36, 32)
 	UITheme.apply_secondary_button_style(close_btn)
 	close_btn.pressed.connect(_on_close)
@@ -172,8 +208,60 @@ func _build_ui() -> void:
 	viewport.offset_top = 48
 	viewport.offset_bottom = -60
 	viewport.mouse_filter = Control.MOUSE_FILTER_STOP
+	# 必须裁剪：缩放/定位会让 MapLayer（4000² 画布）越出视口矩形，溢出内容会盖住
+	# 页面顶部自建标题栏（实测 header 整排不可见、仅右上 ◇ 残 4px），顶部只剩一条空绿带。
+	viewport.clip_contents = true
 	add_child(viewport)
 	_地图容器 = viewport
+
+	# 缩放悬浮条（顶栏重排的落点）：地图区右下角，既不压底部图例（y ≥ H−52），
+	# 也不与顶栏争宽。玻璃质感底板 + 圆角，贴合「操作＝玻璃 dock」的 UI 口径。
+	var 缩放条: PanelContainer = PanelContainer.new()
+	缩放条.name = "ZoomBar"
+	缩放条.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	缩放条.offset_left = -168
+	缩放条.offset_top = -110
+	缩放条.offset_right = -12
+	缩放条.offset_bottom = -66
+	var 条底: StyleBoxFlat = StyleBoxFlat.new()
+	条底.bg_color = Color(0.086, 0.125, 0.141, 0.82)
+	条底.border_color = Color(0.910, 0.773, 0.447, 0.28)
+	条底.set_border_width_all(1)
+	条底.set_corner_radius_all(18)
+	条底.content_margin_left = 8
+	条底.content_margin_right = 8
+	条底.content_margin_top = 4
+	条底.content_margin_bottom = 4
+	缩放条.add_theme_stylebox_override("panel", 条底)
+	add_child(缩放条)
+
+	var 条行: HBoxContainer = HBoxContainer.new()
+	条行.add_theme_constant_override("separation", 6)
+	缩放条.add_child(条行)
+
+	var zoom_out: Button = Button.new()
+	zoom_out.text = "−"
+	zoom_out.custom_minimum_size = Vector2(40, 32)
+	UITheme.apply_secondary_button_style(zoom_out)
+	zoom_out.pressed.connect(func(): _调整缩放(-缩放速度))
+	条行.add_child(zoom_out)
+
+	var zoom_label: Label = Label.new()
+	zoom_label.text = "%d%%" % int(_缩放 * 100)
+	zoom_label.name = "ZoomLabel"
+	zoom_label.custom_minimum_size = Vector2(56, 0)
+	UITheme.apply_project_font(zoom_label, UITheme.FONT_BODY, false)
+	zoom_label.add_theme_color_override("font_color", UITheme.获取次文字色())
+	zoom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	zoom_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	条行.add_child(zoom_label)
+
+	var zoom_in: Button = Button.new()
+	zoom_in.text = "+"
+	zoom_in.custom_minimum_size = Vector2(40, 32)
+	UITheme.apply_secondary_button_style(zoom_in)
+	zoom_in.pressed.connect(func(): _调整缩放(缩放速度))
+	条行.add_child(zoom_in)
 
 	# 地图层
 	_地图层 = Control.new()
@@ -189,29 +277,49 @@ func _build_ui() -> void:
 	_迷雾层.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	viewport.add_child(_迷雾层)
 
+	# 边界柔化：四边云雾渐隐（贴视口边缘、不随地图缩放），让「到边了」看起来像「云深处」
+	_建边界渐隐(viewport)
+
 	# 底部图例
-	var legend: HBoxContainer = HBoxContainer.new()
+	# ★ 2026-09-16 修（实机截图抓出 · 真缺陷）：原用 HBoxContainer，每项 = 10px 直角色块 + 正文，
+	#   9 项固定宽合计 ≈850 逻辑 > 可用宽 456 ⇒ **HBox 不折行，后 4 项（灵草丛/妖兽领/灵泉/钓点）
+	#   被直接裁出屏幕**，玩家看不到完整图例。
+	#   改用 HFlowContainer（自动折行，永不裁切）+ 辅助字号 + 圆点标记（原直角色块在小尺寸下粗糙）。
+	var legend: HFlowContainer = HFlowContainer.new()
 	legend.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	legend.offset_left = 12
 	legend.offset_right = -12
-	legend.offset_top = -52
-	legend.offset_bottom = -8
-	legend.add_theme_constant_override("separation", 12)
+	legend.offset_top = -66
+	legend.offset_bottom = -6
+	legend.add_theme_constant_override("h_separation", 12)
+	legend.add_theme_constant_override("v_separation", 6)
 	add_child(legend)
 
-	for 类型 in ["宗门", "城镇", "秘境", "灵脉", "矿脉", "妖兽领"]:
+	for 类型 in ["宗门", "城镇", "秘境", "灵脉", "矿脉", "灵草丛", "妖兽领", "灵泉", "钓点"]:
+		# 防御：图例与 地点类型 表若失配，宁可少画一个图例，也不能让 _build_ui 中断
+		# （2026-09-14 实机踩到：补「灵泉」图例时该键在 地点类型 缺失 → 本函数中断 ⇒
+		#   其后创建的 详情面板/事件面板 与 viewport.gui_input 连接全部未执行 ⇒ 拖拽整个失效，
+		#   而门禁 PARSE/gate_all 全绿，因为这是运行时字典缺键、不是语法错。）
+		if not 地点类型.has(类型):
+			continue
 		var cfg: Dictionary = 地点类型[类型]
 		var item: HBoxContainer = HBoxContainer.new()
-		item.add_theme_constant_override("separation", 4)
+		item.add_theme_constant_override("separation", 5)
 		legend.add_child(item)
-		var dot: ColorRect = ColorRect.new()
-		dot.color = cfg["颜色"]
+		var dot: Panel = Panel.new()
+		var dsb: StyleBoxFlat = StyleBoxFlat.new()
+		dsb.bg_color = cfg["颜色"]
+		dsb.set_corner_radius_all(5)
+		dsb.border_color = Color(1, 1, 1, 0.35)
+		dsb.set_border_width_all(1)
+		dot.add_theme_stylebox_override("panel", dsb)
 		dot.custom_minimum_size = Vector2(10, 10)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		item.add_child(dot)
 		var label: Label = Label.new()
 		label.text = 类型
-		label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		UITheme.apply_aux_font(label)
+		label.add_theme_color_override("font_color", UITheme.获取次文字色())
 		item.add_child(label)
 
 	# 详情面板
@@ -223,6 +331,12 @@ func _build_ui() -> void:
 	_详情面板.offset_left = -300
 	_详情面板.offset_right = -12
 	_详情面板.offset_top = 56
+	var 详情板: StyleBoxFlat = StyleBoxFlat.new()
+	详情板.bg_color = UITheme.获取面板底色()
+	详情板.border_color = Color(0.910, 0.773, 0.447, 0.28)
+	详情板.set_border_width_all(1)
+	详情板.set_corner_radius_all(12)
+	_详情面板.add_theme_stylebox_override("panel", 详情板)
 	add_child(_详情面板)
 
 	# 事件面板
@@ -235,9 +349,71 @@ func _build_ui() -> void:
 	_事件面板.offset_right = 160
 	_事件面板.offset_top = -100
 	_事件面板.offset_bottom = 100
+	var 事件板: StyleBoxFlat = StyleBoxFlat.new()
+	事件板.bg_color = UITheme.获取面板底色()
+	事件板.border_color = Color(0.910, 0.773, 0.447, 0.28)
+	事件板.set_border_width_all(1)
+	事件板.set_corner_radius_all(12)
+	_事件面板.add_theme_stylebox_override("panel", 事件板)
 	add_child(_事件面板)
 
 	viewport.gui_input.connect(_on_地图输入)
+
+# ===== 边界柔化（无缝观感）=====
+# 四边云雾渐隐带：贴视口边缘、屏幕空间、不随地图缩放。
+# 基色取 UITheme 场景压暗色（深墨），使边界"消散成云"，而非一条硬边。
+func _建边界渐隐(父: Control) -> void:
+	var 带: int = UITheme.边界渐隐带宽
+	var 顶: TextureRect = _建渐隐条("顶")
+	顶.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	顶.offset_top = 0
+	顶.offset_bottom = 带
+	父.add_child(顶)
+	var 底: TextureRect = _建渐隐条("底")
+	底.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	底.offset_top = -带
+	底.offset_bottom = 0
+	父.add_child(底)
+	var 左: TextureRect = _建渐隐条("左")
+	左.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	左.offset_left = 0
+	左.offset_right = 带
+	父.add_child(左)
+	var 右: TextureRect = _建渐隐条("右")
+	右.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	右.offset_left = -带
+	右.offset_right = 0
+	父.add_child(右)
+
+func _建渐隐条(朝向: String) -> TextureRect:
+	var 近: Color = UITheme.获取边界渐隐色(0.92)
+	var 远: Color = UITheme.获取边界渐隐色(0.0)
+	var g: Gradient = Gradient.new()
+	g.set_color(0, 近)
+	g.set_color(1, 远)
+	var t: GradientTexture2D = GradientTexture2D.new()
+	t.gradient = g
+	t.width = 8
+	t.height = max(8, UITheme.边界渐隐带宽)
+	match 朝向:
+		"顶":
+			t.fill_from = Vector2(0, 0)
+			t.fill_to = Vector2(0, 1)
+		"底":
+			t.fill_from = Vector2(0, 1)
+			t.fill_to = Vector2(0, 0)
+		"左":
+			t.fill_from = Vector2(0, 0)
+			t.fill_to = Vector2(1, 0)
+		"右":
+			t.fill_from = Vector2(1, 0)
+			t.fill_to = Vector2(0, 0)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = t
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return tr
 
 # ===== 地形系统 =====
 func _生成地形数据() -> void:
@@ -262,47 +438,68 @@ func _生成地形数据() -> void:
 func _绘制地形() -> void:
 	for 地形 in _地形数据:
 		var cfg: Dictionary = 地形类型[地形["类型"]]
-		var 块: ColorRect = ColorRect.new()
-		块.color = cfg["颜色"]
-		块.position = Vector2(float(地形["x"]) - float(地形["大小"]) / 2, float(地形["y"]) - float(地形["大小"]) / 2)
-		块.size = Vector2(float(地形["大小"]), float(地形["大小"]))
-		块.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# 圆形效果用圆角
+		var 尺寸: float = float(地形["大小"])
+		var 位置: Vector2 = Vector2(float(地形["x"]) - 尺寸 / 2, float(地形["y"]) - 尺寸 / 2)
+		# 2026-09-14 实机清理：原先此处先 new 一个永不入树的 ColorRect（死节点），已删。
 		var style: StyleBoxFlat = StyleBoxFlat.new()
 		style.bg_color = cfg["颜色"]
-		style.corner_radius_top_left = int(float(地形["大小"]) / 2)
-		style.corner_radius_top_right = int(float(地形["大小"]) / 2)
-		style.corner_radius_bottom_left = int(float(地形["大小"]) / 2)
-		style.corner_radius_bottom_right = int(float(地形["大小"]) / 2)
+		style.corner_radius_top_left = int(尺寸 / 2)
+		style.corner_radius_top_right = int(尺寸 / 2)
+		style.corner_radius_bottom_left = int(尺寸 / 2)
+		style.corner_radius_bottom_right = int(尺寸 / 2)
 		var panel: PanelContainer = PanelContainer.new()
-		panel.position = 块.position
-		panel.size = 块.size
+		panel.position = 位置
+		panel.size = Vector2(尺寸, 尺寸)
 		panel.add_theme_stylebox_override("panel", style)
 		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_地图层.add_child(panel)
 
 # ===== 迷雾探索系统 =====
+# 迷雾格持久化在 world_map_system.已探索网格（存档），不再随页面重建清零。
+# 2026-09-14 实机验收改版：由「每格一个 201px ColorRect」改为「单张 20×20 遮罩纹理」。
+#   旧法两个实机缺陷：① 400 个色块在非整数缩放下相邻边出现规则网格缝（截图可见，像渲染破损）；
+#                      ② 400 个节点全部参与缩放变换。
+#   改后：1 个节点、零接缝，且 LINEAR 过滤让「已探索↔未探索」边界自带云雾过渡。
 func _生成迷雾() -> void:
 	# 清除旧迷雾
 	for child in _迷雾层.get_children():
 		child.queue_free()
-	# 生成迷雾网格
 	var cols: int = int(地图宽度 / 迷雾网格大小)
 	var rows: int = int(地图高度 / 迷雾网格大小)
-	for i in range(cols):
-		for j in range(rows):
-			var key: String = "%d_%d" % [i, j]
-			if _已探索网格.has(key):
-				continue
-			var fog: ColorRect = ColorRect.new()
-			fog.color = Color(0.02, 0.03, 0.05, 0.85)
-			fog.position = Vector2(i * 迷雾网格大小, j * 迷雾网格大小)
-			fog.size = Vector2(迷雾网格大小 + 1, 迷雾网格大小 + 1)
-			fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			fog.name = "fog_%s" % key
-			_迷雾层.add_child(fog)
+	var 已探索: Dictionary = Game.世界地图系统.已探索网格
+	var 色: Color = UITheme.获取迷雾色()
+	_迷雾图 = Image.create(cols, rows, false, Image.FORMAT_RGBA8)
+	for j in range(rows):
+		for i in range(cols):
+			var a: float = 0.0 if 已探索.has("%d_%d" % [i, j]) else 色.a
+			_迷雾图.set_pixel(i, j, Color(色.r, 色.g, 色.b, a))
+	_迷雾遮罩 = ImageTexture.create_from_image(_迷雾图)
+	var tr: TextureRect = TextureRect.new()
+	tr.name = "FogMask"
+	tr.texture = _迷雾遮罩
+	tr.position = Vector2.ZERO
+	tr.size = Vector2(地图宽度, 地图高度)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_迷雾层.add_child(tr)
+
+# 置单格为「已探索」（只改位图；批量改完由 _刷迷雾纹理 统一回传，避免逐格 update 开销）
+func _设迷雾已探(i: int, j: int) -> void:
+	if _迷雾图 == null:
+		return
+	if i < 0 or j < 0 or i >= _迷雾图.get_width() or j >= _迷雾图.get_height():
+		return
+	var 色: Color = UITheme.获取迷雾色()
+	_迷雾图.set_pixel(i, j, Color(色.r, 色.g, 色.b, 0.0))
+
+func _刷迷雾纹理() -> void:
+	if _迷雾遮罩 != null and _迷雾图 != null:
+		_迷雾遮罩.update(_迷雾图)
 
 func _探索区域(中心x: float, 中心y: float, 半径: float) -> void:
+	var 已探索: Dictionary = Game.世界地图系统.已探索网格
 	var cols: int = int(地图宽度 / 迷雾网格大小)
 	var rows: int = int(地图高度 / 迷雾网格大小)
 	for i in range(cols):
@@ -312,87 +509,201 @@ func _探索区域(中心x: float, 中心y: float, 半径: float) -> void:
 			var dist: float = sqrt((cell_x - 中心x) * (cell_x - 中心x) + (cell_y - 中心y) * (cell_y - 中心y))
 			if dist <= 半径:
 				var key: String = "%d_%d" % [i, j]
-				if not _已探索网格.has(key):
-					_已探索网格[key] = true
-					# 移除迷雾
-					var fog = _迷雾层.get_node_or_null("fog_%s" % key)
-					if fog != null:
-						fog.queue_free()
+				if not 已探索.has(key):
+					已探索[key] = true
+					_设迷雾已探(i, j)
+	_刷迷雾纹理()
+
+# 揭示整片语义区域（首建时揭示宗门所在域 —— 你自然知晓本域的格局）
+func _揭示区域(区域名: String) -> void:
+	var 范围表: Dictionary = Game.世界地图系统.区域逻辑范围
+	if not 范围表.has(区域名):
+		return
+	var 范围: Dictionary = 范围表[区域名]
+	_揭示矩形(_逻辑转视觉(float(范围["x1"]), float(范围["y1"])), _逻辑转视觉(float(范围["x2"]), float(范围["y2"])))
+
+# 按视觉矩形（左上/右下）揭示迷雾格
+func _揭示矩形(左上: Vector2, 右下: Vector2) -> void:
+	var 已探索: Dictionary = Game.世界地图系统.已探索网格
+	var cols: int = int(地图宽度 / 迷雾网格大小)
+	var rows: int = int(地图高度 / 迷雾网格大小)
+	for i in range(cols):
+		var cx: float = i * 迷雾网格大小 + 迷雾网格大小 / 2
+		if cx < 左上.x or cx > 右下.x:
+			continue
+		for j in range(rows):
+			var cy: float = j * 迷雾网格大小 + 迷雾网格大小 / 2
+			if cy < 左上.y or cy > 右下.y:
+				continue
+			var key: String = "%d_%d" % [i, j]
+			if not 已探索.has(key):
+				已探索[key] = true
+				_设迷雾已探(i, j)
+	_刷迷雾纹理()
 
 # ===== 地图内容生成 =====
 func _生成地图内容() -> void:
+	_绘制画布底()
 	_绘制区域背景()
+	_绘制装饰填充()
 	_绘制地形()
 	_生成地点标记()
 
+# 画布底：4000² 画布远大于五域占位，外围原本无任何绘制 ⇒ 实机呈大面积纯黑（像没渲染完）。
+# 铺一层水墨夜深底，未探索区变「沉色」而非「黑洞」，边界渐隐带也有了对齐的基色。
+func _绘制画布底() -> void:
+	var 底: ColorRect = ColorRect.new()
+	底.color = UITheme.获取地图底色()
+	底.position = Vector2.ZERO
+	底.size = Vector2(地图宽度, 地图高度)
+	底.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_地图层.add_child(底)
+
+# 区域底板：语义层 区域逻辑范围 驱动（唯一真源），经坐标双轨映射到视觉坐标。
+# 2026-09-14 实机验收改版：原为「硬边圆角矩形」→ 相邻域直接相切成硬接缝（截图可见，像色块拼图）。
+# 现改为「内缩实体 + 四边渐隐条」：域色在边缘 带宽 内渐隐到透明，域与域之间自然晕开。
 func _绘制区域背景() -> void:
-	var 区域布局: Dictionary = {
-		"中州": {"x": 700, "y": 700, "w": 600, "h": 600},
-		"东域": {"x": 1300, "y": 600, "w": 600, "h": 800},
-		"西域": {"x": 100, "y": 600, "w": 600, "h": 800},
-		"南疆": {"x": 600, "y": 1300, "w": 800, "h": 600},
-		"北域": {"x": 500, "y": 100, "w": 1000, "h": 500},
-	}
-	for 区域 in 区域布局.keys():
-		var 布局: Dictionary = 区域布局[区域]
+	var 范围表: Dictionary = Game.世界地图系统.区域逻辑范围
+	for 区域 in 范围表.keys():
+		if not 区域颜色.has(区域):
+			continue
+		var 范围: Dictionary = 范围表[区域]
+		var 左上: Vector2 = _逻辑转视觉(float(范围["x1"]), float(范围["y1"]))
+		var 右下: Vector2 = _逻辑转视觉(float(范围["x2"]), float(范围["y2"]))
+		var 板色: Color = 区域颜色[区域]
+		var 带宽: float = clampf(minf(右下.x - 左上.x, 右下.y - 左上.y) * 0.18, 60.0, 170.0)
+		# 一、域色径向晕光（单节点，椭圆渐隐）——域板边界彻底消失
+		_建域晕光(左上, 右下, 板色)
+		# 二、内缩实体板（域芯，保证地名与点位可读）
+		var 内左上: Vector2 = 左上 + Vector2(带宽, 带宽)
+		var 内右下: Vector2 = 右下 - Vector2(带宽, 带宽)
 		var 区域块: PanelContainer = PanelContainer.new()
-		区域块.position = Vector2(float(布局["x"]), float(布局["y"]))
-		区域块.size = Vector2(float(布局["w"]), float(布局["h"]))
+		区域块.position = 内左上
+		区域块.size = 内右下 - 内左上
 		区域块.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var style: StyleBoxFlat = StyleBoxFlat.new()
-		style.bg_color = 区域颜色.get(区域, Color(0.5, 0.5, 0.5, 0.5))
-		style.corner_radius_top_left = 20
-		style.corner_radius_top_right = 20
-		style.corner_radius_bottom_left = 20
-		style.corner_radius_bottom_right = 20
-		style.border_width_left = 2
-		style.border_width_right = 2
-		style.border_width_top = 2
-		style.border_width_bottom = 2
-		style.border_color = Color(1, 1, 1, 0.2)
+		style.bg_color = 板色
+		var 圆: int = int(带宽 * 0.6)
+		style.corner_radius_top_left = 圆
+		style.corner_radius_top_right = 圆
+		style.corner_radius_bottom_left = 圆
+		style.corner_radius_bottom_right = 圆
 		区域块.add_theme_stylebox_override("panel", style)
 		var 标签: Label = Label.new()
 		标签.text = 区域
-		标签.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
-		标签.add_theme_color_override("font_color", Color(1, 1, 1, 0.3))
+		UITheme.apply_project_font(标签, UITheme.FONT_DISPLAY, true)
+		标签.add_theme_color_override("font_color", UITheme.取同色异透(Color.WHITE, 0.3))
 		标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		标签.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		区域块.add_child(标签)
 		_地图层.add_child(区域块)
 
+# 域色径向晕光：把「域」画成一团从域芯向边缘渐隐的椭圆色雾（单节点）。
+# 为何不用四条矩形渐隐条：实机截图证明矩形条自身边界会在域板外露出硬直角矩形色块
+# （2026-09-14 踩到）；径向渐变在结构上不可能产生矩形边界。
+func _建域晕光(左上: Vector2, 右下: Vector2, 板色: Color) -> void:
+	var g: Gradient = Gradient.new()
+	g.set_color(0, UITheme.取同色异透(板色, 板色.a))
+	g.set_color(1, UITheme.取同色异透(板色, 0.0))
+	var t: GradientTexture2D = GradientTexture2D.new()
+	t.gradient = g
+	t.width = 256
+	t.height = 256
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = t
+	tr.position = 左上
+	tr.size = 右下 - 左上
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_地图层.add_child(tr)
+
+# 装饰填充（远山 / 聚落 / 云雾）：纯视觉、无交互、不参与任何判定。
+# 目的：把画布留白填成「天下」的质感（内容密度的视觉层），不是玩法点位。
+# 2026-09-14 实机改版：原 18 个小方块 alpha 0.15 → 实机看像噪点脏点；
+# 改为 12 个「大而柔的圆形色斑」alpha 0.10，读作地貌斑块。
+func _绘制装饰填充() -> void:
+	var 范围表: Dictionary = Game.世界地图系统.区域逻辑范围
+	for 区域 in 范围表.keys():
+		if not 区域颜色.has(区域):
+			continue
+		var 范围: Dictionary = 范围表[区域]
+		var 基色: Color = 区域颜色[区域]
+		var 淡色: Color = UITheme.取同色异透(基色, 0.10)
+		for i in range(12):
+			var lx: float = randf_range(float(范围["x1"]), float(范围["x2"]))
+			var ly: float = randf_range(float(范围["y1"]), float(范围["y2"]))
+			var 视: Vector2 = _逻辑转视觉(lx, ly)
+			var 尺寸: float = randf_range(90.0, 200.0)
+			var 斑: PanelContainer = PanelContainer.new()
+			斑.position = 视 - Vector2(尺寸, 尺寸) / 2.0
+			斑.size = Vector2(尺寸, 尺寸)
+			斑.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var 斑式: StyleBoxFlat = StyleBoxFlat.new()
+			斑式.bg_color = 淡色
+			var 斑圆: int = int(尺寸 / 2.0)
+			斑式.corner_radius_top_left = 斑圆
+			斑式.corner_radius_top_right = 斑圆
+			斑式.corner_radius_bottom_left = 斑圆
+			斑式.corner_radius_bottom_right = 斑圆
+			斑.add_theme_stylebox_override("panel", 斑式)
+			_地图层.add_child(斑)
+
 func _生成地点标记() -> void:
 	var 世界 = Game.世界地图系统
 	# 玩家宗门
 	var 宗门位置: Dictionary = 世界.获取宗门位置()
-	_添加地点标记("太玄宗", "宗门", float(宗门位置["x"]) + 地图宽度 / 2, float(宗门位置["y"]) + 地图高度 / 2, true)
-	# 城镇（真源：世界地图系统.城镇坐标表）
+	var 宗门视: Vector2 = _域内转视觉(str(宗门位置["区域"]), float(宗门位置["x"]), float(宗门位置["y"]))
+	_添加地点标记("太玄宗", "宗门", 宗门视.x, 宗门视.y, true)
+	# 城镇（真源：世界地图系统.城镇坐标表 —— 域内口径，须按自身「区域」抬到全局）
 	for 城镇ID in 世界.城镇坐标表.keys():
 		var 城镇: Dictionary = 世界.城镇坐标表[城镇ID]
-		_添加地点标记(str(城镇["名称"]), "城镇", float(城镇["x"]) + 地图宽度 / 2, float(城镇["y"]) + 地图高度 / 2, false, str(城镇ID))
+		var 城镇视: Vector2 = _域内转视觉(str(城镇.get("区域", "中州")), float(城镇["x"]), float(城镇["y"]))
+		_添加地点标记(str(城镇["名称"]), "城镇", 城镇视.x, 城镇视.y, false, str(城镇ID))
 	# 模拟其他宗门
 	if 世界.其他宗门列表.is_empty():
 		世界.生成模拟宗门(15)
 	for 宗门 in 世界.其他宗门列表:
-		_添加地点标记(str(宗门["名称"]), "宗门", float(宗门["x"]) + 地图宽度 / 2, float(宗门["y"]) + 地图高度 / 2, false)
-	# 资源点（真源：世界地图系统.资源点列表 —— 仅已发现者上图，余者待探索揭示）
+		var 宗门点: Vector2 = _域内转视觉(str(宗门.get("区域", "中州")), float(宗门["x"]), float(宗门["y"]))
+		_添加地点标记(str(宗门["名称"]), "宗门", 宗门点.x, 宗门点.y, false)
+	# 资源点（真源：世界地图系统.资源点列表 —— 仅已发现者上图，余者待探索揭示；全局口径）
 	for 资源点 in 世界.资源点列表:
 		if not bool(资源点.get("已发现", false)):
 			continue
-		_添加地点标记(str(资源点["名称"]), str(资源点["类型"]), float(资源点["x"]) + 地图宽度 / 2, float(资源点["y"]) + 地图高度 / 2, false, str(资源点["ID"]))
-	# 钓点（真源：灵钓系统 —— 按宗门所在区域的灵渊档生成）
-	var 宗门图心: Vector2 = Vector2(float(宗门位置["x"]) + 地图宽度 / 2, float(宗门位置["y"]) + 地图高度 / 2)
-	for 钓点 in 世界.获取区域钓点(世界.宗门区域):
-		var 角: float = randf() * 2.0 * PI
-		var 半径: float = randf_range(220.0, 420.0)
-		_添加地点标记(str(钓点["名称"]), "钓点", 宗门图心.x + cos(角) * 半径, 宗门图心.y + sin(角) * 半径, false, str(钓点["ID"]))
+		var 资源视: Vector2 = _逻辑转视觉(float(资源点["x"]), float(资源点["y"]))
+		_添加地点标记(str(资源点["名称"]), str(资源点["类型"]), 资源视.x, 资源视.y, false, str(资源点["ID"]))
+	# 秘境（2026-09-14 补齐：原「秘境」详情分支有交互，却无点位生成 → 曾为不可达死分支）
+	for 区域 in 世界.所有区域:
+		for 秘 in 世界.获取区域秘境(str(区域)):
+			var 秘视: Vector2 = _逻辑转视觉(float(秘["x"]), float(秘["y"]))
+			_添加地点标记(str(秘["名称"]), "秘境", 秘视.x, 秘视.y, false)
+	# 钓点（真源：灵钓系统 —— 各域按自身灵渊档生成；2026-09-14 扩容：原只画宗门所在域 1 处 → 五域各 1 处）
+	for 区域 in 世界.所有区域:
+		var 钓范围: Dictionary = 世界.区域逻辑范围.get(str(区域), {})
+		for 钓点 in 世界.获取区域钓点(str(区域)):
+			var 钓x: float = randf_range(float(钓范围.get("x1", -200.0)), float(钓范围.get("x2", 200.0)))
+			var 钓y: float = randf_range(float(钓范围.get("y1", -200.0)), float(钓范围.get("y2", 200.0)))
+			var 钓视: Vector2 = _逻辑转视觉(钓x, 钓y)
+			_添加地点标记(str(钓点["名称"]), "钓点", 钓视.x, 钓视.y, false, str(钓点["ID"]))
 
 func _添加地点标记(名称: String, 类型: String, x: float, y: float, 是玩家宗门: bool = false, 数据ID: String = "") -> void:
-	var cfg: Dictionary = 地点类型.get(类型, {"颜色": Color.WHITE, "大小": 10, "图标": "●"})
+	var cfg: Dictionary = 地点类型.get(类型, {"颜色": Color.WHITE, "大小": 10, "图标": "emoji_world_location"})
 	var 大小: float = float(cfg["大小"])
 	if 是玩家宗门:
 		大小 *= 1.5
 	var 标记: Button = Button.new()
-	标记.text = str(cfg["图标"])
+	# 2026-09-14：emoji 字符 → 圆形金框图标（豆包资产 emoji_world_*），无资产时回退字符。
+	var 图标文本: String = str(cfg["图标"])
+	var 图标tex: Texture2D = UITheme.emoji_icon_sized(图标文本, int(大小 * 1.5))
+	if 图标tex != null:
+		标记.icon = 图标tex
+		标记.text = ""
+		标记.expand_icon = false
+	else:
+		标记.text = 图标文本
 	标记.custom_minimum_size = Vector2(大小 * 2, 大小 * 2)
 	标记.position = Vector2(x - 大小, y - 大小)
 	标记.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -410,11 +721,11 @@ func _添加地点标记(名称: String, 类型: String, x: float, y: float, 是
 	标记.add_theme_stylebox_override("normal", style)
 	标记.add_theme_stylebox_override("hover", style)
 	标记.add_theme_stylebox_override("pressed", style)
-	标记.add_theme_font_size_override("font_size", int(大小))
+	UITheme.apply_project_font(标记, int(大小), false)
 	标记.add_theme_color_override("font_color", Color.WHITE)
 	var 名称标签: Label = Label.new()
 	名称标签.text = 名称
-	名称标签.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	UITheme.apply_project_font(名称标签, UITheme.FONT_AUX, false)
 	名称标签.add_theme_color_override("font_color", Color.WHITE if 是玩家宗门 else Color(0.9, 0.9, 0.9))
 	名称标签.position = Vector2(-20, 大小 * 2 + 2)
 	名称标签.custom_minimum_size = Vector2(60, 14)
@@ -433,13 +744,13 @@ func _添加说明行(vbox: VBoxContainer, 标签: String, 值: String) -> void:
 	行.add_theme_constant_override("separation", 6)
 	var a: Label = Label.new()
 	a.text = 标签
-	a.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(a, UITheme.FONT_BODY, false)
 	a.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	a.custom_minimum_size = Vector2(76, 0)
 	行.add_child(a)
 	var b: Label = Label.new()
 	b.text = 值
-	b.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(b, UITheme.FONT_BODY, false)
 	b.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# 修复（实机验收 dump 抓出）：HBox 主轴水平，无 EXPAND_FILL 的子节点只拿最小宽度，
@@ -451,6 +762,7 @@ func _添加说明行(vbox: VBoxContainer, 标签: String, 值: String) -> void:
 func _显示地点详情(名称: String, 类型: String, x: float, y: float, 是玩家宗门: bool, 数据ID: String = "") -> void:
 	_每日刷新()
 	_详情面板.visible = true
+	_面板淡入(_详情面板)
 	for child in _详情面板.get_children():
 		child.queue_free()
 	var vbox: VBoxContainer = VBoxContainer.new()
@@ -458,8 +770,8 @@ func _显示地点详情(名称: String, 类型: String, x: float, y: float, 是
 	_详情面板.add_child(vbox)
 
 	var title: Label = Label.new()
-	title.text = "%s %s" % [地点类型.get(类型, {}).get("图标", "●"), 名称]
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	title.text = 名称
+	UITheme.apply_project_font(title, UITheme.FONT_H2, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	vbox.add_child(title)
 	_添加说明行(vbox, "类型", 类型)
@@ -467,7 +779,8 @@ func _显示地点详情(名称: String, 类型: String, x: float, y: float, 是
 	var 世界 = Game.世界地图系统
 	if not 是玩家宗门:
 		var 宗门位置: Dictionary = 世界.获取宗门位置()
-		var 距离: float = 世界.计算距离(float(宗门位置["x"]), float(宗门位置["y"]), x - 地图宽度 / 2, y - 地图高度 / 2)
+		var 逻辑点: Vector2 = _视觉转逻辑(x, y)
+		var 距离: float = 世界.计算距离(float(宗门位置["x"]), float(宗门位置["y"]), 逻辑点.x, 逻辑点.y)
 		_添加说明行(vbox, "距离", "%.0f 里" % 距离)
 
 	match 类型:
@@ -533,9 +846,10 @@ func _建城镇操作(vbox: VBoxContainer, 城镇ID: String, x: float, y: float,
 
 func _建宗门战操作(vbox: VBoxContainer, x: float, y: float, 名称: String) -> void:
 	var 世界 = Game.世界地图系统
+	var 战逻辑: Vector2 = _视觉转逻辑(x, y)
 	var 目标: Dictionary = {
 		"名称": 名称, "区域": 世界.宗门区域,
-		"x": x - 地图宽度 / 2, "y": y - 地图高度 / 2, "战力": randi_range(1000, 5000),
+		"x": 战逻辑.x, "y": 战逻辑.y, "战力": randi_range(1000, 5000),
 	}
 	for 宗门 in 世界.其他宗门列表:
 		if str(宗门["名称"]) == 名称:
@@ -555,8 +869,8 @@ func _建宗门战操作(vbox: VBoxContainer, x: float, y: float, 名称: String
 					int(协防.get("同盟数", 0)), int(float(协防.get("危险削减", 0.0)) * 100.0)])
 	var 出征: Dictionary = 世界.计算宗门战出征详情(目标)
 	if bool(出征.get("成功", false)):
-		_添加说明行(vbox, "我方战力", str(出征.get("我方战力", 0)))
-		_添加说明行(vbox, "敌方战力", str(出征.get("敌方战力", 0)))
+		_添加说明行(vbox, "我方道行", str(出征.get("我方战力", 0)))
+		_添加说明行(vbox, "敌方道行", str(出征.get("敌方战力", 0)))
 		_添加说明行(vbox, "行军", "%d日 · 耗灵石%d" % [int(出征.get("行军时间", 0)), int(出征.get("行军消耗", 0))])
 		_添加说明行(vbox, "预估胜率", "%d%%" % int(float(出征.get("预估胜率", 0.0)) * 100.0))
 	_添加操作按钮(vbox, "传音问候", func(): _on_问候宗门(名称))
@@ -599,6 +913,10 @@ func _建垂钓操作(vbox: VBoxContainer, 钓点ID: String, 名称: String) -> 
 		_添加说明行(vbox, "名录", "钓道尚浅，未明此渊鱼性")
 	_添加操作按钮(vbox, "垂钓", func(): _on_垂钓(钓点ID))
 
+func _面板淡入(节点: CanvasItem) -> void:
+	节点.modulate.a = 0.0
+	var t := create_tween()
+	t.tween_property(节点, "modulate:a", 1.0, 0.2)
 func _添加操作按钮(parent: VBoxContainer, text: String, callback: Callable) -> void:
 	var btn: Button = Button.new()
 	btn.text = text
@@ -611,7 +929,7 @@ func _添加操作按钮(parent: VBoxContainer, text: String, callback: Callable
 func _派遣队伍(目标x: float, 目标y: float, 任务类型: String, 目标名: String, 数据ID: String = "") -> void:
 	var 世界 = Game.世界地图系统
 	var 宗门位置: Dictionary = 世界.获取宗门位置()
-	var 起点: Vector2 = Vector2(float(宗门位置["x"]) + 地图宽度 / 2, float(宗门位置["y"]) + 地图高度 / 2)
+	var 起点: Vector2 = _域内转视觉(str(宗门位置["区域"]), float(宗门位置["x"]), float(宗门位置["y"]))
 	var 终点: Vector2 = Vector2(目标x, 目标y)
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(1.0, 0.9, 0.3, 0.9)
@@ -661,7 +979,7 @@ func _队伍到达(队伍: Dictionary) -> void:
 	var 目标x: float = float(队伍["目标x"])
 	var 目标y: float = float(队伍["目标y"])
 	var 数据ID: String = str(队伍.get("数据ID", ""))
-	_探索区域(目标x, 目标y, 200)
+	_探索区域(目标x, 目标y, 200.0 * 世界映射系数)
 	match 任务类型:
 		"探索":
 			var 事件: Dictionary = 世界.触发大地图事件(世界.宗门区域)
@@ -681,9 +999,10 @@ func _队伍到达(队伍: Dictionary) -> void:
 			else:
 				_触发事件("商队抵达", "商队已抵%s。" % 目标名, [{"text": "确定", "result": "ok"}])
 		"讨伐":
+			var 讨逻辑: Vector2 = _视觉转逻辑(目标x, 目标y)
 			var 目标宗门: Dictionary = {
 				"名称": 目标名, "区域": 世界.宗门区域,
-				"x": 目标x - 地图宽度 / 2, "y": 目标y - 地图高度 / 2, "战力": randi_range(1000, 5000),
+				"x": 讨逻辑.x, "y": 讨逻辑.y, "战力": randi_range(1000, 5000),
 			}
 			var 出征: Dictionary = 世界.计算宗门战出征详情(目标宗门)
 			_触发事件("宗门前锋", "大军已抵%s。预估胜率 %d%%，行军耗灵石 %d。" % [
@@ -705,9 +1024,8 @@ func _顺路探查(图上x: float, 图上y: float) -> int:
 	for 资源点 in 世界.资源点列表:
 		if bool(资源点.get("已发现", false)):
 			continue
-		var rx: float = float(资源点.get("x", 0.0)) + 地图宽度 / 2
-		var ry: float = float(资源点.get("y", 0.0)) + 地图高度 / 2
-		if sqrt((rx - 图上x) * (rx - 图上x) + (ry - 图上y) * (ry - 图上y)) <= 320.0:
+		var 视: Vector2 = _逻辑转视觉(float(资源点.get("x", 0.0)), float(资源点.get("y", 0.0)))
+		if sqrt((视.x - 图上x) * (视.x - 图上x) + (视.y - 图上y) * (视.y - 图上y)) <= 320.0 * 世界映射系数:
 			if bool(世界.发现资源点(str(资源点["ID"])).get("成功", false)):
 				发现 += 1
 	return 发现
@@ -735,6 +1053,7 @@ func _弹出当前事件() -> void:
 
 func _触发事件(标题: String, 描述: String, 选项: Array) -> void:
 	_事件面板.visible = true
+	_面板淡入(_事件面板)
 	for child in _事件面板.get_children():
 		child.queue_free()
 	var vbox: VBoxContainer = VBoxContainer.new()
@@ -742,14 +1061,14 @@ func _触发事件(标题: String, 描述: String, 选项: Array) -> void:
 	_事件面板.add_child(vbox)
 
 	var title: Label = Label.new()
-	title.text = "⚡ %s" % 标题
-	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	title.text = 标题
+	UITheme.apply_project_font(title, UITheme.FONT_TITLE, true)
 	title.add_theme_color_override("font_color", Color(0.95, 0.7, 0.3))
 	vbox.add_child(title)
 
 	var desc: Label = Label.new()
 	desc.text = 描述
-	desc.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(desc, UITheme.FONT_BODY, false)
 	desc.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
@@ -798,16 +1117,42 @@ func _事件结果(事件名: String, 结果: String) -> void:
 			pass
 
 # ===== 地图控制 =====
+# 动态最小缩放：保证地图始终「盖满」视口（缩放极值保护 → 四边不露纯黑暗区）。
+func _动态最小缩放() -> float:
+	if _地图容器 == null:
+		return 最小缩放
+	var 视口: Vector2 = _地图容器.size
+	if 视口.x <= 0.0 or 视口.y <= 0.0:
+		return 最小缩放
+	return max(最小缩放, max(视口.x / 地图宽度, 视口.y / 地图高度))
+
+# 偏移约束：地图四边不得离开视口（无缝浏览的边界保护）。
+func _约束偏移() -> void:
+	if _地图容器 == null:
+		return
+	var 视口: Vector2 = _地图容器.size
+	var 地图视: Vector2 = Vector2(地图宽度, 地图高度) * _缩放
+	_偏移.x = clamp(_偏移.x, min(0.0, 视口.x - 地图视.x), 0.0)
+	_偏移.y = clamp(_偏移.y, min(0.0, 视口.y - 地图视.y), 0.0)
+
 func _调整缩放(增量: float) -> void:
-	_缩放 = clamp(_缩放 + 增量, 最小缩放, 最大缩放)
+	_缩放 = clamp(_缩放 + 增量, _动态最小缩放(), 最大缩放)
 	_更新地图变换()
-	var zoom_label = get_node_or_null("ZoomLabel")
-	if zoom_label != null:
-		zoom_label.text = "%d%%" % int(_缩放 * 100)
+	_回显缩放()
+
+func _回显缩放() -> void:
+	# ★ 2026-09-16 修（回归 · 死键扫描实测「−」/「+」双判 DEAD 的根因）：
+	#   顶栏重排时缩放三件套下沉为右下悬浮条 ZoomBar，ZoomLabel 随之变成**缩放条的子节点**
+	#   ⇒ 原 get_node_or_null("ZoomLabel")（按页面根查找）恒返回 null ⇒ 缩放数值永不回显，
+	#   玩家点「−」「+」看不到百分比变化，观感等同按钮坏了。改为递归查找，兼容后续再重排。
+	var zoom_label: Node = find_child("ZoomLabel", true, false)
+	if zoom_label is Label:
+		(zoom_label as Label).text = "%d%%" % int(_缩放 * 100)
 
 func _更新地图变换() -> void:
 	if _地图层 == null:
 		return
+	_约束偏移()
 	_地图层.scale = Vector2(_缩放, _缩放)
 	_地图层.position = _偏移
 	_迷雾层.scale = Vector2(_缩放, _缩放)
@@ -815,17 +1160,17 @@ func _更新地图变换() -> void:
 
 func _定位到宗门() -> void:
 	var 宗门位置: Dictionary = Game.世界地图系统.获取宗门位置()
-	var 中心: Vector2 = Vector2(
-		float(宗门位置["x"]) + 地图宽度 / 2,
-		float(宗门位置["y"]) + 地图高度 / 2
-	)
+	var 中心: Vector2 = _域内转视觉(str(宗门位置["区域"]), float(宗门位置["x"]), float(宗门位置["y"]))
 	var 视口大小: Vector2 = _地图容器.size
-	_缩放 = 0.6
+	_缩放 = clamp(0.6, _动态最小缩放(), 最大缩放)
 	_偏移 = 视口大小 / 2 - 中心 * _缩放
 	_更新地图变换()
-	var zoom_label = get_node_or_null("ZoomLabel")
-	if zoom_label != null:
-		zoom_label.text = "%d%%" % int(_缩放 * 100)
+	_回显缩放()
+
+# 视口尺寸变化（旋屏 / 布局重排）→ 重新约束，避免露出画布外
+func _on_视口变化() -> void:
+	_缩放 = clamp(_缩放, _动态最小缩放(), 最大缩放)
+	_更新地图变换()
 
 func _on_地图输入(事件: InputEvent) -> void:
 	if 事件 is InputEventMouseButton:
@@ -834,6 +1179,7 @@ func _on_地图输入(事件: InputEvent) -> void:
 			if mb.pressed:
 				_拖动中 = true
 				_上次鼠标位置 = mb.position
+				_拖动速度 = Vector2.ZERO
 			else:
 				_拖动中 = false
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -844,6 +1190,7 @@ func _on_地图输入(事件: InputEvent) -> void:
 		var mm: InputEventMouseMotion = 事件
 		var delta: Vector2 = mm.position - _上次鼠标位置
 		_偏移 += delta
+		_拖动速度 = delta.limit_length(80.0)
 		_上次鼠标位置 = mm.position
 		_更新地图变换()
 
@@ -899,7 +1246,7 @@ func _每日刷新() -> void:
 func _总览标题(parent: VBoxContainer, 文本: String) -> void:
 	var l: Label = Label.new()
 	l.text = "— " + 文本
-	l.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(l, UITheme.FONT_H2, true)
 	l.add_theme_color_override("font_color", Color(0.9, 0.78, 0.45))
 	parent.add_child(l)
 
@@ -909,8 +1256,15 @@ func _打开天下总览() -> void:
 		_总览面板 = PanelContainer.new()
 		_总览面板.name = "WorldOverview"
 		_总览面板.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var 总览板: StyleBoxFlat = StyleBoxFlat.new()
+		总览板.bg_color = UITheme.获取面板底色()
+		总览板.border_color = Color(0.910, 0.773, 0.447, 0.28)
+		总览板.set_border_width_all(1)
+		总览板.set_corner_radius_all(12)
+		_总览面板.add_theme_stylebox_override("panel", 总览板)
 		add_child(_总览面板)
 	_总览面板.visible = true
+	_面板淡入(_总览面板)
 	_刷新天下总览()
 
 func _刷新天下总览() -> void:
@@ -929,7 +1283,7 @@ func _刷新天下总览() -> void:
 	外壳.add_child(顶)
 	var 题: Label = Label.new()
 	题.text = "天下总览"
-	题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(题, UITheme.FONT_TITLE, true)
 	题.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	顶.add_child(题)
 	顶.add_spacer(false)
@@ -976,7 +1330,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行)
 		var 名: Label = Label.new()
 		名.text = "%s（%s·第%d阶）" % [str(r.get("名称", "")), str(r.get("类型", "")), int(r.get("等级", 1))]
-		名.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(名, UITheme.FONT_BODY, false)
 		名.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行.add_child(名)
@@ -1007,8 +1361,8 @@ func _刷新天下总览() -> void:
 		行2.add_theme_constant_override("separation", 8)
 		列.add_child(行2)
 		var 名2: Label = Label.new()
-		名2.text = "%s（%s·战力 %d）" % [str(兽.get("名", "")), str(兽.get("品阶名", "")), int(兽.get("战力", 0))]
-		名2.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		名2.text = "%s（%s·道行 %d）" % [str(兽.get("名", "")), str(兽.get("品阶名", "")), int(兽.get("战力", 0))]
+		UITheme.apply_project_font(名2, UITheme.FONT_BODY, false)
 		名2.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行2.add_child(名2)
@@ -1037,7 +1391,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行3)
 		var 名3: Label = Label.new()
 		名3.text = "%s（%s）" % [str(d.姓名), str(d.境界)]
-		名3.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(名3, UITheme.FONT_BODY, false)
 		名3.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名3.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行3.add_child(名3)
@@ -1075,7 +1429,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行4)
 		var 名4: Label = Label.new()
 		名4.text = "%s（%s）" % [str(化.get("姓名", "化身")), str(化.get("境界", ""))]
-		名4.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(名4, UITheme.FONT_BODY, false)
 		名4.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名4.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行4.add_child(名4)
@@ -1119,7 +1473,7 @@ func _刷新天下总览() -> void:
 		列.add_child(行5)
 		var 名5: Label = Label.new()
 		名5.text = "%s · 风水%s · 修炼%+d%%" % [区, str(评.get("评级", "平")), int(float(评.get("修炼差", 0.0)) * 100.0)]
-		名5.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(名5, UITheme.FONT_BODY, false)
 		名5.add_theme_color_override("font_color", Color(0.85, 0.85, 0.88))
 		名5.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		行5.add_child(名5)

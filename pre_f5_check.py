@@ -185,8 +185,13 @@ def check_bom_redline():
     return False, "检出 %d 个 .gd 带 UTF-8 BOM（共扫描 %d 个）" % (len(hits), scanned), detail
 
 
-# Godot 3.x → 4.x 已删除/改名的内置 API 黑名单。
-# 只收录「Godot 4 确定不存在」的，保证零误报；命中即 FAIL。
+# 「Godot 4 确定不存在」的内置 API 黑名单（两类）：
+#   ① Godot 3.x 已删除/改名的（strip / empty / instance / yield …）
+#   ② **臆造 API**：别的引擎或语言的习惯写法被误搬进来（with_alpha / with_hue …）
+#      —— 2026-09-15 补：main.gd 曾有 7 处 `Color.with_alpha()`，GDScript 整个脚本
+#      Parse Error，主脚本加载失败（`_登录_进入` 都不存在），而 35 门闸门全绿。
+# 两类危害完全相同：脚本级编译失败 → Autoload / 主脚本挂掉 → 游戏打不开或半瘫。
+# 只收录确定不存在的符号，保证零误报；命中即 FAIL。
 DEAD_GODOT3_API = [
     (r"\.strip\(\)",                          "String.strip() 已删 → strip_edges()"),
     (r"\.empty\(\)",                          "empty() 已删 → is_empty()"),
@@ -211,6 +216,17 @@ DEAD_GODOT3_API = [
     (r"\.set_as_toplevel\s*\(",               "set_as_toplevel() 已删 → top_level"),
     (r"\bColorN\s*\(",                        "ColorN() 已删 → 直接用 Color 常量"),
     (r"\.get_position_in_parent\s*\(",        "get_position_in_parent() 已删 → get_index()"),
+    # ── 臆造 API 补位（2026-09-15 事故：main.gd 7 处 `Color.with_alpha()`）──
+    # 这类符号既非 Godot 3 也非 Godot 4，是**别的引擎/语言的习惯写法被误搬**。
+    # 危害与上面同等致命：GDScript 整个脚本 Parse Error → Autoload/主脚本加载失败，
+    # 而 gdtoolkit 只查语法、查不出「方法是否存在」，pre_f5 全绿却跑不起来。
+    (r"\.with_alpha\s*\(",                    "Color.with_alpha() 不存在（Godot 4.7 实测）→ Color(c, a)"),
+    (r"\.with_hue\s*\(",                      "Color.with_hue() 不存在 → Color.from_hsv()"),
+    (r"\.with_saturation\s*\(",               "Color.with_saturation() 不存在 → Color.from_hsv()"),
+    (r"\.with_value\s*\(",                    "Color.with_value() 不存在 → Color.from_hsv()"),
+    (r"\.with_red\s*\(",                      "Color.with_red() 不存在 → Color(r, c.g, c.b, c.a)"),
+    (r"\.with_green\s*\(",                    "Color.with_green() 不存在 → Color(c.r, g, c.b, c.a)"),
+    (r"\.with_blue\s*\(",                     "Color.with_blue() 不存在 → Color(c.r, c.g, b, c.a)"),
 ]
 
 
@@ -501,12 +517,14 @@ def check_progress_bar_single_source():
     白名单 page_disciple.gd：修炼/瓶颈/丹毒/道心等进度条 fill 为动态状态色
     （gold/success/red/aux，均取自 UITheme.color_* getter，无裸 Color() 字面量），
     属合法语义例外，允许保留 in-code 机制。
+    白名单 section_helper.gd：殿阁/弟子等详情页复用的共享进度条构建器，make_progress(fill_color)
+    的 fill 为调用方传入的动态状态色（UITheme 色令牌），与 page_disciple 同属合法动态色例外。
 
     返回 (ok, summary, detail)。"""
     ui_dir = os.path.join(ROOT, "ui")
     if not os.path.isdir(ui_dir):
         return False, "ui/ 目录缺失", ""
-    whitelist = {"page_disciple.gd", "battle_scene.gd"}
+    whitelist = {"page_disciple.gd", "battle_scene.gd", "section_helper.gd"}
     violations = []
     for fn in sorted(os.listdir(ui_dir)):
         if not fn.endswith(".gd"):
@@ -962,6 +980,8 @@ def run_csv_consumer_gate():
 DEAD_FUNC_TARGET = 380          # 目标水位（报告口径，不参与 PASS/FAIL 判定）
 DEAD_FUNC_BUDGET = 380          # 兼容旧引用；实际判定水位＝基线长度（见下方 budget）
 DEAD_FUNC_BASELINE = os.path.join(ROOT, ".workbuddy", "_dead_func_baseline.txt")
+# ★ 2026-09-17 #31：基线自动重建留痕文件（门3 base is None 分支写；记 旧水位/新水位/时间戳）。
+DEAD_FUNC_BASELINE_NOTE = os.path.join(ROOT, ".workbuddy", "_dead_func_baseline.reset_note.txt")
 
 DFUNC_NAME_PAT = r"[\u4e00-\u9fffA-Za-z_][\u4e00-\u9fffA-Za-z0-9_]*"
 DFUNC_KEEP_PREFIX = ("_on_", "_physics_process", "_test_", "test_")
@@ -1022,6 +1042,104 @@ def _dfunc_strip_comments(src):
             i += 1
         out.append(line if cut < 0 else line[:cut])
     return "\n".join(out)
+
+
+def check_back_signal_wired():
+    """返回类信号接线扫描（2026-09-15 新增 · 第三十六道）。
+
+    背景：实机 bug「点返回没反应」。全量 52 页审计发现 ui/page_activity.gd(宗门时令)
+    声明并 emit 了 `signal 返回请求()`，但**全项目没有任何一处 connect** ⇒ 实机点返回完全无响应。
+    这是既有 35 道闸门的盲区：gdtoolkit 只查语法、死函数闸只查 func（**不含 signal**）、
+    类型扫描只查 :=、静态扫描只查缩进 —— 全都看不见「信号声明了但没人听」。
+
+    规则（按**信号名**做全局覆盖判定，与声明文件数无关）：
+      A. 某「返回/关闭/退出/回退」信号名被声明，但全项目无 `.信号.connect(` / `is_connected(`
+         → FAIL。其中「曾被 emit」者即真·点返回没反应；「从未 emit」者是死声明，一并提示清理。
+      B. 出现 `.信号.connect(` 但全项目无对应 signal 声明 → FAIL（疑似错字）。
+    """
+    import re as _re
+
+    sig_re = _re.compile(r"^[ \t]*signal[ \t]+((?:返回|关闭|退出|回退)[A-Za-z0-9_\u4e00-\u9fff]*)", _re.M)
+    # 注意：emit 的写法有两种 —— 页面内是**裸标识符** `返回请求.emit()`，
+    # 跨节点是 `node.返回请求.emit(`。故不能在信号名前强制要求 `.`，否则漏判
+    # （曾据此把「已 emit 但没接线」误诊为「死声明」，诊断措辞直接跑偏）。
+    emit_re = _re.compile(r"((?:返回|关闭|退出|回退)[A-Za-z0-9_\u4e00-\u9fff]*)\s*\.\s*emit\s*\(")
+    conn_re = _re.compile(r"\.\s*((?:返回|关闭|退出|回退)[A-Za-z0-9_\u4e00-\u9fff]*)\s*\.\s*(?:connect|is_connected)\s*\(")
+
+    files = []
+    for dirpath, dirnames, filenames in os.walk(ROOT):
+        dirnames[:] = [d for d in dirnames if d not in (".git", ".godot", ".scratch_backup", "addons")]
+        for fn in filenames:
+            if fn.endswith(".gd"):
+                files.append(os.path.join(dirpath, fn))
+
+    decl, emitted, conned = {}, set(), set()
+    for p in files:
+        try:
+            txt = open(p, encoding="utf-8", errors="replace").read()
+        except Exception:
+            continue
+        rel = os.path.relpath(p, ROOT)
+        for m in sig_re.finditer(txt):
+            decl.setdefault(m.group(1), []).append(rel)
+        for m in emit_re.finditer(txt):
+            emitted.add(m.group(1))
+        for m in conn_re.finditer(txt):
+            conned.add(m.group(1))
+
+    if not decl:
+        return True, "未检出返回类信号声明（跳过）", ""
+
+    lines, bad = [], 0
+    for k in sorted(decl):
+        if k in conned:
+            continue
+        bad += 1
+        why = "已被 emit ⇒ 实机必然「点了没反应」" if k in emitted else "从未 emit ⇒ 死声明，建议删除"
+        lines.append("  signal %-12s 声明于 %s   %s" % (k, ", ".join(sorted(decl[k])), why))
+    for k in sorted(conned):
+        if k not in decl:
+            bad += 1
+            lines.append("  .%s.connect( ... 但全项目无此 signal 声明（错字？）" % k)
+
+    if bad == 0:
+        return True, "返回类信号全部有接线（%d 个）" % len(decl), ""
+    lines.append("")
+    lines.append("  修法：在 ui/game_ui.gd 的 _show_sub_page() 内按 has_signal 判定补 connect，")
+    lines.append("        或在页面内改用已接线的「返回主页」。")
+    return False, "发现 %d 处返回信号未接线" % bad, "\n".join(lines)
+
+
+def _read_prev_dead_baseline_level():
+    """读留痕文件里最后一条「新水位」——供下一次重建充当「旧水位」。无则 None。"""
+    try:
+        if not os.path.exists(DEAD_FUNC_BASELINE_NOTE):
+            return None
+        with open(DEAD_FUNC_BASELINE_NOTE, "r", encoding="utf-8") as f:
+            txt = f.read()
+        ns = re.findall(r"新水位\s*=\s*(\d+)", txt)
+        return int(ns[-1]) if ns else None
+    except Exception:
+        return None
+
+
+def _write_dead_baseline_reset_note(old_level, new_level):
+    """追加一条基线重建留痕（时间戳 | 旧水位 | 新水位 | 目标）。异常静默，不影响判定。"""
+    try:
+        os.makedirs(os.path.dirname(DEAD_FUNC_BASELINE_NOTE), exist_ok=True)
+        import datetime as _dt
+        ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        old_s = ("%d" % old_level) if old_level is not None else "不可考（基线文件缺失）"
+        header = ""
+        if not os.path.exists(DEAD_FUNC_BASELINE_NOTE):
+            header = ("# 死函数基线自动重建留痕（门3 pre_f5 · base is None 分支 · #31 2026-09-17）\n"
+                      "# 每行一次重建：时间戳 | 旧水位 | 新水位 | 目标\n")
+        with open(DEAD_FUNC_BASELINE_NOTE, "a", encoding="utf-8", newline="") as f:
+            f.write(header)
+            f.write("%s | 旧水位=%s | 新水位=%d | 目标=%d\n"
+                    % (ts, old_s, new_level, DEAD_FUNC_TARGET))
+    except Exception:
+        pass
 
 
 def check_dead_func_budget():
@@ -1090,12 +1208,18 @@ def check_dead_func_budget():
     detail = ""
     new_items = []
     if base is None:
+        # ★ 2026-09-17 #31：基线缺失时**静默**重建，曾致「水位 396→376 无人知」。
+        #   现补两件事（**不改判定逻辑**，仍 return True）：
+        #   ① 显式告警行；② 追加留痕文件（旧水位/新水位/时间戳）。
+        _old_level = _read_prev_dead_baseline_level()
+        print("★ 基线文件缺失，已按当前死函数集重建（旧水位不可考）")
         try:
             os.makedirs(os.path.dirname(DEAD_FUNC_BASELINE), exist_ok=True)
             with open(DEAD_FUNC_BASELINE, "w", encoding="utf-8", newline="") as f:
                 f.write("\n".join(dead) + "\n")
         except Exception:
             pass
+        _write_dead_baseline_reset_note(_old_level, len(dead))
         summary = "基线已生成：死函数 %d 个（目标 %d）" % (len(dead), DEAD_FUNC_TARGET)
         return True, summary, ""
     else:
@@ -1416,6 +1540,18 @@ def main():
     if pad < 1:
         pad = 1
     print("  [%d/%d] %s%s %s  %s" % (total, total, "死函数水位扫描", " " * pad, mark, df_sum))
+
+    # 第三十六道：返回类信号接线扫描（2026-09-15 实机 bug「点返回没反应」后新增）
+    #   52 页审计中发现 page_activity 的「返回请求」被 emit 却全项目无人 connect。
+    #   既有 35 道闸门对「信号声明了但没人听」完全失明（死函数闸只统计 func，不含 signal）。
+    bs_ok, bs_sum, bs_detail = check_back_signal_wired()
+    total = total + 1
+    results.append(("返回信号接线扫描", bs_ok, bs_sum, bs_detail))
+    mark = PASS_MARK if bs_ok else FAIL_MARK
+    pad = LINE_W - len("返回信号接线扫描")
+    if pad < 1:
+        pad = 1
+    print("  [%d/%d] %s%s %s  %s" % (total, total, "返回信号接线扫描", " " * pad, mark, bs_sum))
 
     print("-" * 64)
     all_ok = all(ok for _, ok, _, _ in results)

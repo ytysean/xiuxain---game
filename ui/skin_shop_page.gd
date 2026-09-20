@@ -292,7 +292,7 @@ func _set_button_primary(btn: Button) -> void:
 func _set_button_secondary(btn: Button) -> void:
 	btn.flat = false
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.18, 0.17, 0.9)
+	sb.bg_color = Color(0.122, 0.169, 0.192, 0.90)
 	sb.border_color = UITheme.color_border_gold()
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(8)
@@ -373,7 +373,7 @@ func _add_lottery_entry() -> void:
 	UITheme.apply_section_title(title)
 	vbox.add_child(title)
 	var desc := Label.new()
-	desc.text = "单次200仙玉 / 十连1800仙玉（9折）\n80次保底必出神品皮肤"
+	desc.text = "单次200仙玉 / 十连1800仙玉（让利10%）\n80次保底必出神品皮肤"
 	UITheme.apply_aux_text(desc)
 	vbox.add_child(desc)
 	var hbox := HBoxContainer.new()

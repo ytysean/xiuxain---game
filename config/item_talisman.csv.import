@@ -1,19 +1,4 @@
 [remap]
 
-importer="csv_translation"
-type="Translation"
+importer="keep"
 uid="uid://b00nofhd7lhcv"
-
-[deps]
-
-files=["res://config/item_talisman.talisman.translation", "res://config/item_talisman.grade.translation", "res://config/item_talisman.sub.translation", "res://config/item_talisman.talisman.translation", "res://config/item_talisman.use.translation", "res://config/item_talisman.effect.translation", "res://config/item_talisman.use.translation", "res://config/item_talisman.base.translation", "res://config/item_talisman.craft.translation", "res://config/item_talisman.sell.translation", "res://config/item_talisman.need.translation"]
-
-source_file="res://config/item_talisman.csv"
-dest_files=["res://config/item_talisman.talisman.translation", "res://config/item_talisman.grade.translation", "res://config/item_talisman.sub.translation", "res://config/item_talisman.talisman.translation", "res://config/item_talisman.use.translation", "res://config/item_talisman.effect.translation", "res://config/item_talisman.use.translation", "res://config/item_talisman.base.translation", "res://config/item_talisman.craft.translation", "res://config/item_talisman.sell.translation", "res://config/item_talisman.need.translation"]
-
-[params]
-
-compress=1
-delimiter=0
-unescape_keys=false
-unescape_translations=true

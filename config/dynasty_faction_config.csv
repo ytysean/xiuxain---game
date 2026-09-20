@@ -1,0 +1,5 @@
+faction_id,faction_name,desire_type,desire_cost,tribute_rate,talent_rate,crisis_rate,merit_rate,ruling_power,ruling_decay,ruling_decay_growth,grudge_coef,description
+df_shizu,士族,contribution,30,1.0,1.3,0.9,0.9,3,6,4,1.0,世代簪缨，重门第与功名；掌权则灵根苗子质量显著提升，供奉持平。门第深厚，在位中庸
+df_bianjiang,边将,pill,3,0.9,0.95,1.35,1.6,3,9,3,0.8,拥兵自重，好战喜功；掌权则战功机会大增，然兵祸频发而供奉转薄。军权易主，压力递增最速
+df_huanguan,宦官,lingshi,1500,1.3,0.85,1.15,0.85,9,12,3,1.3,内廷近侍，贪墨无度；掌权则供奉厚三成，然民心日损，民变隐患深种。擅弄权而树敌最速
+df_waiqi,外戚,disciple,1,1.1,1.0,1.0,1.0,3,6,8,1.2,后族干政，专好联姻；掌权则关系易修、把持最久，然会点名索要宗门弟子入赘

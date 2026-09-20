@@ -66,7 +66,7 @@ func _build_header(parent: Control) -> void:
 func _refresh() -> void:
 	var title: Label = get_node_or_null("Root/Center/Inner/Title")
 	if title != null:
-		title.text = _system_name if not _system_name.is_empty() else "占位"
+		title.text = _system_name if not _system_name.is_empty() else "太玄宗"
 
 func _on_back_pressed() -> void:
 	返回主页.emit()

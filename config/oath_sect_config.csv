@@ -1,0 +1,4 @@
+sect_oath_id,name,desc,duration_days,cond_type,cond_value,buff_cult,reward,punish
+so_pojing,万仙破境大誓,"全宗上下共燃心香：限期之内，宗门当有三人破境。",14,sect_realm_up,3,1.15,prestige:30|daoxin_all:5,demon_all:8|prestige:-20
+so_zhengfa,万仙征伐大誓,"全宗将士沥血共誓：限期之内，为宗门斩获战功。",14,sect_merit,150,1.10,prestige:40|loyal_all:8,demon_all:10|prestige:-25
+so_guangna,万仙广纳大誓,"开山门、纳四方：限期之内，宗门当添五名新血。",14,sect_member,5,1.12,prestige:25|xinjing_all:6,demon_all:6|prestige:-15

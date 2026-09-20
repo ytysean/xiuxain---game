@@ -1,0 +1,73 @@
+== PH7-QA-17 · P0-A 静态专项判据（QA 独立 · 只读） ==
+target=E:\Xiuxian\taixuanzongmenlu\ui_theme.gd
+现盘 stat: size=143812 md5=a3a5ff723e8538a26fa197be0c1ff4e3 lf=2632 cr=0 bom=False
+snapshot_before: size=143879 md5=21c4ece5ec30fdb09ec8b80354248af2
+  → 改前 md5 MATCH （= 真·改前副本）
+
+① 26 行逐字节核（实参 == 目标实参）
+  行1470  MAT_BASE_TOP           实参=Color8(34, 51, 58)       hex=#22333A  目标=#22333A  |字面 OK|hex OK
+  行1471  MAT_BASE_BOTTOM        实参=Color8(22, 32, 36)       hex=#162024  目标=#162024  |字面 OK|hex OK
+  行1472  MAT_SURFACE            实参=Color8(27, 39, 43)       hex=#1B272B  目标=#1B272B  |字面 OK|hex OK
+  行1473  MAT_ROW_TOP            实参=Color8(39, 57, 66)       hex=#273942  目标=#273942  |字面 OK|hex OK
+  行1474  MAT_ROW_BOTTOM         实参=Color8(28, 38, 44)       hex=#1C262C  目标=#1C262C  |字面 OK|hex OK
+  行1475  MAT_CARD_TOP           实参=Color8(43, 64, 73)       hex=#2B4049  目标=#2B4049  |字面 OK|hex OK
+  行1476  MAT_CARD_BOTTOM        实参=Color8(31, 43, 49)       hex=#1F2B31  目标=#1F2B31  |字面 OK|hex OK
+  行1477  MAT_EDGE_DARK          实参=Color8(110, 87, 38)      hex=#6E5726  目标=#6E5726  |字面 OK|hex OK
+  行1478  MAT_EDGE_LIGHT         实参=Color8(232, 206, 138)    hex=#E8CE8A  目标=#E8CE8A  |字面 OK|hex OK
+  行1479  MAT_GOLD_TOP           实参=Color8(200, 168, 106)    hex=#C8A86A  目标=#C8A86A  |字面 OK|hex OK
+  行1480  MAT_GOLD_BOTTOM        实参=Color8(140, 110, 46)     hex=#8C6E2E  目标=#8C6E2E  |字面 OK|hex OK
+  行1481  MAT_GOLD_HI            实参=Color8(240, 220, 160)    hex=#F0DCA0  目标=#F0DCA0  |字面 OK|hex OK
+  行8     COLOR_PANEL_BG         实参=Color(0.141, 0.204, 0.224) hex=#243439  目标=#243439  |字面 OK|hex OK
+  行11    COLOR_BORDER_GOLD      实参=Color8(200, 168, 106)    hex=#C8A86A  目标=#C8A86A  |字面 OK|hex OK
+  行16    COLOR_TEXT_BODY_GOLD   实参=Color8(212, 184, 106)    hex=#D4B86A  目标=#D4B86A  |字面 OK|hex OK
+  行20    COLOR_BTN_PRIMARY      实参=Color(0.173, 0.373, 0.322) hex=#2C5F52  目标=#2C5F52  |字面 OK|hex OK
+  行26    COLOR_TEXT_TITLE1      实参=Color8(230, 199, 120)    hex=#E6C778  目标=#E6C778  |字面 OK|hex OK
+  行27    COLOR_TEXT_TITLE2      实参=Color8(240, 230, 210)    hex=#F0E6D2  目标=#F0E6D2  |字面 OK|hex OK
+  行28    COLOR_TEXT_BODY_DIM    实参=Color8(200, 184, 150)    hex=#C8B896  目标=#C8B896  |字面 OK|hex OK
+  行29    COLOR_TEXT_DISABLED    实参=Color8(85, 85, 79)       hex=#55554F  目标=#55554F  |字面 OK|hex OK
+  行33    COLOR_HOME_BAR_BG      实参=Color8(30, 43, 40)       hex=#1E2B28  目标=#1E2B28  |字面 OK|hex OK
+  行34    COLOR_HOME_DIVIDER     实参=Color8(200, 168, 106)    hex=#C8A86A  目标=#C8A86A  |字面 OK|hex OK
+  行43    C01_TEXT_PRIMARY       实参=Color8(242, 245, 243)    hex=#F2F5F3  目标=#F2F5F3  |字面 OK|hex OK
+  行44    C01_TEXT_GOLD          实参=Color8(214, 177, 106)    hex=#D6B16A  目标=#D6B16A  |字面 OK|hex OK
+  行45    C01_TEXT_SECONDARY     实参=Color8(207, 198, 178)    hex=#CFC6B2  目标=#CFC6B2  |字面 OK|hex OK
+  行46    C01_TEXT_TERTIARY      实参=Color8(159, 179, 176)    hex=#9FB3B0  目标=#9FB3B0  |字面 OK|hex OK
+  ⇒ 字面相等 26/26 ｜ hex 相等 26/26 → PASS ✅
+
+⑤ 26 行「实参 hex == 同行注释 hex」
+  相等 23/26 ｜ 不等 3 行（陈旧注释）
+  行1479  MAT_GOLD_TOP           实参=#C8A86A 注释=#C9A656  ★预期(spec 数据源≠注释)
+  行8     COLOR_PANEL_BG         实参=#243439 注释=#2C3E45  ★预期(spec 数据源≠注释)
+  行11    COLOR_BORDER_GOLD      实参=#C8A86A 注释=#C9A656  ★预期(spec 数据源≠注释)
+  ⇒ PASS ✅（仅 spec 已承认的 3 陈旧注释）
+
+③ 残留漂移（实参 ≠ 注释）
+  · 类A 陈旧注释（施工行内，spec §1.5 已裁定覆盖）: [8, 11, 1479] → 3 行
+  · 类B 移出项 行17   实参=#BFB07F 注释=#C9A865（预期）
+  · 类B 移出项 行24   实参=#1D4238 注释=#2C3D43（预期）
+  · 类B 移出项 行55   实参=None 注释=#071214（预期）
+  · 类B 移出项 行56   实参=None 注释=#0E2A30（预期）
+  · 类B 移出项 行57   实参=None 注释=#0C1E22（预期）
+  ⇒ 实参≠注释 合计 = 8（类A 3 ＋ 类B 5）
+     ★ 口径具名：team-lead 口径「残留漂移=5」= **类B 移出项**；
+       若按 spec §5.1「实参 vs 同行注释」平口径，则 = **8**（含类别A 3 陈旧注释）。
+
+② 语义出口值断言（getter → 常量 → 常量 hex）
+  :1505 获取页面底色() -> MAT_BASE_TOP = #22333A (期望 #22333A) ref=True val=OK → OK
+  :1507 获取面板底色() -> MAT_BASE_BOTTOM = #162024 (期望 #162024) ref=True val=OK → OK
+  :1517 获取金文字色() -> MAT_EDGE_LIGHT = #E8CE8A (期望 #E8CE8A) ref=True val=OK → OK
+  :1519 获取暗金边色() -> MAT_EDGE_DARK = #6E5726 (期望 #6E5726) ref=True val=OK → OK
+  :1521 获取亮金边色() -> MAT_EDGE_LIGHT = #E8CE8A (期望 #E8CE8A) ref=True val=OK → OK
+  ⇒ 语义出口 全部 OK ✅
+
+④ 枢纽常量出口数（引用点计数，含 getter 引用）
+  MAT_EDGE_LIGHT: 引用 4 处（期望 4）行=[1517, 1521, 1542, 1551] → OK
+  MAT_EDGE_DARK: 引用 3 处（期望 3）行=[1519, 1540, 1549] → OK
+  ⇒ 枢纽出口 符合 spec §6.2 ✅
+
+== 汇总 ==
+① 26 行逐字节  : PASS
+② 语义出口     : PASS
+③ 残留漂移     : 类A 3 ＋ 类B 5 = 8（口径见上）
+④ 枢纽出口     : PASS
+⑤ 实参==注释   : 23/26（3 陈旧注释 = spec 已知）
+综合（纯静态 ①②④⑤）：PASS ✅

@@ -1,0 +1,7 @@
+commission_id,commission_name,commission_type,difficulty,require_realm,require_power,duration_days,cost_lingshi,reward_gratitude,reward_lingshi,reward_merit,penalty_gratitude,penalty_loyalty,mandatory,description
+cc_tribute,岁贡押运,tribute,1,练气,150,5,180,6,80,0,-15,-5,1,朝廷命岁贡灵石，遣弟子押运入京；应者关系稍稳，拖延则见怪
+cc_campaign,征讨叛部,campaign,2,筑基,400,8,0,10,200,30,-20,-8,1,朝廷征调宗门战力平定叛部，成则国祚复振
+cc_demon,镇压妖患,exorcise,2,筑基,400,7,0,8,160,25,-18,-6,1,属地妖患为祸，朝廷命宗门镇压
+cc_court,遣徒入朝,court,3,金丹,900,12,0,20,300,40,-25,-10,1,遣高境弟子入朝为官，朝廷倚重，关系大涨
+cc_succor,勤王救驾,succor,3,金丹,900,10,0,15,250,50,-30,-12,1,国祚危急，朝廷急调宗门战力勤王
+cc_supply,输送辎重,supply,1,练气,150,6,120,5,60,0,-12,-4,1,朝廷命输送粮草辎重，遣弟子押送

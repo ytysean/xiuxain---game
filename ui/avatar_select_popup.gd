@@ -70,7 +70,7 @@ func _build() -> void:
 	_主面板.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var 主面板样式 := StyleBoxFlat.new()
 	主面板样式.bg_color = UITheme.C01_FLOAT_BG
-	主面板样式.border_color = UITheme.C01_TEXT_GOLD
+	主面板样式.border_color = UITheme.获取金文字色()
 	主面板样式.set_corner_radius_all(int(round(8.0 * UITheme.UI_SCALE)))
 	主面板样式.set_border_width_all(int(round(2.0 * UITheme.UI_SCALE)))
 	主面板样式.set_content_margin_all(0)
@@ -81,6 +81,8 @@ func _build() -> void:
 	_build_preview()
 	_build_grid()
 	_build_bottom()
+	# 本浮层面板铺满全屏（_place(…, 屏宽, 屏高)）⇒ 关缩放只淡入
+	UITheme.弹窗入场(_主面板, _shade, 0.2, false)
 
 func _build_header() -> void:
 	var title := Label.new()
@@ -90,13 +92,13 @@ func _build_header() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.text = "选择头像"
 	UITheme.apply_title_font_sized(title, int(round(22.0 * UITheme.UI_SCALE)))
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	add_child(title)
 
 	var close := Button.new()
 	close.name = "CloseBtn"
 	close.flat = true
-	close.text = "✕"
+	close.text = "◇"
 	_place(close, 屏宽 - 边距 - 36.0, 14.0, 36.0, 36.0)
 	close.mouse_filter = Control.MOUSE_FILTER_STOP
 	var 空样式 := StyleBoxEmpty.new()
@@ -105,7 +107,7 @@ func _build_header() -> void:
 	close.add_theme_stylebox_override("hover", 空样式)
 	close.add_theme_stylebox_override("focus", 空样式)
 	UITheme.apply_title_font_sized(close, int(round(20.0 * UITheme.UI_SCALE)))
-	close.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	close.add_theme_color_override("font_color", UITheme.获取金文字色())
 	close.pressed.connect(_on_cancel)
 	add_child(close)
 
@@ -136,6 +138,9 @@ func _build_preview() -> void:
 	_预览.name = "PreviewAvatar"
 	_预览.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_预览.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# 此档显示 270px（512 纹理 ⇒ 1.9x），实测开启 mipmap 反而 -4.25dB（LOD1 被放大插值），
+	# 故此处保持默认 LINEAR 单级采样；顶栏那档 117px（4.4x）才需要 mipmap。
+	_预览.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_预览.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_预览.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var 头像材质 := ShaderMaterial.new()
@@ -153,7 +158,7 @@ func _build_preview() -> void:
 	预览容器.add_child(prev_vign)
 
 	# 人物环境光（中心透明→边缘 25% 青绿，圆形 mask 限圆内）
-	var prev_env: TextureRect = _建渐变覆盖(fdia, fdia, [Color(0, 0, 0, 0), Color(0.15, 0.25, 0.28, 0.12)], GradientTexture2D.FILL_RADIAL)
+	var prev_env: TextureRect = _建渐变覆盖(fdia, fdia, [Color(0, 0, 0, 0), Color(0.153, 0.224, 0.259, 0.12)], GradientTexture2D.FILL_RADIAL)
 	prev_env.name = "PreviewEnvLight"
 	prev_env.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var env_mat := ShaderMaterial.new()
@@ -167,7 +172,7 @@ func _build_preview() -> void:
 	_头像名.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_头像名.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	UITheme.apply_title_font_sized(_头像名, int(round(16.0 * UITheme.UI_SCALE)))
-	_头像名.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_头像名.add_theme_color_override("font_color", UITheme.获取主文字色())
 	add_child(_头像名)
 
 	var hint := Label.new()
@@ -175,9 +180,9 @@ func _build_preview() -> void:
 	_place(hint, 0.0, 预览顶 + 预览高 - 20.0, 屏宽, 18.0)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.text = "点击下方网格选择头像"
+	hint.text = "轻触下方网格选择头像"
 	UITheme.apply_body_font_sized(hint, int(round(12.0 * UITheme.UI_SCALE)))
-	hint.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	hint.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	add_child(hint)
 
 	# 锁定提示（默认隐藏，点击未解锁格时显示）
@@ -235,7 +240,7 @@ func _build_bottom() -> void:
 	confirm.add_theme_stylebox_override("hover", c正常)
 	confirm.add_theme_stylebox_override("focus", c正常)
 	UITheme.apply_title_font_sized(confirm, int(round(14.0 * UITheme.UI_SCALE)))
-	confirm.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE2)
+	confirm.add_theme_color_override("font_color", UITheme.获取次文字色())
 	confirm.pressed.connect(_on_confirm)
 	add_child(confirm)
 
@@ -244,16 +249,16 @@ func _build_bottom() -> void:
 	cancel.text = "作罢"
 	_place(cancel, 边距 * 2.0 + bw, by, bw, bh)
 	cancel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var x正常: StyleBoxFlat = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE, 1.0), UITheme.C01_TEXT_GOLD, 8, 2)
+	var x正常: StyleBoxFlat = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE, 1.0), UITheme.获取金文字色(), 8, 2)
 	var x按下: StyleBoxFlat = UITheme.make_panel_stylebox_flat(
 		Color(UITheme.C01_SCENE_BASE.r * 0.8, UITheme.C01_SCENE_BASE.g * 0.8, UITheme.C01_SCENE_BASE.b * 0.8, 1.0),
-		UITheme.C01_TEXT_GOLD, 8, 2)
+		UITheme.获取金文字色(), 8, 2)
 	cancel.add_theme_stylebox_override("normal", x正常)
 	cancel.add_theme_stylebox_override("pressed", x按下)
 	cancel.add_theme_stylebox_override("hover", x正常)
 	cancel.add_theme_stylebox_override("focus", x正常)
 	UITheme.apply_title_font_sized(cancel, int(round(14.0 * UITheme.UI_SCALE)))
-	cancel.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	cancel.add_theme_color_override("font_color", UITheme.获取金文字色())
 	cancel.pressed.connect(_on_cancel)
 	add_child(cancel)
 
@@ -290,13 +295,30 @@ func _建渐变覆盖(w: float, h: float, colors: Array, fill_mode: int = Gradie
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
 
-func _圆形化(原图: Texture2D) -> Texture2D:
+func _圆形化(原图: Texture2D, 紧凑: bool = false, 裁切: Dictionary = {}) -> Texture2D:
 	if 原图 == null or 原图.get_width() <= 0:
 		return null
 	var w: float = float(原图.get_width())
+	var h: float = float(原图.get_height())
 	var at := AtlasTexture.new()
 	at.atlas = 原图
-	at.region = Rect2(0.0, (原图.get_height() - w) * 0.5, w, w)
+	if 紧凑:
+		# 2026-09-16：网格小图/顶栏小头像使用「头部特写」裁切；
+		# 优先使用 game_state 的 per-avatar 裁切表（修正复杂头像脸中心偏移），
+		# 未命中时回落到默认 (0.5W, 0.325H, s=0.55W)。
+		var cx: float = float(裁切.get("cx", 0.5))
+		var cy: float = float(裁切.get("cy", 0.325))
+		var s: float = float(裁切.get("s", 0.55))
+		var 边长: float = w * s
+		var x: float = w * cx - 边长 * 0.5
+		var y: float = h * cy - 边长 * 0.5
+		# 钳制在纹理边界内
+		x = maxf(0.0, minf(x, w - 边长))
+		y = maxf(0.0, minf(y, h - 边长))
+		at.region = Rect2(x, y, 边长, 边长)
+	else:
+		# 预览大图保留原居中胸像构图，保证背景特效与全身姿态完整。
+		at.region = Rect2(0.0, (h - w) * 0.5, w, w)
 	at.filter_clip = true
 	return at
 
@@ -304,7 +326,7 @@ func _刷新预览() -> void:
 	if _预览 == null or not is_instance_valid(Game):
 		return
 	var av_tex: Texture2D = _取头像纹(_selected_avatar)
-	_预览.texture = _圆形化(av_tex)
+	_预览.texture = _圆形化(av_tex, false)  # 预览大图保留全身构图
 	if _头像名 != null:
 		var av_def: Dictionary = Game.取宗主头像定义(_selected_avatar)
 		_头像名.text = av_def.get("name", "宗主")
@@ -366,6 +388,8 @@ func _造格子(def: Dictionary, id: String, 锁定: bool) -> Control:
 	tr.name = "Thumb"
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# 网格缩略图显示 252px（512 纹理 ⇒ 2.03x），同上：此处 mipmap 为负收益，保持 LINEAR。
+	tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var s: float = UITheme.UI_SCALE
 	var 边: float = min(_格宽 - 12.0 * s, _格高 - 28.0 * s)
 	var tx: float = (_格宽 - 边) * 0.5
@@ -376,7 +400,7 @@ func _造格子(def: Dictionary, id: String, 锁定: bool) -> Control:
 	tr.offset_right = tx + 边
 	tr.offset_bottom = ty + 边
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tr.texture = _圆形化(_取头像纹(id))
+	tr.texture = _圆形化(_取头像纹(id), true, Game.取宗主头像裁切(id))  # 网格缩略图用头部特写
 	var 头像材质 := ShaderMaterial.new()
 	头像材质.shader = AVATAR_MASK_SHADER
 	tr.material = 头像材质
@@ -395,7 +419,7 @@ func _造格子(def: Dictionary, id: String, 锁定: bool) -> Control:
 	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	UITheme.apply_body_font_sized(nm, int(round(10.0 * UITheme.UI_SCALE)))
 	if 锁定:
-		nm.text = "🔒 " + def.get("channel", "未解锁")
+		nm.text = "◇ " + def.get("channel", "未解锁")
 		nm.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75, 1.0))
 	else:
 		nm.text = def.get("name", "")
@@ -408,8 +432,8 @@ func _当前选中id() -> String:
 
 func _格子样式(sel: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.COLOR_PANEL_BG
-	sb.border_color = UITheme.C01_TEXT_GOLD
+	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.获取面板底色()
+	sb.border_color = UITheme.获取金文字色()
 	sb.set_corner_radius_all(8)
 	sb.set_border_width_all(2 if sel else 1)
 	sb.set_content_margin_all(0)

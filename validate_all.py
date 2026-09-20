@@ -2453,7 +2453,7 @@ def main():
     # 引擎消费方现读真源（game_state.gd）
     for _need in ("res://config/gongfa_affix_config.csv","res://config/pill_affix_config.csv",
                   "func 功法条词池(","func 丹词条池(","func 丹词条聚合(","func _丹药归一品阶(",
-                  "新丹药.滚丹词条(","丹词条聚合(it.get(\"丹词条\""):
+                  "新丹药.滚丹词条(","丹词条聚合(it.丹词条)"):
         if _need not in _gs2:
             errors.append(("game_state.gd","S41",0,"消费点缺失：%s 未接入"%_need))
     # gongfa.gd 消费点（滚功法条词 调用 + 功法词条突破加成 定义）

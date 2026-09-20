@@ -1,0 +1,494 @@
+CSV_COUNT=132  PROSE_ROWS=198
+
+===== PROSE COLUMNS PER CSV =====
+
+# achievement_config.csv
+  condition_desc | rp=2 ui=0 | 培养出第一名练气期弟子
+  unlock_tip | rp=0 ui=0 | 恭喜踏出修仙第一步
+  备注 | rp=2 ui=1 | [PL]S2待回填
+
+# alchemy_factor_linear.csv
+  说明 | rp=7 ui=6 | 心境澄明则丹成不躁满值+4%
+
+# alchemy_factor_step.csv
+  id | rp=236 ui=5 | afs_rg_凡品
+  名称 | rp=661 ui=107 | 灵根品阶·凡品
+  键 | rp=8 ui=0 | 凡品
+  说明 | rp=7 ui=6 | 凡品灵根炼化平平无功无过
+
+# alchemy_source_config.csv
+  说明 | rp=7 ui=6 | 丹堂立堂成率+5%（复活既有死轴：获取建筑总加成.炼丹成功率）
+
+# area_stay_weight.csv
+  verify_note | rp=0 ui=0 | 勤勉×丹道：偏向丹殿劳作
+
+# array_config.csv
+  core_effect | rp=1 ui=0 | 抵御外敌降低宗门被入侵概率
+  description | rp=9 ui=6 | 护山大阵宗门防御核心大幅降低被外敌入侵概率
+
+# array_items.csv
+  item_name | rp=24 ui=3 | 阵纹碎片
+  描述 | rp=202 ui=36 | 通用阵法升级材料，由秘境掉落/阵图拆解/奇遇产出，不新增冗余资源类型
+
+# atlas_index.csv
+  柱 | rp=1 ui=0 | 门下（人柱）
+  一句话 | rp=1 ui=1 | 测灵择徒，广纳良才
+
+# atlas_intent.csv
+  反查 | rp=0 ui=0 | 丹方、装备图纸、藏书阁、灵兽
+
+# auction_ai_config.csv
+  lines | rp=1 ui=0 | 此物合该归我万宝商盟！|万某志在必得，尔等莫争！|万宝商盟出价，童叟无欺
+
+# auction_config.csv
+  param | rp=1 ui=0 | 常驻刷新日
+  description | rp=9 ui=6 | 常驻场每隔多少游戏日刷新一批拍品（S34-P0后改为单件到期即补，此参数
+
+# battle_merit_shop.csv
+  说明 | rp=7 ui=6 | 修炼速度+10% 持续7天
+
+# beast_raise.csv
+  描述 | rp=202 ui=36 | 灵兽所泌灵乳，滋养护道
+  用途 | rp=11 ui=0 | 炼丹·育兽辅料
+
+# beast_raise_consumable.csv
+
+# beast_wave_config.csv
+  description | rp=9 ui=6 | 后山野狼成群结队，冲击宗门山门
+
+# caravan_post_config.csv
+
+# caravan_vehicle_config.csv
+  vehicle_name | rp=1 ui=0 | 凡品毛驴
+
+# chess_consumable.csv
+  效果 | rp=59 ui=12 | 提胜率/解锁高难
+
+# chess_type.csv
+  描述 | rp=202 ui=36 | 黑白纵横，初学者的试手之局
+
+# city_config.csv
+
+# contribution_shop.csv
+
+# craft_hall_reward.csv
+  item_name | rp=24 ui=3 | 残破铜镜
+
+# destiny_main.csv
+  描述 | rp=202 ui=36 | 好勇斗狠，战意炽烈，临敌战力略增，然易结仇树敌。
+
+# disciple_skin_config.csv
+
+# divine_consumable.csv
+  效果 | rp=59 ui=12 | 应验率/稀有率加成
+
+# divine_type.csv
+  描述 | rp=202 ui=36 | 卜算近期吉凶（基础）
+
+# drop_pool.csv
+  item_name | rp=24 ui=3 | 灵植
+
+# dynasty_commission_config.csv
+  description | rp=9 ui=6 | 朝廷命岁贡灵石，遣弟子押运入京；应者关系稍稳，拖延则见怪
+
+# dynasty_config.csv
+  description | rp=9 ui=6 | 举国崇奉仙道，供奉丰厚，灵根苗子多出自道观
+
+# dynasty_counter_config.csv
+  penalty_desc | rp=4 ui=1 | 缴纳则灵石失血；拒绝则对宗门关系-15
+  convert_desc | rp=2 ui=1 | 抗命不缴反得民心：该郡感恩+8、民心+5、国祚-3（主动催化乱世）
+  description | rp=9 ui=6 | 国祚跌破40且对宗门关系≥60时朝廷强行摊派；缴纳耗灵石=供奉月收入×1
+
+# dynasty_decree_config.csv
+  decree_name | rp=1 ui=0 | 赈灾·小
+  description | rp=9 ui=6 | 开仓放粮赈济灾民，可解郡县灾情
+
+# dynasty_faction_config.csv
+  description | rp=9 ui=6 | 世代簪缨，重门第与功名；掌权则灵根苗子质量显著提升，供奉持平。门第深厚，
+
+# dynasty_faith_config.csv
+  desc | rp=14 ui=10 | 以宗门道统为国教，举国供奉仙道——传道最速、香火最盛，然独尊则排异。
+
+# dynasty_found_config.csv
+  desc | rp=14 ui=10 | 血洗宫阙，以力取之。得国不正：民心本低、郡县怀贰，却是最快的一条路。
+
+# dynasty_heresy_config.csv
+  desc | rp=14 ui=10 | 浮屠东来，说因果轮回。百姓易于接受，却不再供奉仙道。
+
+# dynasty_memorial_config.csv
+  memorial_name | rp=2 ui=0 | 请赈饥民疏
+  text | rp=14 ui=3 | {郡}连岁不登，饥民嗷嗷待哺。郡守上疏，请宗门开仓赈济。
+  opt1_text | rp=0 ui=0 | 开仓放粮，散谷三千石
+  opt2_text | rp=0 ui=0 | 遣弟子施粥安民
+  opt3_text | rp=0 ui=0 | 置之不理
+  description | rp=9 ui=6 | 赈灾三选：散财最多换感恩，中等换愿力，无视则失民心
+
+# dynasty_omen_config.csv
+  text | rp=14 ui=3 | {郡}久旱逢甘霖，田畴复苏，灾情稍解。
+  description | rp=9 ui=6 | 该郡灾情-2
+
+# dynasty_phase_config.csv
+  description | rp=9 ui=6 | 新朝初立，气数正盛然百废待兴，国祚缓降；在位既久则朝纲渐腐
+
+# dynasty_temple_config.csv
+  desc | rp=14 ui=10 | 一椽茅檐、泥塑神像，只庇一镇之地。
+
+# dynasty_title_config.csv
+  right_desc | rp=4 ui=2 | 仅被动收受郡县供奉
+  duty_desc | rp=4 ui=2 | 无
+
+# easter_egg_config.csv
+  text | rp=14 ui=3 | 你连点数下丹炉，炉火噗地窜高半尺，惊得丹童跳脚。
+
+# equip_affix_config.csv
+
+# equip_blueprint.csv
+  blueprint_name | rp=1 ui=0 | 凡阶下品装备图纸
+  unlock_condition | rp=15 ui=2 | 器殿1级解锁
+
+# equip_main.csv
+  equip_name | rp=0 ui=0 | 凡阶下品武器
+  repair_material | rp=0 ui=0 | 精铁×2
+
+# equip_set.csv
+  set_id | rp=1 ui=0 | set_001_下品
+  set_4pc_effect | rp=1 ui=0 | 气血
+
+# event_quest.csv
+  event_name | rp=12 ui=2 | 灵田鼠患
+  event_content | rp=2 ui=0 | 一群灵鼠偷啃灵田边缘的灵植，已损失少量药草
+  opt1_desc | rp=3 ui=0 | 驱散灵鼠止损
+  opt1_reward | rp=4 ui=0 | lingcao:25
+  opt1_punish | rp=2 ui=0 | 无
+  opt2_desc | rp=3 ui=0 | 设置驱鼠阵
+  opt2_reward | rp=2 ui=0 | 灵植产出+3%永久
+
+# faction_conflict.csv
+  conflict_name | rp=1 ui=0 | 荡魔前哨战
+  description | rp=9 ui=6 | 受正道盟约征召扫荡边境魔修哨卡，血战一场可换正道声望。
+
+# faction_quests.csv
+  target_desc | rp=7 ui=2 | 完成3次山门巡逻
+  description | rp=9 ui=6 | 正道宗门日常任务，维护山门安宁。
+
+# faction_shop.csv
+  item_name | rp=24 ui=3 | 正道心法残篇
+  description | rp=9 ui=6 | 正道宗门基础心法残篇，可用于学习正道功法。
+
+# fishing_bait.csv
+  描述 | rp=202 ui=36 | 寻常饵料，凡俗之物，无增益
+
+# fishing_catch.csv
+  描述 | rp=202 ui=36 | 灵池常见之鲤，肉质鲜嫩涵灵
+  用途 | rp=11 ui=0 | 入膳·炼丹辅料
+  特殊条件 | rp=4 ui=0 | 龙气汇聚之地
+
+# fishing_tackle.csv
+  可钓 | rp=0 ui=0 | 凡阶·灵阶·全分层
+
+# forge_factor_linear.csv
+  说明 | rp=7 ui=6 | 心境澄明则器成不躁满值+4%
+
+# forge_factor_step.csv
+  名称 | rp=661 ui=107 | 灵根品阶·凡品
+  键 | rp=8 ui=0 | 凡品
+  说明 | rp=7 ui=6 | 凡品灵根锻打平平无功无过
+
+# forge_recipe_config.csv
+  名称 | rp=661 ui=107 | 凡铁剑配方
+  描述 | rp=202 ui=36 | 凡阶剑，凡铁锻造。
+
+# forge_source_config.csv
+  说明 | rp=7 ui=6 | 器堂立堂成率+5%（器堂司职在编且任职弟子）
+
+# goal_config.csv
+  pill_keywords | rp=1 ui=0 | 静心|道心|宁神|清心
+  description | rp=9 ui=6 | 证道长生，潜心苦修，宗门中坚
+
+# gongfa_affix_config.csv
+
+# goods_config.csv
+  goods_name | rp=4 ui=0 | 凡品灵米
+
+# herb_age_config.csv
+  说明 | rp=7 ui=6 | 新植灵草年份浅功效平平市价基准
+
+# herb_consumable.csv
+  效果 | rp=59 ui=12 | 年份档+1
+
+# herb_plant.csv
+
+# hostile_npc_config.csv
+  background | rp=0 ui=0 | 曾屠杀正道小宗满门，以血功闻名，与宗门有血仇
+
+# inner_demon.csv
+  opt1_fail_punish | rp=0 ui=0 | 心魔+10
+  opt2_success_reward | rp=0 ui=0 | 暂稳心魔-5
+  opt2_fail_punish | rp=0 ui=0 | 走火入魔风险+8
+
+# item_material.csv
+  usage_desc | rp=0 ui=0 | 低阶丹药基础材料
+  obtain_way | rp=0 ui=0 | 新手灵田产出/山林采集
+  realm_correspond | rp=0 ui=0 | 练气期地图
+
+# item_talisman.csv
+  talisman_name | rp=1 ui=0 | 凡品下品火球符
+  use_effect | rp=2 ui=1 | 即时伤害
+  craft_material | rp=2 ui=1 | 符纸×2
+
+# lore_narrative.csv
+  text | rp=14 ui=3 | 御兽峰按月引育，收得兽卵一枚（%s），已入温养池
+
+# master_skin_config.csv
+  effects | rp=1 ui=0 | 宗门大殿背景+金色龙纹帝袍+拂尘+烛火通明+云雾缭绕
+  desc | rp=14 ui=10 | 帝皇主题赛季限定皮肤。国字脸浓眉大眼，下巴有疤痕，成熟威严。黑金相间宗主
+
+# monster_main.csv
+  description | rp=9 ui=6 | 后山常见的野狼，攻击性不强
+
+# negative_event.csv
+  event_name | rp=12 ui=2 | 走火入魔
+  trigger_condition | rp=0 ui=0 | 修炼过速且心境不足
+
+# npc_config.csv
+  identity | rp=10 ui=0 | 正道盟盟主
+  core_function | rp=1 ui=0 | 阵营主线·高阶阵法兑换
+  rep_unlock_note | rp=1 ui=0 | 崇拜:专属防御阵法+长老弟子招募
+
+# oath_config.csv
+  desc | rp=14 ui=10 | 指道心为誓：限期之内必破一境。若食言，心魔反噬，道基受损。
+
+# oath_sect_config.csv
+  name | rp=110 ui=29 | 万仙破境大誓
+  desc | rp=14 ui=10 | 全宗上下共燃心香：限期之内，宗门当有三人破境。
+
+# pill_affix_config.csv
+
+# pill_furnace_config.csv
+  描述 | rp=202 ui=36 | 青玉砌炉火候易控初学丹士之资
+
+# pill_grade_config.csv
+  desc | rp=14 ui=10 | 丹色晦暗药性驳杂一炉多得而效微
+
+# pill_mark_codex.csv
+  desc | rp=14 ui=10 | 图谱初成丹堂火候渐稳
+
+# pill_mark_config.csv
+
+# pill_mark_tier.csv
+  desc | rp=14 ui=10 | 丹成无纹药性驳杂久服生毒
+  omen | rp=1 ui=0 | 丹成灵纹清香盈室
+
+# pill_recipe_config.csv
+  名称 | rp=661 ui=107 | 聚气丹方
+  材料描述 | rp=1 ui=1 | 一阶灵草×2
+  描述 | rp=202 ui=36 | 入门丹方，稳固练气修为。
+
+# pill_yield_config.csv
+  desc | rp=14 ui=10 | 凡丹易成一炉数枚
+
+# puppet.csv
+  puppet_name | rp=0 ui=0 | 基础劳作傀儡
+  unlock_condition | rp=15 ui=2 | 器殿1级解锁
+
+# quest_daily.csv
+  quest_name | rp=17 ui=5 | 野外历练
+  target_desc | rp=7 ui=2 | 完成普通野外历练2次
+  jump_path | rp=5 ui=0 | 弟子/详情/境界
+
+# quest_main.csv
+  target_desc | rp=7 ui=2 | 建立你的宗门根基
+  jump_path | rp=5 ui=0 | 宗门/主页
+
+# quest_random.csv
+  quest_name | rp=17 ui=5 | 云游修士委托
+
+# quest_reward_pool.csv
+  item_name | rp=24 ui=3 | 基础材料·凡品下品
+
+# quest_weekly.csv
+  quest_name | rp=17 ui=5 | 境界突破升华
+  target_desc | rp=7 ui=2 | 将任意1名弟子境界提升1小层
+
+# relic_consumable.csv
+
+# relic_expedition.csv
+  描述 | rp=202 ui=36 | 蕴道韵之古铁，坚而不朽
+  用途 | rp=11 ui=0 | 炼器主材
+
+# relic_site.csv
+
+# secret_config.csv
+  unlock_cond | rp=1 ui=0 | 筑基圆满+秘境钥匙
+  boss_info | rp=2 ui=0 | 玄灵守将（灵品极品，土属性）
+  core_drop_pool | rp=1 ui=0 | 灵品全套装备、宝品材料、筑基突破道具
+  exclusive_event | rp=1 ui=0 | 秘境宝箱、守将残影、上古丹方
+  clear_reward | rp=2 ui=0 | 保底 1 件宝品下品材料 + 大量灵石
+
+# sect_bounty_config.csv
+  description | rp=9 ui=6 | 宗门药田歉收需向弟子征集灵草十株以充库藏
+
+# sect_ship_config.csv
+  features | rp=4 ui=0 | 隐匿|轻灵
+
+# ship_dock_config.csv
+
+# ship_formation_config.csv
+
+# skill_cultivation.csv
+  skill_name | rp=12 ui=1 | 凡品下品斩风诀
+
+# skin_config.csv
+  effects | rp=1 ui=0 | 冰凤凰神兽虚影+漫天冰雪冰晶特效+动态冰雪云雾背景+冰法阵背景
+  desc | rp=14 ui=10 | 冰雪主题皮肤。冰蓝色银边长袍，冰晶帝冠，银白色长发飞扬。漫天冰雪和冰晶特
+
+# stage_main.csv
+  stage_name | rp=5 ui=3 | 第1章一·节点1
+  designer_note | rp=0 ui=0 | 第1章第1关 normal
+
+# talisman_affix_config.csv
+
+# talisman_factor_linear.csv
+  说明 | rp=7 ui=6 | 心境澄明则符成不躁
+
+# talisman_factor_step.csv
+  id | rp=236 ui=5 | tfs_rg_凡品
+  名称 | rp=661 ui=107 | 灵根品阶·凡品
+  键 | rp=8 ui=0 | 凡品
+  说明 | rp=7 ui=6 | 凡品灵根绘符平平
+
+# talisman_grade_config.csv
+  desc | rp=14 ui=10 | 符色晦暗效力驳杂一炉多得而效微
+
+# talisman_level_config.csv
+  desc | rp=14 ui=10 | 初学符道笔力生涩所绘多为无纹下品
+
+# talisman_mark_codex.csv
+  desc | rp=14 ui=10 | 符纹初成符堂笔力渐稳
+
+# talisman_mark_config.csv
+
+# talisman_mark_tier.csv
+  desc | rp=14 ui=10 | 符成无纹灵力驳杂引动不稳
+  omen | rp=1 ui=0 | 符成灵纹清香盈室
+
+# talisman_paper_config.csv
+  描述 | rp=202 ui=36 | 素白纸薄墨易渗初学符士之资
+
+# talisman_source_config.csv
+  说明 | rp=7 ui=6 | 符纸每符堂等级成率加3%封顶15%
+
+# talisman_yield_config.csv
+  desc | rp=14 ui=10 | 凡符易成一炉数枚
+
+# teleport_array_config.csv
+  array_name | rp=15 ui=2 | 宗门内传送阵
+  unlock_function | rp=1 ui=0 | 宗门内殿阁快速跳转
+
+# title_config.csv
+  description | rp=9 ui=6 | 初踏仙途，炼气问道，
+
+# trade_event_config.csv
+  event_name | rp=12 ui=2 | 山路颠簸货损
+  option2_text | rp=1 ui=0 | 硬扛到底
+
+# trade_route_config.csv
+
+# treasure_innate.csv
+  innate_name | rp=0 ui=0 | 宝品下品本命剑
+  active_skill | rp=0 ui=0 | 专属主动技·剑斩
+  sacrifice_material | rp=0 ui=0 | 灵晶×7
+
+# treasure_normal.csv
+  treasure_name | rp=0 ui=0 | 凡品下品赤焰珠
+  passive_effect | rp=0 ui=0 | 攻击力提升
+
+# tribulation_config.csv
+
+# tribulation_item.csv
+  item_name | rp=24 ui=3 | 九转渡劫丹
+
+# unlock_order.csv
+  系统名 | rp=1 ui=1 | 测灵招收
+  解锁条件类型 | rp=0 ui=0 | 开局
+  设计意图 | rp=0 ui=0 | 收徒：给玩家第一个可操作决策（选谁入宗），建立弟子差异化第一印象
+
+# world_event_config.csv
+  文本 | rp=16 ui=4 | %s 于坊市购得一本残破功法，翻阅后有所得
+
+# 七载大典文案.csv
+  标题 | rp=22 ui=9 | 七载考评·守拙
+  开篇 | rp=1 ui=1 | 根基尚浅，然守拙归真，来日方长。
+  收尾 | rp=1 ui=1 | 第%d七载，宗门稳守本心，来年期可待。
+  评语 | rp=1 ui=0 | 岁末考评守拙，根基虽浅，来日方长。
+
+# 品级权益映射.csv
+  解锁功能 | rp=1 ui=1 | 周边历练
+  弹窗标题 | rp=1 ui=1 | 〔九品·开宗〕
+  弹窗文案 | rp=1 ui=1 | 开宗立派，编户十人，可遣弟子周边历练，初窥修行门径。
+
+# 坊市行情.csv
+  备注 | rp=2 ui=1 | 丹药类月度限购
+
+# 宗门里程碑.csv
+  名称 | rp=661 ui=107 | 开宗立派
+  触发事件 | rp=5 ui=0 | 开宗立派
+  史册文案 | rp=1 ui=0 | 【里程碑】太玄宗开宗立派，道统始于此，香火绵延。
+
+# 宗门集市配置.csv
+
+# 引育纪事.csv
+  文案 | rp=18 ui=3 | 御兽峰按月引育，于山野间收得凡阶兽卵一枚（{种类}），野性未褪，已入温养
+
+# 收藏图录分类.csv
+  匹配名 | rp=13 ui=0 | 五行聚灵阵图
+  名称 | rp=661 ui=107 | 五行聚灵阵图
+  描述 | rp=202 ui=36 | 聚灵之阵图
+
+# 特殊商单.csv
+
+# 经济基线.csv
+  锚点 | rp=0 ui=0 | 殿阁保底津贴
+  说明 | rp=7 ui=6 | game_state.gd:243 const 殿阁保底津贴
+
+# 经济阀门.csv
+  说明 | rp=7 ui=6 | 全局产出纠偏系数（ECON-01 §4.8 预留阀门；红线±15%，越界
+
+# 节奏校准.csv
+  参数 | rp=2 ui=0 | 招徒周期月
+  说明 | rp=7 ui=6 | 自动招徒触发周期(游戏月)
+
+# 评级节奏.csv
+  参数 | rp=2 ui=0 | 年度赏赐占比
+  说明 | rp=7 ui=6 | 年度(岁末考评)发放占比
+
+# 黑市特许经营.csv
+
+===== NO-NAMED-CONSUMER (rp=0 & ui=0) =====
+  achievement_config.csv :: unlock_tip | prose=True | 恭喜踏出修仙第一步
+  area_stay_weight.csv :: verify_note | prose=True | 勤勉×丹道：偏向丹殿劳作
+  atlas_intent.csv :: 反查 | prose=True | 丹方、装备图纸、藏书阁、灵兽
+  dynasty_memorial_config.csv :: opt1_text | prose=True | 开仓放粮，散谷三千石
+  dynasty_memorial_config.csv :: opt2_text | prose=True | 遣弟子施粥安民
+  dynasty_memorial_config.csv :: opt3_text | prose=True | 置之不理
+  equip_main.csv :: equip_name | prose=True | 凡阶下品武器
+  equip_main.csv :: repair_material | prose=True | 精铁×2
+  fishing_tackle.csv :: 可钓 | prose=True | 凡阶·灵阶·全分层
+  hostile_npc_config.csv :: background | prose=True | 曾屠杀正道小宗满门，以血功闻名，与宗门有血仇
+  inner_demon.csv :: opt1_fail_punish | prose=True | 心魔+10
+  inner_demon.csv :: opt2_success_reward | prose=True | 暂稳心魔-5
+  inner_demon.csv :: opt2_fail_punish | prose=True | 走火入魔风险+8
+  item_material.csv :: usage_desc | prose=True | 低阶丹药基础材料
+  item_material.csv :: obtain_way | prose=True | 新手灵田产出/山林采集
+  item_material.csv :: realm_correspond | prose=True | 练气期地图
+  negative_event.csv :: trigger_condition | prose=True | 修炼过速且心境不足
+  puppet.csv :: puppet_name | prose=True | 基础劳作傀儡
+  stage_main.csv :: designer_note | prose=True | 第1章第1关 normal
+  treasure_innate.csv :: innate_name | prose=True | 宝品下品本命剑
+  treasure_innate.csv :: active_skill | prose=True | 专属主动技·剑斩
+  treasure_innate.csv :: sacrifice_material | prose=True | 灵晶×7
+  treasure_normal.csv :: treasure_name | prose=True | 凡品下品赤焰珠
+  treasure_normal.csv :: passive_effect | prose=True | 攻击力提升
+  unlock_order.csv :: 解锁条件类型 | prose=True | 开局
+  unlock_order.csv :: 设计意图 | prose=True | 收徒：给玩家第一个可操作决策（选谁入宗），建立弟子差异化第一印象
+  经济基线.csv :: 锚点 | prose=True | 殿阁保底津贴

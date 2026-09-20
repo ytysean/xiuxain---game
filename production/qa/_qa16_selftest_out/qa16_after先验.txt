@@ -1,0 +1,2 @@
+- after = `C:\Users\Administrator\AppData\Local\Temp\qa16_selftest_after`：**64 张**，mtime 2026-09-17 01:31:52 .. 2026-09-17 01:31:54
+- **硬判据（after-leg）**：`min(after png)=2026-09-17 01:31:52` **>** `max(源文件·含本批)=2026-09-17 01:28:33`（`ui_theme.gd`）→ **PASS ✅**

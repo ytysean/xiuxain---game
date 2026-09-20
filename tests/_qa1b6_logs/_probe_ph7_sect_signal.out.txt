@@ -1,0 +1,17 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针② 三信号 arity 安全 启动 ===
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573727 引导阶段=6
+>>>  [OK] 1 `_刷新红点` 形参个数 = 3（须 = 3；实得 [{ "name": "_a", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }, { "name": "_b", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }, { "name": "_c", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }]）
+>>>  [OK] 2 信号 戒律违规上报 参数个数 = 3（须 = 3）
+>>>  [OK] 2 信号 弟子请示 参数个数 = 3（须 = 3）
+>>>  [OK] 2 信号 宗门事务待批阅 参数个数 = 3（须 = 3）
+>>>  [OK] 3a SectManager 三信号全部 connect 成功（实得 3 / 期望 3）
+>>>S2_EMIT_BEGIN
+>>>S2_EMIT_END
+>>>  [OK] 3b 三信号（各 3 参）emit 后链路未中断（执行到达本行 ⇒ 未见致命 arity 中断）
+>>>S2_CALL_BEGIN
+>>>S2_CALL_END
+>>>  [OK] 4 0/1/3 参直呼 `_刷新红点` 未中断（执行到达本行）
+>>> 断言 7 条 / 失败 0 条
+>>>PROBE_RESULT=PASS

@@ -1,0 +1,73 @@
+﻿=== QAPREP-1b-6 PROBE RUN 2026-09-16T23:47:18.1759769+08:00 ===
+exe=E:\Godot_v4.7-stable_win64.exe\Godot_v4.7-stable_win64_console.exe
+exe_exists=True
+鐙崰妫€鏌? 0 鏃㈡湁 Godot 杩涚▼ OK
+---- _probe_ph7_m6_count ----
+exitCode= elapsed_s=46.3
+log_mtime=2026-09-16T23:48:04.5533981+08:00 log_bytes=1592
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针① 弟子请示计数 三处 1:1 启动 ===
+[成就] 悬空奖励跳过: id=ach_biz_009 reward_type=代币 reward_id=mo_zong_dai_bi S2 待启用
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573682 引导阶段=6
+>>>  [OK] 0a 红点管理器已建（red_dot_init 初始化成功）
+>>>  [OK] 1a 源 N = 待抉择2 + 誓约待批1 = 3（期望 3）
+>>>  [OK] 1b 红点 弟子_请示 数量 = 3（期望 3；是否显示=true）
+>>>  [OK] 1c 汇总条文本 = 「弟子请示（3）」（期望 弟子请示（3））
+>>>  [OK] 1d 三处 1:1 相等：源3 == 红点3 == 汇总条3
+>>>  [OK] 2a 零待办：源=0 红点=0（期望 0 / 0）
+>>>  [OK] 2b 零待办 ⇒ 红点不亮（是否显示=false，期望 false）
+>>>  [OK] 2c 零待办 ⇒ 汇总条隐藏（文本「弟子请示（0）」visible=false，期望 false）
+>>>  [OK] 3a null 入参下 红点刷新 + 汇总刷新 链路未中断（执行到达本行）
+>>>  [OK] 3b null 入参下 红点数量 = 0（期望 0；守卫 is Array 兜底）
+>>>  [OK] 3c null 入参下 汇总条隐藏（文本「弟子请示（0）」）
+>>>  [XX] 3d red_dot_init 守卫 `X is Array` 存在（红点源）
+>>>  [XX] 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+>>> 断言 13 条 / 失败 2 条
+>>>PROBE_RESULT=FAIL:3d red_dot_init 守卫 `X is Array` 存在（红点源）, 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+  [stderr tail]
+WARNING: 1 RID of type "CanvasItem" was leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2733)
+WARNING: 5 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2535)
+---- _probe_ph7_sect_signal ----
+exitCode= elapsed_s=59.3
+log_mtime=2026-09-16T23:49:03.8541460+08:00 log_bytes=1144
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针② 三信号 arity 安全 启动 ===
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573727 引导阶段=6
+>>>  [OK] 1 `_刷新红点` 形参个数 = 3（须 = 3；实得 [{ "name": "_a", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }, { "name": "_b", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }, { "name": "_c", "class_name": &"", "type": 0, "hint": 0, "hint_string": "", "usage": 131072 }]）
+>>>  [OK] 2 信号 戒律违规上报 参数个数 = 3（须 = 3）
+>>>  [OK] 2 信号 弟子请示 参数个数 = 3（须 = 3）
+>>>  [OK] 2 信号 宗门事务待批阅 参数个数 = 3（须 = 3）
+>>>  [OK] 3a SectManager 三信号全部 connect 成功（实得 3 / 期望 3）
+>>>S2_EMIT_BEGIN
+>>>S2_EMIT_END
+>>>  [OK] 3b 三信号（各 3 参）emit 后链路未中断（执行到达本行 ⇒ 未见致命 arity 中断）
+>>>S2_CALL_BEGIN
+>>>S2_CALL_END
+>>>  [OK] 4 0/1/3 参直呼 `_刷新红点` 未中断（执行到达本行）
+>>> 断言 7 条 / 失败 0 条
+>>>PROBE_RESULT=PASS
+---- _probe_ph7_chronicle_reddot ----
+exitCode= elapsed_s=46.6
+log_mtime=2026-09-16T23:49:50.5549951+08:00 log_bytes=1044
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针③ 纪事红点两态 启动 ===
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573789 引导阶段=6
+>>>  [OK] 0a 红点管理器已建（red_dot_init 初始化成功）
+>>>  [OK] 1a 0 条纪事 ⇒ 有未读纪事()=false（实得 false）
+>>>  [OK] 1b 0 条纪事 ⇒ 红点 纪事_未读 不亮（是否显示=false，期望 false）
+>>>  [OK] 2a 已注入 2 条纪事（实得 2）
+>>>  [OK] 2b 2 条纪事 ⇒ 有未读纪事()=true（实得 true）
+>>>  [OK] 2c 2 条纪事 ⇒ 红点 纪事_未读 亮（是否显示=true，期望 true）
+>>>  [OK] 3a 标记纪事已读() 后 ⇒ 有未读纪事()=false（实得 false）
+>>>  [OK] 3b 标记已读后 ⇒ 红点 纪事_未读 消失（是否显示=false，期望 false）
+>>>  [OK] 3c 进页前 有未读纪事()=true（实得 true）
+>>>  [OK] 3d 进页(进树)后 ⇒ 有未读纪事()=false（_enter_tree 自动标记；实得 false）
+>>> 断言 10 条 / 失败 0 条
+>>>PROBE_RESULT=PASS
+=== DONE 2026-09-16T23:49:50.7071329+08:00 ===

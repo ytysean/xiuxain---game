@@ -1,0 +1,21 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针① 弟子请示计数 三处 1:1 启动 ===
+[成就] 悬空奖励跳过: id=ach_biz_009 reward_type=代币 reward_id=mo_zong_dai_bi S2 待启用
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573682 引导阶段=6
+>>>  [OK] 0a 红点管理器已建（red_dot_init 初始化成功）
+>>>  [OK] 1a 源 N = 待抉择2 + 誓约待批1 = 3（期望 3）
+>>>  [OK] 1b 红点 弟子_请示 数量 = 3（期望 3；是否显示=true）
+>>>  [OK] 1c 汇总条文本 = 「弟子请示（3）」（期望 弟子请示（3））
+>>>  [OK] 1d 三处 1:1 相等：源3 == 红点3 == 汇总条3
+>>>  [OK] 2a 零待办：源=0 红点=0（期望 0 / 0）
+>>>  [OK] 2b 零待办 ⇒ 红点不亮（是否显示=false，期望 false）
+>>>  [OK] 2c 零待办 ⇒ 汇总条隐藏（文本「弟子请示（0）」visible=false，期望 false）
+>>>  [OK] 3a null 入参下 红点刷新 + 汇总刷新 链路未中断（执行到达本行）
+>>>  [OK] 3b null 入参下 红点数量 = 0（期望 0；守卫 is Array 兜底）
+>>>  [OK] 3c null 入参下 汇总条隐藏（文本「弟子请示（0）」）
+>>>  [XX] 3d red_dot_init 守卫 `X is Array` 存在（红点源）
+>>>  [XX] 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+>>> 断言 13 条 / 失败 2 条
+>>>PROBE_RESULT=FAIL:3d red_dot_init 守卫 `X is Array` 存在（红点源）, 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+ERROR: 1 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.

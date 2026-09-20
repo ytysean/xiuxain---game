@@ -1,0 +1,25 @@
+### probe1 FIRST run  (_probe_ph7_m6_count.out.txt)
+mtime=2026-09-16 23:48:04
+result_line=>>>PROBE_RESULT=FAIL:3d red_dot_init 守卫 `X is Array` 存在（红点源）, 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+count_line=>>> 断言 13 条 / 失败 2 条
+xx_lines=2
+   XX: >>>  [XX] 3d red_dot_init 守卫 `X is Array` 存在（红点源）
+   XX: >>>  [XX] 3e page_disciple 守卫 `X is Array` 存在（汇总条源）
+
+### probe2  (_probe_ph7_sect_signal.out.txt)
+mtime=2026-09-16 23:49:03
+result_line=>>>PROBE_RESULT=PASS
+count_line=>>> 断言 7 条 / 失败 0 条
+xx_lines=0
+
+### probe3  (_probe_ph7_chronicle_reddot.out.txt)
+mtime=2026-09-16 23:49:50
+result_line=>>>PROBE_RESULT=PASS
+count_line=>>> 断言 10 条 / 失败 0 条
+xx_lines=0
+
+### probe1 RERUN  (_probe_ph7_m6_count.rerun.out.txt)
+mtime=2026-09-16 23:51:19
+result_line=>>>PROBE_RESULT=PASS
+count_line=>>> 断言 13 条 / 失败 0 条
+xx_lines=0

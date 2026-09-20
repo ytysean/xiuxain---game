@@ -93,8 +93,36 @@ func _归一(实际: float, 期望: float) -> float:
 		return 0.0
 	return min(实际 / 期望, 1.2)
 
+# ── 数值入口净化（防年结崩断） ──
+# ★ Godot 4.7 起 `float(x)` 在实参为 null / 数组 / 字典 / Callable 时**直接抛错**
+#   （`Invalid call. Nonexistent 'float' constructor.`），不再像早期版本静默转 0。
+#   而本模块运行在「推演一月 → _年结评分」链路上：一旦抛错，整段推演中断，
+#   对外表现就是「游戏打不开」。故所有外部数值一律先收敛为 float，坏值取 0
+#   —— 单点坏数据不得掀翻整个年结（2026-09-16 由 预估月产出 漏括号事故实证）。
+const _快照数值键: Array = [
+	"资源产能", "灵石增量", "总战力增量", "宗主战力增量", "宗主境界提升",
+	"技艺殿阁等级", "高阶产出", "洞府数量", "灵田等级",
+	"毒道境界", "傀儡数量", "休闲等级", "飞升弟子", "世界探索度",
+]
+
+func _数(v: Variant) -> float:
+	match typeof(v):
+		TYPE_INT, TYPE_FLOAT:
+			return float(v)
+		TYPE_BOOL:
+			return 1.0 if v else 0.0
+		TYPE_STRING, TYPE_STRING_NAME:
+			return str(v).to_float()
+	return 0.0
+
+func _收敛数值(快照: Dictionary) -> void:
+	for k in _快照数值键:
+		if 快照.has(k):
+			快照[k] = _数(快照[k])
+
 # 主结算：入参 快照 = {资源产能, 灵石增量, 总战力增量, 宗主战力增量, 宗主境界提升, 技艺殿阁等级, 高阶产出, 洞府数量, 灵田等级}
 func 结算(门派等级: int, 快照: Dictionary) -> Dictionary:
+	_收敛数值(快照)
 	var 期望: Dictionary = _期望(门派等级)
 	# 经营建设分（资源产能能力）
 	var 经营分: float = _归一(float(快照.get("资源产能", 0)), float(期望["资源产能"])) * float(权重["经营"]) * 100.0

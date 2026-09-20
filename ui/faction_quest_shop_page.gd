@@ -42,7 +42,7 @@ func _build() -> void:
 
 	# 背景
 	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.08, 0.1, 0.95)
+	bg.color = Color(0.086, 0.125, 0.141, 0.95)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -64,8 +64,8 @@ func _build() -> void:
 	header.add_child(back_btn)
 
 	var title := Label.new()
-	title.text = "阵营任务与商店"
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	title.text = "阵营差事与坊市"
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
@@ -90,7 +90,7 @@ func _build() -> void:
 
 	for tab in ["任务", "商店"]:
 		var btn := Button.new()
-		btn.text = tab
+		btn.text = "差事" if tab == "任务" else "坊市"
 		btn.custom_minimum_size = Vector2(100, 36)
 		btn.pressed.connect(_on_type_tab_pressed.bind(tab))
 		_type_tabs.add_child(btn)
@@ -98,7 +98,7 @@ func _build() -> void:
 	# 阵营声望显示
 	var rep_label := Label.new()
 	rep_label.name = "声望标签"
-	rep_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(rep_label, UITheme.FONT_H2, true)
 	main.add_child(rep_label)
 
 	# 滚动列表
@@ -149,7 +149,7 @@ func refresh() -> void:
 	if rep_label != null:
 		var rep_value = Game.get("阵营声望").get(_current_faction, 0)
 		var rep_level = Game.获取声望等级(_current_faction)
-		rep_label.text = "当前阵营：%s | 声望：%d | 等级：%s" % [_current_faction, rep_value, rep_level]
+		rep_label.text = "当前阵营：%s | 声望：%d | 品阶：%s" % [_current_faction, rep_value, rep_level]
 		rep_label.add_theme_color_override("font_color", 阵营颜色.get(_current_faction, Color.WHITE))
 	# 清空列表
 	for child in _list_parent.get_children():
@@ -164,7 +164,7 @@ func _show_faction_quests() -> void:
 	var quests = Game.获取阵营任务(_current_faction)
 	if quests.is_empty():
 		var empty := Label.new()
-		empty.text = "尚无阵营任务"
+		empty.text = "尚无阵营差事"
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		_list_parent.add_child(empty)
@@ -177,7 +177,7 @@ func _make_quest_card(q: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.15, 0.2, 0.9)
+	sb.bg_color = Color(0.122, 0.169, 0.192, 0.90)
 	sb.set_corner_radius_all(8)
 	sb.set_border_width_all(1)
 	sb.border_color = 阵营颜色.get(_current_faction, Color(0.5, 0.5, 0.5))
@@ -196,7 +196,7 @@ func _make_quest_card(q: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = str(q.get("quest_name", ""))
-	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(title, UITheme.FONT_TITLE, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	mid.add_child(title)
 
@@ -255,7 +255,7 @@ func _make_shop_card(item: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.15, 0.2, 0.9)
+	sb.bg_color = Color(0.122, 0.169, 0.192, 0.90)
 	sb.set_corner_radius_all(8)
 	sb.set_border_width_all(1)
 	sb.border_color = 阵营颜色.get(_current_faction, Color(0.5, 0.5, 0.5))
@@ -274,7 +274,7 @@ func _make_shop_card(item: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = str(item.get("item_name", ""))
-	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(title, UITheme.FONT_TITLE, true)
 	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
 	mid.add_child(title)
 
@@ -288,7 +288,7 @@ func _make_shop_card(item: Dictionary) -> PanelContainer:
 	var original_price = int(item.get("price", 0))
 	var discount_price = int(item.get("折扣价", 0))
 	var bought = int(item.get("购买次数", 0))
-	info.text = "类型：%s | 原价：%d | 折扣价：%d | 已购买：%d次 | 解锁声望：%s" % [item.get("item_type", ""), original_price, discount_price, bought, item.get("unlock_reputation", "")]
+	info.text = "品类：%s ｜ 原值：%d ｜ 折后值：%d ｜ 已得：%d 次 ｜ 需声望：%s" % [item.get("item_type", ""), original_price, discount_price, bought, item.get("unlock_reputation", "")]
 	info.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
 	mid.add_child(info)
 
@@ -300,7 +300,7 @@ func _make_shop_card(item: Dictionary) -> PanelContainer:
 		btn.text = "未解锁"
 		btn.disabled = true
 	else:
-		btn.text = "购买 (%d)" % discount_price
+		btn.text = "纳之（%d）" % discount_price
 		btn.pressed.connect(_on_buy_item_pressed.bind(str(item.get("item_id", ""))))
 	hb.add_child(btn)
 

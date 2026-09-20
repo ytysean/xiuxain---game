@@ -161,4 +161,4 @@ static func 领取任务奖励(任务: Dictionary) -> Dictionary:
 	if bool(任务.get("已领取", false)):
 		return {"成功": false, "原因": "奖励已领取"}
 	任务["已领取"] = true
-	return {"成功": true, "经验": int(任务.get("经验", 0)), "原因": "领取成功，获得战令经验%d" % int(任务.get("经验", 0))}
+	return {"成功": true, "经验": int(任务.get("经验", 0)), "原因": "领取成功，获得法旨功绩%d" % int(任务.get("经验", 0))}

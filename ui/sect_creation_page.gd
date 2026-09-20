@@ -47,7 +47,7 @@ func _build() -> void:
 	# ═══ 半透明背景遮罩 ═══
 	var 遮 := ColorRect.new()
 	遮.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	遮.color = Color(0.06, 0.08, 0.075, 1.0)
+	遮.color = Color(0.086, 0.125, 0.141, 1.00)
 	遮.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(遮)
 
@@ -77,7 +77,7 @@ func _build() -> void:
 	标题.text = "创建你的宗门"
 	标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_title_font_sized(标题, _fsz(22.0))
-	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE2)
+	标题.add_theme_color_override("font_color", UITheme.获取次文字色())
 	_面板.add_child(标题)
 	y += 26.0 + 区块间距              # → 46
 
@@ -188,7 +188,7 @@ func _build() -> void:
 	_预览框.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var 预览样式 := StyleBoxFlat.new()
 	预览样式.bg_color = Color(0.05, 0.07, 0.06, 1.0)
-	预览样式.border_color = UITheme.COLOR_BORDER_GOLD
+	预览样式.border_color = UITheme.获取暗金边色()
 	预览样式.set_corner_radius_all(8)
 	预览样式.border_width_left = 1.5
 	预览样式.border_width_top = 1.5
@@ -273,7 +273,7 @@ func _build() -> void:
 	确认.offset_right = 424.0
 	确认.offset_bottom = 812.0
 	确认.text = "创立宗门"
-	确认.add_theme_font_size_override("font_size", _fsz(15.0))
+	UITheme.apply_project_font(确认, _fsz(15.0), false)
 	确认.pressed.connect(_on_确认)
 	_面板.add_child(确认)
 
@@ -350,7 +350,7 @@ func _重建网格() -> void:
 		tr_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_body_font_sized(tr_name, _fsz(10.0))
 		if 锁定:
-			tr_name.text = "🔒 " + def.get("channel", "未解锁")
+			tr_name.text = "◇ " + def.get("channel", "未解锁")
 			tr_name.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75, 1.0))
 		else:
 			tr_name.text = def.get("name", "")
@@ -398,7 +398,7 @@ func _刷新性别按钮() -> void:
 		var sel: bool = (k == _性别)
 		b.add_theme_stylebox_override("normal", _选项卡样式(sel))
 		UITheme.apply_body_font_sized(b, _fsz(15.0))
-		b.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE2 if sel else UITheme.COLOR_TEXT_BODY_GOLD)
+		b.add_theme_color_override("font_color", UITheme.获取次文字色() if sel else UITheme.COLOR_TEXT_BODY_GOLD)
 
 func _刷新预览() -> void:
 	if _预览 == null or Game == null or not is_instance_valid(Game):
@@ -420,12 +420,12 @@ func _刷新选择标签() -> void:
 func _apply_input_style(le: LineEdit) -> void:
 	le.add_theme_stylebox_override("normal", _input_style(false))
 	le.add_theme_stylebox_override("focus", _input_style(true))
-	le.add_theme_font_size_override("font_size", _fsz(13.0))
+	UITheme.apply_project_font(le, _fsz(13.0), false)
 
 func _input_style(focused: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.COLOR_STATUSBAR_BG
-	sb.border_color = UITheme.COLOR_BORDER_GOLD if focused else Color(UITheme.COLOR_BORDER_GOLD.r, UITheme.COLOR_BORDER_GOLD.g, UITheme.COLOR_BORDER_GOLD.b, 0.6)
+	sb.border_color = UITheme.获取暗金边色() if focused else Color(UITheme.获取暗金边色().r, UITheme.获取暗金边色().g, UITheme.获取暗金边色().b, 0.6)
 	sb.set_corner_radius_all(6)
 	sb.border_width_left = 1.5
 	sb.border_width_top = 1.5
@@ -439,8 +439,8 @@ func _input_style(focused: bool) -> StyleBoxFlat:
 
 func _格子样式(sel: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.COLOR_PANEL_BG
-	sb.border_color = UITheme.COLOR_BORDER_GOLD
+	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.获取面板底色()
+	sb.border_color = UITheme.获取暗金边色()
 	sb.set_corner_radius_all(8)
 	sb.border_width_left = 2 if sel else 1
 	sb.border_width_top = 2 if sel else 1
@@ -450,8 +450,8 @@ func _格子样式(sel: bool) -> StyleBoxFlat:
 
 func _选项卡样式(sel: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.COLOR_PANEL_BG
-	sb.border_color = UITheme.COLOR_BORDER_GOLD
+	sb.bg_color = UITheme.COLOR_BG_CONTENT if sel else UITheme.获取面板底色()
+	sb.border_color = UITheme.获取暗金边色()
 	sb.set_corner_radius_all(6)
 	sb.border_width_left = 1.5 if sel else 1
 	sb.border_width_top = 1.5 if sel else 1

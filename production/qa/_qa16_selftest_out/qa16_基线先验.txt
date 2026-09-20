@@ -1,0 +1,12 @@
+- before = `E:\Xiuxian\taixuanzongmenlu\.workbuddy\_ph7visual\baseline_before`：**64 张**，mtime 2026-09-17 01:27:19 .. 2026-09-17 01:27:20（跨度 0.00 h → ✅ 同批）
+- 全仓源文件（`.gd/.tscn/.tres/.csv/.json`，排除备份/工具目录）最新 5 笔：
+    · 2026-09-17 01:28:33  `ui_theme.gd`  ← 本批改动文件（before-leg 排除）
+    · 2026-09-17 00:56:19  `ui\page_auction.gd`
+    · 2026-09-17 00:56:19  `ui\page_global_auction.gd`
+    · 2026-09-17 00:56:19  `config\atlas_intent.csv`
+    · 2026-09-17 00:56:19  `config\atlas_index.csv`
+- 源文件最新 mtime＝2026-09-17 01:28:33（`ui_theme.gd`）；**排除本批改动文件后＝2026-09-17 00:56:19（`ui\page_auction.gd`）**
+- **硬判据（before-leg）**：`min(before png)=2026-09-17 01:27:19` **>** `max(源文件·排除本批)=2026-09-17 00:56:19`（ui\page_auction.gd）→ **PASS ✅**
+- 辅助 signal：`ui_theme.gd` md5=`a3a5ff723e8538a26fa197be0c1ff4e3` mtime=2026-09-17 01:28:33 → MISMATCH（已非改前）
+  （★ 此 signal **单独不可作数** —— 它只验底色、验不出文案/其它批次 ⇒ 以硬判据为准）
+- **基线先验判定：PASS ✅**

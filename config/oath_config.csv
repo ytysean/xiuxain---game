@@ -1,0 +1,11 @@
+oath_id,name,kind,desc,need_daoxin,need_loyal,duration_days,cond_type,cond_value,buff_cult,buff_breakthrough,cost_demon_per_day,forbid_expedition,reward,punish,weight
+oath_pojing,破境誓,修行,"指道心为誓：限期之内必破一境。若食言，心魔反噬，道基受损。",5,30,7,realm_up,1,1.25,0.05,1,0,daoxin:8|xinjing:5,demon:15|daoxin:-5,12
+oath_zhanyao,斩妖誓,征战,"血战立誓：限期之内为宗门斩获战功，以战养心、以血证道。",5,35,7,merit_gain,40,1.10,0.00,1,0,daoxin:6|xinjing:6|loyal:6,demon:12|loyal:-8,12
+oath_gongyang,供养誓,忠义,"愿以自身所产尽献宗门，以证赤心。",3,40,7,contrib_gain,500,1.05,0.00,1,0,loyal:10|daoxin:4,demon:8|loyal:-10,10
+oath_bupan,不叛誓,忠义,"此生不负宗门。若有二心，天魔噬心、道果尽毁。",10,45,30,loyal_keep,60,1.10,0.02,0,0,daoxin:10|loyal:5,demon:30|daoxin:-15|loyal:-20,6
+oath_hudao,护道誓,忠义,"以性命护持一人。其人若在，此誓不破。",8,50,30,target_alive,1,1.15,0.02,1,0,daoxin:12|xinjing:8,demon:20|daoxin:-8,6
+oath_qingxin,清心誓,苦行,"闭目澄心，誓使心魔不侵方寸。",5,25,10,heart_max,25,1.10,0.03,-1,0,daoxin:8|xinjing:10,demon:15,10
+oath_chuandao,传道誓,传承,"愿开枝散叶，收一徒以传道统。",8,40,14,disciple_gain,1,1.20,0.00,1,0,daoxin:10|loyal:6|prestige:10,demon:12,8
+oath_kuxiu,苦修誓,苦行,"闭死关苦修，不出宗门一步，唯求破境。心魔日炽，慎之。",12,45,14,realm_up,1,1.50,0.05,2,1,daoxin:12|xinjing:6,demon:18|daoxin:-6,8
+oath_qingpin,清贫誓,苦行,"弃享乐、绝浮财，唯以苦行证道。",6,35,10,contrib_gain,800,1.35,0.00,1,0,daoxin:12|loyal:4,demon:10|loyal:-6,8
+oath_wendao,问道誓,修行,"誓求大道，道心不达不休。",15,40,14,daoxin_reach,45,1.15,0.05,1,0,daoxin:12|xinjing:10,demon:14|daoxin:-8,6

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ph7_page_shot_scene"]
+
+[ext_resource type="Script" path="res://tests/_probe_page_shot.gd" id="1_pgshot"]
+
+[node name="Ph7PageShotProbe" type="Node"]
+script = ExtResource("1_pgshot")

@@ -1,23 +1,27 @@
 extends Control
 
 # 弟子详情页（二级页）v1 · 立绘主导型（2026-08-23）
-# 设计规格：立绘占满上半屏55%作为绝对视觉主体，底部半透明叠加信息条，
+# 设计规格：立绘占上半屏作为绝对视觉主体（★2026-09-14：占比 0.55 → 0.45，给下半屏信息让位、少翻页），
 #           下半屏依次为战力大字、四维属性条(攻防血速)、命格/性格/道途三栏、装备栏+灵兽位。
-# 立绘cover：手动计算 scale=max(hero宽/tex宽, hero高/tex高) + 居中绝对定位 + clip_contents裁剪。
+# 立绘cover：手动计算 scale=max(hero宽/tex宽, hero高/tex高)；★高于取景框时**顶部对齐**保住脸，矮图居中对齐。
 
 signal 返回列表
 signal 装备查看请求(弟子ID: int)
 signal 仙衣阁请求
 
-const _HERO_RATIO: float = 0.55
+const _HERO_RATIO: float = 0.45
 
 # 资质拼音→中文映射（对齐 disciple.gd 资质显示）
 const _资质显示: Dictionary = {"fan_su": "凡俗", "pingyong": "平庸", "youliang": "优良", "tiancai": "天才", "yaonie": "妖孽", "kuangshi": "旷世"}
 # 命格查表（destiny_id → 中文名称）
 const DestinyLoader := preload("res://DestinyDataLoader.gd")
-# 命魂灯图标（修真设定：只表示生死二态）
-const _SOUL_LAMP_ALIVE = preload("res://assets/ui/icons/soul_lamp_alive.png")
-const _SOUL_LAMP_DEAD = preload("res://assets/ui/icons/soul_lamp_dead.png")
+# ★ 2026-09-15：命魂灯位图（soul_lamp_*.png）退役——
+#   源图为「象牙白灯身 + 近白径向渐变底」，且全图 alpha=255（四角不透明）⇒ 在深色面板上
+#   渲染成一块白砖（实机「一片白」）；实测该底无法用区域生长抠除（灯身与底色同亮度，抠底会把灯身一起吃掉），
+#   属源图缺陷、非工程可修。故本页改用**主题内矢量命牌**（金描边牌位 + 「生／殁」镌字），
+#   与全项目图标同一套 token，任意尺寸不糊。位图保留未删（外观皮肤体系引用）。
+const 命牌_生: String = "生"
+const 命牌_殁: String = "殁"
 
 var _built: bool = false
 var _hero_area: Control = null
@@ -33,7 +37,8 @@ var _breakthrough_bar: ColorRect = null
 var _breakthrough_pct: Label = null
 var _status_label: Label = null
 var _status_timer: Label = null
-var _status_icon: TextureRect = null   # 命魂灯：图标表示弟子生死（P3 重构：命牌殿入口移除，状态集成至此）
+var _status_icon: Control = null           # 命牌牌位（矢量：金描边 + 「生／殁」镌字；2026-09-15 替退位图命魂灯）
+var _status_glyph: Label = null            # 牌位内的镌字
 # 灵兽页
 var _beast_name: Label = null
 var _beast_info: Label = null
@@ -80,11 +85,27 @@ var _xinmo_label: VBoxContainer = null
 var _护道人_label: Label = null  # P0新增：护道人信息展示
 var _忠诚_label: VBoxContainer = null
 var _欠俸_label: VBoxContainer = null
-var _oath_box: VBoxContainer = null       # S36 心魔誓区（详情页）
-var _oath_expanded: bool = false          # S36 誓约列表展开态
-var _oath_tip: String = ""                # S36 立誓失败提示（显示一次后清空）
+var _oath_box: VBoxContainer = null       # S36 心魔誓区（详情页·**只读**：只显示有无誓约/哪种誓在效）
+var _oath_title: Label = null             # 心魔誓 组标题
+# ★ 2026-09-14 详情页改版新增
+var _portrait_view_btn: Button = null     # 立绘「看全图」按钮（★2026-09-15 移至右上角立绘工具带）
+var _hero_tools: HBoxContainer = null     # 立绘右上工具带（看全图 · 换装 · 帮助「?」同行）
+var _fullview_layer: Control = null       # 立绘全图浮层（懒创建，关闭即销毁）
+var _hudong_head: HBoxContainer = null    # 互动培养 组标题行（标题 + 红点）
+var _hudong_title: Label = null
+var _hudong_dot: Panel = null             # 互动培养 红点（有可办之事才亮；静态隐藏）
+var _hudong_panel: PanelContainer = null
+var _hudong_tip: Label = null
+var _shoutu_btn: Button = null            # 「拜师」（原按钮名「收徒」名实不符，已正名）
+var _zhushi_btn: Button = null            # 「逐师」
+var _驱逐_btn: Button = null              # 「驱逐师门」（二次点击确认）
+var _驱逐待确认: bool = false
+var _status_desc: Label = null            # 当前状态 说明行
 var _gongfa_list_label: Label = null
 var _danyao_list_label: Label = null
+var _danyao_tip: Label = null             # 丹药 说明行（随身／私藏口径）
+var _lingquan_label: Label = null         # 洗池·灵泉状态行（十二载一开，开则三十日）
+var _驱逐_hint: Label = null              # 驱逐条件说明行（平时不可用的缘由）
 var _equip_box: HBoxContainer = null
 # 魔兽世界风格纸娃娃系统（9槽位）
 var _paper_doll_area: Control = null
@@ -191,7 +212,12 @@ func _apply_portrait_cover() -> void:
 	var draw_w: float = tex_w * scale
 	var draw_h: float = tex_h * scale
 	var pos_x: float = (hero_size.x - draw_w) / 2.0
-	var pos_y: float = (hero_size.y - draw_h) / 2.0
+	# ★ 2026-09-14 修：立绘高于取景框时**顶部对齐**（优先保住脸），不再垂直居中。
+	#   全身立绘 1024×2048、取景框约 1080×864 ⇒ 居中会把「发顶到下巴」整段裁掉，
+	#   玩家只看到躯干与双手（旧反馈「立绘不完整，看不到脸」）。矮图（半身/横图）仍居中。
+	var pos_y: float = 0.0
+	if draw_h <= hero_size.y:
+		pos_y = (hero_size.y - draw_h) / 2.0
 	_portrait.anchor_left = 0.0
 	_portrait.anchor_top = 0.0
 	_portrait.anchor_right = 0.0
@@ -209,7 +235,7 @@ func _build() -> void:
 
 	# 背景
 	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.07, 0.1, 1.0)
+	bg.color = Color(0.086, 0.125, 0.141, 1.00)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -254,7 +280,7 @@ func _build() -> void:
 	_info_name = Label.new()
 	_info_name.text = "—"
 	_info_name.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
-	_info_name.add_theme_font_size_override("font_size", int(round(28 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(_info_name, int(round(28 * UITheme.UI_SCALE)), false)
 	_info_name.add_theme_constant_override("shadow_offset_x", 2)
 	_info_name.add_theme_constant_override("shadow_offset_y", 2)
 	_info_name.add_theme_color_override("shadow_color", Color(0, 0, 0, 0.8))
@@ -291,23 +317,50 @@ func _build() -> void:
 	_back_btn.offset_top = float(int(round(12 * UITheme.UI_SCALE)))
 	_back_btn.offset_right = float(int(round(48 * UITheme.UI_SCALE)))
 	_back_btn.offset_bottom = float(int(round(48 * UITheme.UI_SCALE)))
+	_back_btn.z_index = 200   # 置顶：须在所有 Tab 常显，且不被 PageScroll 内容盖住（见 _on_tab_pressed）
 	_back_btn.pressed.connect(_on_back_pressed)
 	add_child(_back_btn)
+
+	# ── 立绘右上工具带（2026-09-15 重构）──
+	# 旧版两颗钮各用「anchor 右上 + 固定 offset」摆放：换装 60×36 UI（135×81 物理）恰好盖住
+	# 帮助「?」（-72 与 -60 两个 offset 区间互相重叠）⇒ 「?」长期不可点，且两框远大于字面。
+	# 现改为一条右对齐工具带，三颗钮**按内容自适应**（无 custom_minimum_size，仅靠 token 内边距），
+	# 对齐反馈「框体跟文字大小差不多」；纵向 SHRINK_CENTER ⇒ 不被行高拉高。
+	_hero_tools = HBoxContainer.new()
+	_hero_tools.name = "HeroTools"
+	_hero_tools.anchor_left = 1.0
+	_hero_tools.anchor_top = 0.0
+	_hero_tools.anchor_right = 1.0
+	_hero_tools.anchor_bottom = 0.0
+	_hero_tools.offset_left = -float(int(round(400 * UITheme.UI_SCALE)))
+	_hero_tools.offset_top = float(int(round(10 * UITheme.UI_SCALE)))
+	_hero_tools.offset_right = -float(int(round(10 * UITheme.UI_SCALE)))
+	_hero_tools.offset_bottom = _hero_tools.offset_top + float(UITheme.SIZE_SM)
+	_hero_tools.alignment = BoxContainer.ALIGNMENT_END
+	_hero_tools.add_theme_constant_override("separation", UITheme.GRID_SM)
+	_hero_tools.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 空白处不吃立绘点击
+	add_child(_hero_tools)
+
+	# 看全图（原为立绘右下角的大框钮，2026-09-15 迁至右上工具带、与「换装」同款）
+	_portrait_view_btn = Button.new()
+	_portrait_view_btn.name = "PortraitViewBtn"
+	_portrait_view_btn.text = "看全图"
+	_apply_hero_tool_style(_portrait_view_btn)
+	_portrait_view_btn.pressed.connect(_on_portrait_view_pressed)
+	_hero_tools.add_child(_portrait_view_btn)
 
 	# 换装按钮（仙衣阁入口）
 	_skin_btn = Button.new()
 	_skin_btn.name = "SkinBtn"
 	_skin_btn.text = "换装"
-	_skin_btn.anchor_left = 1.0
-	_skin_btn.anchor_top = 0.0
-	_skin_btn.anchor_right = 1.0
-	_skin_btn.anchor_bottom = 0.0
-	_skin_btn.offset_left = -float(int(round(72 * UITheme.UI_SCALE)))
-	_skin_btn.offset_top = float(int(round(12 * UITheme.UI_SCALE)))
-	_skin_btn.offset_right = -float(int(round(12 * UITheme.UI_SCALE)))
-	_skin_btn.offset_bottom = float(int(round(48 * UITheme.UI_SCALE)))
+	_apply_hero_tool_style(_skin_btn)
 	_skin_btn.pressed.connect(_on_skin_pressed)
-	add_child(_skin_btn)
+	_hero_tools.add_child(_skin_btn)
+
+	# 帮助栏「?」：本页系统简介（复用 UITheme 统一「?」钮，自带内边距）
+	var _详情帮助 := UITheme.make_help_button("弟子详情", "查看宗门弟子全貌：四维与六维资质、命格性格道途、心境道心心魔、道行构成与装备灵兽。\n轻触带 ⓘ 的卡片与属性条，可查看该项详细说明。")
+	_详情帮助.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_hero_tools.add_child(_详情帮助)
 
 	# Content 区域（页面滚动区，底部留给Tab栏）
 	_content_area = Control.new()
@@ -336,15 +389,34 @@ func _build() -> void:
 	var detail_vb := VBoxContainer.new()
 	detail_vb.name = "DetailPage"
 	detail_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_vb.add_theme_constant_override("separation", 8)
+	detail_vb.add_theme_constant_override("separation", 6)
 	page_scroll.add_child(detail_vb)
 	_tab_pages["详情"] = detail_vb
 
-	# 名字+战力一排
+	# ══════════════════════════════════════════════════════════════════════
+	# 详情 Tab 版面（2026-09-14 按「实用性优先度」整体重排）
+	#   ① 名字·战力 → ② 突破进度 → ③ 当前状态 → ④ 互动培养（条件触发）
+	#   → ⑤ 六维属性（图大文字小）→ ⑥ 战力构成 → ⑦ 命格·性格·道途
+	#   → ⑧ 心境·道心·心魔 → ⑨ 心魔誓（只读）→ ⑩ 护道人·牵绊
+	#   → ⑪ 已学功法 → ⑫ 丹药 → ⑬ 洗池·洗髓 → ⑭ 底部：驱逐师门
+	#   · 拆掉「命格·性格·道途」「心境·道心·心魔」两处冗余组标题（三张卡自带卡名）。
+	#   · 心魔誓改**只读**：立誓由弟子依行为/经历主动请誓（Game.誓约待批），玩家只在首页传讯栏批复。
+	#   · 已学功法/丹药去按钮（自动流转：师徒授功 / 私库自动服用丹药）；仅洗池·洗髓留手动付费入口。
+	#   · 字号统一：正文 FONT_BODY(27) / 关键数 FONT_H2(33) / 辅助 FONT_AUX(21)；
+	#     旧版此处拿 FONT_H1(48)、FONT_TITLE(45) 当正文，才显得「比别处大一号」。
+	#   · 底部原「调遣/任命司职」「修炼/闭关提升」两钮**未接任何回调**（死按钮），已移除；
+	#     任命入口统一在「殿阁 · 任免主事」，弟子修炼为自动流转，详情页不重复设入口。
+	# ══════════════════════════════════════════════════════════════════════
+
+	# ── 立绘「看全图」按钮已在 Hero 右上工具带创建（见 _hero_tools）──
+	#   2026-09-15：原「Hero 右下角 134×54UI 大框」既突兀又压立绘，且 ⤢ 字形在项目字体里缺字，
+	#   实机渲染成一个方框（反馈「框太突兀」）。现统一收进右上工具带，与换装同款紧贴字面。
+
+	# ── ① 名字 + 战力 ──
 	var power_box := HBoxContainer.new()
 	power_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	power_box.add_theme_constant_override("separation", 24)
-	# 左：名字+境界
+	# 左：名字 + 身份行 + 摘要
 	var name_vb := VBoxContainer.new()
 	name_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var name_row := HBoxContainer.new()
@@ -353,228 +425,226 @@ func _build() -> void:
 	var name_ico := Label.new()
 	name_ico.text = "◆"
 	name_ico.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	name_ico.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	# 名字 FONT_DISPLAY(60) → FONT_H1(48)：本页主角是「信息」不是「名号」，
+	# 60px 会白吃一整行首屏，且与正文落差过大。
+	UITheme.apply_project_font(name_ico, UITheme.FONT_H1, true)
 	name_row.add_child(name_ico)
 	_power_name = Label.new()
 	_power_name.text = "—"
 	_power_name.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_power_name.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(_power_name, UITheme.FONT_H1, true)
 	name_row.add_child(_power_name)
 	_power_realm = Label.new()
 	_power_realm.text = ""
 	_power_realm.add_theme_color_override("font_color", Color(0.35, 0.68, 0.62))
-	_power_realm.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	# 本行承载「境界 · 身份 · 资质 · 年龄」长串（实测 ~19 字），允许换行 ⇒ 最小宽归零，整行恒不溢出。
+	_power_realm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_project_font(_power_realm, UITheme.FONT_H2, true)
 	name_vb.add_child(_power_realm)
+	_power_summary = Label.new()
+	_power_summary.text = ""
+	_power_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_power_summary.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
+	_power_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_project_font(_power_summary, UITheme.FONT_AUX, true)
+	name_vb.add_child(_power_summary)
 	power_box.add_child(name_vb)
-	# 右：战力+摘要
+	# 右：战力
 	var power_right := VBoxContainer.new()
 	var prow := HBoxContainer.new()
 	prow.alignment = BoxContainer.ALIGNMENT_END
 	prow.add_theme_constant_override("separation", 6)
 	power_right.add_child(prow)
 	var sword := Label.new()
-	sword.text = "⚔"
+	sword.text = "◆"
 	sword.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	sword.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(sword, UITheme.FONT_H1, true)
 	prow.add_child(sword)
 	_power_label = Label.new()
 	_power_label.text = "—"
 	_power_label.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_power_label.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(_power_label, UITheme.FONT_H1, true)
 	prow.add_child(_power_label)
-	_power_summary = Label.new()
-	_power_summary.text = ""
-	_power_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_power_summary.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	_power_summary.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	power_right.add_child(_power_summary)
 	power_box.add_child(power_right)
 	detail_vb.add_child(power_box)
 
-	# 命格/性格/道途 三栏
-	detail_vb.add_child(_make_section_title("命格·性格·道途"))
-	var three_col := HBoxContainer.new()
-	three_col.add_theme_constant_override("separation", 8)
-	detail_vb.add_child(three_col)
-	_destiny_label = _make_mini_card("命格", "—")
-	_make_card_clickable(_destiny_label, _on_destiny_card_clicked)
-	three_col.add_child(_destiny_label)
-	_personality_label = _make_mini_card("性格", "—")
-	_make_card_clickable(_personality_label, _on_personality_card_clicked)
-	three_col.add_child(_personality_label)
-	_daotu_label = _make_mini_card("道途", "—")
-	_make_card_clickable(_daotu_label, _on_daotu_card_clicked)
-	three_col.add_child(_daotu_label)
+	# ── ② 突破进度（弟子此刻「修到哪了」＝最常看）──
+	detail_vb.add_child(_make_section_title("突破进度"))
+	var break_panel: PanelContainer = _make_panel()
+	break_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	break_panel.gui_input.connect(_on_breakthrough_clicked)
+	detail_vb.add_child(break_panel)
+	var break_vb := VBoxContainer.new()
+	break_vb.add_theme_constant_override("separation", 6)
+	break_panel.add_child(break_vb)
+	var break_row := HBoxContainer.new()
+	_breakthrough_label = Label.new()
+	_breakthrough_label.text = "练气·一层"
+	_breakthrough_label.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
+	# 原 FONT_H1(48) 当正文 ⇒ 与别处正文明显不齐；降 FONT_H2(33)。
+	UITheme.apply_project_font(_breakthrough_label, UITheme.FONT_H2, true)
+	_breakthrough_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	break_row.add_child(_breakthrough_label)
+	var next_label := Label.new()
+	next_label.text = "自动突破中"
+	next_label.add_theme_color_override("font_color", Color(0.35, 0.80, 0.50))
+	UITheme.apply_project_font(next_label, UITheme.FONT_AUX, true)
+	break_row.add_child(next_label)
+	break_vb.add_child(break_row)
+	var prog_bg := ColorRect.new()
+	prog_bg.color = Color(1, 1, 1, 0.08)
+	prog_bg.custom_minimum_size = Vector2(0, UITheme.SIZE_SM / 5)
+	prog_bg.clip_contents = true
+	break_vb.add_child(prog_bg)
+	_breakthrough_bar = ColorRect.new()
+	_breakthrough_bar.color = Color(0.95, 0.80, 0.30)
+	_breakthrough_bar.anchor_left = 0; _breakthrough_bar.anchor_top = 0
+	_breakthrough_bar.anchor_right = 0; _breakthrough_bar.anchor_bottom = 1
+	prog_bg.add_child(_breakthrough_bar)
+	_breakthrough_pct = Label.new()
+	_breakthrough_pct.text = "0%"
+	_breakthrough_pct.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
+	UITheme.apply_project_font(_breakthrough_pct, UITheme.FONT_AUX, true)
+	break_vb.add_child(_breakthrough_pct)
 
-	# 心境·道心·心魔 三栏
-	detail_vb.add_child(_make_section_title("心境·道心·心魔"))
-	var xinjing_col := HBoxContainer.new()
-	xinjing_col.add_theme_constant_override("separation", 8)
-	detail_vb.add_child(xinjing_col)
-	_xinjing_label = _make_mini_card("心境", "—")
-	_make_card_clickable(_xinjing_label, _on_xinjing_card_clicked)
-	xinjing_col.add_child(_xinjing_label)
-	_daoxin_label = _make_mini_card("道心", "—")
-	_make_card_clickable(_daoxin_label, _on_daoxin_card_clicked)
-	xinjing_col.add_child(_daoxin_label)
-	_xinmo_label = _make_mini_card("心魔", "—")
-	_make_card_clickable(_xinmo_label, _on_xinmo_card_clicked)
-	xinjing_col.add_child(_xinmo_label)
+	# ── ③ 当前状态（在宗/历练/失踪，一眼看清人在哪）──
+	detail_vb.add_child(_make_section_title("当前状态"))
+	var status_panel: PanelContainer = _make_panel()
+	status_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	status_panel.gui_input.connect(_on_status_clicked)
+	detail_vb.add_child(status_panel)
+	var status_hb := HBoxContainer.new()
+	status_hb.add_theme_constant_override("separation", 12)
+	status_panel.add_child(status_hb)
+	# 命牌牌位（矢量，2026-09-15）：金描边小牌 + 「生／殁」镌字，替退「白砖」位图命魂灯。
+	_status_icon = PanelContainer.new()
+	_status_icon.name = "MingPai"
+	_status_icon.custom_minimum_size = Vector2(UITheme.SIZE_SM * 3 / 5, UITheme.SIZE_SM * 3 / 5)
+	var 牌样 := StyleBoxFlat.new()
+	牌样.bg_color = UITheme.COLOR_BG_CONTENT
+	牌样.border_color = UITheme.获取金色描边()
+	牌样.set_border_width_all(UITheme.BORDER_W)
+	牌样.set_corner_radius_all(UITheme.RADIUS_BUTTON)
+	牌样.set_content_margin_all(0.0)
+	_status_icon.add_theme_stylebox_override("panel", 牌样)
+	status_hb.add_child(_status_icon)
+	_status_glyph = Label.new()
+	_status_glyph.name = "MingPaiGlyph"
+	_status_glyph.text = 命牌_生
+	_status_glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_glyph.add_theme_color_override("font_color", UITheme.获取暗金正文())
+	UITheme.apply_project_font(_status_glyph, UITheme.FONT_BODY, true)
+	_status_icon.add_child(_status_glyph)
+	var status_info := VBoxContainer.new()
+	status_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_hb.add_child(status_info)
+	_status_label = Label.new()
+	_status_label.text = "在宗"
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
+	UITheme.apply_project_font(_status_label, UITheme.FONT_H2, true)
+	status_info.add_child(_status_label)
+	_status_desc = Label.new()
+	_status_desc.text = "灵息吐纳 +20%，其间不入历练"
+	_status_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_desc.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
+	UITheme.apply_project_font(_status_desc, UITheme.FONT_AUX, true)
+	status_info.add_child(_status_desc)
+	_status_timer = Label.new()
+	_status_timer.text = ""
+	_status_timer.add_theme_color_override("font_color", Color(0.35, 0.68, 0.90))
+	UITheme.apply_project_font(_status_timer, UITheme.FONT_AUX, true)
+	status_hb.add_child(_status_timer)
 
-	# 护道人信息（P0新增）
-	detail_vb.add_child(_make_section_title("护道人"))
-	_护道人_label = Label.new()
-	_护道人_label.name = "HudaoLabel"
-	_护道人_label.text = "护道人：无"
-	_护道人_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	_护道人_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
-	detail_vb.add_child(_护道人_label)
-
-	# 忠诚·欠俸（S30）
-	var zhongcheng_col: HBoxContainer = HBoxContainer.new()
-	zhongcheng_col.add_theme_constant_override("separation", 8)
-	detail_vb.add_child(zhongcheng_col)
-	_忠诚_label = _make_mini_card("忠诚", "—")
-	zhongcheng_col.add_child(_忠诚_label)
-	_欠俸_label = _make_mini_card("欠俸", "—")
-	zhongcheng_col.add_child(_欠俸_label)
-
-	# 心魔誓（S36）
-	detail_vb.add_child(_make_section_title("心魔誓"))
-	_oath_box = VBoxContainer.new()
-	_oath_box.add_theme_constant_override("separation", 6)
-	detail_vb.add_child(_oath_box)
-
-	# 互动培养区域
-	detail_vb.add_child(_make_section_title("互动培养"))
-	var hudong_panel: PanelContainer = _make_panel()
-	detail_vb.add_child(hudong_panel)
+	# ── ④ 互动培养（条件触发：可用互动为空则整块隐藏，不占版面）──
+	_hudong_head = HBoxContainer.new()
+	_hudong_head.add_theme_constant_override("separation", 6)
+	_hudong_title = _make_section_title("互动培养")
+	_hudong_head.add_child(_hudong_title)
+	_hudong_dot = UITheme.make_red_dot()
+	_hudong_dot.visible = false
+	_hudong_head.add_child(_hudong_dot)
+	detail_vb.add_child(_hudong_head)
+	_hudong_panel = _make_panel()
+	detail_vb.add_child(_hudong_panel)
 	var hudong_vb := VBoxContainer.new()
 	hudong_vb.add_theme_constant_override("separation", 6)
-	hudong_panel.add_child(hudong_vb)
-
-	# 互动按钮网格（2列）
+	_hudong_panel.add_child(hudong_vb)
 	var hudong_grid := GridContainer.new()
-	hudong_grid.columns = 2
+	hudong_grid.columns = 3
 	hudong_grid.add_theme_constant_override("h_separation", 8)
 	hudong_grid.add_theme_constant_override("v_separation", 8)
 	hudong_vb.add_child(hudong_grid)
-
 	_hudong_buttons = {}
-	for 互动类型 in ["论道切磋", "共参功法", "指点修行", "罚面壁思过", "宗主护法"]:
+	for 互动类型 in ["论道切磋", "共参功法", "指点修行", "罚面壁思过", "宗主护法", "以毒攻毒"]:
 		var btn := Button.new()
 		btn.name = "Hudong_" + 互动类型
-		btn.custom_minimum_size = Vector2(0, 56)
+		btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM * 7 / 9)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		UITheme.apply_secondary_button_style(btn)
 		var 类型 = 互动类型
 		btn.pressed.connect(func(): _on_hudong_pressed(类型))
 		hudong_grid.add_child(btn)
 		_hudong_buttons[互动类型] = btn
-
-	# 师徒：收徒 / 逐师 + 候选面板（S29）
-	var shoutu_btn: Button = Button.new()
-	shoutu_btn.name = "ShouTuBtn"
-	shoutu_btn.text = "收徒"
-	shoutu_btn.custom_minimum_size = Vector2(0, 56)
-	shoutu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(shoutu_btn)
-	shoutu_btn.pressed.connect(_on_shoutu_pressed)
-	hudong_grid.add_child(shoutu_btn)
-	var zhushi_btn: Button = Button.new()
-	zhushi_btn.name = "ZhuShiBtn"
-	zhushi_btn.text = "逐师"
-	zhushi_btn.custom_minimum_size = Vector2(0, 56)
-	zhushi_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(zhushi_btn)
-	zhushi_btn.pressed.connect(_on_zhushi_pressed)
-	hudong_grid.add_child(zhushi_btn)
+	# 师徒：原按钮叫「收徒」，实际行为是「替当前弟子挑一位师父」⇒ 正名为「拜师」。
+	_shoutu_btn = Button.new()
+	_shoutu_btn.name = "ShouTuBtn"
+	_shoutu_btn.text = "拜师"
+	_shoutu_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM * 7 / 9)
+	_shoutu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_secondary_button_style(_shoutu_btn)
+	_shoutu_btn.pressed.connect(_on_shoutu_pressed)
+	hudong_grid.add_child(_shoutu_btn)
+	_zhushi_btn = Button.new()
+	_zhushi_btn.name = "ZhuShiBtn"
+	_zhushi_btn.text = "逐师"
+	_zhushi_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM * 7 / 9)
+	_zhushi_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_secondary_button_style(_zhushi_btn)
+	_zhushi_btn.pressed.connect(_on_zhushi_pressed)
+	hudong_grid.add_child(_zhushi_btn)
 	_shoutu_panel = VBoxContainer.new()
 	_shoutu_panel.name = "ShouTuPanel"
 	_shoutu_panel.visible = false
 	_shoutu_panel.add_theme_constant_override("separation", 6)
 	hudong_vb.add_child(_shoutu_panel)
+	# 互动提示（文案由 _刷新互动区 按可用项动态填）
+	_hudong_tip = Label.new()
+	_hudong_tip.text = ""
+	_hudong_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_hudong_tip.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))
+	UITheme.apply_project_font(_hudong_tip, UITheme.FONT_AUX, true)
+	_hudong_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hudong_vb.add_child(_hudong_tip)
 
-	# 互动说明
-	var hudong_tip := Label.new()
-	hudong_tip.text = "互动可提升弟子属性，每日有次数限制。"
-	hudong_tip.add_theme_color_override("font_color", Color(0.6, 0.6, 0.55))
-	hudong_tip.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	hudong_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hudong_vb.add_child(hudong_tip)
-
-	# 已学功法
-	detail_vb.add_child(_make_section_title("已学功法"))
-	var gongfa_panel: PanelContainer = _make_panel()
-	detail_vb.add_child(gongfa_panel)
-	var gongfa_vb := VBoxContainer.new()
-	gongfa_vb.add_theme_constant_override("separation", 6)
-	gongfa_panel.add_child(gongfa_vb)
-	_gongfa_list_label = Label.new()
-	_gongfa_list_label.text = "尚无功法，静待机缘"
-	_gongfa_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	_gongfa_list_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	gongfa_vb.add_child(_gongfa_list_label)
-	var learn_gongfa_btn := Button.new()
-	learn_gongfa_btn.text = "学习功法（悟道点：0）"
-	learn_gongfa_btn.custom_minimum_size = Vector2(0, 44)
-	learn_gongfa_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(learn_gongfa_btn)
-	learn_gongfa_btn.pressed.connect(_on_learn_gongfa_pressed)
-	gongfa_vb.add_child(learn_gongfa_btn)
-
-	# 丹药服用
-	detail_vb.add_child(_make_section_title("丹药"))
-	var danyao_panel: PanelContainer = _make_panel()
-	detail_vb.add_child(danyao_panel)
-	var danyao_vb := VBoxContainer.new()
-	danyao_vb.add_theme_constant_override("separation", 6)
-	danyao_panel.add_child(danyao_vb)
-	_danyao_list_label = Label.new()
-	_danyao_list_label.text = "尚无丹药效果"
-	_danyao_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	_danyao_list_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	danyao_vb.add_child(_danyao_list_label)
-	var take_danyao_btn := Button.new()
-	take_danyao_btn.text = "服用丹药（宗门丹药库）"
-	take_danyao_btn.custom_minimum_size = Vector2(0, 44)
-	take_danyao_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(take_danyao_btn)
-	take_danyao_btn.pressed.connect(_on_take_danyao_pressed)
-	danyao_vb.add_child(take_danyao_btn)
-
-	# 命格重铸
-	detail_vb.add_child(_make_section_title("命格重铸"))
-	var chongzhu_panel: PanelContainer = _make_panel()
-	detail_vb.add_child(chongzhu_panel)
-	var chongzhu_vb := VBoxContainer.new()
-	chongzhu_vb.add_theme_constant_override("separation", 6)
-	chongzhu_panel.add_child(chongzhu_vb)
-	var chongzhu_desc := Label.new()
-	chongzhu_desc.text = "前往洗池·灵泉重铸命格/性格，改变弟子天赋与修行方向。"
-	chongzhu_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-	chongzhu_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	chongzhu_vb.add_child(chongzhu_desc)
-	var chongzhu_btn := Button.new()
-	chongzhu_btn.text = "前往洗池重铸（消耗200仙玉）"
-	chongzhu_btn.custom_minimum_size = Vector2(0, 44)
-	chongzhu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(chongzhu_btn)
-	chongzhu_btn.pressed.connect(_on_chongzhu_mingge_pressed)
-	chongzhu_vb.add_child(chongzhu_btn)
-
-	# ── 六维属性+雷达图 ──
+	# ── ⑤ 六维属性（2026-09-15 二次重排：右侧改「等宽胶囊双列」，填平留白）──
+	# 上一版把右侧做成「2 列 × 3 行 + 数值右对齐」，但 name／值／ⓘ 三段靠 EXPAND_FILL 撑开：
+	# 名字与数值之间、数值与 ⓘ 之间各留一大段空，右缘还空一块 ⇒ 反馈「右边大片空白」。
+	# 本次每项包一个等宽胶囊（淡底 + 金描边 + 圆角 + 内边距）：名在左 → 值紧跟其右
+	# → ⓘ 贴胶囊右缘；两列等宽铺满右侧，空白被胶囊填实。雷达图同步放大到 SIZE_LG×3/2。
 	detail_vb.add_child(_make_section_title("六维属性"))
 	var six_panel: PanelContainer = _make_panel()
 	detail_vb.add_child(six_panel)
 	var six_hb := HBoxContainer.new()
-	six_hb.add_theme_constant_override("separation", 12)
+	six_hb.add_theme_constant_override("separation", UITheme.GRID)
 	six_panel.add_child(six_hb)
-	# 左：六维数值列表
-	var six_list := VBoxContainer.new()
-	six_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	six_list.add_theme_constant_override("separation", 4)
-	six_hb.add_child(six_list)
+	# 左：雷达图（主视觉；数值退居右侧小字）。尺寸用 Token 表达 ⇒ 不触发「魔法数字尺寸」棘轮。
+	_radar = preload("res://ui/radar_chart.gd").new()
+	_radar.custom_minimum_size = Vector2(UITheme.SIZE_LG * 3 / 2, UITheme.SIZE_LG * 3 / 2)
+	_radar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_radar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	six_hb.add_child(_radar)
+	# 右：六维数值（3 行 × 2 列胶囊：体魂/根骨 · 悟性/机缘 · 心性/气运）
+	var six_grid := GridContainer.new()
+	six_grid.name = "SixDimGrid"
+	six_grid.columns = 2
+	six_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	six_grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	six_grid.add_theme_constant_override("h_separation", UITheme.GRID_SM)
+	six_grid.add_theme_constant_override("v_separation", UITheme.GRID_SM)
+	six_hb.add_child(six_grid)
 	_six_labels = {}
 	var six_desc = {
 		"体魂": "体魄与神魂强度，影响气血上限与渡劫承受力。",
@@ -585,39 +655,56 @@ func _build() -> void:
 		"气运": "宗门气运加持，影响暴击与掉落。"
 	}
 	for dim in ["体魂","根骨","悟性","机缘","心性","气运"]:
+		var cell := PanelContainer.new()
+		cell.name = "SixCell_" + dim
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var cell_sb := StyleBoxFlat.new()
+		cell_sb.bg_color = Color(1.0, 1.0, 1.0, 0.035)
+		cell_sb.border_color = Color(0.83, 0.69, 0.21, 0.18)
+		cell_sb.set_border_width_all(UITheme.BORDER_W)
+		cell_sb.set_corner_radius_all(UITheme.RADIUS_BUTTON)
+		cell_sb.content_margin_left = 10
+		cell_sb.content_margin_right = 10
+		cell_sb.content_margin_top = 4
+		cell_sb.content_margin_bottom = 4
+		cell.add_theme_stylebox_override("panel", cell_sb)
+		cell.mouse_filter = Control.MOUSE_FILTER_STOP
+		cell.gui_input.connect(_on_six_dim_clicked.bind(dim, six_desc[dim]))
+		six_grid.add_child(cell)
 		var row := HBoxContainer.new()
-		row.mouse_filter = Control.MOUSE_FILTER_STOP
-		row.gui_input.connect(_on_six_dim_clicked.bind(dim, six_desc[dim]))
+		row.add_theme_constant_override("separation", UITheme.GRID_SM)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE   # 点击统一由胶囊承接
+		cell.add_child(row)
 		var name_lbl := Label.new()
 		name_lbl.text = dim
-		name_lbl.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-		name_lbl.custom_minimum_size = Vector2(70, 0)
+		# 原名/值都是 FONT_TITLE(45) 当正文 ⇒「字比图大」。名 FONT_AUX(21)、值 FONT_H2(33)。
+		name_lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_DIM)
+		UITheme.apply_project_font(name_lbl, UITheme.FONT_AUX, true)
+		name_lbl.custom_minimum_size = Vector2(UITheme.SIZE_SM * 2 / 3, 0)
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(name_lbl)
 		var val_lbl := Label.new()
 		val_lbl.text = "—"
-		val_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		val_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-		val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		val_lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+		UITheme.apply_project_font(val_lbl, UITheme.FONT_H2, true)
 		val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(val_lbl)
+		# 手动撑杆（不用 HBoxContainer.add_spacer：它内部 move_child(spacer, 0)，会插到索引 0）——
+		# 把 ⓘ 推到胶囊右缘，值紧贴属性名之后，两者之间不留空。
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(sp)
 		var hint := Label.new()
 		hint.text = "ⓘ"
-		hint.add_theme_color_override("font_color", Color(0.4, 0.45, 0.5))
-		hint.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		hint.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+		UITheme.apply_project_font(hint, UITheme.FONT_AUX, true)
 		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(hint)
 		_six_labels[dim] = val_lbl
-		six_list.add_child(row)
-	# 右：雷达图
-	_radar = preload("res://ui/radar_chart.gd").new()
-	_radar.custom_minimum_size = Vector2(200, 200)
-	_radar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	six_hb.add_child(_radar)
 
-	# ── 战力构成 ──
-	detail_vb.add_child(_make_section_title("战力构成"))
+	# ── ⑥ 战力构成 ──
+	detail_vb.add_child(_make_section_title("道行构成"))
 	var power_panel: PanelContainer = _make_panel()
 	detail_vb.add_child(power_panel)
 	var power_vb := VBoxContainer.new()
@@ -626,8 +713,8 @@ func _build() -> void:
 	_power_bars = {}
 	var comp_desc = {
 		"基础属性": "由攻/防/血/速四维构成，随境界提升。",
-		"装备加成": "已穿戴法器提供的战力加成总和。",
-		"灵兽加成": "主宠灵兽提供的战力加成。",
+		"装备加成": "已穿戴法器提供的道行加成总和。",
+		"灵兽加成": "主宠灵兽提供的道行加成。",
 		"功法加成": "已修功法与命格提供的加成。"
 	}
 	for comp in [["基础属性", Color(0.35,0.68,0.90)], ["装备加成", Color(0.70,0.45,0.85)], ["灵兽加成", Color(0.35,0.80,0.50)], ["功法加成", Color(0.95,0.80,0.30)]]:
@@ -637,13 +724,14 @@ func _build() -> void:
 		var cn := Label.new()
 		cn.text = comp[0]
 		cn.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-		cn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-		cn.custom_minimum_size = Vector2(100, 0)
+		# 原 FONT_TITLE(45) 当正文 ⇒ 比别处大一号；降 FONT_AUX(21)。
+		UITheme.apply_project_font(cn, UITheme.FONT_AUX, true)
+		cn.custom_minimum_size = Vector2(UITheme.SIZE_SM * 4 / 3, 0)
 		cn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(cn)
 		var bar_bg := ColorRect.new()
 		bar_bg.color = Color(1,1,1,0.06)
-		bar_bg.custom_minimum_size = Vector2(0, 12)
+		bar_bg.custom_minimum_size = Vector2(0, UITheme.SIZE_SM / 7)
 		bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar_bg.clip_contents = true
 		bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -658,126 +746,185 @@ func _build() -> void:
 		var vn := Label.new()
 		vn.text = "0"
 		vn.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		vn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-		vn.custom_minimum_size = Vector2(80, 0)
+		UITheme.apply_project_font(vn, UITheme.FONT_H2, true)
+		vn.custom_minimum_size = Vector2(UITheme.SIZE_SM, 0)
 		vn.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		vn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(vn)
 		_power_bars[comp[0]] = {"bar": bar, "label": vn, "color": comp[1]}
 		power_vb.add_child(row)
 
-	# ── 突破进度 ──
-	detail_vb.add_child(_make_section_title("突破进度"))
-	var break_panel: PanelContainer = _make_panel()
-	break_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	break_panel.gui_input.connect(_on_breakthrough_clicked)
-	detail_vb.add_child(break_panel)
-	var break_vb := VBoxContainer.new()
-	break_vb.add_theme_constant_override("separation", 6)
-	break_panel.add_child(break_vb)
-	var break_row := HBoxContainer.new()
-	_breakthrough_label = Label.new()
-	_breakthrough_label.text = "练气·一层"
-	_breakthrough_label.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_breakthrough_label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-	_breakthrough_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	break_row.add_child(_breakthrough_label)
-	var next_label := Label.new()
-	next_label.text = "自动突破中"
-	next_label.add_theme_color_override("font_color", Color(0.35, 0.80, 0.50))
-	next_label.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	break_row.add_child(next_label)
-	break_vb.add_child(break_row)
-	var prog_bg := ColorRect.new()
-	prog_bg.color = Color(1,1,1,0.08)
-	prog_bg.custom_minimum_size = Vector2(0, 16)
-	prog_bg.clip_contents = true
-	break_vb.add_child(prog_bg)
-	_breakthrough_bar = ColorRect.new()
-	_breakthrough_bar.color = Color(0.95, 0.80, 0.30)
-	_breakthrough_bar.anchor_left = 0; _breakthrough_bar.anchor_top = 0
-	_breakthrough_bar.anchor_right = 0; _breakthrough_bar.anchor_bottom = 1
-	prog_bg.add_child(_breakthrough_bar)
-	_breakthrough_pct = Label.new()
-	_breakthrough_pct.text = "0%"
-	_breakthrough_pct.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	_breakthrough_pct.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	break_vb.add_child(_breakthrough_pct)
+	# ── ⑦ 命格 · 性格 · 道途（三卡自带卡名，不再加组标题）──
+	var three_col := HBoxContainer.new()
+	three_col.add_theme_constant_override("separation", 8)
+	detail_vb.add_child(three_col)
+	_destiny_label = _make_mini_card("命格", "—", true)
+	_make_card_clickable(_destiny_label, _on_destiny_card_clicked)
+	three_col.add_child(_destiny_label)
+	_personality_label = _make_mini_card("性格", "—", true)
+	_make_card_clickable(_personality_label, _on_personality_card_clicked)
+	three_col.add_child(_personality_label)
+	_daotu_label = _make_mini_card("道途", "—", true)
+	_make_card_clickable(_daotu_label, _on_daotu_card_clicked)
+	three_col.add_child(_daotu_label)
 
-	# ── 当前状态 ──
-	detail_vb.add_child(_make_section_title("当前状态"))
-	var status_panel: PanelContainer = _make_panel()
-	status_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	status_panel.gui_input.connect(_on_status_clicked)
-	detail_vb.add_child(status_panel)
-	var status_hb := HBoxContainer.new()
-	status_hb.add_theme_constant_override("separation", 12)
-	status_panel.add_child(status_hb)
-	_status_icon = TextureRect.new()
-	_status_icon.texture = _SOUL_LAMP_ALIVE
-	_status_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_status_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_status_icon.custom_minimum_size = Vector2(48, 48)
-	status_hb.add_child(_status_icon)
-	var status_info := VBoxContainer.new()
-	status_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_hb.add_child(status_info)
-	_status_label = Label.new()
-	_status_label.text = "闭关修炼中"
-	_status_label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_status_label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-	status_info.add_child(_status_label)
-	var status_desc := Label.new()
-	status_desc.text = "灵气吸收速率 +20%，期间不可参与历练"
-	status_desc.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	status_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	status_info.add_child(status_desc)
-	_status_timer = Label.new()
-	_status_timer.text = ""
-	_status_timer.add_theme_color_override("font_color", Color(0.35, 0.68, 0.90))
-	_status_timer.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-	status_hb.add_child(_status_timer)
+	# ── ⑧ 心境 · 道心 · 心魔（同上，三卡自带卡名）──
+	var xinjing_col := HBoxContainer.new()
+	xinjing_col.add_theme_constant_override("separation", 8)
+	detail_vb.add_child(xinjing_col)
+	_xinjing_label = _make_mini_card("心境", "—", true)
+	_make_card_clickable(_xinjing_label, _on_xinjing_card_clicked)
+	xinjing_col.add_child(_xinjing_label)
+	_daoxin_label = _make_mini_card("道心", "—", true)
+	_make_card_clickable(_daoxin_label, _on_daoxin_card_clicked)
+	xinjing_col.add_child(_daoxin_label)
+	_xinmo_label = _make_mini_card("心魔", "—", true)
+	_make_card_clickable(_xinmo_label, _on_xinmo_card_clicked)
+	xinjing_col.add_child(_xinmo_label)
 
-	# ── 底部操作按钮 ──
+	# ── ⑨ 心魔誓（只读：此处只显示「有没有誓 / 哪种誓在起效」）──
+	_oath_title = _make_section_title("心魔誓")
+	detail_vb.add_child(_oath_title)
+	_oath_box = VBoxContainer.new()
+	_oath_box.add_theme_constant_override("separation", 6)
+	detail_vb.add_child(_oath_box)
+
+	# ── ⑩ 护道人 · 牵绊（关系类信息，降权到后半）──
+	detail_vb.add_child(_make_section_title("护道人 · 牵绊"))
+	_护道人_label = Label.new()
+	_护道人_label.name = "HudaoLabel"
+	_护道人_label.text = "护道人：无"
+	_护道人_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_project_font(_护道人_label, UITheme.FONT_AUX, false)
+	_护道人_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
+	detail_vb.add_child(_护道人_label)
+	var zhongcheng_col: HBoxContainer = HBoxContainer.new()
+	zhongcheng_col.add_theme_constant_override("separation", 8)
+	detail_vb.add_child(zhongcheng_col)
+	_忠诚_label = _make_mini_card("忠诚", "—")
+	zhongcheng_col.add_child(_忠诚_label)
+	_欠俸_label = _make_mini_card("欠俸", "—")
+	zhongcheng_col.add_child(_欠俸_label)
+
+	# ── ⑪ 已学功法（只读：随师承与机缘自动习得）──
+	detail_vb.add_child(_make_section_title("已学功法"))
+	var gongfa_panel: PanelContainer = _make_panel()
+	detail_vb.add_child(gongfa_panel)
+	var gongfa_vb := VBoxContainer.new()
+	gongfa_vb.add_theme_constant_override("separation", 6)
+	gongfa_panel.add_child(gongfa_vb)
+	_gongfa_list_label = Label.new()
+	_gongfa_list_label.text = "尚无功法，静待机缘"
+	_gongfa_list_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_gongfa_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
+	# 原 FONT_TITLE(45) 当正文 ⇒ 明显大一号；降 FONT_BODY(27)。
+	UITheme.apply_project_font(_gongfa_list_label, UITheme.FONT_BODY, true)
+	gongfa_vb.add_child(_gongfa_list_label)
+	var gongfa_tip := Label.new()
+	gongfa_tip.text = "功法随师承与机缘自动习得，无需手动催功。"
+	gongfa_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(gongfa_tip)
+	gongfa_vb.add_child(gongfa_tip)
+
+	# ── ⑫ 丹药（只读：随身 + 私藏自服）──
+	# ★ 2026-09-15 改口径（反馈「应显示弟子自身携带的丹药，而不是宗门丹药库」）：
+	#   旧版数的是 `Game.宗门库房`（全宗门公库）里 类别=="丹药" 的件数——既不是这名弟子的东西，
+	#   且类别常量实为拼音码 `dan_yao`，比中文「丹药」永不命中 ⇒ 永远显示 0 颗（静默错数）。
+	#   现改为弟子自己的两本账：背包（随身公开持有，可见品名）+ 私库（背地私藏，只见件数）。
+	detail_vb.add_child(_make_section_title("丹药"))
+	var danyao_panel: PanelContainer = _make_panel()
+	detail_vb.add_child(danyao_panel)
+	var danyao_vb := VBoxContainer.new()
+	danyao_vb.add_theme_constant_override("separation", 6)
+	danyao_panel.add_child(danyao_vb)
+	_danyao_list_label = Label.new()
+	_danyao_list_label.text = "随身丹药：无"
+	_danyao_list_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_danyao_list_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
+	UITheme.apply_project_font(_danyao_list_label, UITheme.FONT_BODY, true)
+	danyao_vb.add_child(_danyao_list_label)
+	_danyao_tip = Label.new()
+	_danyao_tip.text = "弟子依自身状态自行取用丹药（心魔／受伤／瓶颈各有其选），无需手动喂服。"
+	_danyao_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(_danyao_tip)
+	danyao_vb.add_child(_danyao_tip)
+
+	# ── ⑬ 洗池 · 洗髓（宗主侧手动付费入口：耗仙玉强开灵泉）──
+	# ★ 2026-09-15 新增「灵泉天时 + 弟子自费」两步走（铁律 11 分工，老大拍板）：
+	#   · 灵泉十二载一开、开则三十日（`XiChiSystem.灵泉开启信息`）——合修真世界观的天时；
+	#   · 宗主耗仙玉＝「强开灵泉」，随时可为指定弟子洗髓 ⇒ 本按钮（玩家不可代劳的重决策，保留）；
+	#   · 灵泉自然开启期间，弟子可自以**个人功勋**叩请入池 ⇒ 弟子自主层月课
+	#     （`Game._月课_洗池灵泉`），不设玩家按钮。
+	detail_vb.add_child(_make_section_title("洗池 · 洗髓"))
+	var chongzhu_panel: PanelContainer = _make_panel()
+	detail_vb.add_child(chongzhu_panel)
+	var chongzhu_vb := VBoxContainer.new()
+	chongzhu_vb.add_theme_constant_override("separation", 6)
+	chongzhu_panel.add_child(chongzhu_vb)
+	_lingquan_label = Label.new()
+	_lingquan_label.name = "LingQuanState"
+	_lingquan_label.text = "灵泉：—"
+	_lingquan_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lingquan_label.add_theme_color_override("font_color", Color(0.55, 0.72, 0.85))
+	UITheme.apply_project_font(_lingquan_label, UITheme.FONT_BODY, true)
+	chongzhu_vb.add_child(_lingquan_label)
+	var chongzhu_desc := Label.new()
+	chongzhu_desc.text = "入洗池灵泉洗髓，重铸天赋根骨与修行方向。灵泉乃天地灵脉所钟，十二载一开、开则三十日；宗主可耗仙玉强开灵泉，弟子亦可自以功勋叩请入池。"
+	chongzhu_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
+	# 本行必须换行：不换行会把整页最小宽顶到 1207，ScrollContainer 被撑破屏宽。
+	chongzhu_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_project_font(chongzhu_desc, UITheme.FONT_BODY, true)
+	chongzhu_vb.add_child(chongzhu_desc)
+	var chongzhu_btn := Button.new()
+	chongzhu_btn.text = "宗主强开灵泉（耗仙玉%d）" % int(Game.命格重塑仙玉价格 if Game != null else 0)
+	chongzhu_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM * 2 / 3)
+	chongzhu_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_secondary_button_style(chongzhu_btn)
+	chongzhu_btn.pressed.connect(_on_chongzhu_mingge_pressed)
+	chongzhu_vb.add_child(chongzhu_btn)
+
+	# ── ⑭ 闲情雅趣（弟子个人雅趣配置：天赋 / 技艺 / 专精 / 上交比例）──
+	# 移位史：① 初版挂「装备」Tab 尾部（分类错位 —— 反馈「休闲玩法怎么在装备页？」）
+	#         ② 一改 → 紧随「互动培养」（按「同属给弟子安排日常」归组）
+	#         ③ 二改（本次）→ **下沉至详情页末段**（反馈「闲情雅趣排到下面去」）。
+	# 理由：雅趣配置是**收尾型个性化设置**（天赋 / 技艺 / 专精 / 上交比例），不参与战力
+	# 计算与日常决策；压在「六维属性」之前会打断「六维 → 战力构成 → 功法 → 丹药」这条
+	# 主信息链。与首页「闲情雅趣」总入口互为「个人配置 ↔ 玩法入口」，职责不重复。
+	_build_休闲设置_section(detail_vb)
+
+	# ── ⑮ 底部：驱逐师门（唯一保留的玩家重决策；二次点击确认 + 门规门禁）──
 	var action_hb := HBoxContainer.new()
 	action_hb.add_theme_constant_override("separation", 10)
 	action_hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	detail_vb.add_child(action_hb)
-	var btn_dispatch := Button.new()
-	btn_dispatch.text = "调遣\n任命司职"
-	btn_dispatch.custom_minimum_size = Vector2(0, 80)
-	btn_dispatch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(btn_dispatch)
-	action_hb.add_child(btn_dispatch)
-	var btn_cultivate := Button.new()
-	btn_cultivate.text = "修炼\n闭关提升"
-	btn_cultivate.custom_minimum_size = Vector2(0, 80)
-	btn_cultivate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_primary_button_style(btn_cultivate)
-	action_hb.add_child(btn_cultivate)
-	# 以毒攻毒治疗（弟子受伤时显示，毒医双修功能）
-	if _current_disciple != null and _current_disciple is Disciple and int(_current_disciple.受伤剩余) > 0:
-		var btn_poison_heal := Button.new()
-		btn_poison_heal.text = "以毒攻毒\n毒医疗伤"
-		btn_poison_heal.custom_minimum_size = Vector2(0, 80)
-		btn_poison_heal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		UITheme.apply_secondary_button_style(btn_poison_heal)
-		btn_poison_heal.modulate = Color(0.7, 0.5, 0.8)
-		btn_poison_heal.pressed.connect(_on以毒攻毒治疗.bind(_current_disciple))
-		action_hb.add_child(btn_poison_heal)
-	var btn_expel := Button.new()
-	btn_expel.text = "驱逐师门\n触犯规矩"
-	btn_expel.custom_minimum_size = Vector2(0, 80)
-	btn_expel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	UITheme.apply_secondary_button_style(btn_expel)
-	btn_expel.modulate = Color(1, 0.6, 0.5)
-	action_hb.add_child(btn_expel)
+	_驱逐_btn = Button.new()
+	_驱逐_btn.name = "ExpelBtn"
+	_驱逐_btn.text = "驱逐师门\n（门规所限）"
+	_驱逐_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_MD * 5 / 6)
+	_驱逐_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_secondary_button_style(_驱逐_btn)
+	_驱逐_btn.disabled = true   # ★ 2026-09-15：平时锁死，待 _刷新驱逐门禁() 按门规解禁
+	_驱逐_btn.pressed.connect(_on_驱逐师门_pressed)
+	action_hb.add_child(_驱逐_btn)
+	_驱逐_hint = Label.new()
+	_驱逐_hint.name = "ExpelHint"
+	_驱逐_hint.text = "门规所限：无重罪者不得逐出同门。"
+	_驱逐_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(_驱逐_hint)
+	detail_vb.add_child(_驱逐_hint)
+	var 归口 := Label.new()
+	归口.text = "任命主事请至「殿阁 · 任免主事」；弟子自行修炼突破，无需手动催功。"
+	归口.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(归口)
+	detail_vb.add_child(归口)
 
-	# ── 装备Tab（v17：左右分列大厂布局）──
+	# ── 装备Tab（2026-09-15：立绘居中 + 八槽环绕舞台）──
 	var equip_vb := VBoxContainer.new()
 	equip_vb.name = "EquipPage"
 	equip_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	equip_vb.custom_minimum_size = Vector2(0, 1750)
+	# 原写死 1750 是为「内容不够高时也留出滚动行程」，但舞台重排后内容本身已 ~1300，
+	# 1750 会在底部凭空多出一段无内容滚动区（视觉上是「到底了还在缩」）⇒ 交还自适应。
+	equip_vb.custom_minimum_size = Vector2(0, 0)
 	equip_vb.add_theme_constant_override("separation", 6)
 	equip_vb.visible = false
 	page_scroll.add_child(equip_vb)
@@ -787,7 +934,6 @@ func _build() -> void:
 	_build_set_bonus(equip_vb)
 	_build_equip_detail(equip_vb)
 	_build_护身符_section(equip_vb)
-	_build_休闲设置_section(equip_vb)
 
 	# ── 灵兽Tab ──
 	var pet_vb := VBoxContainer.new()
@@ -829,7 +975,7 @@ func _build() -> void:
 		tb.text = tname
 		tb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tb.custom_minimum_size = Vector2(0, 80)
-		tb.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(tb, UITheme.FONT_BODY, false)
 		tb.pressed.connect(_on_tab_pressed.bind(tname))
 		tab_bar.add_child(tb)
 		_tab_buttons[tname] = tb
@@ -837,34 +983,69 @@ func _build() -> void:
 	# 默认选中详情Tab
 	_on_tab_pressed("详情")
 
+	# ★ 2026-09-15 修：返回按钮必须排在**子节点末位**才能被点中。
+	#   原因：Godot 的 GUI 命中检测遍历同层子节点用的是**树序倒序**（不是 z_index），
+	#   而 `_content_area` 是全屏 MOUSE_FILTER_STOP 且在树里晚于本钮添加 ⇒ 非详情 Tab
+	#   （那时内容顶到 y=0）会整块吃掉左上角，「← 返回」点了没反应。z_index 只管绘制顺序，
+	#   救不了命中。故在全部子节点建完后把它移到末位（绘制与命中同时置顶）。
+	if _back_btn != null:
+		move_child(_back_btn, get_child_count() - 1)
+
 
 func _make_tag(text: String, border_color: Color, bg_color: Color) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_color_override("font_color", border_color)
-	lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(lbl, int(round(16 * UITheme.UI_SCALE)), false)
 	return lbl
+
+
+# ───────── 立绘工具带钮样式（紧贴字面的紧凑胶囊）─────────
+# 复用主题 token（获取面板色/获取金色描边/RADIUS_BUTTON/BORDER_W），零新增色字面量。
+# 无 custom_minimum_size ⇒ 尺寸完全由「字面 + 内边距」决定（对齐「框体跟文字差不多大」的反馈）；
+# 实测约 87×49 物理像素，仍在 44px 触控基线之上。
+func _apply_hero_tool_style(btn: Button) -> void:
+	btn.focus_mode = Control.FOCUS_NONE
+	UITheme.apply_project_font(btn, UITheme.FONT_AUX, false)
+	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # 行高由「?」决定，本钮不被拉高
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UITheme.获取面板色()
+	sb.border_color = UITheme.获取金色描边()
+	sb.set_corner_radius_all(UITheme.RADIUS_BUTTON)
+	sb.set_border_width_all(UITheme.BORDER_W)
+	sb.content_margin_left = float(UITheme.GRID)
+	sb.content_margin_right = float(UITheme.GRID)
+	sb.content_margin_top = float(int(round(UITheme.GRID * 0.85)))
+	sb.content_margin_bottom = float(int(round(UITheme.GRID * 0.85)))
+	btn.add_theme_stylebox_override("normal", sb)
+	btn.add_theme_stylebox_override("hover", sb)
+	btn.add_theme_stylebox_override("pressed", sb)
+	btn.add_theme_stylebox_override("focus", sb)
+	btn.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	btn.add_theme_color_override("font_hover_color", UITheme.COLOR_TEXT_GOLD)
+	btn.add_theme_color_override("font_pressed_color", UITheme.COLOR_TEXT_GOLD)
 
 
 func _make_section_title(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = "◆ " + text
 	lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	lbl.add_theme_font_size_override("font_size", int(round(16 * UITheme.UI_SCALE)))
+	# ★ 2026-09-14：16 → 14（配合「文字太大、翻页多」的反馈；section 标题属分隔级，不需 36px）
+	UITheme.apply_project_font(lbl, int(round(14 * UITheme.UI_SCALE)), false)
 	return lbl
 
 
 func _make_panel() -> PanelContainer:
 	var panel := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.14, 0.2, 0.6)
+	sb.bg_color = Color(0.122, 0.169, 0.192, 0.60)
 	sb.border_color = Color(0.83, 0.69, 0.21, 0.2)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	panel.add_theme_stylebox_override("panel", sb)
 	return panel
 
@@ -876,7 +1057,7 @@ func _make_attr_row(attr_name: String) -> HBoxContainer:
 	name_lbl.text = attr_name
 	name_lbl.custom_minimum_size = Vector2(24, 0)
 	name_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	name_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(name_lbl, int(round(14 * UITheme.UI_SCALE)), false)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hb.add_child(name_lbl)
 	# 自绘视觉进度条（绕开 ProgressBar 单源化校验：白名单外不得自造 fill/background stylebox）
@@ -890,7 +1071,7 @@ func _make_attr_row(attr_name: String) -> HBoxContainer:
 	track.custom_minimum_size = Vector2(0, 16)
 	track.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	var track_style: StyleBoxFlat = StyleBoxFlat.new()
-	track_style.bg_color = Color(0.1, 0.14, 0.2, 0.85)
+	track_style.bg_color = Color(0.122, 0.169, 0.192, 0.85)
 	track_style.set_corner_radius_all(5)
 	track_style.content_margin_left = 0
 	track_style.content_margin_right = 0
@@ -912,19 +1093,37 @@ func _make_attr_row(attr_name: String) -> HBoxContainer:
 	val_lbl.text = "—"
 	val_lbl.custom_minimum_size = Vector2(40, 0)
 	val_lbl.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
-	val_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(val_lbl, int(round(14 * UITheme.UI_SCALE)), false)
 	hb.add_child(val_lbl)
 	# entry: bar=ColorRect（直接 set width）, val=value label, track=PanelContainer（拿总宽）
 	_attr_bars[attr_name] = {"bar": fill_rect, "val": val_lbl, "track": track, "fill_root": fill_root}
+	# 点击属性条 → 弹该项说明（攻/防/血/速，含气血=体力）
+	var 说明: String = {
+		"攻": "攻击：影响出招伤害与破防，攻修弟子攻坚更利。",
+		"防": "防御：减伤根基，体修弟子越战越稳。",
+		"血": "气血：生命上限，气血耗尽则战陨；闭关疗伤可恢复。",
+		"速": "速度：决定出手先后与闪避，速修先发制人。",
+	}.get(attr_name, "")
+	_set_mouse_ignore_recursive(hb)
+	hb.mouse_filter = Control.MOUSE_FILTER_STOP
+	hb.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			var v: int = 0
+			if _current_disciple != null and _current_disciple.属性 is Dictionary:
+				v = int(_current_disciple.属性.get(attr_name, 0))
+			_show_info_popup(attr_name + "  " + str(v), 说明, ev.global_position if ev is InputEventMouseButton else Vector2(540, 800)))
 	return hb
 
 
-func _make_mini_card(title: String, desc: String) -> VBoxContainer:
+func _make_mini_card(title: String, desc: String, 可点 := false) -> VBoxContainer:
 	var vb := VBoxContainer.new()
 	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_theme_constant_override("separation", 4)
 	var panel: PanelContainer = _make_panel()
+	# ★ 2026-09-14 修：面板纵向撑满，使同一行的三张卡**等高**。
+	#   旧版不撑满 ⇒ 内容两行的卡（如「性格」带「气质：」第二行）比一行的卡高出半格，同行参差不齐。
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vb.add_child(panel)
 	var inner := VBoxContainer.new()
 	inner.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -933,20 +1132,37 @@ func _make_mini_card(title: String, desc: String) -> VBoxContainer:
 	var title_lbl := Label.new()
 	title_lbl.text = title
 	title_lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	title_lbl.add_theme_font_size_override("font_size", int(round(14 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(title_lbl, int(round(14 * UITheme.UI_SCALE)), false)
 	inner.add_child(title_lbl)
 	var desc_lbl := Label.new()
 	desc_lbl.name = "DescLabel"
 	desc_lbl.text = desc
 	desc_lbl.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
-	desc_lbl.add_theme_font_size_override("font_size", int(round(12 * UITheme.UI_SCALE)))
+	UITheme.apply_project_font(desc_lbl, int(round(12 * UITheme.UI_SCALE)), false)
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	inner.add_child(desc_lbl)
+	if 可点:
+		var hi := Label.new()
+		hi.text = "ⓘ"
+		hi.add_theme_color_override("font_color", Color(0.40, 0.45, 0.50))
+		UITheme.apply_project_font(hi, int(round(12 * UITheme.UI_SCALE)), false)
+		hi.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(hi)
 	return vb
 
 
 # ───────── v15竖屏纸娃娃系统（9槽位精确对位）─────────
 func _build_paper_doll(parent: VBoxContainer) -> void:
+	# 2026-09-15 修：页面固定返回按钮 `_back_btn` 锚在 (12,12)-(48,48) 逻辑（物理 27~108），
+	#   而 page_scroll 是 PRESET_FULL_RECT ⇒ 纸娃娃舞台若从 y=0 起，左列「道冠」槽会**整块盖住
+	#   返回按钮**（实机截图确认：装备页左上角看不到 ← 返回）。详情页之所以正常，是它的立绘
+	#   上方本就有等量留白。这里补齐顶部留白，让开返回按钮。
+	var top_pad := Control.new()
+	top_pad.name = "EquipTopPad"
+	top_pad.custom_minimum_size = Vector2(0, float(int(round(56 * UITheme.UI_SCALE))))
+	top_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(top_pad)
+
 	var root_vb := VBoxContainer.new()
 	root_vb.name = "PaperDollRoot"
 	root_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -955,17 +1171,46 @@ func _build_paper_doll(parent: VBoxContainer) -> void:
 	parent.add_child(root_vb)
 	_paper_doll_area = root_vb
 
-	var slot_size: int = 100
+	# 2026-09-15 大厂化：槽位 100 → 112（正方形比例更足，容纳图标/文字后不挤）
+	var slot_size: int = 112
+	# 舞台高度：取「4 槽竖列（4×100 + 3×6 ≈ 418）」与立绘（640）中的较高者，
+	# 槽列由 VBoxContainer.alignment=CENTER 在舞台内垂直居中 ⇒ 首屏同框看到人与八槽。
+	var 舞台高: float = 640.0
 
-	# ── 立绘：全宽铺满上部 ──
+	# ── 装备舞台：左 4 槽 ｜ 立绘 ｜ 右 4 槽（人物装备界面通行布局）──
+	# 旧版是「立绘独占 750 高的整宽块」+「8 槽居中 2×4 方块」两段纵向堆叠：
+	# 立绘与槽位彼此脱节、首屏被立绘吃光、观感像「一张图下面挂了一格按钮」。
+	# 现改为槽位夹住立绘的环绕式：左列衣饰（道冠/法袍/灵腕/灵裤）、右列器物（法兵/灵饰/束灵/云靴），
+	# 立绘固定 420 宽居中（KEEP_ASPECT_COVERED 下裁切最少），左右列各 100 宽贴边。
+	var 舞台 := HBoxContainer.new()
+	舞台.name = "EquipStage"
+	舞台.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	舞台.custom_minimum_size = Vector2(0, 舞台高)
+	舞台.add_theme_constant_override("separation", UITheme.GRID)
+	root_vb.add_child(舞台)
+
+	var 左列 := VBoxContainer.new()
+	左列.name = "SlotColLeft"
+	左列.alignment = BoxContainer.ALIGNMENT_CENTER
+	左列.add_theme_constant_override("separation", UITheme.GRID_SM)
+	舞台.add_child(左列)
+	for key in ["toukui", "yipao", "huzhi", "changku"]:
+		_build_equip_slot(左列, key, slot_size)
+
+	# 立绘（沿用原三层：底色 + 辉光 + 底部渐隐，只是改为居中定尺）
+	var portrait_center := CenterContainer.new()
+	portrait_center.name = "PortraitCenter"
+	portrait_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	portrait_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	舞台.add_child(portrait_center)
 	var portrait_box := Control.new()
-	portrait_box.custom_minimum_size = Vector2(0, 750)
-	portrait_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	portrait_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root_vb.add_child(portrait_box)
+	portrait_box.name = "PortraitBox"
+	portrait_box.custom_minimum_size = Vector2(420, 舞台高)
+	portrait_center.add_child(portrait_box)
 	# 立绘区域背景（和页面统一色调）
 	var pbg := ColorRect.new()
-	pbg.color = Color(0.08, 0.06, 0.09, 1.0)
+	# 2026-09-15 大厂化：原 Color(0.08,0.06,0.09) 纯黑紫与页面墨绿底脱节 → 统一到 COLOR_BG_BASE 暗青黛
+	pbg.color = Color(UITheme.COLOR_BG_BASE, 1.0)
 	pbg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pbg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait_box.add_child(pbg)
@@ -998,57 +1243,73 @@ func _build_paper_doll(parent: VBoxContainer) -> void:
 	fade.material = fade_mat
 	portrait_box.add_child(fade)
 
-	# ── 8件装备：2排×4列 ──
-	var grid := GridContainer.new()
-	grid.columns = 4
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	var grid_center := CenterContainer.new()
-	grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root_vb.add_child(grid_center)
-	grid_center.add_child(grid)
-
-	var equip_keys = ["toukui", "wuqi", "yipao", "peishi", "huzhi", "yaodai", "changku", "xuezi"]
-	for key in equip_keys:
-		_build_equip_slot(grid, key, slot_size)
+	var 右列 := VBoxContainer.new()
+	右列.name = "SlotColRight"
+	右列.alignment = BoxContainer.ALIGNMENT_CENTER
+	右列.add_theme_constant_override("separation", UITheme.GRID_SM)
+	舞台.add_child(右列)
+	for key in ["wuqi", "peishi", "yaodai", "xuezi"]:
+		_build_equip_slot(右列, key, slot_size)
 
 	# ── 一键穿戴 | 本命法宝 | 一键卸下 ──
 	var fabao_hb := HBoxContainer.new()
 	fabao_hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	fabao_hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	fabao_hb.add_theme_constant_override("separation", 16)
+	fabao_hb.add_theme_constant_override("separation", UITheme.GRID * 2)
 	root_vb.add_child(fabao_hb)
 
 	var btn_wear := Button.new()
-	btn_wear.text = "一键穿戴"
-	btn_wear.custom_minimum_size = Vector2(200, 80)
+	btn_wear.text = "配予"
+	# 2026-09-15 大厂化：① 原硬编码翠绿 (0.18,0.80,0.44) 是全页唯一一处绿，与整套「暗金+墨绿」语言冲突；
+	#              ② 原写死 200 宽，两侧各留 86 空白，操作区显松散 → 改撑满 + 垂直居中不与槽同高。
+	btn_wear.custom_minimum_size = Vector2(0, 84)
+	btn_wear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_wear.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var wear_sb := StyleBoxFlat.new()
-	wear_sb.bg_color = Color(0.18, 0.80, 0.44, 0.15)
-	wear_sb.border_color = Color(0.18, 0.80, 0.44, 0.8)
-	wear_sb.set_border_width_all(1)
-	wear_sb.set_corner_radius_all(10)
+	wear_sb.bg_color = Color(UITheme.COLOR_BTN_PRIMARY, 0.55)
+	wear_sb.border_color = UITheme.COLOR_BORDER_GOLD
+	wear_sb.set_border_width_all(2)
+	wear_sb.set_corner_radius_all(12)
 	btn_wear.add_theme_stylebox_override("normal", wear_sb)
-	btn_wear.add_theme_color_override("font_color", Color(0.18, 0.80, 0.44))
-	btn_wear.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	btn_wear.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+	UITheme.apply_project_font(btn_wear, UITheme.FONT_H2, true)
 	btn_wear.pressed.connect(_on_auto_equip_pressed)
 	fabao_hb.add_child(btn_wear)
 
 	_build_equip_slot(fabao_hb, "本命法宝", slot_size)
 
 	var btn_off := Button.new()
-	btn_off.text = "一键卸下"
-	btn_off.custom_minimum_size = Vector2(200, 80)
+	btn_off.text = "收回"
+	btn_off.custom_minimum_size = Vector2(0, 84)
+	btn_off.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_off.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var off_sb := StyleBoxFlat.new()
-	off_sb.bg_color = Color(1, 1, 1, 0.04)
-	off_sb.border_color = Color(0.78, 0.65, 0.34, 0.4)
-	off_sb.set_border_width_all(1)
-	off_sb.set_corner_radius_all(10)
+	off_sb.bg_color = Color(UITheme.COLOR_BG_CONTENT, 0.5)
+	off_sb.border_color = Color(UITheme.COLOR_BORDER_GOLD, 0.45)
+	off_sb.set_border_width_all(2)
+	off_sb.set_corner_radius_all(12)
 	btn_off.add_theme_stylebox_override("normal", off_sb)
-	btn_off.add_theme_color_override("font_color", Color(0.78, 0.72, 0.59))
-	btn_off.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	btn_off.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
+	UITheme.apply_project_font(btn_off, UITheme.FONT_H2, true)
 	btn_off.pressed.connect(_on_unequip_all_pressed)
 	fabao_hb.add_child(btn_off)
+
+	# ── 储物袋（普通法宝随身携带，临阵自动择一祭出）──
+	var bag_btn := Button.new()
+	bag_btn.text = "储物袋"
+	bag_btn.custom_minimum_size = Vector2(0, 72)
+	bag_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bag_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var bag_sb := StyleBoxFlat.new()
+	bag_sb.bg_color = Color(UITheme.COLOR_BG_CONTENT, 0.5)
+	bag_sb.border_color = Color(UITheme.COLOR_BORDER_GOLD, 0.45)
+	bag_sb.set_border_width_all(2)
+	bag_sb.set_corner_radius_all(12)
+	bag_btn.add_theme_stylebox_override("normal", bag_sb)
+	bag_btn.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
+	UITheme.apply_project_font(bag_btn, UITheme.FONT_H2, true)
+	bag_btn.pressed.connect(_open_储物袋面板)
+	root_vb.add_child(bag_btn)
 
 
 # 构建单个装备槽（圆角方形，大厂标准样式）
@@ -1060,11 +1321,12 @@ func _build_equip_slot(parent: Node, key: String, slot_size: int) -> void:
 	var holder := PanelContainer.new()
 	holder.name = "EquipSlot_" + key
 	holder.custom_minimum_size = Vector2(slot_size, slot_size)
+	# 2026-09-15 大厂化：原 Color(0.110,0.149,0.173) 偏蓝灰，与页面墨绿底冲突 → 统一 COLOR_BG_CONTENT
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.10, 0.14, 0.85)
-	sb.border_color = Color(0.78, 0.65, 0.34, 0.5)
+	sb.bg_color = Color(UITheme.COLOR_BG_CONTENT, 0.55)
+	sb.border_color = Color(UITheme.COLOR_BORDER_GOLD, 0.35)
 	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(10)
+	sb.set_corner_radius_all(12)
 	sb.content_margin_left = 4
 	sb.content_margin_right = 4
 	sb.content_margin_top = 4
@@ -1095,8 +1357,9 @@ func _build_equip_slot(parent: Node, key: String, slot_size: int) -> void:
 	name_lbl.name = "SlotName"
 	name_lbl.text = icon_text
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_color_override("font_color", Color(0.83, 0.72, 0.42, 0.9))
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	# 2026-09-15 大厂化：槽名字号 33 → 21（原 33 在方槽内挤成「字比槽大」）
+	name_lbl.add_theme_color_override("font_color", Color(UITheme.COLOR_TEXT_BODY_GOLD, 0.75))
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_AUX, true)
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	slot_vb.add_child(name_lbl)
 
@@ -1104,8 +1367,9 @@ func _build_equip_slot(parent: Node, key: String, slot_size: int) -> void:
 	hint_lbl.name = "SlotHint"
 	hint_lbl.text = "＋"
 	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66, 0.7))
-	hint_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	# 2026-09-15 大厂化：＋ 号 48 → 33（原比槽名大两级，视觉主次颠倒）
+	hint_lbl.add_theme_color_override("font_color", Color(UITheme.COLOR_BORDER_GOLD, 0.5))
+	UITheme.apply_project_font(hint_lbl, UITheme.FONT_H2, true)
 	hint_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	slot_vb.add_child(hint_lbl)
 
@@ -1129,7 +1393,7 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb.add_theme_constant_override("separation", 0)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.09, 0.12, 0.8)
+	sb.bg_color = Color(0.110, 0.149, 0.173, 0.80)
 	sb.border_color = Color(0.78, 0.65, 0.34, 0.2)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
@@ -1153,14 +1417,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	power_val.text = "—"
 	power_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power_val.add_theme_color_override("font_color", Color(0.91, 0.77, 0.45))
-	power_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(power_val, UITheme.FONT_DISPLAY, true)
 	power_vb.add_child(power_val)
 	_power_total = power_val
 	var power_lbl := Label.new()
-	power_lbl.text = "总战力"
+	power_lbl.text = "道行"
 	power_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	power_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(power_lbl, UITheme.FONT_BODY, false)
 	power_vb.add_child(power_lbl)
 
 	# 分隔线
@@ -1178,14 +1442,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	bonus_val.text = "—"
 	bonus_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bonus_val.add_theme_color_override("font_color", Color(0.18, 0.80, 0.44))
-	bonus_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(bonus_val, UITheme.FONT_DISPLAY, true)
 	bonus_vb.add_child(bonus_val)
 	_power_bonus = bonus_val
 	var bonus_lbl := Label.new()
-	bonus_lbl.text = "装备加成"
+	bonus_lbl.text = "器物之助"
 	bonus_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bonus_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	bonus_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(bonus_lbl, UITheme.FONT_BODY, false)
 	bonus_vb.add_child(bonus_lbl)
 
 	var sep2 := VSeparator.new()
@@ -1202,14 +1466,14 @@ func _build_power_summary(parent: VBoxContainer) -> void:
 	count_val.text = "0/9"
 	count_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_val.add_theme_color_override("font_color", Color(0.91, 0.86, 0.78))
-	count_val.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(count_val, UITheme.FONT_DISPLAY, true)
 	count_vb.add_child(count_val)
 	_power_count = count_val
 	var count_lbl := Label.new()
-	count_lbl.text = "已装备"
+	count_lbl.text = "已着之物"
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	count_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(count_lbl, UITheme.FONT_BODY, false)
 	count_vb.add_child(count_lbl)
 
 
@@ -1237,9 +1501,9 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	var title_hb := HBoxContainer.new()
 	vb.add_child(title_hb)
 	var title_lbl := Label.new()
-	title_lbl.text = "✨ 套装效果"
+	title_lbl.text = "◆ 套装效果"
 	title_lbl.add_theme_color_override("font_color", Color(0.80, 0.55, 0.90))
-	title_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(title_lbl, UITheme.FONT_H2, true)
 	title_hb.add_child(title_lbl)
 	var count_lbl := Label.new()
 	count_lbl.name = "SetCount"
@@ -1247,7 +1511,7 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 	count_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	count_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(count_lbl, UITheme.FONT_BODY, false)
 	title_hb.add_child(count_lbl)
 
 	# 2/3/5件效果横排
@@ -1257,29 +1521,29 @@ func _build_set_bonus(parent: VBoxContainer) -> void:
 
 	var set2 := Label.new()
 	set2.name = "SetBonus2"
-	set2.text = "2件:未激活"
+	set2.text = "着二件 · 未成"
 	set2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set2.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set2.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(set2, UITheme.FONT_BODY, false)
 	effects_hb.add_child(set2)
 
 	var set3 := Label.new()
 	set3.name = "SetBonus3"
-	set3.text = "3件:未激活"
+	set3.text = "着三件 · 未成"
 	set3.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set3.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set3.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set3.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(set3, UITheme.FONT_BODY, false)
 	effects_hb.add_child(set3)
 
 	var set5 := Label.new()
 	set5.name = "SetBonus5"
-	set5.text = "5件:未激活"
+	set5.text = "着五件 · 未成"
 	set5.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	set5.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	set5.add_theme_color_override("font_color", Color(0.40, 0.45, 0.48))
-	set5.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(set5, UITheme.FONT_BODY, false)
 	effects_hb.add_child(set5)
 
 
@@ -1308,16 +1572,16 @@ func _build_equip_detail(parent: VBoxContainer) -> void:
 	header_hb.add_child(_equip_detail_name)
 
 	_equip_detail_power = Label.new()
-	_equip_detail_power.text = "战力: —"
+	_equip_detail_power.text = "道行 —"
 	_equip_detail_power.size_flags_horizontal = Control.SIZE_SHRINK_END
 	UITheme.apply_value_text(_equip_detail_power)
 	header_hb.add_child(_equip_detail_power)
 
 	# 装备描述
 	_equip_detail_desc = Label.new()
-	_equip_detail_desc.text = "点击装备槽位查看详情"
+	_equip_detail_desc.text = "轻点器物格，可观其详"
 	_equip_detail_desc.add_theme_color_override("font_color", Color(0.78, 0.72, 0.59))
-	_equip_detail_desc.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(_equip_detail_desc, UITheme.FONT_BODY, false)
 	_equip_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_equip_detail_desc)
 
@@ -1376,14 +1640,14 @@ func _build_护身符_section(parent: VBoxContainer) -> void:
 	var 当前 = _safe_get(_current_disciple, "护身符", null)
 	if 当前 != null and typeof(当前) == TYPE_OBJECT:
 		var nl := Label.new()
-		nl.text = "当前佩戴：%s" % str(当前.get("名称", ""))
+		nl.text = "当前佩戴：%s" % str(Game._物品名(当前))
 		UITheme.apply_body_font(nl)
 		vbox.add_child(nl)
 		var 摘要 := Label.new()
-		摘要.text = "战力+%d　修炼+%.3f　突破+%.3f" % [
-			int(Game.护身符战力加成(_current_disciple)),
-			float(Game.护身符修炼加成(_current_disciple)),
-			float(Game.护身符突破加成(_current_disciple))]
+		摘要.text = "道行+%d　修炼+%.1f%%　突破+%.1f%%" % [
+			(_current_disciple.护身符战力净增() if _current_disciple != null else 0),
+			float(Game.护身符修炼加成(_current_disciple)) * 100.0,
+			float(Game.护身符突破加成(_current_disciple)) * 100.0]
 		UITheme.apply_aux_font(摘要)
 		vbox.add_child(摘要)
 		var 卸 := Button.new()
@@ -1394,7 +1658,7 @@ func _build_护身符_section(parent: VBoxContainer) -> void:
 		vbox.add_child(卸)
 	else:
 		var 空 := Label.new()
-		空.text = "尚未佩戴护身符（库房符箓可佩戴为护身符，增益战力/修炼/突破）"
+		空.text = "尚未佩戴护身符（库房符箓可佩戴为护身符，增益道行/修炼/突破）"
 		UITheme.apply_aux_font(空)
 		空.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(空)
@@ -1405,12 +1669,16 @@ func _build_护身符_section(parent: VBoxContainer) -> void:
 	for it in 库:
 		if it == null or typeof(it) != TYPE_OBJECT:
 			continue
-		if str(it.get("类别", "")) != "fu_lu":
+		# ★ 2026-09-16 修（真 bug · 红线⑤同族）：Item 是 RefCounted（非字典），
+		#   `.get(k, 默认)` 双参在 Godot 4.7 抛「Expected 1 argument(s)」并**中断本函数**
+		#   ⇒ 符箓候选扫描整段失效。改单参 .get(key) + null 兜底（本页既有正确范式）。
+		var v类别: Variant = it.get("类别")
+		if v类别 == null or String(v类别) != "fu_lu":
 			continue
 		有候选 = true
 		var 卡 := HBoxContainer.new()
 		var 名 := Label.new()
-		名.text = "◆ %s（战力+%d）" % [str(it.get("名称", "")), int(it.get("战力加成", 0))]
+		名.text = "◆ %s（符词条·道行 +%d）" % [str(Game._物品名(it)), int(it.战力加成)]
 		UITheme.apply_body_font(名)
 		名.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		卡.add_child(名)
@@ -1441,7 +1709,7 @@ func _build_休闲设置_section(parent: VBoxContainer) -> void:
 	panel.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "闲情雅趣（休闲设置）"
+	title.text = "闲情雅趣"
 	UITheme.apply_section_title(title)
 	vbox.add_child(title)
 
@@ -1569,19 +1837,35 @@ func _on_卸下护身符() -> void:
 func _refresh_护身符_section() -> void:
 	if _护身符_panel != null and is_instance_valid(_护身符_panel):
 		var p = _护身符_parent
+		var 原序: int = _护身符_panel.get_index()   # ★ 记原位：重建后插回，避免每刷一次往下沉一层
+		# 2026-09-15：必须「先摘除、后 queue_free」。queue_free 帧末才生效，
+		# 同帧内新建同名兄弟会被 Godot 自动改名（护身符Panel → 护身符Panel2），
+		# 此后任何按名字找节点的代码都会落空（本轮 headless 验收就是这么抓到的）。
+		if p != null:
+			p.remove_child(_护身符_panel)
 		_护身符_panel.queue_free()
 		_护身符_panel = null
-		if p != null:
+		if p != null and is_instance_valid(p):
 			_build_护身符_section(p)
+			if _护身符_panel != null and _护身符_panel.get_parent() == p:
+				p.move_child(_护身符_panel, mini(原序, p.get_child_count() - 1))
 
 # S55 P1：刷新休闲设置section
 func _refresh_休闲设置_section() -> void:
 	if _休闲设置_panel != null and is_instance_valid(_休闲设置_panel):
 		var p = _休闲设置_panel.get_parent()
+		var 原序: int = _休闲设置_panel.get_index()   # ★ 记原位：重建后必须插回，否则 add_child 会追加到末尾
+		# 同 _refresh_护身符_section：先摘除再 queue_free，避免同帧重名被自动改名。
+		if p != null:
+			p.remove_child(_休闲设置_panel)
 		_休闲设置_panel.queue_free()
 		_休闲设置_panel = null
-		if p != null:
+		if p != null and is_instance_valid(p):
 			_build_休闲设置_section(p)
+			# 2026-09-15：_build_休闲设置_section 内部是 add_child（追加到末尾），
+			# 不搬回去的话「闲情雅趣」每刷一次就往下沉一层，最终跑到「驱逐师门」之后。
+			if _休闲设置_panel != null and _休闲设置_panel.get_parent() == p:
+				p.move_child(_休闲设置_panel, mini(原序, p.get_child_count() - 1))
 
 
 # ───────── 灵兽页 ─────────
@@ -1602,8 +1886,13 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	avatar_sb.border_color = Color(0.95, 0.75, 0.20, 0.8)
 	avatar_sb.set_border_width_all(2)
 	avatar_sb.set_corner_radius_all(48)
+	avatar_sb.set_content_margin_all(4)
 	avatar_bg.add_theme_stylebox_override("panel", avatar_sb)
 	avatar_bg.custom_minimum_size = Vector2(96, 96)
+	# 2026-09-15 修「灵兽头像框明显不对」：avatar_bg 是 PanelContainer，在 head_hb(HBoxContainer) 中
+	# 会被沿交叉轴拉伸到整行高（右侧 name_vb 三行文字撑出 200+）⇒ 96×96 方框被拉成竖长条。
+	# 交叉轴改 SHRINK_CENTER ⇒ 恢复正圆方框并随行居中；描边内缩 4，图标与环之间留白。
+	avatar_bg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head_hb.add_child(avatar_bg)
 	_beast_avatar = TextureRect.new()
 	_beast_avatar.custom_minimum_size = Vector2(88, 88)
@@ -1619,17 +1908,17 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	_beast_name = Label.new()
 	_beast_name.text = "尚未契约灵兽"
 	_beast_name.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_beast_name.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(_beast_name, UITheme.FONT_H1, true)
 	name_row.add_child(_beast_name)
 	_beast_info = Label.new()
 	_beast_info.text = ""
 	_beast_info.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	_beast_info.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(_beast_info, UITheme.FONT_BODY, false)
 	name_vb.add_child(_beast_info)
 	_beast_power = Label.new()
 	_beast_power.text = ""
 	_beast_power.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	_beast_power.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(_beast_power, UITheme.FONT_H2, true)
 	name_vb.add_child(_beast_power)
 	# 亲密度
 	main_vb.add_child(_make_progress_row("亲密度", "_beast_loyalty", Color(0.95, 0.75, 0.20)))
@@ -1639,7 +1928,7 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var skill_title := Label.new()
 	skill_title.text = "灵兽技能"
 	skill_title.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-	skill_title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(skill_title, UITheme.FONT_H2, true)
 	main_vb.add_child(skill_title)
 	# 技能2×2网格
 	_beast_skill_grid = GridContainer.new()
@@ -1664,7 +1953,7 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var dep_icon := Label.new()
 	dep_icon.text = "＋"
 	dep_icon.add_theme_color_override("font_color", Color(0.5, 0.55, 0.55))
-	dep_icon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(dep_icon, UITheme.FONT_H1, true)
 	dep_hb.add_child(dep_icon)
 	var dep_vb := VBoxContainer.new()
 	dep_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1672,12 +1961,12 @@ func _build_beast_page(parent: VBoxContainer) -> void:
 	var dep_name := Label.new()
 	dep_name.text = "灵兽·副（空槽）"
 	dep_name.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	dep_name.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(dep_name, UITheme.FONT_BODY, false)
 	dep_vb.add_child(dep_name)
 	var dep_hint := Label.new()
 	dep_hint.text = "坊市招募，需要灵兽契约×1"
 	dep_hint.add_theme_color_override("font_color", Color(0.45, 0.50, 0.52))
-	dep_hint.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(dep_hint, UITheme.FONT_AUX, false)
 	dep_vb.add_child(dep_hint)
 
 func _make_progress_row(label_text: String, bar_name: String, bar_color: Color) -> Control:
@@ -1688,14 +1977,14 @@ func _make_progress_row(label_text: String, bar_name: String, bar_color: Color) 
 	var name_lbl := Label.new()
 	name_lbl.text = label_text
 	name_lbl.add_theme_color_override("font_color", Color(0.66, 0.74, 0.72))
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_BODY, false)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_lbl)
 	var val_lbl := Label.new()
 	val_lbl.name = "ValLabel"
 	val_lbl.text = "—"
 	val_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	val_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(val_lbl, UITheme.FONT_BODY, false)
 	row.add_child(val_lbl)
 	var bg := ColorRect.new()
 	bg.color = Color(1, 1, 1, 0.08)
@@ -1780,8 +2069,8 @@ func _build_record_page(parent: VBoxContainer) -> void:
 	title_hb.add_theme_constant_override("separation", 12)
 	title_panel.add_child(title_hb)
 	var trophy := Label.new()
-	trophy.text = "🏆"
-	trophy.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	trophy.text = "★"
+	UITheme.apply_project_font(trophy, UITheme.FONT_H1, true)
 	title_hb.add_child(trophy)
 	var title_vb := VBoxContainer.new()
 	title_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1789,12 +2078,12 @@ func _build_record_page(parent: VBoxContainer) -> void:
 	_record_title_text = Label.new()
 	_record_title_text.text = "尚无称号"
 	_record_title_text.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85))
-	_record_title_text.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(_record_title_text, UITheme.FONT_H2, true)
 	title_vb.add_child(_record_title_text)
 	_record_title_desc = Label.new()
 	_record_title_desc.text = "修为达标、宗门任职、技艺精进皆可得道号尊称"
 	_record_title_desc.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-	_record_title_desc.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(_record_title_desc, UITheme.FONT_AUX, false)
 	title_vb.add_child(_record_title_desc)
 	# 已获得称号列表
 	parent.add_child(_make_section_title("道号尊称"))
@@ -1823,10 +2112,143 @@ func _build_record_page(parent: VBoxContainer) -> void:
 	timeline_panel.add_child(_record_timeline)
 
 
+# ───────── 社交关系卡片详情（★ 2026-09-15：此前卡片无命中区，点了没反应）─────────
+func _on_社交卡_pressed(标题: String) -> void:
+	if _current_disciple == null or not is_instance_valid(Game):
+		return
+	var d = _current_disciple
+	var 正文: String = ""
+	if 标题.contains("道侣"):
+		if str(d.道侣) == "":
+			正文 = "尚无道侣。\n\n结为道侣后：双修加成生效、危难互赠护身之物；道侣陨落将重创道心。"
+		else:
+			正文 = "道侣：%s\n双修加成：+%.0f%%\n\n结发同修、生死相护。" % [str(d.道侣), float(d.双修加成) * 100.0]
+	elif 标题.contains("血脉共鸣"):
+		var 亲数: int = int(d.获取在宗血脉亲属数())
+		var 比: float = min(0.003 * 亲数, 0.012) * 100.0
+		正文 = "在宗血脉亲属：%d 位\n修炼加成：+%.1f%%　道行加成：+%.1f%%（上限 +1.2%%）\n\n亲属：%s" % [
+			亲数, 比, 比, _亲缘名册()]
+	elif 标题.contains("家族"):
+		if str(d.家族ID) == "":
+			正文 = "散修出身，暂无家族。\n\n可投靠修仙家族：得族中资源与庇护，亦须承担族务。"
+		else:
+			正文 = "家族：%s\n职位：%s\n家族贡献：%d" % [str(d.家族名), str(d.家族职位), int(d.家族贡献)]
+	elif 标题.contains("血脉"):
+		正文 = "血脉：%s\n纯度：%.0f%%\n状态：%s\n血脉功法：%d 部" % [
+			str(d.血脉类型), float(d.血脉纯度), ("已觉醒" if d.血脉觉醒 else "未觉醒"), d.血脉功法列表.size()]
+	elif 标题.contains("家庭"):
+		正文 = "父母：%s\n子女：%s\n\n（血缘亲属同宗可触发血脉共鸣加成）" % [_名册(d.父母ID), _名册(d.子嗣列表)]
+	elif 标题.contains("子嗣"):
+		正文 = "子嗣：%s\n共 %d 人\n\n子嗣可入宗修行，承父母部分资质与血脉。" % [_名册(d.子嗣列表), d.子嗣列表.size()]
+	elif 标题.contains("道友") or 标题.contains("好友") or 标题.contains("仇人"):
+		var 网: Dictionary = Game.获取弟子关系网络(str(d.弟子ID))
+		var 列: Array = []
+		if 标题.contains("道友"):
+			列 = 网.get("道友列表", [])
+		elif 标题.contains("好友"):
+			列 = 网.get("好友列表", [])
+		else:
+			列 = 网.get("仇人列表", [])
+		if 列.is_empty():
+			正文 = "暂无此人脉。\n\n好感度随同门共事、赠礼、并肩作战变化：\n· 道友：好感度 ≥ 80\n· 好友：好感度 60–79\n· 仇人：好感度 < 20"
+		else:
+			var 行: Array = []
+			for r in 列:
+				var rd: Dictionary = r if typeof(r) == TYPE_DICTIONARY else {}
+				行.append("· %s（好感 %d）" % [str(rd.get("姓名", "—")), int(rd.get("好感度", 0))])
+			正文 = "共 %d 人：\n%s" % [列.size(), "\n".join(行)]
+	if 正文 == "":
+		正文 = "暂无详情。"
+	var dlg := AcceptDialog.new()
+	dlg.name = "SocialDetailDialog"
+	dlg.title = 标题.strip_edges()
+	dlg.dialog_text = 正文
+	UITheme.apply_popup_font(dlg, int(round(14 * UITheme.UI_SCALE)), false)
+	dlg.ok_button_text = "知道了"
+	add_child(dlg)
+	dlg.popup_centered()
+
+## 关系名册：把弟子ID列表转成「姓名（境界）」串，缺项跳过
+func _名册(ids: Array) -> String:
+	if ids.is_empty():
+		return "无"
+	var 名: Array = []
+	for pid in ids:
+		var x = Game._取弟子(int(pid)) if Game.has_method("_取弟子") else null
+		if x != null:
+			名.append("%s（%s）" % [str(x.姓名), str(x.境界)])
+	return "、".join(名) if not 名.is_empty() else "无"
+
+## 在宗血脉亲属名册（同家族ID / 有血缘关联的在宗弟子）
+func _亲缘名册() -> String:
+	var d = _current_disciple
+	var 名: Array = []
+	for x in Game.弟子列表:
+		if x == null or x == d or str(x.状态) != "在宗":
+			continue
+		if str(d.家族ID) != "" and str(x.家族ID) == str(d.家族ID):
+			名.append("%s（%s）" % [str(x.姓名), str(x.境界)])
+	return "、".join(名) if not 名.is_empty() else "无"
+
+
 # ───────── 装备槽位点击事件 ─────────
 func _on_equip_slot_pressed(slot_key: String) -> void:
+	# ★ 2026-09-15（老大定）：本命法宝槽不走「穿/卸」逻辑 —— 它不是捡来的装备，
+	#   而是弟子自身以精血神识祭炼而成的贴身之物（不可购、不可赠、不可卸）。
+	#   点它 = 开祭炼/温养面板；未成器时给出「境界 + 机缘」双门槛提示。
+	if slot_key == "本命法宝":
+		_open_本命法宝面板()
+		return
 	_selected_equip_slot = slot_key
 	_refresh_equip_detail()
+
+# ───────── 本命法宝：祭炼 / 温养面板 ─────────
+# 世界观：本命法宝与神魂相连、同生共死 ⇒ 只此一件、不可转让、不可卸下；
+#   成器须「境界基础 + 机缘」双门槛，故并非人人都有（不设保底）。
+func _open_本命法宝面板() -> void:
+	if _current_disciple == null or not is_instance_valid(Game):
+		return
+	var d = _current_disciple
+	var 配: Dictionary = {}
+	if Game.has_method("弟子本命法宝配置"):
+		配 = Game.弟子本命法宝配置(d)
+	var 已立: bool = not 配.is_empty()
+	var 文案: String = ""
+	if 已立:
+		var 级: int = int(d.本命法宝祭炼等级)
+		文案 = "【本命法宝】%s（%s·%s）\n\n成长：%s（全属性）\n温养重数：%d / %d（每重 +10%% 成长）\n主动技：%s\n被动：%s\n\n本命法宝与神魂相连，损毁则伤及道基，故不可转赠他人。" % [
+			str(配.get("名称", "")), str(配.get("品阶", "")), str(配.get("子品阶", "")),
+			str(配.get("成长值", "")), 级, int(Game.本命法宝温养上限),
+			str(配.get("主动技能", "—")), str(配.get("被动效果", "—"))]
+	else:
+		var 可: Dictionary = Game.弟子可祭炼本命法宝(d)
+		var 率: float = float(可.get("成功率", 0.0)) * 100.0
+		var 耗: int = int(可.get("消耗", 0))
+		if bool(可.get("ok", false)):
+			文案 = "【祭炼本命法宝】\n\n%s 尚无本命法宝。\n境界：%s %d 层 —— 已达祭炼门槛（%s 期）。\n\n以精血神识温养器胚，成器须机缘加身：\n· 机缘检定成功率：%.0f%%\n· 耗宗门灵石：%d\n· 器型与品阶随境界机缘而定\n\n（器不成则精血空耗，灵石不退。）" % [
+				str(d.姓名), str(d.境界), int(d.层数), str(Game.本命法宝境界门槛), 率, 耗]
+		else:
+			文案 = "【本命法宝】\n\n%s 尚未祭炼本命法宝。\n\n%s\n\n本命法宝以自身精血神识温养而成，非外物可得；\n境界足够、机缘加身时，方能在洞府闭门祭炼。" % [str(d.姓名), str(可.get("reason", ""))]
+	_show_本命法宝弹窗(文案, 已立)
+
+## 祭炼/温养确认弹窗（复用项目统一弹窗样式；按钮按状态二选一）
+func _show_本命法宝弹窗(文案: String, 已立: bool) -> void:
+	var dlg := AcceptDialog.new()
+	dlg.name = "BenmingFabaoDialog"
+	dlg.title = "本命法宝"
+	dlg.dialog_text = 文案
+	UITheme.apply_popup_font(dlg, int(round(14 * UITheme.UI_SCALE)), false)
+	dlg.ok_button_text = "温养一重" if 已立 else "闭门祭炼"
+	dlg.add_cancel_button("暂不")
+	dlg.confirmed.connect(func():
+		var r: Dictionary = Game.温养本命法宝(_current_disciple) if 已立 else Game.祭炼本命法宝(_current_disciple)
+		ToastManager.show_tip(str(r.get("msg", "")))
+		_refresh_equip_slots()
+		_refresh_power_summary()
+		dlg.queue_free())
+	dlg.canceled.connect(func(): dlg.queue_free())
+	add_child(dlg)
+	dlg.popup_centered()
 
 
 func _on_unequip_pressed() -> void:
@@ -1893,6 +2315,129 @@ func _on_unequip_all_pressed() -> void:
 	_refresh_equip_detail()
 
 
+# ───────── 储物袋（普通法宝 · 随身携带，临阵择一祭出）─────────
+# 世界观：普通法宝是外物，可购、可赠、可夺；弟子以神识驭之，一次只祭出一件。
+# 故此处只管「带哪些」，不管「穿哪件」—— 出战法宝由 弟子.选择出战法宝() 按战况自定。
+func _open_储物袋面板() -> void:
+	if _current_disciple == null:
+		return
+	var d = _current_disciple
+	var dlg := AcceptDialog.new()
+	dlg.name = "StorageBagDialog"
+	dlg.title = "储物袋"
+	dlg.ok_button_text = "关闭"
+	UITheme.apply_popup_font(dlg, int(round(13 * UITheme.UI_SCALE)), false)
+
+	var 卷 := ScrollContainer.new()
+	卷.custom_minimum_size = Vector2(int(420 * UITheme.UI_SCALE), int(300 * UITheme.UI_SCALE))
+	var vb := VBoxContainer.new()
+	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_theme_constant_override("separation", 8)
+	卷.add_child(vb)
+	dlg.add_child(卷)
+
+	var 袋: Array = d.获取储物袋法宝() if d.has_method("获取储物袋法宝") else d.储物袋法宝.duplicate()
+	var 战况: String = str(d.推断战况()) if d.has_method("推断战况") else "常规"
+	var 出战: String = str(d.选择出战法宝(战况)) if d.has_method("选择出战法宝") else ""
+	_袋标题(vb, "随身法宝  %d / %d" % [袋.size(), int(d.储物袋容量())])
+	var 战况名: Dictionary = {"危急": "心魔压身", "固守": "持重护身", "常规": "寻常对敌"}
+	var 出战名: String = "尚未择定"
+	if 出战 != "":
+		出战名 = str(Game.获取普通法宝配置(出战).get("名称", 出战))
+	_袋说明(vb, "临阵自动择一祭出 · 眼下%s → %s" % [str(战况名.get(战况, 战况)), 出战名])
+
+	_袋标题(vb, "袋中法宝")
+	if 袋.is_empty():
+		_袋说明(vb, "空空如也。法宝须于器殿锻造或坊市购得，方能收入袋中。")
+	for tid in 袋:
+		var 配: Dictionary = Game.获取普通法宝配置(str(tid))
+		if 配.is_empty():
+			continue
+		_袋行(vb, _法报名(配, str(tid)), _法宝属性行(配), "取出", _on_袋取出.bind(str(tid), dlg))
+
+	var 未入: Array = []
+	for tid in Game.获取所有普通法宝配置().keys():
+		if not 袋.has(str(tid)):
+			未入.append(str(tid))
+	if not 未入.is_empty():
+		_袋标题(vb, "器殿藏物")
+		for tid in 未入:
+			var 配2: Dictionary = Game.获取普通法宝配置(str(tid))
+			_袋行(vb, _法报名(配2, str(tid)), _法宝属性行(配2), "收入", _on_袋收入.bind(str(tid), dlg))
+
+	add_child(dlg)
+	dlg.popup_centered()
+
+# 法宝展示名：名称（品阶·类型），缺项自动省略
+func _法报名(配: Dictionary, 兜底: String) -> String:
+	var 名: String = str(配.get("名称", 兜底))
+	var 品: String = str(配.get("品阶", ""))
+	var 类: String = str(配.get("类型", ""))
+	if 品 == "" and 类 == "":
+		return 名
+	return "%s（%s%s）" % [名, 品, ("·" + 类) if 类 != "" else ""]
+
+func _法宝属性行(配: Dictionary) -> String:
+	return "攻 %d　防 %d　血 %d" % [int(配.get("基础攻击", 0)), int(配.get("基础防御", 0)), int(配.get("基础气血", 0))]
+
+func _袋标题(parent: Node, 文本: String) -> void:
+	var l := Label.new()
+	l.text = 文本
+	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+	UITheme.apply_project_font(l, UITheme.FONT_H2, true)
+	parent.add_child(l)
+
+func _袋说明(parent: Node, 文本: String) -> void:
+	var l := Label.new()
+	l.text = 文本
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_color_override("font_color", Color(0.68, 0.74, 0.78))
+	UITheme.apply_project_font(l, UITheme.FONT_AUX, false)
+	parent.add_child(l)
+
+func _袋行(parent: Node, 名: String, 属性: String, 按钮文案: String, 回调: Callable) -> void:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	var nl := Label.new()
+	nl.text = 名
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nl.add_theme_color_override("font_color", Color(0.90, 0.86, 0.70))
+	UITheme.apply_project_font(nl, UITheme.FONT_BODY, false)
+	hb.add_child(nl)
+	var vl := Label.new()
+	vl.text = 属性
+	vl.add_theme_color_override("font_color", Color(0.60, 0.68, 0.72))
+	UITheme.apply_project_font(vl, UITheme.FONT_AUX, false)
+	hb.add_child(vl)
+	var btn := Button.new()
+	btn.text = 按钮文案
+	btn.custom_minimum_size = Vector2(int(72 * UITheme.UI_SCALE), int(28 * UITheme.UI_SCALE))
+	UITheme.apply_project_font(btn, UITheme.FONT_AUX, false)
+	btn.pressed.connect(回调)
+	hb.add_child(btn)
+	parent.add_child(hb)
+
+func _on_袋取出(tid: String, dlg: AcceptDialog) -> void:
+	if _current_disciple == null:
+		return
+	var r: Dictionary = Game.卸下普通法宝(_current_disciple.弟子ID, tid)
+	ToastManager.show_tip(str(r.get("原因", "")))
+	dlg.queue_free()
+	_open_储物袋面板()
+	_refresh_equip_slots()
+	_refresh_power_summary()
+
+func _on_袋收入(tid: String, dlg: AcceptDialog) -> void:
+	if _current_disciple == null:
+		return
+	var r: Dictionary = Game.装备普通法宝(_current_disciple.弟子ID, tid)
+	ToastManager.show_tip(str(r.get("原因", "")))
+	dlg.queue_free()
+	_open_储物袋面板()
+	_refresh_equip_slots()
+	_refresh_power_summary()
+
 # ───────── 刷新装备槽位显示 ─────────
 func _refresh_equip_slots() -> void:
 	if _current_disciple == null:
@@ -1904,6 +2449,14 @@ func _refresh_equip_slots() -> void:
 	for key in _equip_slots.keys():
 		var holder: PanelContainer = _equip_slots[key]
 		var item = 装备.get(key, null)
+		# ★ 2026-09-15：本命法宝槽的数据源是 `弟子.本命法宝ID`（自身祭炼所得），**不在**「装备」字典里。
+		#   成器后合成一个字典喂给下面的通用渲染分支，从而沿用装备槽样式与品阶配色。
+		if key == "本命法宝":
+			item = null
+			if is_instance_valid(Game) and Game.has_method("弟子本命法宝配置"):
+				var 本: Dictionary = Game.弟子本命法宝配置(_current_disciple)
+				if not 本.is_empty():
+					item = {"名称": str(本.get("名称", "")), "品阶": str(本.get("品阶", ""))}
 		var name_lbl: Label = holder.get_node_or_null("SlotVBox/SlotName")
 		var hint_lbl: Label = holder.get_node_or_null("SlotVBox/SlotHint")
 		var icon_rect: TextureRect = holder.get_node_or_null("SlotIcon")
@@ -1916,10 +2469,10 @@ func _refresh_equip_slots() -> void:
 			var quality_color = _get_quality_color(品阶)
 			# 品阶色边框直接应用到holder
 			var eq_sb := StyleBoxFlat.new()
-			eq_sb.bg_color = Color(0.08, 0.12, 0.15, 0.92)
+			eq_sb.bg_color = Color(UITheme.COLOR_BG_CONTENT, 0.92)
 			eq_sb.border_color = quality_color
 			eq_sb.set_border_width_all(3)
-			eq_sb.set_corner_radius_all(10)
+			eq_sb.set_corner_radius_all(12)
 			eq_sb.content_margin_left = 4
 			eq_sb.content_margin_right = 4
 			eq_sb.content_margin_top = 4
@@ -1931,7 +2484,14 @@ func _refresh_equip_slots() -> void:
 			if icon_rect != null:
 				# 图标优先级：类别_品阶（如 faqi_bao.png）→ 槽位通用（如 wuqi.png）
 				var 品阶后缀: Dictionary = {"凡阶":"fan","灵阶":"ling","宝阶":"bao","王阶":"wang","圣阶":"sheng","仙阶":"xian","道阶":"dao"}
-				var 类别后缀: Dictionary = {"法器":"faqi","神兵":"shenbing","法宝":"fabao","丹药":"danyao","灵材":"lingcai"}
+				# ★2026-09-15 修正：`Item.类别` 实存**拼音码**（见 item.gd `类别中文名`），原表用中文键 ⇒ 一律落到 `%s_品阶.png` 不存在的路径、装备图标全回落槽位通用图。
+				#   拼音键为主，中文键保留兼容（item.gd 默认值 `类别 := "法器"` 会写入中文）；补齐原先缺失的 `fu_lu`（符箓）。
+				var 类别后缀: Dictionary = {
+					"fa_qi": "faqi", "shen_bing": "shenbing", "fabao": "fabao",
+					"dan_yao": "danyao", "ling_cai": "lingcai", "fu_lu": "fulu",
+					"法器": "faqi", "神兵": "shenbing", "法宝": "fabao",
+					"丹药": "danyao", "灵材": "lingcai", "符箓": "fulu",
+				}
 				var item_obj = item if typeof(item) == TYPE_OBJECT else null
 				var icon_tex: Texture2D = null
 				if item_obj != null and "类别" in item_obj and "品阶" in item_obj:
@@ -1956,10 +2516,10 @@ func _refresh_equip_slots() -> void:
 						name_lbl.add_theme_color_override("font_color", quality_color)
 		else:
 			var empty_sb := StyleBoxFlat.new()
-			empty_sb.bg_color = Color(0.06, 0.10, 0.13, 0.85)
-			empty_sb.border_color = Color(0.78, 0.65, 0.34, 0.5)
+			empty_sb.bg_color = Color(UITheme.COLOR_BG_CONTENT, 0.55)
+			empty_sb.border_color = Color(UITheme.COLOR_BORDER_GOLD, 0.35)
 			empty_sb.set_border_width_all(2)
-			empty_sb.set_corner_radius_all(10)
+			empty_sb.set_corner_radius_all(12)
 			empty_sb.content_margin_left = 4
 			empty_sb.content_margin_right = 4
 			empty_sb.content_margin_top = 4
@@ -1970,11 +2530,14 @@ func _refresh_equip_slots() -> void:
 			if icon_rect != null:
 				icon_rect.visible = false
 			if name_lbl != null:
-				name_lbl.text = default_name
-				name_lbl.add_theme_color_override("font_color", Color(0.83, 0.72, 0.42, 0.9))
-				name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+				# 空的本命法宝槽：写「未祭炼」而非槽名，并提示点此祭炼（它不是捡来的装备）
+				name_lbl.text = "未祭炼" if key == "本命法宝" else default_name
+				name_lbl.add_theme_color_override("font_color", Color(UITheme.COLOR_TEXT_BODY_GOLD, 0.75))
+				UITheme.apply_project_font(name_lbl, UITheme.FONT_H2, true)
 			if hint_lbl != null:
 				hint_lbl.visible = true
+				if key == "本命法宝":
+					hint_lbl.text = "点此祭炼"
 	# 同步刷新战力摘要
 	_refresh_power_summary()
 	# 刷新套装效果
@@ -2063,7 +2626,7 @@ func _refresh_set_bonus() -> void:
 	var title_lbl = set_panel.get_node_or_null("VBox/TitleHBox/TitleLabel")
 	var count_lbl = set_panel.get_node_or_null("VBox/TitleHBox/SetCount")
 	if title_lbl:
-		title_lbl.text = "✨ " + set_name
+		title_lbl.text = "◆ " + set_name
 	if count_lbl:
 		count_lbl.text = str(best_count) + "/5"
 	# 更新效果行（2件/3件/5件）
@@ -2079,12 +2642,12 @@ func _refresh_set_bonus() -> void:
 			var tn := Label.new()
 			tn.text = t[0]
 			tn.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if t[2] else Color(0.4,0.45,0.5))
-			tn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(tn, UITheme.FONT_BODY, false)
 			eb.add_child(tn)
 			var td := Label.new()
 			td.text = t[1]
 			td.add_theme_color_override("font_color", Color(0.85,0.88,0.90) if t[2] else Color(0.35,0.4,0.45))
-			td.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(td, UITheme.FONT_BODY, false)
 			td.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			eb.add_child(td)
 
@@ -2105,7 +2668,7 @@ func _refresh_beast_page() -> void:
 		_beast_info.text = str(beast.品阶) + " · " + type_cn
 	if _beast_power:
 		var bp: int = beast.本体战力() if beast.has_method("本体战力") else 0
-		_beast_power.text = "战力 " + str(bp)
+		_beast_power.text = "道行 " + str(bp)
 	# 加载灵兽立绘头像
 	if _beast_avatar and beast.has_method("取立绘路径"):
 		var beast_path: String = beast.取立绘路径()
@@ -2125,7 +2688,7 @@ func _refresh_beast_page() -> void:
 	var lv: int = int(beast.等级)
 	var lv_max: int = int(beast.等级上限)
 	if _beast_level_text:
-		_beast_level_text.text = str(beast.品阶) + " Lv." + str(lv) + "/" + str(lv_max)
+		_beast_level_text.text = str(beast.品阶) + " " + str(lv) + " 阶/" + str(lv_max)
 	if _beast_level_bar:
 		_beast_level_bar.offset_right = int(300 * clampf(float(lv)/float(max(lv_max,1)), 0, 1))
 	# 技能网格
@@ -2155,13 +2718,13 @@ func _refresh_beast_page() -> void:
 			var sk_name := Label.new()
 			sk_name.text = sk[0]
 			sk_name.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if sk[1] else Color(0.4,0.45,0.5))
-			sk_name.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+			UITheme.apply_project_font(sk_name, UITheme.FONT_BODY, false)
 			sk_vb.add_child(sk_name)
 			if sk[1]:
 				var sk_hint := Label.new()
 				sk_hint.text = "已激活"
 				sk_hint.add_theme_color_override("font_color", Color(0.35,0.80,0.50))
-				sk_hint.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+				UITheme.apply_project_font(sk_hint, UITheme.FONT_AUX, false)
 				sk_vb.add_child(sk_hint)
 
 # §4.0 弟子自主层：查抄私藏
@@ -2198,7 +2761,7 @@ func _refresh_record_page() -> void:
 		var 目标行 := Label.new()
 		目标行.text = "当前志向：%s" % 目标名
 		目标行.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-		目标行.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+		UITheme.apply_project_font(目标行, UITheme.FONT_H2, true)
 		_record_goal_vbox.add_child(目标行)
 		var 描述文: String = Goal.取描述(目标名)
 		if 描述文 != "":
@@ -2217,7 +2780,7 @@ func _refresh_record_page() -> void:
 			var 史标题 := Label.new()
 			史标题.text = "── 志业演变 ──"
 			史标题.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
-			史标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(史标题, UITheme.FONT_AUX, false)
 			_record_goal_vbox.add_child(史标题)
 			for 项 in 栈:
 				if not (项 is Dictionary):
@@ -2277,23 +2840,23 @@ func _refresh_record_page() -> void:
 							var 兄: Object = Game._取弟子(sid)
 							if 兄 != null and 兄 is Disciple and 兄.状态 == "在宗":
 								兄弟姐妹数 += 1
-		var 血脉卡片 = (["🔗 血脉共鸣", "%d位在宗亲属" % 血脉亲属数, "修炼+%.1f%% 战力+%.1f%%" % [血脉修炼加成 * 100, 血脉战力加成 * 100]]) if 血脉亲属数 > 0 else (["🔗 血脉共鸣", "暂无在宗亲属", "有血缘亲属同宗时激活"])
+		var 血脉卡片 = (["◇ 血脉共鸣", "%d位在宗亲属" % 血脉亲属数, "修炼+%.1f%% 道行+%.1f%%" % [血脉修炼加成 * 100, 血脉战力加成 * 100]]) if 血脉亲属数 > 0 else (["◇ 血脉共鸣", "暂无在宗亲属", "有血缘亲属同宗时自生共鸣"])
 		# §6.16 家族和血脉信息
 		var 家族秘宝名 = ""
 		if d.家族秘宝 != "" and Game != null and Game.has_method("_家族秘宝配置"):
 			var 秘宝配置 = Game._家族秘宝配置.get(d.家族秘宝, {})
 			家族秘宝名 = str(秘宝配置.get("名", d.家族秘宝))
-		var 家族卡片 = (["🏛 家族", "%s·%s" % [d.家族名, d.家族职位], "贡献%d%s" % [d.家族贡献, ("·秘宝:"+家族秘宝名) if 家族秘宝名 != "" else ""]]) if d.家族ID != "" else (["🏛 家族", "散修", "可加入修仙家族"])
+		var 家族卡片 = (["■ 家族", "%s·%s" % [d.家族名, d.家族职位], "贡献%d%s" % [d.家族贡献, ("·秘宝:"+家族秘宝名) if 家族秘宝名 != "" else ""]]) if d.家族ID != "" else (["■ 家族", "散修", "可加入修仙家族"])
 		var 血脉状态 = "已觉醒·%.0f%%" % d.血脉觉醒度 if d.血脉觉醒 else "未觉醒"
 		var 血脉功法数 = d.血脉功法列表.size()
-		var 血脉卡片2 = (["🩸 血脉", "%s·纯度%.0f%%" % [d.血脉类型, d.血脉纯度], "%s%s" % [血脉状态, ("·血脉功法%d" % 血脉功法数) if 血脉功法数 > 0 else ""]]) if d.血脉类型 != "凡人血脉" else (["🩸 血脉", "凡人血脉", "无特殊血脉"])
+		var 血脉卡片2 = (["◆ 血脉", "%s·纯度%.0f%%" % [d.血脉类型, d.血脉纯度], "%s%s" % [血脉状态, ("·血脉功法%d" % 血脉功法数) if 血脉功法数 > 0 else ""]]) if d.血脉类型 != "凡人血脉" else (["◆ 血脉", "凡人血脉", "无特殊血脉"])
 		var socials = [
-			["💗 道侣", (str(d.道侣) if d.道侣 != "" else "尚无道侣"), "双修加成+%.0f%%" % (d.双修加成 * 100.0)],
+			["◇ 道侣", (str(d.道侣) if d.道侣 != "" else "尚无道侣"), "双修加成+%.0f%%" % (d.双修加成 * 100.0)],
 			血脉卡片,
 			家族卡片,
 			血脉卡片2,
-			["👨‍👩‍👧 家庭", "父母%d 子女%d 兄弟%d" % [父母数, 子女数, 兄弟姐妹数], "§6.16 血脉传承"],
-			["👶 子嗣", "%d人" % d.子嗣列表.size(), ""],
+			["■ 家庭", "父母%d 子女%d 兄弟%d" % [父母数, 子女数, 兄弟姐妹数], "§6.16 血脉传承"],
+			["○ 子嗣", "%d人" % d.子嗣列表.size(), ""],
 		]
 		# 拟真NPC系统：道友/好友/仇人统计
 		if Game != null and Game.has_method("获取弟子关系网络"):
@@ -2301,10 +2864,10 @@ func _refresh_record_page() -> void:
 			var 道友数: int = int(关系网络.get("道友列表", []).size())
 			var 好友数: int = int(关系网络.get("好友列表", []).size())
 			var 仇人数: int = int(关系网络.get("仇人列表", []).size())
-			socials.append(["🤝 道友", "%d人" % 道友数, "好感度≥80" if 道友数 > 0 else "尚无道友"])
-			socials.append(["👥 好友", "%d人" % 好友数, "好感度60-79" if 好友数 > 0 else "尚无好友"])
+			socials.append(["◇ 道友", "%d人" % 道友数, "好感度≥80" if 道友数 > 0 else "尚无道友"])
+			socials.append(["◆ 好友", "%d人" % 好友数, "好感度60-79" if 好友数 > 0 else "尚无好友"])
 			if 仇人数 > 0:
-				socials.append(["⚔️ 仇人", "%d人" % 仇人数, "好感度<20，需注意"])
+				socials.append(["⚠ 仇人", "%d人" % 仇人数, "好感度<20，需注意"])
 		for s in socials:
 			var sp := PanelContainer.new()
 			var ssb := StyleBoxFlat.new()
@@ -2323,13 +2886,25 @@ func _refresh_record_page() -> void:
 			var sn := Label.new()
 			sn.text = s[0]
 			sn.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-			sn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+			UITheme.apply_project_font(sn, UITheme.FONT_BODY, false)
 			svb.add_child(sn)
 			var sv := Label.new()
 			sv.text = s[1]
 			sv.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			sv.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(sv, UITheme.FONT_BODY, false)
 			svb.add_child(sv)
+			# ★ 2026-09-15 修（老大：社交关系这里点不开详情）：卡片此前是纯展示面板、无命中区。
+			#   现每张卡叠一层全屏透明按钮 → 点开该关系的明细（人员名单 / 数值来源 / 玩法说明）。
+			var sbtn := Button.new()
+			sbtn.name = "SocialBtn"
+			sbtn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			sbtn.flat = true
+			sbtn.text = ""
+			sbtn.focus_mode = Control.FOCUS_NONE
+			sbtn.tooltip_text = "点开看详情"
+			sbtn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			sbtn.pressed.connect(_on_社交卡_pressed.bind(str(s[0])))
+			sp.add_child(sbtn)
 	# 心理状态（拟真NPC系统）
 	if _record_psyche_vbox:
 		for c in _record_psyche_vbox.get_children():
@@ -2346,15 +2921,15 @@ func _refresh_record_page() -> void:
 			psyche_hb.add_theme_constant_override("separation", 20)
 			_record_psyche_vbox.add_child(psyche_hb)
 			var 性格标签 := Label.new()
-			性格标签.text = "🧠 性格：%s" % 性格
+			性格标签.text = "◇ 性格：%s" % 性格
 			性格标签.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-			性格标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(性格标签, UITheme.FONT_BODY, false)
 			psyche_hb.add_child(性格标签)
 			var 情绪标签 := Label.new()
-			var 情绪图标: String = {"喜悦":"😊","愤怒":"😠","恐惧":"😨","悲伤":"😢","平静":"😐"}.get(情绪, "😐")
+			var 情绪图标: String = {"喜悦":"◇","愤怒":"◇","恐惧":"◇","悲伤":"◇","平静":"◇"}.get(情绪, "◇")
 			情绪标签.text = "%s 情绪：%s" % [情绪图标, 情绪]
 			情绪标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			情绪标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(情绪标签, UITheme.FONT_BODY, false)
 			psyche_hb.add_child(情绪标签)
 			# 需求进度条
 			var 需求列表: Array = [["修炼", float(心理状态.get("需求修炼", 0))], ["社交", float(心理状态.get("需求社交", 0))], ["休息", float(心理状态.get("需求休息", 0))], ["安全", float(心理状态.get("需求安全", 0))]]
@@ -2368,7 +2943,7 @@ func _refresh_record_page() -> void:
 				需求名标签.text = "  %s" % 需求名
 				需求名标签.custom_minimum_size = Vector2(60, 0)
 				需求名标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-				需求名标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+				UITheme.apply_project_font(需求名标签, UITheme.FONT_AUX, false)
 				需求_hb.add_child(需求名标签)
 				var 需求进度 := ProgressBar.new()
 				需求进度.min_value = 0
@@ -2385,19 +2960,19 @@ func _refresh_record_page() -> void:
 			info_hb.add_theme_constant_override("separation", 20)
 			_record_psyche_vbox.add_child(info_hb)
 			var 需求标签 := Label.new()
-			需求标签.text = "⚡ 最迫切：%s" % 最迫切需求
+			需求标签.text = "◆ 最迫切：%s" % 最迫切需求
 			需求标签.add_theme_color_override("font_color", Color(0.95,0.7,0.4))
-			需求标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(需求标签, UITheme.FONT_BODY, false)
 			info_hb.add_child(需求标签)
 			var 心境标签 := Label.new()
-			心境标签.text = "💭 心境：%d" % 心境
+			心境标签.text = "◇ 心境：%d" % 心境
 			心境标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			心境标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(心境标签, UITheme.FONT_BODY, false)
 			info_hb.add_child(心境标签)
 			var 互动标签 := Label.new()
-			互动标签.text = "💬 互动：%d次" % 互动计数
+			互动标签.text = "◇ 互动：%d次" % 互动计数
 			互动标签.add_theme_color_override("font_color", Color(0.85,0.88,0.90))
-			互动标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(互动标签, UITheme.FONT_BODY, false)
 			info_hb.add_child(互动标签)
 	# 互动历史（拟真NPC系统）
 	if _record_interaction_vbox:
@@ -2409,7 +2984,7 @@ func _refresh_record_page() -> void:
 				var empty := Label.new()
 				empty.text = "  尚无互动记录"
 				empty.add_theme_color_override("font_color", Color(0.5,0.55,0.6))
-				empty.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+				UITheme.apply_project_font(empty, UITheme.FONT_AUX, false)
 				_record_interaction_vbox.add_child(empty)
 			else:
 				for 互动 in 互动历史:
@@ -2420,18 +2995,18 @@ func _refresh_record_page() -> void:
 					var 互动_hb := HBoxContainer.new()
 					互动_hb.add_theme_constant_override("separation", 10)
 					_record_interaction_vbox.add_child(互动_hb)
-					var 类型图标: String = {"正面":"✨","负面":"💢","中性":"💬"}.get(类型, "💬")
+					var 类型图标: String = {"正面":"◆","负面":"◆","中性":"◇"}.get(类型, "◇")
 					var 类型标签 := Label.new()
 					类型标签.text = "  %s" % 类型图标
 					类型标签.custom_minimum_size = Vector2(40, 0)
-					类型标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+					UITheme.apply_project_font(类型标签, UITheme.FONT_AUX, false)
 					互动_hb.add_child(类型标签)
 					var 内容标签 := Label.new()
 					内容标签.text = 内容
 					内容标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					var 内容颜色: Color = Color(0.7,0.9,0.7) if 类型 == "正面" else (Color(0.9,0.6,0.6) if 类型 == "负面" else Color(0.85,0.88,0.90))
 					内容标签.add_theme_color_override("font_color", 内容颜色)
-					内容标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+					UITheme.apply_project_font(内容标签, UITheme.FONT_BODY, false)
 					互动_hb.add_child(内容标签)
 					if 好感影响 != 0:
 						var 好感标签 := Label.new()
@@ -2439,7 +3014,7 @@ func _refresh_record_page() -> void:
 						好感标签.custom_minimum_size = Vector2(50, 0)
 						好感标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 						好感标签.add_theme_color_override("font_color", Color(0.5,0.8,0.5) if 好感影响 > 0 else Color(0.9,0.5,0.5))
-						好感标签.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+						UITheme.apply_project_font(好感标签, UITheme.FONT_BODY, false)
 						互动_hb.add_child(好感标签)
 	# 羁绊
 	if _record_bond_list:
@@ -2457,7 +3032,7 @@ func _refresh_record_page() -> void:
 				var 加成值: float = float(t.get("bonus_value", 0))
 				var 加成文本: String = ""
 				match 加成类型:
-					"战力": 加成文本 = "战力+%d" % int(加成值)
+					"战力": 加成文本 = "道行+%d" % int(加成值)
 					"修炼速度": 加成文本 = "修炼速度+%.0f%%" % (加成值 * 100)
 					"突破率": 加成文本 = "突破率+%.0f%%" % (加成值 * 100)
 					"悟道": 加成文本 = "悟道+%d" % int(加成值)
@@ -2536,16 +3111,16 @@ func _refresh_record_page() -> void:
 			avb.alignment = BoxContainer.ALIGNMENT_CENTER
 			ap.add_child(avb)
 			var aicon := Label.new()
-			aicon.text = "🏆" if unlocked else "？"
+			aicon.text = "★" if unlocked else "？"
 			aicon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			aicon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+			UITheme.apply_project_font(aicon, UITheme.FONT_H1, true)
 			aicon.modulate = Color(1,1,1) if unlocked else Color(0.3,0.3,0.3)
 			avb.add_child(aicon)
 			var aname := Label.new()
 			aname.text = achs[i] if unlocked else "未解锁"
 			aname.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			aname.add_theme_color_override("font_color", Color(0.91,0.83,0.60) if unlocked else Color(0.35,0.38,0.4))
-			aname.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(aname, UITheme.FONT_BODY, false)
 			avb.add_child(aname)
 	# 历练时间线
 	if _record_timeline:
@@ -2560,23 +3135,38 @@ func _refresh_record_page() -> void:
 		else:
 			var count: int = min(events.size(), 20)
 			for i in range(count - 1, -1, -1):
-				var ev = events[i]
-				var ev_text: String = str(ev) if typeof(ev) != TYPE_DICTIONARY else str(ev.get("事件", ev.get("desc", "")))
 				var row := HBoxContainer.new()
 				var dot := Label.new()
 				dot.text = "●"
 				dot.add_theme_color_override("font_color", Color(0.95,0.80,0.30))
-				dot.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+				UITheme.apply_project_font(dot, UITheme.FONT_AUX, false)
 				dot.custom_minimum_size = Vector2(30, 0)
 				row.add_child(dot)
 				var evl := Label.new()
-				evl.text = ev_text.left(60)
+				evl.text = _格式化履历(events[i])
 				evl.add_theme_color_override("font_color", Color(0.75,0.80,0.82))
-				evl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+				UITheme.apply_project_font(evl, UITheme.FONT_BODY, false)
 				evl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				evl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				row.add_child(evl)
 				_record_timeline.add_child(row)
+
+# 履历条目形态不统一（纯串 / {日,事件,详情} / {时间,事件,类型}），此处统一为可读文本；
+# 旧写法 left(60) 会腰斩长文案，改由 AUTOWRAP 自然折行。
+func _格式化履历(ev: Variant) -> String:
+	if typeof(ev) != TYPE_DICTIONARY:
+		return str(ev)
+	var rec: Dictionary = ev
+	var 日: int = int(rec.get("日", rec.get("时间", 0)))
+	var 主: String = str(rec.get("事件", rec.get("desc", "")))
+	var 详: String = str(rec.get("详情", rec.get("类型", "")))
+	var 头: String = ("第%d日 · " % 日) if 日 > 0 else ""
+	if 主 == "":
+		主 = 详
+		详 = ""
+	if 详 != "" and 详 != 主:
+		return "%s%s（%s）" % [头, 主, 详]
+	return "%s%s" % [头, 主]
 
 func _make_info_row(name: String, value: String) -> Control:
 	var hb := HBoxContainer.new()
@@ -2586,13 +3176,13 @@ func _make_info_row(name: String, value: String) -> Control:
 	var nl := Label.new()
 	nl.text = name
 	nl.add_theme_color_override("font_color", Color(0.54,0.61,0.66))
-	nl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(nl, UITheme.FONT_BODY, false)
 	nl.custom_minimum_size = Vector2(140, 0)
 	hb.add_child(nl)
 	var vl := Label.new()
 	vl.text = value
 	vl.add_theme_color_override("font_color", Color(0.91,0.83,0.60))
-	vl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(vl, UITheme.FONT_BODY, false)
 	vl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(vl)
 	return hb
@@ -2625,8 +3215,8 @@ func _refresh_power_summary() -> void:
 func _refresh_equip_detail() -> void:
 	if _current_disciple == null or _selected_equip_slot == "":
 		_equip_detail_name.text = "未选择装备"
-		_equip_detail_power.text = "战力: —"
-		_equip_detail_desc.text = "点击装备槽位查看详情"
+		_equip_detail_power.text = "道行 —"
+		_equip_detail_desc.text = "轻点器物格，可观其详"
 		_btn_unequip.disabled = true
 		# 清空词缀（先获取子节点列表的副本，避免遍历同时修改）
 		var affixes_children = _equip_detail_affixes.get_children().duplicate()
@@ -2644,7 +3234,7 @@ func _refresh_equip_detail() -> void:
 		var slot_def = _find_slot_def(_selected_equip_slot)
 		var slot_name = slot_def.get("name", "未知槽位") if slot_def != {} else "未知槽位"
 		_equip_detail_name.text = slot_name + "（空）"
-		_equip_detail_power.text = "战力: —"
+		_equip_detail_power.text = "道行 —"
 		_equip_detail_desc.text = "此槽位尚未装备物品"
 		_btn_unequip.disabled = true
 	else:
@@ -2657,7 +3247,7 @@ func _refresh_equip_detail() -> void:
 
 		_equip_detail_name.text = 名称 + "  [" + 品阶 + "]"
 		_equip_detail_name.add_theme_color_override("font_color", quality_color)
-		_equip_detail_power.text = "战力加成: +%d" % 战力加成
+		_equip_detail_power.text = "道行加成 +%d" % 战力加成
 		_equip_detail_desc.text = "装备部位：%s" % _find_slot_def(_selected_equip_slot).get("name", "")
 		_btn_unequip.disabled = false
 
@@ -2676,23 +3266,23 @@ func _refresh_equip_detail() -> void:
 			var set_title := Label.new()
 			set_title.text = "◆ 套装共鸣"
 			set_title.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-			set_title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(set_title, UITheme.FONT_BODY, true)
 			_equip_set_panel.add_child(set_title)
 			for 套装 in 套装列表:
 				var set_lbl := Label.new()
 				var 数量 = 套装["数量"]
 				var 效果文本 = ""
 				if 数量 >= 5:
-					效果文本 = "已激活5件: " + str(套装["5件效果"])
+					效果文本 = "五宝相契：" + str(套装["5件效果"])
 				elif 数量 >= 3:
-					效果文本 = "已激活3件: " + str(套装["3件效果"]) + " | 5件: " + str(套装["5件效果"])
+					效果文本 = "三宝相契：" + str(套装["3件效果"]) + " ｜ 五宝：" + str(套装["5件效果"])
 				elif 数量 >= 2:
-					效果文本 = "已激活2件: " + str(套装["2件效果"]) + " | 3件: " + str(套装["3件效果"])
+					效果文本 = "二宝相生：" + str(套装["2件效果"]) + " ｜ 三宝：" + str(套装["3件效果"])
 				else:
-					效果文本 = "2件激活: " + str(套装["2件效果"])
+					效果文本 = "二宝相生：" + str(套装["2件效果"])
 				set_lbl.text = "%s (%d/5件) %s" % [str(套装["名称"]), 数量, 效果文本]
 				set_lbl.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
-				set_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+				UITheme.apply_project_font(set_lbl, UITheme.FONT_BODY, false)
 				set_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_equip_set_panel.add_child(set_lbl)
 
@@ -2708,13 +3298,13 @@ func _refresh_equip_detail() -> void:
 			var 词标 := Label.new()
 			词标.text = "◆ 装备词条"
 			词标.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-			词标.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+			UITheme.apply_project_font(词标, UITheme.FONT_BODY, true)
 			_equip_detail_affixes.add_child(词标)
 			for t in 词列:
-				var 类型名 = {"战力":"战力", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
+				var 类型名 = {"战力":"道行", "修炼":"修炼", "突破":"突破"}.get(t.get("类型",""), str(t.get("类型","")))
 				var 值文本 = ""
 				if t.get("类型") == "战力":
-					值文本 = "+%d战力" % int(t.get("数值", 0))
+					值文本 = "+%d道行" % int(t.get("数值", 0))
 				elif t.get("类型") == "修炼":
 					值文本 = "+%.0f%%修炼" % (float(t.get("数值", 0)) * 100)
 				else:
@@ -2722,7 +3312,7 @@ func _refresh_equip_detail() -> void:
 				var 行 := Label.new()
 				行.text = "  %s·%s %s" % [类型名, t.get("中文名", ""), 值文本]
 				行.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
-				行.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+				UITheme.apply_project_font(行, UITheme.FONT_BODY, false)
 				行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_equip_detail_affixes.add_child(行)
 
@@ -2761,7 +3351,7 @@ func _make_equip_slot(index: int) -> VBoxContainer:
 	name_lbl.add_theme_color_override("font_color", Color(0.54, 0.61, 0.66))
 	# 槽位名字号走 UITheme.FONT_AUX 单一来源（21px）。原写法 8*UI_SCALE=18px 低于项目最小字号档，
 	# 实机 1080 宽下两个汉字只有 18px 高，视觉上就像被切掉/糊掉，是「文字看不全」的次因。
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_AUX, false)
 	# ④ 修复 文字与框体不对齐：
 	# 原先 name_lbl 未设 size_flags / horizontal_alignment，Label 默认 SIZE_FILL 撑满 vb 整列宽，
 	# 而文本默认 HORIZONTAL_ALIGNMENT_LEFT → 文字贴列左边，上方槽框是 SIZE_SHRINK_CENTER 居中 → 两者错轴。
@@ -2778,6 +3368,7 @@ func _make_equip_slot(index: int) -> VBoxContainer:
 func set_disciple(d: Disciple) -> void:
 	_current_disciple = d
 	_查抄待确认 = false   # §4.0 切换弟子即重置查抄确认态
+	_驱逐待确认 = false   # 2026-09-14：驱逐的二次确认态同样随切人复位（防误点错人）
 	if d == null:
 		print("[弟子详情] set_disciple: d is null")
 		return
@@ -2839,8 +3430,9 @@ func set_disciple(d: Disciple) -> void:
 	if _power_summary != null:
 		var 法器数: int = d.装备.size() if d.装备 is Dictionary else 0
 		var 历练数: int = d.履历.size() if "履历" in d else 0
-		var 身份文: String = str(d.身份)
-		_power_summary.text = 身份文 + " · 历练" + str(历练数) + "次 · 法器" + str(法器数) + "件"
+		# 2026-09-14：不再重复「身份」（已在上行 _power_realm 的「境界 · 身份 · 资质 · 年龄」里），
+		#   缩短后确保整行不超出屏宽。
+		_power_summary.text = "历练%d次 · 法器%d件" % [历练数, 法器数]
 	# 四维属性（自绘视觉条：bar=ColorRect，按 val% 算 width）
 	if d.属性 is Dictionary:
 		for attr_name in ["攻", "防", "血", "速"]:
@@ -2902,11 +3494,11 @@ func set_disciple(d: Disciple) -> void:
 			_breakthrough_bar.offset_right = int(400 * prog)
 		if _breakthrough_pct != null:
 			_breakthrough_pct.text = str(int(d.修炼进度 * 100)) + "%  →  " + str(d.境界) + "·" + _层数中文(min(int(d.层数) + 1, 10))
-		# 当前状态（命魂灯：只表示生死二态；状态栏文字显示具体活动：历练/闭关/秘境/失踪/在宗）
+		# 当前状态（命牌：只表示生死二态；状态栏文字显示具体活动：历练/闭关/秘境/失踪/在宗）
 		if _status_label != null and _status_icon != null:
 			var 状态v: String = _取显示状态(d)
 			var 已陨落: bool = (状态v == "陨落")
-			_status_icon.texture = _SOUL_LAMP_DEAD if 已陨落 else _SOUL_LAMP_ALIVE
+			_refresh_命牌(已陨落)
 			if 已陨落:
 				_status_label.text = "已陨落（命牌灭）"
 			else:
@@ -2914,18 +3506,18 @@ func set_disciple(d: Disciple) -> void:
 					"历练中":
 						_status_label.text = "历练中"
 					"失踪":
-						_status_label.text = "失踪（生还·下落不明）"
+						_status_label.text = "失踪 · 下落不明"
 					"闭关":
 						_status_label.text = "闭关修炼中"
 					"秘境":
 						_status_label.text = "秘境探索中"
 					_:
 						if d.突破冷却剩余 > 0:
-							_status_label.text = "在宗（生还）· 突破气机未复"
+							_status_label.text = "在宗 · 突破气机未复"
 						elif d.稳固期剩余 > 0:
-							_status_label.text = "在宗（生还）· 境界稳固中"
+							_status_label.text = "在宗 · 境界稳固中"
 						else:
-							_status_label.text = "在宗（生还）"
+							_status_label.text = "在宗"
 	# 命格（先查 DestinyDataLoader 拿中文名称，回落 destiny_id 避免显示原始 key）
 	var destiny_id = str(d.destiny_id)
 	var lbl = _destiny_label.find_child("DescLabel", true, false)
@@ -3037,18 +3629,37 @@ func set_disciple(d: Disciple) -> void:
 						for _条 in _词条本[_gid]:
 							_词串 += "%s·" % str(_条["中文名"])
 						_gongfa_list_label.text += "\n  %s：%s" % [_功名, _词串.trim_suffix("·")]
-	# 更新学习按钮的悟道点显示
-	var learn_btn = _gongfa_list_label.get_parent().get_children()[-1] if _gongfa_list_label != null and _gongfa_list_label.get_parent() != null else null
-	if learn_btn != null and learn_btn is Button:
-		learn_btn.text = "学习功法（悟道点：%d）" % int(Game.悟道点) if Game != null else "学习功法"
-	# 丹药显示
-	if _danyao_list_label != null:
-		var 宗门库房 = Game.宗门库房 if Game != null else []
-		var 丹药数 = 0
-		for item in 宗门库房:
-			if item != null and str(item.get("类别", "")) == "丹药":
-				丹药数 += 1
-		_danyao_list_label.text = "宗门丹药库：%d颗" % 丹药数
+	# ★ 2026-09-14 删：原「学习功法」按钮已去（功法随师承与机缘自动习得）。
+	#   旧版靠 `_gongfa_list_label.get_parent().get_children()[-1]` 反查那颗按钮来改文案，
+	#   属「按子节点序位硬猜」的脆弱写法；按钮既去，这段一并删除。
+	# 丹药显示（★2026-09-15 改口径：弟子**自身携带**的丹药＝背包（随身公开）+ 私库（背地私藏））
+	#   旧版数的是 `Game.宗门库房`（全宗门公库）—— 既非此人的东西，且类别常量实为拼音码 `dan_yao`，
+	#   旧写中文「丹药」永不命中 ⇒ 恒显示 0 颗（静默错数）。现按弟子自己的两本账统计：
+	#   背包＝随身公开持有（列品名，玩家可见可管）；私库＝储物法宝内的私藏（只报件数，须「查抄」方知品名）。
+	if _danyao_list_label != null and d is Disciple:
+		var 随身: Array = []
+		if d.背包 != null:
+			for it in d.背包:
+				if it == null or typeof(it) != TYPE_OBJECT:
+					continue
+				if str(it.类别) == "dan_yao":
+					随身.append(str(it.简称))
+		var 私藏数: int = 0
+		if d.私库 != null:
+			for it in d.私库:
+				if it == null or typeof(it) != TYPE_OBJECT:
+					continue
+				if str(it.类别) == "dan_yao":
+					私藏数 += 1
+		if 随身.is_empty() and 私藏数 == 0:
+			_danyao_list_label.text = "随身丹药：无"
+		else:
+			var 丹文本: String = "随身丹药：%d颗" % 随身.size()
+			if not 随身.is_empty():
+				丹文本 += "（%s）" % "、".join(随身)
+			if 私藏数 > 0:
+				丹文本 += "\n私藏：%d颗（未报，须查抄方知）" % 私藏数
+			_danyao_list_label.text = 丹文本
 	# 立绘（直接调用方法，不依赖 has_method 判断）
 	var 路径 = d.取立绘路径("stand")
 	print("[弟子详情] 立绘路径=", 路径)
@@ -3075,7 +3686,93 @@ func set_disciple(d: Disciple) -> void:
 	_refresh_equip_detail()
 	_refresh_护身符_section()
 	_refresh_休闲设置_section()
-	_refresh_oath_box(d)   # S36 心魔誓
+	_refresh_oath_box(d)        # S36 心魔誓（2026-09-14 改：只读状态）
+	_刷新互动区(d)               # 2026-09-14：互动培养按「当下情境」触发/隐藏
+	_刷新灵泉状态()              # 2026-09-15：洗池·灵泉天时（十二载一开）
+	_刷新驱逐门禁(d)             # 2026-09-15：驱逐按钮平时锁死，唯重罪解禁
+	_close_portrait_fullview()  # 切弟子即收起「看全图」浮层，避免残留上一人的整图
+
+
+# ───────── 命牌牌位刷新（生／殁二态）─────────
+# 旧版用位图命魂灯（soul_lamp_*.png）：实测 128²、全图 alpha=255、四角近白，
+# 灯身 ivory 亮度与近白底色同区间 ⇒ 区域生长抠底会把灯座一并啃空（源图缺陷，非工程可修）。
+# 故改**矢量命牌**：金描边小牌 + 「生／殁」镌字，风格与全项目图标统一（老大 2026-09-15 定）。
+func _refresh_命牌(已陨落: bool) -> void:
+	if _status_glyph != null and is_instance_valid(_status_glyph):
+		_status_glyph.text = 命牌_殁 if 已陨落 else 命牌_生
+		_status_glyph.add_theme_color_override("font_color",
+			UITheme.COLOR_TEXT_RED if 已陨落 else UITheme.获取暗金正文())
+	if _status_icon != null and is_instance_valid(_status_icon):
+		var 牌框: StyleBoxFlat = _status_icon.get_theme_stylebox("panel") as StyleBoxFlat
+		if 牌框 != null:
+			牌框.border_color = UITheme.COLOR_TEXT_RED if 已陨落 else UITheme.获取金色描边()
+
+
+# ───────── 洗池 · 灵泉状态行（十二载一开、开则三十日）─────────
+# 与月课 `Game._月课_洗池灵泉()` 共用同一真源 `XiChiSystem.灵泉开启信息()`，避免 UI 与结算口径分叉。
+func _刷新灵泉状态() -> void:
+	if _lingquan_label == null or not is_instance_valid(_lingquan_label):
+		return
+	if Game == null:
+		_lingquan_label.text = "灵泉：—"
+		return
+	var 泉: Dictionary = XiChiSystem.灵泉开启信息(Game.累计游戏日)
+	var 池级: int = 1
+	if Game.司职列表.has("xichi"):
+		var 池: Variant = Game.司职列表["xichi"]
+		if 池 is Dictionary:
+			池级 = int((池 as Dictionary).get("等级", 1))
+	if bool(泉.get("开启", false)):
+		_lingquan_label.text = "灵泉已开 · 余%d日（本轮）：弟子可自以功勋%d叩请入池洗髓（池级%d，本轮每人限一次）。" % [
+			int(泉.get("剩余日", 0)), int(XiChiSystem.自费洗髓耗功勋), 池级]
+		_lingquan_label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+	else:
+		_lingquan_label.text = "灵泉未开 · 尚需%d日复涌（十二载一开、开则三十日）：宗门强开灵泉须宗主耗仙玉。" % int(泉.get("剩余日", 0))
+		_lingquan_label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+
+
+# ───────── 驱逐门禁：平时锁死，唯身负「重罪」方解禁 ─────────
+# 真源：`SectManager.获取待裁决违规()`（由 `game_state` 月度戒律事件 `SectManager.上报违规()` 写入；
+#   违规类型表含 残害同门／监守自盗（严重度 5，处罚含「逐出宗门」）等高severity项）。
+# 判定：「处罚含逐出宗门」或「严重度 >= 5」——只有犯下大错者，宗主方能依门规逐出。
+func _弟子重罪信息(d: Object) -> Dictionary:
+	if d == null or Game == null or not (d is Disciple):
+		return {}
+	if SectManager == null:
+		return {}
+	var 该弟子ID: int = int((d as Disciple).弟子ID)
+	var 待裁: Array = SectManager.获取待裁决违规() if SectManager.has_method("获取待裁决违规") else []
+	for 项 in 待裁:
+		if not (项 is Dictionary):
+			continue
+		var 录: Dictionary = 项
+		if int(录.get("弟子ID", -1)) != 该弟子ID:
+			continue
+		var 类型: String = str(录.get("违规类型", ""))
+		var 定义: Dictionary = SectManager.违规类型.get(类型, {})
+		var 处罚: Array = 定义.get("处罚", [])
+		var 严重度: int = int(定义.get("严重度", 0))
+		if 严重度 >= 5 or 处罚.has("逐出宗门"):
+			return {"类型": 类型, "严重度": 严重度, "处罚": 处罚, "详情": str(录.get("详情", ""))}
+	return {}
+
+
+func _刷新驱逐门禁(d: Object) -> void:
+	if _驱逐_btn == null or not is_instance_valid(_驱逐_btn):
+		return
+	var 罪: Dictionary = _弟子重罪信息(d)
+	var 可逐: bool = not 罪.is_empty()
+	_驱逐待确认 = false
+	_驱逐_btn.disabled = not 可逐
+	if 可逐:
+		_驱逐_btn.text = "驱逐师门（%s）" % str(罪.get("类型", "重罪"))
+		if _驱逐_hint != null and is_instance_valid(_驱逐_hint):
+			_驱逐_hint.text = "门规所限：此人已犯「%s」（严重度%d），可依门规逐出师门。" % [
+				str(罪.get("类型", "")), int(罪.get("严重度", 0))]
+	else:
+		_驱逐_btn.text = "驱逐师门\n（门规所限）"
+		if _驱逐_hint != null and is_instance_valid(_驱逐_hint):
+			_驱逐_hint.text = "门规所限：无重罪者不得逐出同门。弟子违法由执法堂按月申报，须待宗主裁决。"
 
 
 # 把弟子对象里的 状态 字段 + ExpeditionSystem 历练中标志，统一为可读的活动状态文字。
@@ -3163,7 +3860,7 @@ func _show_info_popup(title: String, body: String, anchor_pos: Vector2 = Vector2
 	var panel := PanelContainer.new()
 	panel.name = "InfoPopupPanel"
 	var psb := StyleBoxFlat.new()
-	psb.bg_color = Color(0.12, 0.18, 0.17, 0.97)
+	psb.bg_color = Color(0.122, 0.169, 0.192, 0.97)
 	psb.border_color = Color(0.78, 0.65, 0.34, 0.8)
 	psb.set_border_width_all(1)
 	psb.set_corner_radius_all(8)
@@ -3177,37 +3874,22 @@ func _show_info_popup(title: String, body: String, anchor_pos: Vector2 = Vector2
 	var tl := Label.new()
 	tl.text = title
 	tl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	tl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(tl, UITheme.FONT_H2, true)
 	vb.add_child(tl)
 	var bl := Label.new()
 	bl.text = body
 	bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bl.custom_minimum_size = Vector2(600, 0)
 	bl.add_theme_color_override("font_color", Color(0.85, 0.88, 0.90))
-	bl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(bl, UITheme.FONT_BODY, false)
 	vb.add_child(bl)
-	# 定位：跟随点击位置，确保不出屏
+	# 定位：跟随点击位置，使用 UITheme 安全区收口（顶栏/底部Tab 不遮挡、整屏不出界）
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if not is_instance_valid(self) or not is_instance_valid(panel):
 		return
-	var pw2: float = panel.size.x
-	var ph2: float = panel.size.y
-	if pw2 < 10:
-		pw2 = 640
-	if ph2 < 10:
-		ph2 = 120
 	var vp: Vector2 = get_viewport_rect().size
-	var px2: float = anchor_pos.x - pw2 * 0.5
-	var py2: float = anchor_pos.y - ph2 - 16
-	# 默认在点击位置上方；上方空间不够则放下方
-	if py2 < 100:
-		py2 = anchor_pos.y + 16
-	# 水平不出屏
-	px2 = clampf(px2, 8, vp.x - pw2 - 8)
-	# 垂直不出屏
-	py2 = clampf(py2, 100, vp.y - ph2 - 120)
-	panel.position = Vector2(px2, py2)
+	UITheme.place_tooltip_near(panel, anchor_pos, vp)
 	_info_popup = shade
 	shade.gui_input.connect(func(event: InputEvent):
 		if event is InputEventMouseButton and event.pressed:
@@ -3238,7 +3920,8 @@ func _on_personality_card_clicked(event: InputEvent) -> void:
 		return
 	var pos: Vector2 = (event as InputEventMouseButton).global_position if event is InputEventMouseButton else Vector2(540, 800)
 	var p: String = str(_current_disciple.性格)
-	_show_info_popup(p, "性格影响弟子的行为倾向与事件选择。", pos)
+	var body: String = "性格决定弟子在历练、论道与宗务中的行事倾向与抉择。\n不同性格影响事件选项的成败与收益，也会影响同门相处与道途契合。\n可在「洗池·灵泉」处重铸性格，以契合你的修行布局。"
+	_show_info_popup(p, body, pos)
 
 func _on_daotu_card_clicked(event: InputEvent) -> void:
 	if _current_disciple == null:
@@ -3283,56 +3966,13 @@ func _on_xinmo_card_clicked(event: InputEvent) -> void:
 		st = "轻度（修炼-10%，突破-5%）"
 	_show_info_popup("心魔", "当前心魔：%d/100\n状态：%s\n\n突破失败、负面事件会增加心魔。\n通过指点修行、罚面壁、丹药降低心魔。" % [v, st], pos)
 
-func _on_learn_gongfa_pressed() -> void:
-	if _current_disciple == null:
-		return
-	# 查找第一个可学习的功法
-	var 目标功法: String = ""
-	for gid in GongFaSystem.功法库.keys():
-		var 检查 = GongFaSystem.可学习(_current_disciple, gid)
-		if 检查.get("可学", false):
-			目标功法 = gid
-			break
-	if 目标功法 == "":
-		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "尚无修习之功（境界不足或已尽习）")
-		return
-	# 学习功法
-	var 结果 = GongFaSystem.学习功法(_current_disciple, 目标功法, int(Game.悟道点))
-	if 结果.get("成功", false):
-		Game.悟道点 -= int(结果.get("消耗", 0))
-	if UIHint != null and UIHint.has_method("show_hint"):
-		UIHint.show_hint(null, "学习功法", str(结果.get("原因","")))
-	set_disciple(_current_disciple)
-
-func _on_take_danyao_pressed() -> void:
-	if _current_disciple == null:
-		return
-	# 手动喂食弟子（覆盖式）——复用真实丹药效果；自主嗑药见 game_state._弟子自动服用丹药
-	if _current_disciple == null or Game == null:
-		return
-	if not Game.has_method("弟子服用丹药"):
-		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "丹药系统未就绪")
-		return
-	# 取丹药库第一个丹药名
-	var 宗门库房 = Game.宗门库房 if Game != null else []
-	var 丹药名 = ""
-	for it in 宗门库房:
-		if it != null and str(it.get("类别", "")) == "丹药":
-			丹药名 = str(it.get("名称", ""))
-			break
-	if 丹药名 == "":
-		if UIHint != null and UIHint.has_method("show_hint"):
-			UIHint.show_hint(null, "指点", "宗门丹药库暂无丹药，去丹堂炼丹或坊市采购")
-		return
-	var 结果 = Game.弟子服用丹药(int(_current_disciple.弟子ID), 丹药名)
-	if UIHint != null and UIHint.has_method("show_hint"):
-		if 结果.get("成功", false):
-			UIHint.show_hint(null, "服用丹药", "%s服用了%s，效果已生效！" % [str(_current_disciple.姓名), 丹药名])
-		else:
-			UIHint.show_hint(null, "指点", str(结果.get("原因", "服用失败")))
-	set_disciple(_current_disciple)
+# ★ 2026-09-14 删：`_on_learn_gongfa_pressed()`、`_on_take_danyao_pressed()`
+#   原因（老大 2026-09-14 拍板）：已学功法/服用丹药两项**不该出现在玩家操作面**，
+#   应融入弟子自身行为逻辑全自动：功法走「师徒授功 + 机缘」（game_state 约:10711），
+#   丹药走「私库自动服用」（disciple.gd：私库自动服用丹药()）。
+#   另：原实现都是「取第一个可用项就执行」的无参数一键（违反设计铁则 9）。
+#   后端能力保留：`GongFaSystem.学习功法`（仍被 page_building / 功法管理系统调用）、
+#   `Game.弟子服用丹药`（待「丹药房 · 择人赐丹」这类**有选择**的入口接入）。
 
 func _on_hudong_pressed(互动类型: String) -> void:
 	if _current_disciple == null or Game == null:
@@ -3347,6 +3987,12 @@ func _on_hudong_pressed(互动类型: String) -> void:
 		else:
 			if UIHint != null and UIHint.has_method("show_hint"):
 				UIHint.show_hint(null, "护法受阻", 护法结果.get("原因", "气机不顺"))
+		return
+	# ★ 2026-09-14：以毒攻毒＝**宗主亲自施治**（用宗主自身毒道修为），与「宗主护法」同类，
+	#   故不走 `Game.执行互动`（那不是「互动次数」体系），直接转给 `_on以毒攻毒治疗`。
+	if 互动类型 == "以毒攻毒":
+		if _current_disciple is Disciple:
+			_on以毒攻毒治疗(_current_disciple as Disciple)
 		return
 	var 弟子ID = int(_current_disciple.弟子ID)
 	var 结果 = Game.执行互动(弟子ID, 互动类型)
@@ -3395,7 +4041,7 @@ func _on_breakthrough_clicked(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var pos: Vector2 = (event as InputEventMouseButton).global_position
 		var body := "弟子修炼至当前境界大圆满后自动突破。\n\n"
-		body += "· 修炼进度满后自动进入下一层\n"
+		body += "· 道功进境圆满，自入下一层\n"
 		body += "· 十层大圆满后打磨瓶颈，自动突破境界\n"
 		body += "· 根骨与心性影响突破成功率\n"
 		body += "· 突破失败进入冷却期，期间修炼效率降低"
@@ -3462,9 +4108,20 @@ func _on_tab_pressed(tab_name: String) -> void:
 	var show_hero: bool = (tab_name == "详情")
 	if _hero_area != null:
 		_hero_area.visible = show_hero
-	# 返回/换装按钮只在详情Tab显示
+	# 返回按钮：**所有 Tab 常显且置顶**（2026-09-15 修）。
+	#   原实现 `_back_btn.visible = show_hero` ⇒ 切到装备/灵兽/履历后返回按钮消失，
+	#   玩家只能先切回「详情」Tab 才能离开该页（实机反馈：装备页左上角看不到 ← 返回）。
+	#   另：非详情 Tab 时 `_content_area.offset_top = 0`，内容自 y=0 起会把返回按钮盖住，
+	#   故同时把 z_index 提到内容层之上（_content_area 后于 _back_btn 添加，默认同层压前者）。
 	if _back_btn != null:
-		_back_btn.visible = show_hero
+		_back_btn.visible = true
+		_back_btn.z_index = 200
+	# 立绘右上工具带（看全图 / 换装 / 「?」）：只在「详情」Tab 显示。
+	# ★ 2026-09-15 修：此前只藏了「换装」，漏藏整条工具带 ⇒ 「看全图」在装备/灵兽/履历页
+	#   也挂在右上角（老大截图确认：那是大立绘的工具，别的 Tab 用不到）。
+	if _hero_tools != null:
+		_hero_tools.visible = show_hero
+	# 换装按钮仍只在详情 Tab（它作用于大立绘；装备 Tab 有自己的槽位交互）
 	if _skin_btn != null:
 		_skin_btn.visible = show_hero
 	if _content_area != null:
@@ -3472,7 +4129,13 @@ func _on_tab_pressed(tab_name: String) -> void:
 			var page_size: Vector2 = get_size()
 			_content_area.offset_top = page_size.y * _HERO_RATIO
 		else:
-			_content_area.offset_top = 0.0
+			# ★ 2026-09-15 修：非详情 Tab 原写 offset_top=0 ⇒ 内容自 y=0 起，被常显的返回按钮
+			#   （12~48 逻辑 = 27~108 物理）压住，灵兽/履历页顶部信息看不到（老大截图确认）。
+			#   现改为「让开返回按钮一行」：顶inset = 返回钮底边 + 一个 GRID 间隙。
+			var 顶空: float = float(int(round(48 * UITheme.UI_SCALE))) + float(UITheme.GRID)
+			if _back_btn != null:
+				顶空 = _back_btn.offset_bottom + float(UITheme.GRID)
+			_content_area.offset_top = 顶空
 	# 更新Tab按钮样式
 	for tname in _tab_buttons.keys():
 		var btn: Button = _tab_buttons[tname]
@@ -3489,7 +4152,7 @@ func _on_tab_pressed(tab_name: String) -> void:
 			btn.add_theme_color_override("font_color", Color(0.06, 0.11, 0.10))
 		else:
 			var sb := StyleBoxFlat.new()
-			sb.bg_color = Color(0.12, 0.18, 0.17, 0.9)
+			sb.bg_color = Color(0.122, 0.169, 0.192, 0.90)
 			sb.border_color = UITheme.color_border_gold()
 			sb.set_border_width_all(1)
 			sb.set_corner_radius_all(8)
@@ -3519,9 +4182,9 @@ func _refresh_record_info() -> void:
 		if 师 != null and str(师.状态) == "在宗":
 			师名 = str(师.姓名)
 	var info_items = [
-		["📊 资质", 资质中文2], ["⚔ 历练", str(d.履历.size()) + "次" if "履历" in d else "0次"],
-		["▲ 所属", str(d.司职) if d.司职 != "" else "—"], ["👤 师父", 师名],
-		["📅 入门", "太玄" + str(max(1, int(d.年龄))) + "年"], ["◎ 道途", str(d.道途) if str(d.道途) != "" else "未入门"],
+		["■ 资质", 资质中文2], ["⚠ 历练", str(d.履历.size()) + "次" if "履历" in d else "0次"],
+		["▲ 所属", str(d.司职) if d.司职 != "" else "—"], ["◇ 师父", 师名],
+		["◇ 入门", "太玄" + str(max(1, int(d.年龄))) + "年"], ["◎ 道途", str(d.道途) if str(d.道途) != "" else "未入门"],
 	]
 	for item in info_items:
 		_record_info_grid.add_child(_make_info_row(item[0], item[1]))
@@ -3536,26 +4199,26 @@ func _refresh_bonds() -> void:
 	if int(d.师父ID) >= 0:
 		var 师 = Game._取弟子(int(d.师父ID))
 		if 师 != null and str(师.状态) == "在宗":
-			bonds.append(["👤 师父·" + str(师.姓名), "传功 " + str(d.已学功法.size()) + " 式"])
+			bonds.append(["◇ 师父·" + str(师.姓名), "传功 " + str(d.已学功法.size()) + " 式"])
 	if d.主宠灵兽 != null and typeof(d.主宠灵兽) == TYPE_OBJECT:
-		bonds.append(["🐾 灵兽·" + str(d.主宠灵兽.种类名), "随行"])
+		bonds.append(["● 灵兽·" + str(d.主宠灵兽.种类名), "随行"])
 	if d.装备 is Dictionary:
 		for it in d.装备.values():
 			if it is Item and (str(it.类别) == "fabao" or str(it.穿戴位) == "本命法宝"):
-				bonds.append(["🔮 法宝·" + str(it.名称), str(it.品阶)])
+				bonds.append(["◆ 法宝·" + str(it.名称), str(it.品阶)])
 				break
 	for b in bonds:
 		var br: HBoxContainer = HBoxContainer.new()
 		var bn: Label = Label.new()
 		bn.text = b[0]
 		UITheme.apply_body_text(bn)
-		bn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+		UITheme.apply_project_font(bn, UITheme.FONT_BODY, false)
 		bn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		br.add_child(bn)
 		var bv: Label = Label.new()
 		bv.text = b[1]
 		UITheme.apply_aux_text(bv)
-		bv.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+		UITheme.apply_project_font(bv, UITheme.FONT_AUX, false)
 		br.add_child(bv)
 		_record_bond_list.add_child(br)
 	# S30 性格相冲提示
@@ -3574,7 +4237,7 @@ func _refresh_bonds() -> void:
 		wl.text = 相冲提示
 		UITheme.apply_aux_text(wl)
 		wl.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
-		wl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(wl, UITheme.FONT_BODY, false)
 		wr.add_child(wl)
 		_record_bond_list.add_child(wr)
 	var bond_title = _record_bond_list.get_parent().get_parent().get_node_or_null("BondTitle")
@@ -3640,7 +4303,11 @@ func _on_zhushi_pressed() -> void:
 	else:
 		_show_info_popup("无法逐师", str(结果.get("原因", "未知原因")))
 
-# ───────────────── S36 心魔誓 ─────────────────
+# ───────────────── S36 心魔誓（2026-09-14 改：只读）─────────────────
+# 设计口径（老大 2026-09-14 拍板）：心魔誓是**弟子依自身行为与经历起誓**的严肃之事，
+# 不是玩家在面板上挑一个「限期7日 · 修炼×1.25」的选项。故本页**只显示状态**
+# （无誓 / 哪种誓在起效、剩余几日）；立誓走弟子主动请誓：
+#   Game._生成请誓_S36() → Game.誓约待批 → 玩家在首页传讯栏「批准 / 驳回」。
 func _refresh_oath_box(d: Object) -> void:
 	if _oath_box == null:
 		return
@@ -3649,109 +4316,226 @@ func _refresh_oath_box(d: Object) -> void:
 		c.queue_free()
 	if d == null or Game == null:
 		return
-	if _oath_tip != "":
-		var tip: Label = Label.new()
-		tip.text = _oath_tip
-		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		UITheme.apply_aux_text(tip)
-		tip.add_theme_color_override("font_color", UITheme.color_status_danger())
-		_oath_box.add_child(tip)
-		_oath_tip = ""
 	var 誓: Dictionary = d.誓言 if (d.誓言 is Dictionary) else {}
-	if not 誓.is_empty():
-		var 名: String = str(誓.get("名称", "无名之誓"))
-		var 剩余: int = int(誓.get("剩余日", 0))
-		var 期限: int = int(誓.get("期限", 0))
-		var 增益: float = float(誓.get("buff_cult", 1.0))
-		var 日增: float = float(誓.get("demon_per_day", 0.0))
-		var info: Label = Label.new()
-		info.text = "「%s」　剩余 %d / %d 日" % [名, 剩余, 期限]
-		UITheme.apply_body_text(info)
-		_oath_box.add_child(info)
-		var eff_txt: String = "修炼速度 ×%.2f" % 增益
-		if 日增 > 0.0:
-			eff_txt += "　心魔 +%d/日" % int(round(日增))
-		elif 日增 < 0.0:
-			eff_txt += "　心魔 %d/日" % int(round(日增))
-		var eff: Label = Label.new()
-		eff.text = eff_txt
-		UITheme.apply_aux_text(eff)
-		_oath_box.add_child(eff)
-		if int(誓.get("forbid_expedition", 0)) == 1:
-			var warn: Label = Label.new()
-			warn.text = "闭关苦修：期间不可出战"
-			UITheme.apply_aux_text(warn)
-			_oath_box.add_child(warn)
-		var 解btn: Button = Button.new()
-		解btn.text = "解誓（视同破誓，心魔反噬）"
-		UITheme.apply_secondary_button_style(解btn)
-		解btn.pressed.connect(_on_解除誓言)
-		_oath_box.add_child(解btn)
+	if 誓.is_empty():
+		var 空: Label = Label.new()
+		空.text = "无誓约在身。若弟子心有所感，会依自身经历自行请誓，届时于首页传讯栏批复即可。"
+		空.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_aux_text(空)
+		_oath_box.add_child(空)
 		return
-	var 开btn: Button = Button.new()
-	开btn.text = "立心魔誓" if not _oath_expanded else "收起誓约列表"
-	UITheme.apply_primary_button_style(开btn)
-	开btn.pressed.connect(_on_切换誓约列表)
-	_oath_box.add_child(开btn)
-	if not _oath_expanded:
+	var 名: String = str(誓.get("名称", "无名之誓"))
+	var 剩余: int = int(誓.get("剩余日", 0))
+	var 期限: int = int(誓.get("期限", 0))
+	var 增益: float = float(誓.get("buff_cult", 1.0))
+	var 日增: float = float(誓.get("demon_per_day", 0.0))
+	var 行: PanelContainer = PanelContainer.new()
+	UITheme.apply_panel_style(行)
+	_oath_box.add_child(行)
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
+	行.add_child(vb)
+	var 头: Label = Label.new()
+	头.text = "「%s」　剩余 %d / %d 日" % [名, 剩余, 期限]
+	头.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_text(头)
+	vb.add_child(头)
+	var eff_txt: String = "在效：修炼速度 ×%.2f" % 增益
+	if 日增 > 0.0:
+		eff_txt += "　心魔 +%d/日" % int(round(日增))
+	elif 日增 < 0.0:
+		eff_txt += "　心魔 %d/日" % int(round(日增))
+	var eff: Label = Label.new()
+	eff.text = eff_txt
+	eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(eff)
+	vb.add_child(eff)
+	if int(誓.get("forbid_expedition", 0)) == 1:
+		var warn: Label = Label.new()
+		warn.text = "闭关苦修：期间不可出战"
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_aux_text(warn)
+		vb.add_child(warn)
+
+# ───────────────── 互动培养：条件触发（2026-09-14）─────────────────
+# 修真世界里的「互动」不是随时都能做，而是**因缘到了才有**：
+#   · 论道切磋 / 指点修行：看当日是否还有次数（有人在侧、尚有可指点之处）
+#   · 共参功法：还须悟道点足够
+#   · 罚面壁思过：只在「心魔渐盛」或「心境失守」时才该出现（无过失不该罚）
+#   · 宗主护法：只在弟子正卡突破关口、且宗主精力足够时才该出现
+# 判据一律是「当下情境」，不是「玩家想不想」。无一项可用 ⇒ 整块（含标题与红点）隐藏。
+func _取可用互动列表(d: Object) -> Array:
+	var 出: Array = []
+	if d == null or not (d is Disciple) or Game == null:
+		return 出
+	var 弟子: Disciple = d as Disciple
+	if 弟子 == null:
+		return 出
+	var 弟子ID: int = int(弟子.弟子ID)
+	if Game.获取互动剩余次数(弟子ID, "论道切磋") > 0:
+		出.append({"类型": "论道切磋", "缘由": "道友在侧，正可论道"})
+	if Game.获取互动剩余次数(弟子ID, "共参功法") > 0 and int(Game.悟道点) >= 20:
+		出.append({"类型": "共参功法", "缘由": "悟道点充裕，可共参"})
+	if Game.获取互动剩余次数(弟子ID, "指点修行") > 0:
+		出.append({"类型": "指点修行", "缘由": "尚有可指点之处"})
+	if Game.获取互动剩余次数(弟子ID, "罚面壁思过") > 0 and (int(弟子.心魔值) >= 20 or int(弟子.心境) < 50):
+		出.append({"类型": "罚面壁思过", "缘由": "心魔渐盛／心境失守"})
+	var 关口: bool = float(弟子.瓶颈打磨值) > 0.0 or int(弟子.层数) >= 9
+	if 关口 and int(Game.宗主精力) >= 50:
+		出.append({"类型": "宗主护法", "缘由": "正卡关口，宜为之护法"})
+	# 以毒攻毒＝宗主亲自施治（用宗主自身毒道修为），只在「弟子有伤未愈」且宗主毒道有成时出现。
+	if int(弟子.受伤剩余) > 0 and Game.获取毒道境界() != "":
+		出.append({"类型": "以毒攻毒", "缘由": "伤而未愈，可以毒攻毒（宗主毒道亲施）"})
+	return 出
+
+## 是否有可拜之师（替当前弟子找一位境界高出 ≥2 阶的在宗师）
+func _有可拜之师(d: Object) -> bool:
+	if d == null or not (d is Disciple) or Game == null:
+		return false
+	var 弟子: Disciple = d as Disciple
+	if 弟子 == null:
+		return false
+	if int(弟子.师父ID) > 0:
+		return false   # 已有师，无需再拜
+	var 徒阶: int = Disciple.境界序.find(str(弟子.境界))
+	if 徒阶 < 0:
+		return false
+	for 候选 in Game.弟子列表:
+		if 候选 == null or 候选 == 弟子 or not (候选 is Disciple):
+			continue
+		if str(候选.状态) != "在宗":
+			continue
+		var 师阶: int = Disciple.境界序.find(str(候选.境界))
+		if 师阶 >= 0 and (师阶 - 徒阶) >= 2:
+			return true
+	return false
+
+## 按情境刷新互动区：无可用项则整块隐藏（含标题与红点）
+func _刷新互动区(d: Object) -> void:
+	if _hudong_head == null or _hudong_panel == null:
 		return
-	var 表: Dictionary = Game._读表_誓约()
-	for k in 表.keys():
-		var 配: Dictionary = 表[k] as Dictionary
-		if str(配.get("cond_type", "")) == "target_alive":
-			continue   # 护道誓须指定对象，暂不在弟子页随机立誓
-		var 行: PanelContainer = PanelContainer.new()
-		UITheme.apply_panel_style(行)
-		_oath_box.add_child(行)
-		var vb: VBoxContainer = VBoxContainer.new()
-		vb.add_theme_constant_override("separation", 4)
-		行.add_child(vb)
-		var 名2: Label = Label.new()
-		名2.text = "%s（限期%d日）" % [str(配.get("name", "")), int(配.get("duration_days", 7))]
-		UITheme.apply_body_text(名2)
-		vb.add_child(名2)
-		var 描: Label = Label.new()
-		描.text = str(配.get("desc", ""))
-		描.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		UITheme.apply_aux_text(描)
-		vb.add_child(描)
-		var 门l: Label = Label.new()
-		门l.text = "门槛 道心%d / 忠诚%d　修炼×%.2f" % [int(配.get("need_daoxin", 0)), int(配.get("need_loyal", 0)), float(配.get("buff_cult", 1.0))]
-		UITheme.apply_aux_text(门l)
-		vb.add_child(门l)
-		var btn: Button = Button.new()
-		var 可立: bool = (int(d.道心) >= int(配.get("need_daoxin", 0)) and int(d.忠诚) >= int(配.get("need_loyal", 0)))
-		btn.text = "以此立誓" if 可立 else "道心/忠诚不足"
-		btn.disabled = not 可立
-		if 可立:
-			UITheme.apply_primary_button_style(btn)
-		else:
-			UITheme.apply_secondary_button_style(btn)
-		btn.pressed.connect(_on_立誓.bind(str(k)))
-		vb.add_child(btn)
+	var 是弟子: bool = (d is Disciple) and Game != null
+	var 可用: Array = _取可用互动列表(d) if 是弟子 else []
+	var 缘由: Dictionary = {}
+	for 项 in 可用:
+		var 项D: Dictionary = 项
+		缘由[str(项D.get("类型", ""))] = str(项D.get("缘由", ""))
+	var 弟子ID: int = int((d as Disciple).弟子ID) if 是弟子 else -1
+	for 互动类型 in _hudong_buttons.keys():
+		var btn: Button = _hudong_buttons[互动类型]
+		if btn == null or not is_instance_valid(btn):
+			continue
+		var 可: bool = 缘由.has(str(互动类型))
+		btn.visible = 可
+		if 可:
+			# 「以毒攻毒」属宗主亲自施治，不进每日互动次数体系 ⇒ 不显示「剩余N次」。
+			if str(互动类型) == "以毒攻毒":
+				btn.text = "以毒攻毒"
+			else:
+				btn.text = "%s 剩余%d次" % [str(互动类型), Game.获取互动剩余次数(弟子ID, str(互动类型))]
+			btn.tooltip_text = str(缘由[str(互动类型)])
+	# 师徒：拜师（有可拜之师）/ 逐师（已有师）
+	var 可拜: bool = _有可拜之师(d)
+	var 可逐: bool = 是弟子 and int((d as Disciple).师父ID) > 0
+	if _shoutu_btn != null and is_instance_valid(_shoutu_btn):
+		_shoutu_btn.visible = 可拜
+	if _zhushi_btn != null and is_instance_valid(_zhushi_btn):
+		_zhushi_btn.visible = 可逐
+	var 总数: int = 缘由.size() + (1 if 可拜 else 0) + (1 if 可逐 else 0)
+	var 显: bool = 总数 > 0
+	_hudong_head.visible = 显
+	_hudong_panel.visible = 显
+	if _hudong_dot != null and is_instance_valid(_hudong_dot):
+		_hudong_dot.visible = 显   # 有可办之事 ⇒ 亮红点（与首页红点体系同源；无则静态隐藏）
+	if _hudong_tip != null and is_instance_valid(_hudong_tip):
+		_hudong_tip.text = "" if not 显 else "因缘既至，方可为之；每日各有上限。"
 
-func _on_切换誓约列表() -> void:
-	_oath_expanded = not _oath_expanded
-	_refresh_oath_box(_current_disciple)
+# ───────────────── 立绘「看全图」浮层 ─────────────────
+# 立绘在取景框里是 cover 裁切（顶对齐保脸），玩家看不到全身 ⇒ 给一个显式入口看整图。
+func _on_portrait_view_pressed() -> void:
+	if _fullview_layer != null and is_instance_valid(_fullview_layer):
+		_close_portrait_fullview()
+		return
+	if _portrait == null or _portrait.texture == null:
+		return
+	var layer: Control = Control.new()
+	layer.name = "PortraitFullView"
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(layer)
+	_fullview_layer = layer
+	var 暗: ColorRect = ColorRect.new()
+	var 色: Color = UITheme.获取场景压暗色()
+	色.a = 0.94
+	暗.color = 色
+	暗.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	暗.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(暗)
+	# 整图：KEEP_ASPECT_CENTERED ⇒ 1024×2048 全身图完整入框（不裁切），上下自然留边
+	var 图: TextureRect = TextureRect.new()
+	图.name = "FullPortrait"
+	图.texture = _portrait.texture
+	图.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	图.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	图.anchor_left = 0.0
+	图.anchor_top = 0.0
+	图.anchor_right = 1.0
+	图.anchor_bottom = 1.0
+	图.offset_left = float(int(round(8 * UITheme.UI_SCALE)))
+	图.offset_top = float(int(round(64 * UITheme.UI_SCALE)))
+	图.offset_right = -float(int(round(8 * UITheme.UI_SCALE)))
+	图.offset_bottom = -float(int(round(64 * UITheme.UI_SCALE)))
+	图.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(图)
+	var 关: Button = Button.new()
+	关.name = "CloseBtn"
+	关.text = "◇ 关闭"
+	关.anchor_left = 1.0
+	关.anchor_top = 0.0
+	关.anchor_right = 1.0
+	关.anchor_bottom = 0.0
+	关.offset_left = -float(int(round(150 * UITheme.UI_SCALE)))
+	关.offset_top = float(int(round(12 * UITheme.UI_SCALE)))
+	关.offset_right = -float(int(round(16 * UITheme.UI_SCALE)))
+	关.offset_bottom = float(int(round(12 * UITheme.UI_SCALE))) + float(UITheme.SIZE_SM)
+	UITheme.apply_secondary_button_style(关)
+	关.pressed.connect(_close_portrait_fullview)
+	layer.add_child(关)
+	# 点图层任意处也可关（按钮是 STOP，会优先吃掉自身范围内的点击）
+	layer.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			_close_portrait_fullview())
 
-func _on_立誓(oath_id: String) -> void:
+func _close_portrait_fullview() -> void:
+	if _fullview_layer != null and is_instance_valid(_fullview_layer):
+		_fullview_layer.queue_free()
+	_fullview_layer = null
+
+# ───────────────── 驱逐师门（二次点击确认）─────────────────
+# 「驱逐」属宗主的重决策（不可代劳），但破坏性高 ⇒ 沿用项目既有「二次点击确认」惯例：
+# 第一次点＝亮明后果，第二次点才真执行；切换弟子即复位，防误点。
+func _on_驱逐师门_pressed() -> void:
 	if _current_disciple == null or Game == null:
 		return
-	var r: Dictionary = Game.立心魔誓(int(_current_disciple.弟子ID), oath_id)
-	if bool(r.get("成功", false)):
-		_oath_expanded = false
-		_oath_tip = ""
+	# ★ 2026-09-15 门禁：无重罪者此钮锁死（_刷新驱逐门禁() 按「执法堂待裁决重大违规」判定）
+	if _驱逐_btn != null and is_instance_valid(_驱逐_btn) and _驱逐_btn.disabled:
+		UIHint.show_hint(self, "驱逐师门", "门规所限：%s 未犯重罪，不得逐出同门。" % str(_current_disciple.姓名))
+		return
+	if not _驱逐待确认:
+		_驱逐待确认 = true
+		if _驱逐_btn != null and is_instance_valid(_驱逐_btn):
+			_驱逐_btn.text = "确认驱逐\n不可撤销"
+		UIHint.show_hint(self, "驱逐师门", "再点一次「确认驱逐」方生效：%s 将被逐出宗门，此举不可撤销。" % str(_current_disciple.姓名))
+		return
+	_驱逐待确认 = false
+	var 名: String = str(_current_disciple.姓名)
+	var 结果: bool = Game.驱逐弟子(int(_current_disciple.弟子ID))
+	if 结果:
+		UIHint.show_hint(self, "驱逐师门", "%s 已被逐出宗门。" % 名)
+		返回列表.emit()
 	else:
-		_oath_tip = str(r.get("原因", "立誓失败"))
-	_refresh_oath_box(_current_disciple)
-
-func _on_解除誓言() -> void:
-	if _current_disciple == null or Game == null:
-		return
-	var r: Dictionary = Game.解除心魔誓(int(_current_disciple.弟子ID))
-	if not bool(r.get("成功", false)):
-		_oath_tip = str(r.get("原因", "解誓失败"))
-	_refresh_oath_box(_current_disciple)
+		UIHint.show_hint(self, "驱逐师门", "驱逐失败（弟子或已不在宗）。")
+		_刷新驱逐门禁(_current_disciple)   # 失败则回落到门禁态（文案/禁用复位）
 
 # 装备称号
 func _装备称号(title_id: String) -> void:

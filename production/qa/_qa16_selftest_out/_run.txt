@@ -1,0 +1,23 @@
+=== runner stdout ===
+- before = `E:\Xiuxian\taixuanzongmenlu\.workbuddy\_ph7visual\baseline_before`锛?*64 寮?*锛宮time 2026-09-17 01:27:19 .. 2026-09-17 01:27:20锛堣法搴?0.00 h 鈫?鉁?鍚屾壒锛?
+- 鍏ㄤ粨婧愭枃浠讹紙`.gd/.tscn/.tres/.csv/.json`锛屾帓闄ゅ浠?宸ュ叿鐩綍锛夋渶鏂?5 绗旓細
+    路 2026-09-17 01:28:33  `ui_theme.gd`  鈫?鏈壒鏀瑰姩鏂囦欢锛坆efore-leg 鎺掗櫎锛?
+    路 2026-09-17 00:56:19  `ui\page_auction.gd`
+    路 2026-09-17 00:56:19  `ui\page_global_auction.gd`
+    路 2026-09-17 00:56:19  `config\atlas_intent.csv`
+    路 2026-09-17 00:56:19  `config\atlas_index.csv`
+- 婧愭枃浠舵渶鏂?mtime锛?026-09-17 01:28:33锛坄ui_theme.gd`锛夛紱**鎺掗櫎鏈壒鏀瑰姩鏂囦欢鍚庯紳2026-09-17 00:56:19锛坄ui\page_auction.gd`锛?*
+- **纭垽鎹紙before-leg锛?*锛歚min(before png)=2026-09-17 01:27:19` **>** `max(婧愭枃浠堵锋帓闄ゆ湰鎵?=2026-09-17 00:56:19`锛坲i\page_auction.gd锛夆啋 **PASS 鉁?*
+- 杈呭姪 signal锛歚ui_theme.gd` md5=`a3a5ff723e8538a26fa197be0c1ff4e3` mtime=2026-09-17 01:28:33 鈫?MISMATCH锛堝凡闈炴敼鍓嶏級
+  锛堚槄 姝?signal **鍗曠嫭涓嶅彲浣滄暟** 鈥斺€?瀹冨彧楠屽簳鑹层€侀獙涓嶅嚭鏂囨/鍏跺畠鎵规 鈬?浠ョ‖鍒ゆ嵁涓哄噯锛?
+- **鍩虹嚎鍏堥獙鍒ゅ畾锛歅ASS 鉁?*
+
+- after = `C:\Users\Administrator\AppData\Local\Temp\qa16_selftest_after`锛?*64 寮?*锛宮time 2026-09-17 01:31:52 .. 2026-09-17 01:31:54
+- **纭垽鎹紙after-leg锛?*锛歚min(after png)=2026-09-17 01:31:52` **>** `max(婧愭枃浠堵峰惈鏈壒)=2026-09-17 01:28:33`锛坄ui_theme.gd`锛夆啋 **PASS 鉁?*
+
+TOTAL=64 CHANGED=3 IDENTICAL=61 SHIFT=1 SIZE_MM=0 GLOBALS=0 EXP_MISSED=1 CMP=3
+OUT: E:\Xiuxian\taixuanzongmenlu\production\qa\_qa16_selftest_out
+
+
+=== copied pages: 64 ===
+EXIT=0

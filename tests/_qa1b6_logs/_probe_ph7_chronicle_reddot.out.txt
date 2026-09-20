@@ -1,0 +1,16 @@
+Godot Engine v4.7.stable.official.5b4e0cb0f - https://godotengine.org
+
+=== 探针③ 纪事红点两态 启动 ===
+>>> 前置就绪 账号=acc_ph7qa1b6_1789573789 引导阶段=6
+>>>  [OK] 0a 红点管理器已建（red_dot_init 初始化成功）
+>>>  [OK] 1a 0 条纪事 ⇒ 有未读纪事()=false（实得 false）
+>>>  [OK] 1b 0 条纪事 ⇒ 红点 纪事_未读 不亮（是否显示=false，期望 false）
+>>>  [OK] 2a 已注入 2 条纪事（实得 2）
+>>>  [OK] 2b 2 条纪事 ⇒ 有未读纪事()=true（实得 true）
+>>>  [OK] 2c 2 条纪事 ⇒ 红点 纪事_未读 亮（是否显示=true，期望 true）
+>>>  [OK] 3a 标记纪事已读() 后 ⇒ 有未读纪事()=false（实得 false）
+>>>  [OK] 3b 标记已读后 ⇒ 红点 纪事_未读 消失（是否显示=false，期望 false）
+>>>  [OK] 3c 进页前 有未读纪事()=true（实得 true）
+>>>  [OK] 3d 进页(进树)后 ⇒ 有未读纪事()=false（_enter_tree 自动标记；实得 false）
+>>> 断言 10 条 / 失败 0 条
+>>>PROBE_RESULT=PASS

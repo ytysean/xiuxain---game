@@ -37,6 +37,8 @@ game_core_ip: 太玄宗
 |---|---|
 | `docs/architecture/ARCHITECTURE.md` | 架构文档 |
 | `docs/architecture/adr/ADR-001~003` | 装备穿戴 / 奇遇接入 / 战斗模块 架构决策 |
+| `docs/tech/资源分包与资源管线方案_v1.0.md` | 资源卫生 / 导入规格 / PCK 分层 / AAB 分包（**待执行**，分期见 §9） |
+| `docs/启动性能诊断_2026-09-15.md` | 启动慢实测（52.9s 分阶段归因） |
 | `production/sprint-01-plan.md` · `production/epics/epics-gap-systems.md` | 冲刺计划与 Epic 拆分 |
 | `tests/QUALITY_GATES.md` · `tests/TEST_STRATEGY.md` · `tests/TEST_FRAMEWORK.md` | 质量门 / 测试策略 / 测试框架 |
 

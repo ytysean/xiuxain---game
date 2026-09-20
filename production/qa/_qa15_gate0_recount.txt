@@ -1,0 +1,45 @@
+======================================================================
+QA-15 A · 门0 扫描范围独立复算
+======================================================================
+ROOT                 : E:\Xiuxian\taixuanzongmenlu
+os.walk 顶层剪掉目录 : .artifacts, .cache, .git, .godot, .venv_genai, Godot, __pycache__, addons
+
+自建遍历（已剪 SKIP_DIRS）全部 .gd : 527
+  自写 before 判据  计入 .gd      : 473
+  自写 after  判据  计入 .gd      : 261
+  门0真实 is_skipped 计入 .gd     : 261
+
+三方一致性 : ✔ PASS（自写=门0真实）
+before vs after 差 : 212（应 = .scratch_backup 命中数）
+
+被 .skipped 的 .scratch_backup .gd 命中数 : 212
+addons/ 下 .gd（被 SKIP_DIRS 剪枝，两门都不计）: 7
+SKIP_PATH_PARTS（门0真实）: ['.scratch_backup', '.workbuddy']
+
+--- after 计入 .gd 的顶层分布（Top 12）---
+  (root)                         84
+  tests                          84
+  ui                             83
+  components                     8
+  tools                          1
+  vfx                            1
+
+--- before 计入 .gd 的顶层分布（Top 12）---
+  (root)                         84
+  tests                          84
+  ui                             83
+  .scratch_backup/emoji_sweep_20260916_0906 62
+  .scratch_backup/emoji_sweep2_20260916_0909 61
+  .scratch_backup/tabbar_20260916_115834 19
+  .scratch_backup/glyphfix_20260916_091846 11
+  components                     8
+  .scratch_backup                5
+  .scratch_backup/backbtn_20260916_115512 5
+  .scratch_backup/r6_20260915_200349 5
+  .scratch_backup/iconbase2_20260915_105857 4
+
+--- 连带翻转检查 ---
+  被新排除的文件总数 : 212
+  其中【非 .scratch_backup】者 : 0 （>0 则为真连带翻转，须查）
+  嵌套 .workbuddy 命中（非顶层） : 0
+======================================================================

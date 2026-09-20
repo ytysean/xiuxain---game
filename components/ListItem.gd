@@ -109,16 +109,16 @@ func _refresh_panel() -> void:
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	sb.set_border_width_all(UITheme.BORDER_W)
 	sb.set_content_margin_all(UITheme.GRID)
-	var bg: Color = UITheme.COLOR_PANEL_BG
-	var border: Color = UITheme.COLOR_BORDER_GOLD
+	var bg: Color = UITheme.获取面板底色()
+	var border: Color = UITheme.获取暗金边色()
 	match _state:
 		State.HOVER:
-			bg = UITheme.COLOR_PANEL_BG.lightened(0.12)
+			bg = UITheme.获取面板底色().lightened(0.12)
 		State.PRESSED:
 			bg = UITheme.COLOR_BTN_PRESSED
 			border = UITheme.COLOR_TEXT_GOLD
 		State.SELECTED:
-			bg = UITheme.COLOR_PANEL_BG.darkened(0.35)
+			bg = UITheme.获取面板底色().darkened(0.35)
 			border = UITheme.COLOR_TEXT_GOLD
 	sb.bg_color = bg
 	sb.border_color = border

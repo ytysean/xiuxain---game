@@ -1,6 +1,10 @@
 # Godot 编辑器缓存（本地生成，绝不进版本库）
 .godot/
 
+# Godot 用户数据目录（APPDATA 缺失时 user:// 退化为工程内相对路径，
+# 会把玩家存档 save.json / profiles 落进仓库并可能被打进 pck —— 上线级隐患，绝不进库）
+Godot/
+
 # Python 缓存
 __pycache__/
 

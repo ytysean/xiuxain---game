@@ -1,0 +1,7 @@
+HAVE PIL 12.2.0
+HAVE numpy 2.5.0
+UITHEME ui_theme.gd 143879 21c4ece5ec30fdb09ec8b80354248af2 2026-09-16 14:52:15.070392
+accept_shots_full png n= 139
+  mtime min 2026-09-13 11:29:18.492373
+  mtime max 2026-09-16 23:58:01.492980
+expect ui_theme md5(before) = 21c4ece5ec30fdb09ec8b80354248af2

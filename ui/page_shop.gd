@@ -9,10 +9,20 @@ signal 返回主页
 signal 仙衣阁请求
 signal 宗主仙衣阁请求
 
+# ★ 2026-09-17 T1：坊市回收比率单一真源（去魔数）；文案「按行价60%作价」保持字面量不变。
+const 行价回收比率 := 0.6
+
 var _built: bool = false
-var _当前分类: String = "推荐"
+# ★ ECON-03 P0-B：默认落点必须是**灵石区**。旧默认「推荐」是仙缘阁（仙玉）分类，
+#   打开即满屏仙玉价 ⇒ 造成「坊市全用仙玉买」的信息架构错觉（数据其实一直是灵石）。
+var _当前分类: String = "收购"
 var _scroll_vbox: VBoxContainer
 var _featured_panel: PanelContainer
+# ★ 2026-09-15：已放进「今日特供」区的商品 id —— 下方列表须排除它们，
+#   否则同屏重复陈列（特供区 4 件 + 列表再原样列一遍）显得"货架很水"。
+var _特供id: Dictionary = {}
+# ★ 2026-09-17 S2：本页「今日缘法」特惠卡 shop_id —— 「本周坊市上架」列表须排除它们（同屏去重）。
+var _特惠id: Dictionary = {}
 var _状态标签: Label
 var _香火标签: Label
 var _仙玉标签: Label
@@ -66,49 +76,22 @@ func _build() -> void:
 	root.add_child(_状态标签)
 
 func _build_header(parent: Control) -> void:
-	var panel := PanelContainer.new()
-	panel.name = "HeaderBar"
-	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
-	parent.add_child(panel)
-
-	var bar := HBoxContainer.new()
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	bar.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-	bar.alignment = BoxContainer.ALIGNMENT_BEGIN
-	panel.add_child(bar)
-
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "坊市"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	title.mouse_filter = Control.MOUSE_FILTER_STOP
-	title.gui_input.connect(func(e):
-		if e is InputEventMouseButton and e.pressed:
-			UIHint.show_hint(title, "坊市", "宗门交易市场：以灵石买卖物资；仙玉珍品另设「仙缘阁」。\n\n· 坊市：灵石交易市场，出售 / 收购 / 回购丹药、法器、材料等物资\n· 仙缘阁：仙玉商城，以仙玉购置灵宝、功法、灵兽、外观等珍稀之物\n· 仙衣阁：弟子与宗主专属皮肤商店"))
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-
-	# 仙衣阁入口按钮
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	var 右侧 := []
 	var skin_btn := Button.new()
 	skin_btn.name = "SkinShopBtn"
 	skin_btn.text = "弟子仙衣"
 	skin_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	skin_btn.pressed.connect(_on_skin_shop_pressed)
-	bar.add_child(skin_btn)
-
-	# 宗主仙衣阁入口按钮
+	UITheme.apply_secondary_button_style(skin_btn)
+	右侧.append(skin_btn)
 	var master_skin_btn := Button.new()
 	master_skin_btn.name = "MasterSkinShopBtn"
 	master_skin_btn.text = "宗主仙衣"
 	master_skin_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	master_skin_btn.pressed.connect(_on_master_skin_shop_pressed)
-	bar.add_child(master_skin_btn)
-
-	# S1-4 付费：仙玉刷新坊市上架
+	UITheme.apply_secondary_button_style(master_skin_btn)
+	右侧.append(master_skin_btn)
 	var 刷新btn := Button.new()
 	刷新btn.name = "PayRefreshMarketBtn"
 	刷新btn.text = "刷新坊市"
@@ -116,25 +99,24 @@ func _build_header(parent: Control) -> void:
 		刷新btn.text = "刷新坊市（%d仙玉）" % Game.付费单价.get("坊市刷新", 5)
 	刷新btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	刷新btn.pressed.connect(_on_付费_刷新坊市)
-	bar.add_child(刷新btn)
-
+	UITheme.apply_secondary_button_style(刷新btn)
+	右侧.append(刷新btn)
 	_香火标签 = Label.new()
 	_香火标签.name = "XianghuoValue"
 	var xianghuo_capsule: PanelContainer = _make_currency_capsule("res://art/icons/resource/res_xianghuo_36.png", _香火标签)
-	bar.add_child(xianghuo_capsule)
-
+	右侧.append(xianghuo_capsule)
 	_仙玉标签 = Label.new()
 	_仙玉标签.name = "XianyuValue"
 	var xianyu_capsule: PanelContainer = _make_currency_capsule("res://art/icons/resource/res_xianyu_36.png", _仙玉标签)
-	bar.add_child(xianyu_capsule)
-
+	右侧.append(xianyu_capsule)
+	parent.add_child(UITheme.建顶栏("坊市", _on_back_pressed, 右侧, "坊市", "宗门交易市场：以灵石买卖物资；仙玉珍品另设「仙缘阁」。\n\n· 坊市：灵石交易市场，出售 / 收购 / 回购丹药、法器、材料等物资\n· 仙缘阁：仙玉商城，以仙玉购置灵宝、功法、灵兽、外观等珍稀之物\n· 仙衣阁：弟子与宗主专属皮肤商店"))
 func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContainer:
 	var capsule := PanelContainer.new()
 	capsule.name = "CurrencyCapsule"
 	capsule.custom_minimum_size = Vector2(0, 36)
 	capsule.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.118, 0.227, 0.271)
+	sb.bg_color = UITheme.获取面板底色()
 	sb.set_corner_radius_all(18)
 	sb.set_content_margin_all(4)
 	capsule.add_theme_stylebox_override("panel", sb)
@@ -145,7 +127,7 @@ func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContain
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	capsule.add_child(hb)
 
-	var tex: Texture2D = load(icon_path) as Texture2D
+	var tex: Texture2D = (load(icon_path) as Texture2D) if icon_path != "" else null
 	var icon := TextureRect.new()
 	icon.name = "Icon"
 	icon.custom_minimum_size = Vector2(16, 16)
@@ -169,22 +151,24 @@ func _make_currency_capsule(icon_path: String, out_label: Label) -> PanelContain
 	return capsule
 
 # 分类栏分区（X12 一义一名一页）：
-#   「仙缘阁」= 仙玉商城（XianyuShop 分类：推荐/灵宝/功法/灵兽/护道/机缘/VIP/符箓/外观）
+#   「仙缘阁」= 仙玉商城（XianyuShop 分类：推荐/灵宝/功法/灵兽/护道/机缘/客卿/符箓/外观）
 #   「坊市」  = 灵石交易市场（出售 / 收购 / 回购）
 # 二者同页不同语义，分区标注以防「坊市」被误读为仙玉充值商店。
 func _build_tabs(parent: Control) -> void:
-	_build_tab_group(parent, "仙缘阁", XianyuShop.分类列表)
-	_build_tab_group(parent, "坊市", ["出售", "收购", "回购"])
+	_build_tab_group(parent, "仙缘阁", XianyuShop.分类列表, "仙玉")
+	_build_tab_group(parent, "坊市", ["出售", "收购", "回购"], "灵石")
 	_update_tab_styles()
 
-func _build_tab_group(parent: Control, 区名: String, 分类: Array) -> void:
+# 副标只进「区标文字」，不进节点名 —— 节点名带「·」会污染既有 harness 的按名查找，
+# 且区标是给玩家看货币归属的唯一线索（两套货币同页，必须一眼分清）。
+func _build_tab_group(parent: Control, 区名: String, 分类: Array, 副标: String = "") -> void:
 	var 组 := VBoxContainer.new()
 	组.name = "TabGroup_" + 区名
 	组.add_theme_constant_override("separation", 2)
 	var 区标 := Label.new()
 	区标.name = "GroupLabel_" + 区名
-	区标.text = 区名
-	区标.add_theme_font_size_override("font_size", 12)
+	区标.text = 区名 if 副标 == "" else "%s · %s" % [区名, 副标]
+	UITheme.apply_section_title(区标)
 	区标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	组.add_child(区标)
 	var bar := HBoxContainer.new()
@@ -215,7 +199,7 @@ func _update_tab_styles() -> void:
 		btn.add_theme_color_override("font_hover_color", UITheme.COLOR_TEXT_GOLD)
 		btn.add_theme_color_override("font_pressed_color", UITheme.COLOR_TEXT_GOLD)
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(0.118, 0.227, 0.271) if sel else Color(0, 0, 0, 0)
+		sb.bg_color = UITheme.获取面板底色() if sel else Color(0, 0, 0, 0)
 		sb.border_color = UITheme.COLOR_TEXT_GOLD if sel else Color(0, 0, 0, 0)
 		sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 		sb.border_width_bottom = 3
@@ -230,7 +214,7 @@ func _build_featured(parent: Control) -> void:
 	_featured_panel.name = "FeaturedPanel"
 	_featured_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.094, 0.176, 0.216)
+	sb.bg_color = UITheme.获取面板底色()
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	_featured_panel.add_theme_stylebox_override("panel", sb)
 	parent.add_child(_featured_panel)
@@ -249,12 +233,22 @@ func _build_list(parent: Control) -> void:
 	_scroll_vbox.add_theme_constant_override("separation", UITheme.GRID)
 	scroll.add_child(_scroll_vbox)
 
+	# ★ 2026-09-16（#009 逐页精修）：滚动区底部内边距。原实现滚到底时末卡直接贴住底部
+	#   「供奉仙玉」通栏，观感像被裁断。VBoxContainer 的 separation **只作用于相邻子项之间**
+	#   （末项之后不加），故只能用一个常驻高垫撑出留白。清空逻辑跳过它，
+	#   每轮 populate 后由 _排尾垫() 移回末尾（_populate_impl 有 3 处 early return）。
+	var 尾垫: Control = Control.new()
+	尾垫.name = "ScrollTailPad"
+	尾垫.custom_minimum_size = Vector2(0, int(UITheme.MARGIN * UITheme.UI_SCALE))
+	尾垫.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scroll_vbox.add_child(尾垫)
+
 func _build_bottom(parent: Control) -> void:
 	var bar := PanelContainer.new()
 	bar.name = "BottomBar"
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.067, 0.129, 0.165)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	bar.add_theme_stylebox_override("panel", sb)
 
 	var btn := Button.new()
@@ -273,7 +267,20 @@ func refresh() -> void:
 		_build()
 	_populate()
 
+# ★ 2026-09-16（#009 逐页精修）：本函数有 3 处 early return（收购/出售/回购），
+#   尾垫的「移回末位」无法在内部收口 ⇒ 改为包装：真正实现下沉到 _populate_impl，
+#   包装层在任一分支返回后统一重排尾垫。调用方（refresh / _on_tab_pressed）零改动。
 func _populate() -> void:
+	_populate_impl()
+	_排尾垫()
+
+## 把常驻尾垫移回 VBox 末位（见 _build_list 里尾垫的用途）。
+func _排尾垫() -> void:
+	var 垫: Node = _scroll_vbox.get_node_or_null("ScrollTailPad")
+	if 垫 != null:
+		_scroll_vbox.move_child(垫, -1)
+
+func _populate_impl() -> void:
 	if _香火标签 != null and is_instance_valid(Game):
 		var v: Variant = Game.get("香火值")
 		_香火标签.text = UITheme.format_resource(0 if v == null else int(v))
@@ -286,18 +293,42 @@ func _populate() -> void:
 			_featured_panel.remove_child(child)
 			child.queue_free()
 		if _当前分类 == "推荐":
-			# 大厂标准：每日特惠商品列表（使用新添加的Game.获取商城每日特惠()）
-			var 每日特惠列表: Array = []
-			if is_instance_valid(Game):
-				每日特惠列表 = Game.获取商城每日特惠()
-			if not 每日特惠列表.is_empty():
-				# 每日特惠标题
+			# ★ 2026-09-15 改造（老大：「远古传承玉简怎么一直置顶着…能增加更多特价物品更好了，
+			#   可以花仙玉刷新。现在没有图标，只有一个钻石样式的 emoji」）
+			# 旧链路三条病（机理见 XianyuShop.取每日特供() 上方长注释）：
+			#   只出一件（按 shop_id 去重，而 faction_shop.csv 列名是 item_id ⇒ 去重键恒 ""）/
+			#   价格恒 0（读 price_lingjing，该表是 price）/ 数据源语义错位（阵营声望商店 ≠ 仙玉商城）。
+			# 现改由**仙缘阁自己的商品库**按游戏日轮换 4 件 —— 自带 icon/price，图标与价格天然齐备。
+			_特供id = {}
+			var 特惠列表: Array = []
+			if is_instance_valid(Game) and Game.has_method("取商城特供"):
+				特惠列表 = Game.取商城特供()
+			else:
+				特惠列表 = XianyuShop.取每日特供(0, 4, 0)
+			if not 特惠列表.is_empty():
+				# 标题行：标题 + 仙玉刷新按钮（老大：「可以花仙玉刷新」）
+				var 标题行 := HBoxContainer.new()
+				标题行.name = "DailySpecialTitle"
 				var title_label := Label.new()
-				title_label.name = "DailySpecialTitle"
-				title_label.text = "每日特供"
-				title_label.add_theme_font_size_override("font_size", 18)
-				title_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
-				_featured_panel.add_child(title_label)
+				title_label.text = "今日特供"
+				UITheme.apply_project_font(title_label, UITheme.FONT_TITLE, true)
+				title_label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				标题行.add_child(title_label)
+
+				var 刷新价: int = 5
+				if is_instance_valid(Game):
+					刷新价 = Game.商城特供刷新价
+				var 刷 := Button.new()
+				刷.name = "RefreshTehuiBtn"
+				刷.text = "仙玉刷新 · %d" % 刷新价
+				刷.custom_minimum_size = Vector2(128, 30)
+				刷.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				_apply_gold_gradient(刷)
+				UITheme.apply_button_label(刷, true)
+				刷.pressed.connect(_on_refresh_特供)
+				标题行.add_child(刷)
+				_featured_panel.add_child(标题行)
 				
 				# 每日特惠商品列表
 				var 特惠vbox := VBoxContainer.new()
@@ -305,24 +336,26 @@ func _populate() -> void:
 				特惠vbox.add_theme_constant_override("separation", 8)
 				_featured_panel.add_child(特惠vbox)
 				
-				for 特惠商品 in 每日特惠列表:
-					var 商品 = 特惠商品.get("商品", {})
-					var 原价 = int(特惠商品.get("原价", 0))
-					var 特惠价 = int(特惠商品.get("特惠价", 0))
-					var 折扣百分比 = int(特惠商品.get("折扣百分比", 0))
-					
-					var 商品卡片 = _make_daily_special_card(商品, 原价, 特惠价, 折扣百分比)
-					特惠vbox.add_child(商品卡片)
+				for p: Dictionary in 特惠列表:
+					_特供id[str(p.get("id", ""))] = true
+					var 特惠卡 := _make_daily_special_card(p)
+					特惠vbox.add_child(_make_daily_special_card(p))
+					_卡片淡入(特惠卡)
 			else:
 				# 原有限时特惠（仙玉商店）
 				var featured: Dictionary = XianyuShop.取限时特惠()
 				if not featured.is_empty():
+					var 特惠主卡 := _make_featured_card(featured)
 					_featured_panel.add_child(_make_featured_card(featured))
+					_卡片淡入(特惠主卡)
 		_featured_panel.visible = (_当前分类 == "推荐") and (_featured_panel.get_child_count() > 0)
 
 	if _scroll_vbox == null:
 		return
 	for child in _scroll_vbox.get_children():
+		# 常驻尾垫（滚动区底部内边距）不参与清空，否则每轮都要重建
+		if child.name == "ScrollTailPad":
+			continue
 		_scroll_vbox.remove_child(child)
 		child.queue_free()
 
@@ -338,11 +371,21 @@ func _populate() -> void:
 
 	# 灵宝 Tab：纯 XianyuShop 仙玉商品（限时特惠 / 常规），不含坊市灵石商品
 	var list: Array = XianyuShop.取分类商品(_当前分类)
+	# ★ 2026-09-15：推荐 Tab 上方已有「今日特供」区，此处排除其商品 ——
+	#   否则同一件货同屏出现两次（特供区 + 列表），货架看着很水。
+	if _当前分类 == "推荐" and not _特供id.is_empty():
+		var 过滤: Array = []
+		for p: Dictionary in list:
+			if not _特供id.has(str(p.get("id", ""))):
+				过滤.append(p)
+		list = 过滤
 	if list.is_empty():
 		_add_empty("该分类尚无商品")
 	else:
 		for p: Dictionary in list:
+			var 商品卡 := _make_product_card(p)
 			_scroll_vbox.add_child(_make_product_card(p))
+			_卡片淡入(商品卡)
 
 func _make_featured_card(商品: Dictionary) -> Control:
 	var hb := HBoxContainer.new()
@@ -380,27 +423,34 @@ func _make_featured_card(商品: Dictionary) -> Control:
 
 	var price := Label.new()
 	price.name = "FeaturedPrice"
-	price.text = "%d 仙玉" % int(商品.get("price", 0))
+	# ★ 2026-09-16（ECON-03 P1）：仙玉商品透出「灵石等价」，玩家一眼看清硬通货的真实成本（按当日汇率）。
+	var 玉价1: int = int(商品.get("price", 0))
+	var 等价1: int = Game.仙玉折灵石(玉价1) if (is_instance_valid(Game) and Game.has_method("仙玉折灵石")) else 0
+	price.text = ("%d 仙玉（≈%d 灵石）" % [玉价1, 等价1]) if 等价1 > 0 else ("%d 仙玉" % 玉价1)
 	UITheme.apply_value_text(price, false)
 	price_row.add_child(price)
 
 	var orig := Label.new()
 	orig.name = "FeaturedOriginal"
-	orig.text = "原价 %d" % int(商品.get("original_price", 0))
+	orig.text = "原值 %d" % int(商品.get("original_price", 0))
 	UITheme.apply_aux_text(orig)
 	orig.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	price_row.add_child(orig)
 
 	var countdown := Label.new()
 	countdown.name = "FeaturedCountdown"
-	countdown.text = "剩余 02:14:33"
+	# ★ 2026-09-15 修：原为硬编码「剩余 02:14:33」——纯演示残留（没有真倒计时逻辑，
+	#   老大问「最上面置顶锁定的展示物品干嘛用的」时正是被它误导）。
+	#   今日特供按**游戏日**轮换（XianyuShop.取每日特供 以累计游戏日为种子），
+	#   故如实写明轮换规则，不再伪造秒级倒计时。
+	countdown.text = "存量无多 · 先缘者得"
 	UITheme.apply_aux_text(countdown)
 	countdown.add_theme_color_override("font_color", Color(0.878, 0.639, 0.243))
 	info.add_child(countdown)
 
 	var buy := Button.new()
 	buy.name = "FeaturedBuy"
-	buy.text = "抢购"
+	buy.text = "购入"
 	buy.custom_minimum_size = Vector2(96, 64)
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_gold_gradient(buy)
@@ -411,136 +461,189 @@ func _make_featured_card(商品: Dictionary) -> Control:
 	return hb
 
 # 大厂标准：每日特惠商品卡片（带原价、特惠价、折扣标签）
-func _make_daily_special_card(商品: Dictionary, 原价: int, 特惠价: int, 折扣百分比: int) -> Control:
+## 今日特供卡（2026-09-15 重写）
+## 旧版三处毛病，条条都是老大点到的：
+##   ① 价格前缀硬编码"钻石 emoji + 数字" —— 老大：「现在没有图标，只有一个钻石样式的 emoji」；
+##   ② 图标读 `商品.icon`，而旧数据源 faction_shop.csv **根本没有 icon 列**
+##      ⇒ 永远落到"首字"占位（所以看着像"没有图标"）；
+##   ③ 版式只有"名字 + 价格"两行，与普通商品卡辨识度拉不开，不像"特供"。
+## 现版：左 = 真图标（80×80，品阶色描边）/ 中 = 名称 + 描述 /
+##       右 = 仙玉图标 + 现价（打折时才补原价划线 + 折扣角标）/
+##       最右 = 购入（**直接复用 _on_buy_pressed** —— 它内部按有无"货币"字段分流
+##              购买坊市物品 / 购买仙玉商品，故本卡零经济逻辑、零风险）。
+## 入参改为 XianyuShop 商品字典（id / name / price / original_price / icon / desc / grade）。
+func _make_daily_special_card(商品: Dictionary) -> Control:
+	var 现价: int = int(商品.get("price", 0))
+	var 原价: int = int(商品.get("original_price", 0))
+	var 折率: int = 0
+	if 原价 > 现价 and 原价 > 0:
+		折率 = int(round((1.0 - float(现价) / float(原价)) * 100.0))
+
 	var card := PanelContainer.new()
-	card.name = "DailySpecialCard"
-	card.custom_minimum_size = Vector2(0, 90)
+	card.name = "DailySpecial_%s" % str(商品.get("id", ""))
+	card.custom_minimum_size = Vector2(0, 96)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color(0.12, 0.15, 0.2, 1.0)
-	card_style.border_color = Color(0.9, 0.6, 0.2, 1.0)
-	card_style.border_width_left = 1
-	card_style.border_width_right = 1
-	card_style.border_width_top = 1
-	card_style.border_width_bottom = 1
-	card_style.set_corner_radius_all(8)
-	card.add_theme_stylebox_override("panel", card_style)
-	
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.129, 0.176, 0.200)
+	sb.border_color = UITheme.COLOR_TEXT_GOLD
+	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
+	sb.set_border_width_all(1)
+	card.add_theme_stylebox_override("panel", sb)
+
 	var hb := HBoxContainer.new()
-	hb.name = "CardHBox"
-	hb.add_theme_constant_override("separation", 12)
+	hb.name = "TehuiHBox"
+	hb.add_theme_constant_override("separation", 10)
 	card.add_child(hb)
-	
-	# 图标区域
-	var icon_panel := PanelContainer.new()
-	icon_panel.name = "IconPanel"
-	icon_panel.custom_minimum_size = Vector2(64, 64)
-	var icon_style := StyleBoxFlat.new()
-	icon_style.bg_color = Color(0.08, 0.1, 0.15, 1.0)
-	icon_style.set_corner_radius_all(8)
-	icon_panel.add_theme_stylebox_override("panel", icon_style)
-	
-	var icon_label := Label.new()
-	icon_label.name = "IconLabel"
-	icon_label.text = "📦"
-	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon_label.add_theme_font_size_override("font_size", 28)
-	icon_panel.add_child(icon_label)
-	hb.add_child(icon_panel)
-	
-	# 信息区域
+
+	# ── 左：真图标（80×80，品阶色描边）──
+	var 品色: Color = UIThemeConfig.get_quality_color(_品阶键(str(商品.get("grade", "凡品"))))
+	var icon_bg := PanelContainer.new()
+	icon_bg.name = "TehuiIconBg"
+	icon_bg.custom_minimum_size = Vector2(80, 80)
+	icon_bg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ibs := StyleBoxFlat.new()
+	ibs.bg_color = Color(0.122, 0.169, 0.192)
+	ibs.border_color = 品色
+	ibs.set_corner_radius_all(UITheme.RADIUS_PANEL)
+	ibs.set_border_width_all(2)
+	icon_bg.add_theme_stylebox_override("panel", ibs)
+	var icen := CenterContainer.new()
+	icen.name = "TehuiIconCenter"
+	icon_bg.add_child(icen)
+	var ipath: String = str(商品.get("icon", ""))
+	var itex: Texture2D = null
+	if ipath != "" and ResourceLoader.exists(ipath):
+		itex = load(ipath) as Texture2D
+	if itex != null:
+		var itr := TextureRect.new()
+		itr.name = "TehuiIcon"
+		itr.texture = itex
+		itr.custom_minimum_size = Vector2(66, 66)
+		itr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		itr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		itr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icen.add_child(itr)
+	else:
+		var ph := Label.new()
+		ph.name = "TehuiIconPlaceholder"
+		ph.text = _首字(str(商品.get("name", "—")))
+		ph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		UITheme.apply_section_title(ph)
+		ph.add_theme_color_override("font_color", 品色)
+		icen.add_child(ph)
+	hb.add_child(icon_bg)
+
+	# ── 中：名称 + 描述 ──
 	var info := VBoxContainer.new()
-	info.name = "InfoVBox"
+	info.name = "TehuiInfo"
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	info.add_theme_constant_override("separation", 4)
 	hb.add_child(info)
-	
-	# 商品名称
-	var name_label := Label.new()
-	name_label.name = "ProductName"
-	name_label.text = str(商品.get("item_name", "未知商品"))
-	name_label.add_theme_font_size_override("font_size", 16)
-	name_label.add_theme_color_override("font_color", Color(0.95, 0.95, 1.0, 1.0))
-	info.add_child(name_label)
-	
-	# 价格区域
-	var price_hb := HBoxContainer.new()
-	price_hb.name = "PriceHBox"
-	price_hb.add_theme_constant_override("separation", 8)
-	info.add_child(price_hb)
-	
-	# 特惠价
-	var special_price := Label.new()
-	special_price.name = "SpecialPrice"
-	special_price.text = "💎 %d" % 特惠价
-	special_price.add_theme_font_size_override("font_size", 18)
-	special_price.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3, 1.0))
-	price_hb.add_child(special_price)
-	
-	# 原价（划线）
-	if 原价 > 特惠价:
-		var original_price := Label.new()
-		original_price.name = "OriginalPrice"
-		original_price.text = "%d" % 原价
-		original_price.add_theme_font_size_override("font_size", 14)
-		original_price.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55, 1.0))
-		price_hb.add_child(original_price)
-	
-	# 折扣标签
-	if 折扣百分比 > 0:
-		var discount_badge := PanelContainer.new()
-		discount_badge.name = "DiscountBadge"
-		discount_badge.custom_minimum_size = Vector2(48, 20)
-		var discount_style := StyleBoxFlat.new()
-		discount_style.bg_color = Color(0.9, 0.2, 0.2, 1.0)
-		discount_style.set_corner_radius_all(4)
-		discount_badge.add_theme_stylebox_override("panel", discount_style)
-		
-		var discount_label := Label.new()
-		discount_label.name = "DiscountLabel"
-		discount_label.text = "-%d%%" % 折扣百分比
-		discount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		discount_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		discount_label.add_theme_font_size_override("font_size", 12)
-		discount_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-		discount_badge.add_child(discount_label)
-		price_hb.add_child(discount_badge)
-	
-	# 购买按钮
-	var buy_btn := Button.new()
-	buy_btn.name = "BuyButton"
-	buy_btn.text = "购入"
-	buy_btn.custom_minimum_size = Vector2(0, 32)
-	buy_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-	var btn_style_normal := StyleBoxFlat.new()
-	btn_style_normal.bg_color = Color(0.9, 0.6, 0.2, 1.0)
-	btn_style_normal.set_corner_radius_all(6)
-	buy_btn.add_theme_stylebox_override("normal", btn_style_normal)
-	var btn_style_hover := StyleBoxFlat.new()
-	btn_style_hover.bg_color = Color(0.95, 0.65, 0.25, 1.0)
-	btn_style_hover.set_corner_radius_all(6)
-	buy_btn.add_theme_stylebox_override("hover", btn_style_hover)
-	buy_btn.add_theme_color_override("font_color", Color(0.2, 0.15, 0.05, 1.0))
-	buy_btn.add_theme_font_size_override("font_size", 14)
-	buy_btn.pressed.connect(_on_daily_special_buy.bind(商品, 特惠价))
-	info.add_child(buy_btn)
-	
+
+	var nm := Label.new()
+	nm.name = "TehuiName"
+	nm.text = str(商品.get("name", "—"))
+	UITheme.apply_body_text(nm)
+	info.add_child(nm)
+
+	var de := Label.new()
+	de.name = "TehuiDesc"
+	de.text = str(商品.get("desc", ""))
+	UITheme.apply_aux_text(de)
+	de.add_theme_color_override("font_color", UITheme.color_text_body_dim())
+	de.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.add_child(de)
+
+	# ── 右：价格列（仙玉图标 + 现价；真打折才补原价划线与折扣角标）──
+	var 价列 := VBoxContainer.new()
+	价列.name = "TehuiPriceCol"
+	价列.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	价列.add_theme_constant_override("separation", 2)
+	hb.add_child(价列)
+
+	var 现价行 := HBoxContainer.new()
+	现价行.name = "TehuiNowRow"
+	现价行.add_theme_constant_override("separation", 2)
+	价列.add_child(现价行)
+
+	# 货币图标：原来这里是硬编码 emoji「◇」，现走真实资源图标 res_xianyu_36
+	var 玉标 := TextureRect.new()
+	玉标.name = "TehuiCoin"
+	玉标.texture = UITheme.load_hd_icon("res_xianyu_36")
+	玉标.custom_minimum_size = Vector2(18, 18)
+	玉标.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	玉标.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	玉标.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	现价行.add_child(玉标)
+
+	var 现价标 := Label.new()
+	现价标.name = "TehuiPrice"
+	现价标.text = str(现价)
+	UITheme.apply_value_text(现价标, false)
+	现价标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+	现价行.add_child(现价标)
+
+	if 折率 > 0:
+		var 原价标 := Label.new()
+		原价标.name = "TehuiOrig"
+		原价标.text = "原值 %d" % 原价
+		UITheme.apply_aux_text(原价标)
+		原价标.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55, 1.0))
+		价列.add_child(原价标)
+
+		var 角标 := PanelContainer.new()
+		角标.name = "TehuiBadge"
+		角标.custom_minimum_size = Vector2(46, 20)
+		var 角框 := StyleBoxFlat.new()
+		角框.bg_color = Color(0.85, 0.20, 0.18)
+		角框.set_corner_radius_all(4)
+		角标.add_theme_stylebox_override("panel", 角框)
+		var 角字 := Label.new()
+		角字.name = "TehuiBadgeLabel"
+		角字.text = "-%d%%" % 折率
+		角字.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		角字.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		UITheme.apply_aux_text(角字)
+		角字.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+		角标.add_child(角字)
+		价列.add_child(角标)
+
+	# ── 最右：购入（复用商品卡既有回调，零经济逻辑）──
+	var buy := Button.new()
+	buy.name = "TehuiBuy_%s" % str(商品.get("id", ""))
+	buy.text = "购入"
+	buy.custom_minimum_size = Vector2(84, 56)
+	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_apply_gold_gradient(buy)
+	UITheme.apply_button_label(buy, true)
+	buy.pressed.connect(_on_buy_pressed.bind(商品, buy))
+	hb.add_child(buy)
+
 	return card
 
-# 每日特惠购买按钮回调
-func _on_daily_special_buy(商品: Dictionary, 价格: int) -> void:
-	# 简化：显示购买提示
-	var 商品名称 = str(商品.get("item_name", "未知商品"))
-	UIHint.show_hint(self, "购买提示", "购买【%s】，价格：%d灵石\n\n（购买逻辑待接入）" % [商品名称, 价格])
+## 仙玉刷新「今日特供」：扣仙玉换一批
+## 抽样逻辑在 Game.仙玉刷新商城特供() → XianyuShop.取每日特供(日, 数量, 偏移)；
+## 本回调只负责"调用 + 提示 + 重绘"。
+## ★ 2026-09-15：原 _on_daily_special_buy 已删除 —— 它只弹「购买逻辑待接入」的假提示，
+##   而购入按钮现走 _on_buy_pressed（真结算）。
+func _on_refresh_特供() -> void:
+	if not is_instance_valid(Game) or not Game.has_method("仙玉刷新商城特供"):
+		_toast("仙缘阁未就绪")
+		return
+	var 结果: Dictionary = Game.仙玉刷新商城特供()
+	_toast(str(结果.get("msg", "—")))
+	if bool(结果.get("ok", false)):
+		_populate()
+
 
 func _make_product_card(商品: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = "Card_%s" % str(商品.get("id", ""))
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_PANEL_BG
+	sb.bg_color = UITheme.获取面板底色()
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	panel.add_theme_stylebox_override("panel", sb)
 
@@ -585,12 +688,15 @@ func _make_product_card(商品: Dictionary) -> PanelContainer:
 				特惠倍 = Game.坊市特惠倍率(sid)
 		price.text = "%d 灵石" % 现价
 		if 特惠倍 != 1.0:
-			price.text += "  ·特惠%d折" % int(特惠倍 * 100)
+			price.text += "  ·让利 %d%%" % int(round((1.0 - 特惠倍) * 100))   # PH7-BATCH1E：D5 口径，乘数→让利%
 			price.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 		else:
 			price.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	else:
-		price.text = "%d 仙玉" % int(商品.get("price", 0))
+		# ★ 2026-09-16（ECON-03 P1）：仙玉商品透出「灵石等价」（按当日汇率现算，不落盘）。
+		var 玉价2: int = int(商品.get("price", 0))
+		var 等价2: int = Game.仙玉折灵石(玉价2) if (is_instance_valid(Game) and Game.has_method("仙玉折灵石")) else 0
+		price.text = ("%d 仙玉（≈%d 灵石）" % [玉价2, 等价2]) if 等价2 > 0 else ("%d 仙玉" % 玉价2)
 	UITheme.apply_value_text(price, false)
 	info.add_child(price)
 
@@ -614,9 +720,13 @@ func _make_icon_bg(商品: Dictionary) -> PanelContainer:
 	var icon_bg := PanelContainer.new()
 	icon_bg.name = "IconBg"
 	icon_bg.custom_minimum_size = Vector2(120, 120)
+	# 2026-09-15（老大定）：商品图标原为 72px 装在 120px 框里 ⇒ 四周一圈 24px 空档，
+	# 看着"图标小小一个框空空"。老大要求「放大跟框体一样大」试试观感。
+	# 实现走「内缩 4px 边框宽」而非真 120 —— 留 12px 呼吸位，既不顶到品阶色描边，
+	# 又让图标占满可视区（原 72→104，放大 1.44 倍）。
 	icon_bg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.055, 0.114, 0.141)
+	sb.bg_color = Color(0.122, 0.169, 0.192)
 	sb.border_color = c
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	sb.set_border_width_all(2)
@@ -628,12 +738,18 @@ func _make_icon_bg(商品: Dictionary) -> PanelContainer:
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	icon_bg.add_child(center)
 
+	# ★ 2026-09-15（P0-C）：约定式寻址下 icon 键由 _坊市表() 补齐（已带 exists 判定），
+	#   此处再加一道保护 —— 仙缘阁商品（XianyuShop 库）的 icon 是**库里硬写的全路径**，
+	#   若哪天库改名而图未同步，这一层能拦住 load() 直抛 "Resource file not found" 的报错刷屏，
+	#   静默回退「首字」占位。
 	var icon_path: String = str(商品.get("icon", ""))
-	var tex: Texture2D = load(icon_path) as Texture2D
+	var tex: Texture2D = null
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		tex = load(icon_path) as Texture2D
 	if tex != null:
 		var icon := TextureRect.new()
 		icon.name = "Icon"
-		icon.custom_minimum_size = Vector2(72, 72)
+		icon.custom_minimum_size = Vector2(104, 104)
 		# 修复（视觉收口 · 2026-09-13）：TextureRect 默认 expand_mode=EXPAND_KEEP_SIZE，
 		# 其 get_minimum_size() 返回**贴图原始尺寸**（本项目图标为 512/72 高清图），
 		# 会无视 custom_minimum_size 把父容器撑爆 → 图标在屏幕上超大。
@@ -641,7 +757,7 @@ func _make_icon_bg(商品: Dictionary) -> PanelContainer:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = tex
-		icon.modulate = c
+		icon.modulate = Color.WHITE   # ★2026-09-15 修正：原为品阶色 c ⇒ 全彩具体图标被整图染成单色块（「图标看着不对」的真因）；品阶语义改由 IconBg 外框 border_color 承载
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		center.add_child(icon)
 	else:
@@ -686,14 +802,9 @@ func _apply_gold_gradient(btn: Button) -> void:
 	btn.add_theme_stylebox_override("focus", normal)
 
 func _add_empty(文本: String) -> void:
-	var l := Label.new()
-	l.name = "EmptyLabel"
-	l.text = 文本
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UITheme.apply_aux_text(l)
-	l.add_theme_color_override("font_color", UITheme.color_text_body_dim())
-	_scroll_vbox.add_child(l)
+	# ★ 2026-09-16（#009 逐页精修）：空态升级为全项目统一组件（图标位 + 主文案 + 淡入），
+	#   消除「整屏只有一行小字」的空白观感。货架类局部空态 ⇒ 紧凑模式。
+	_scroll_vbox.add_child(UITheme.建空态(文本, "", "", true))
 
 func _确保坊市上架() -> void:
 	if not is_instance_valid(Game):
@@ -702,6 +813,19 @@ func _确保坊市上架() -> void:
 		return
 	if Game.坊市上架集.is_empty():
 		Game.刷新坊市上架()
+		return
+	# ★ 2026-09-15 修：旧存档的 fs_list 可能整批是「列名归一化之前」的空串/失效 id
+	#   （上架集非空 ⇒ 原逻辑不重刷），表现为坊市页空、每日特惠全是 0 灵石。
+	#   这里做一次自愈：只要有一条对不上现行商品表，就整批重刷（周刷新语义不变）。
+	if not Game.has_method("_坊市表"):
+		return
+	var 有效: Dictionary = {}
+	for r in Game._坊市表():
+		有效[str(r.get("shop_id", ""))] = true
+	for sid in Game.坊市上架集:
+		if not 有效.has(str(sid)):
+			Game.刷新坊市上架()
+			return
 
 func _取灵石坊市在售() -> Array:
 	var out: Array = []
@@ -719,12 +843,18 @@ func _取灵石坊市在售() -> Array:
 		var 描述: String = "宗门坊市流通灵物"
 		if 声望门槛 > 0:
 			描述 = "需声望 %d 解锁" % 声望门槛
+		# ★ 2026-09-15（P0-C）补 icon 键 —— 本函数是个**手工映射层**（把 _坊市表() 的行重构成
+		#   商品卡要的扁平字典）。探针实证：「每日特惠」卡（直接读 _坊市表() 的行）图标正常，
+		#   而「本周坊市上架」卡（走本函数）整屏仍是「首字」占位 —— 差别就在这一处：
+		#   _坊市表() 里补好的 icon 路径，在重构字典时被丢掉了。
+		#   教训：单点补键 ≠ 全链路可达，**中间的手工映射层会静默丢字段**。
 		out.append({
 			"id": sid,
 			"name": str(r.get("item_name", "—")),
 			"grade": str(r.get("item_grade", "凡品")),
 			"desc": 描述,
 			"price_lingjing": int(r.get("price_lingjing", "0")),
+			"icon": str(r.get("icon", "")),
 			"货币": "灵石",
 		})
 	return out
@@ -763,6 +893,8 @@ func _on_recharge_pressed() -> void:
 func _toast(文本: String) -> void:
 	if _状态标签 != null:
 		_状态标签.text = 文本
+	if is_instance_valid(Game) and Game.has_method("添加提示"):
+		Game.添加提示(文本)
 
 # ============ 坊市收购（玩家从坊市买入灵物，灵石结算）============
 # 展示 game_state 坊市每日特惠 + 常规上架集（坊市上架集），全走 购买坊市物品。
@@ -774,7 +906,7 @@ func _populate_收购() -> void:
 	_确保坊市上架()
 	var 提示: Label = Label.new()
 	提示.name = "BuyTip"
-	提示.text = "宗门坊市 · 以灵石收购流通灵物（声望折扣 + 行情浮动 + 每日特惠）"
+	提示.text = "宗门坊市 · 以灵石收购流通灵物（声望让利 + 行情浮动 + 今日缘法）"
 	UITheme.apply_aux_text(提示)
 	提示.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	_scroll_vbox.add_child(提示)
@@ -785,14 +917,16 @@ func _populate_收购() -> void:
 	_scroll_vbox.add_child(灵种栏)
 
 	var 灵种信息: Label = Label.new()
-	灵种信息.text = "灵种库存：%d份（灵田产出必需）" % int(Game.灵种)
+	UITheme.apply_body_text(灵种信息)
+	灵种信息.text = "灵种存量：%d份（灵田产出必需）" % int(Game.灵种)
 	灵种信息.custom_minimum_size = Vector2(200, 32)
 	灵种栏.add_child(灵种信息)
 
 	var 买灵种按钮: Button = Button.new()
-	买灵种按钮.text = "购买灵种×10（100灵石）"
+	买灵种按钮.text = "纳灵种十份（百灵石）"
 	买灵种按钮.custom_minimum_size = Vector2(180, 32)
 	买灵种按钮.pressed.connect(_on购买灵种)
+	UITheme.apply_secondary_button_style(买灵种按钮)
 	灵种栏.add_child(买灵种按钮)
 
 	# 灵草/灵米售卖（S1：坊市售卖宗门产出）
@@ -801,26 +935,38 @@ func _populate_收购() -> void:
 	_scroll_vbox.add_child(售卖栏)
 
 	var 售卖信息: Label = Label.new()
+	UITheme.apply_body_text(售卖信息)
 	售卖信息.text = "灵草：%d | 灵米：%d" % [int(Game.灵草), int(Game.灵米)]
 	售卖信息.custom_minimum_size = Vector2(200, 32)
 	售卖栏.add_child(售卖信息)
 
 	var 卖灵草按钮: Button = Button.new()
-	卖灵草按钮.text = "售卖灵草×10（20灵石）"
+	卖灵草按钮.text = "售灵草十份（二十灵石）"
 	卖灵草按钮.custom_minimum_size = Vector2(160, 32)
 	卖灵草按钮.pressed.connect(_on售卖灵草)
+	UITheme.apply_secondary_button_style(卖灵草按钮)
 	售卖栏.add_child(卖灵草按钮)
 
 	var 卖灵米按钮: Button = Button.new()
-	卖灵米按钮.text = "售卖灵米×10（30灵石）"
+	卖灵米按钮.text = "售灵米十份（三十灵石）"
 	卖灵米按钮.custom_minimum_size = Vector2(160, 32)
 	卖灵米按钮.pressed.connect(_on售卖灵米)
+	UITheme.apply_secondary_button_style(卖灵米按钮)
 	售卖栏.add_child(卖灵米按钮)
 
 	# 每日特惠（game_state 坊市特惠卡，走 购买坊市物品）
 	_populate_特惠()
 	# 常规上架集（坊市上架集 → 灵石商品卡）
 	var 在售: Array = _取灵石坊市在售()
+	# ★ 2026-09-17 S2（V4 同屏去重）：排除「今日缘法」已陈列的 shop_id，避免同件货同屏两次。
+	#   注：特惠项键为 `shop_id`，而 `_取灵石坊市在售()` 输出项键为 `id`（值同为 shop_id）
+	#   ⇒ 两侧键名不同，按「值」比对（同 `_populate_impl:364-369` 手法）。
+	if not _特惠id.is_empty():
+		var 过滤: Array = []
+		for p: Dictionary in 在售:
+			if not _特惠id.has(str(p.get("id", ""))):
+				过滤.append(p)
+		在售 = 过滤
 	if 在售.is_empty():
 		_add_empty("本周坊市尚无上架灵物，可于集市期间前来采买")
 		return
@@ -831,10 +977,13 @@ func _populate_收购() -> void:
 	上架标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	_scroll_vbox.add_child(上架标题)
 	for p: Dictionary in 在售:
+		var 商品卡 := _make_product_card(p)
 		_scroll_vbox.add_child(_make_product_card(p))
+		_卡片淡入(商品卡)
 
 # ============ 坊市经营深化 UI：每日特惠 / 出售 / 回购 ============
 func _populate_特惠() -> void:
+	_特惠id = {}
 	if not is_instance_valid(Game) or not Game.has_method("取坊市每日特惠"):
 		return
 	var 特惠: Array = Game.取坊市每日特惠()
@@ -842,14 +991,17 @@ func _populate_特惠() -> void:
 		return
 	var 标题: Label = Label.new()
 	标题.name = "TehuiTitle"
-	标题.text = "每日特惠 · 限时折扣"
+	标题.text = "今日缘法 · 限时应缘"
 	UITheme.apply_section_title(标题)
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	_scroll_vbox.add_child(标题)
 	for t in 特惠:
 		var sid: String = str(t.get("shop_id", ""))
+		_特惠id[sid] = true
 		var 倍率: float = float(t.get("倍率", 1.0))
+		var 缘法卡 := _make_特惠_card(sid, 倍率)
 		_scroll_vbox.add_child(_make_特惠_card(sid, 倍率))
+		_卡片淡入(缘法卡)
 
 func _make_特惠_card(shop_id: String, 倍率: float) -> PanelContainer:
 	var 行: Dictionary = {}
@@ -861,11 +1013,7 @@ func _make_特惠_card(shop_id: String, 倍率: float) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.name = "Tehui_%s" % shop_id
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.094, 0.176, 0.216)
-	sb.border_color = UITheme.COLOR_TEXT_GOLD
-	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
-	sb.set_border_width_all(2)
+	var sb: StyleBoxFlat = UITheme.make_stylebox_node_units(UITheme.获取面板底色(), UITheme.COLOR_TEXT_GOLD, UITheme.RADIUS_PANEL, 2)
 	panel.add_theme_stylebox_override("panel", sb)
 
 	var hb := HBoxContainer.new()
@@ -873,6 +1021,45 @@ func _make_特惠_card(shop_id: String, 倍率: float) -> PanelContainer:
 	hb.add_theme_constant_override("separation", UITheme.GRID)
 	hb.alignment = BoxContainer.ALIGNMENT_BEGIN
 	panel.add_child(hb)
+
+	# ── 左：商品图标（★ 2026-09-15 P0-C 接入）──
+	# 本卡原先**整行只有文字**（名称 + 价格 + 抢购钮），而同屏的「今日特供」卡有图标 ⇒
+	# 一排卡里图文混排 / 纯文字混排，观感断裂。这里补上图标位。
+	# 零新增资产：本卡展示的正是 faction_shop 的同一批 shop_id 商品，
+	# 直接复用 art/icons/shop/ 那 20 张（经 _坊市表() 的约定式寻址取到 `行["icon"]`）。
+	# 尺寸取 80 框 / 66 图标，与「今日特供」卡一致（特供卡在 455~476 行是同样的 80/66）。
+	var 特惠图标框 := PanelContainer.new()
+	特惠图标框.name = "TehuiIconBg_%s" % shop_id
+	特惠图标框.custom_minimum_size = Vector2(80, 80)
+	特惠图标框.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ibs2 := UITheme.make_stylebox_node_units(Color(0.122, 0.169, 0.192), UITheme.COLOR_TEXT_GOLD, UITheme.RADIUS_PANEL, 2)
+	特惠图标框.add_theme_stylebox_override("panel", ibs2)
+	var 特惠图标心 := CenterContainer.new()
+	特惠图标心.name = "TehuiIconCenter_%s" % shop_id
+	特惠图标框.add_child(特惠图标心)
+	var 特惠图路径: String = str(行.get("icon", ""))
+	var 特惠贴图: Texture2D = null
+	if 特惠图路径 != "" and ResourceLoader.exists(特惠图路径):
+		特惠贴图 = load(特惠图路径) as Texture2D
+	if 特惠贴图 != null:
+		var 特惠图 := TextureRect.new()
+		特惠图.name = "TehuiIcon_%s" % shop_id
+		特惠图.texture = 特惠贴图
+		特惠图.custom_minimum_size = Vector2(66, 66)
+		特惠图.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		特惠图.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		特惠图.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		特惠图标心.add_child(特惠图)
+	else:
+		var 特惠占位 := Label.new()
+		特惠占位.name = "TehuiIconPlaceholder_%s" % shop_id
+		特惠占位.text = _首字(str(行.get("item_name", "—")))
+		特惠占位.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		特惠占位.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		UITheme.apply_section_title(特惠占位)
+		特惠占位.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+		特惠图标心.add_child(特惠占位)
+	hb.add_child(特惠图标框)
 
 	var info := VBoxContainer.new()
 	info.name = "TehuiInfo"
@@ -892,14 +1079,14 @@ func _make_特惠_card(shop_id: String, 倍率: float) -> PanelContainer:
 		价 = Game.坊市物品现价(shop_id)
 	var price := Label.new()
 	price.name = "TehuiPrice"
-	price.text = "%d 灵石 ·特惠%d折" % [价, int(倍率 * 100)]
+	price.text = "%d 灵石 · 让利 %d%%" % [价, int(round((1.0 - 倍率) * 100))]   # PH7-BATCH1E：D5 口径，乘数→让利%
 	UITheme.apply_value_text(price, false)
 	price.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	info.add_child(price)
 
 	var buy := Button.new()
 	buy.name = "TehuiBuy_%s" % shop_id
-	buy.text = "抢购"
+	buy.text = "购入"
 	buy.custom_minimum_size = Vector2(96, 64)
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_apply_gold_gradient(buy)
@@ -931,25 +1118,31 @@ func _populate_出售() -> void:
 	var 提示: Label = Label.new()
 	提示.name = "SellTip"
 	var 商队率: int = int(Game.商队回收系数 * 100) if is_instance_valid(Game) else 80
-	提示.text = "双渠道回收：坊市按市价 60%% 结算（可原价找回）· 商队高价回收（当前 %d%%，不可找回）" % 商队率
+	提示.text = "两途回售：坊市按行价60%作价（可原值赎回）· 商队高价相收（当前 %d%%，赎回无门）" % 商队率
 	UITheme.apply_aux_text(提示)
 	提示.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	_scroll_vbox.add_child(提示)
 	for it in 库:
+		var 售卡 := _make_出售_card(it)
 		_scroll_vbox.add_child(_make_出售_card(it))
+		_卡片淡入(售卡)
 
 func _make_出售_card(it: Variant) -> PanelContainer:
-	var 名: String = str(it.get("名称", "—"))
+	# ★ 2026-09-16 修（真 bug · 红线⑤同族）：库房元素是 Item（RefCounted，**非字典**），
+	#   `.get(k, 默认)` 双参在 Godot 4.7 抛「Expected 1 argument(s)」并**中断本函数**
+	#   ⇒ 坊市「出售」页整页卡片建不出来。改单参 .get(key) + null 兜底。
+	var v名: Variant = it.get("名称")
+	var 名: String = String(v名) if v名 != null else "—"
 	var 坊市价: int = 0
 	var 商队价: int = 0
 	if is_instance_valid(Game) and Game.has_method("_品阶售价"):
-		坊市价 = int(round(float(Game._品阶售价(it)) * 0.6))
+		坊市价 = int(round(float(Game._品阶售价(it)) * 行价回收比率))
 		商队价 = int(round(float(Game._品阶售价(it)) * Game.商队回收系数))
 	var panel := PanelContainer.new()
 	panel.name = "Sell_%s" % 名
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_PANEL_BG
+	sb.bg_color = UITheme.获取面板底色()
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	panel.add_theme_stylebox_override("panel", sb)
 
@@ -968,7 +1161,9 @@ func _make_出售_card(it: Variant) -> PanelContainer:
 
 	var name_lbl := Label.new()
 	name_lbl.name = "SellName"
-	name_lbl.text = "%s [%s·%s]" % [名, str(it.get("类别", "")), str(it.get("品阶", ""))]
+	var v类别: Variant = it.get("类别")
+	var v品阶: Variant = it.get("品阶")
+	name_lbl.text = "%s [%s·%s]" % [名, String(v类别) if v类别 != null else "", String(v品阶) if v品阶 != null else ""]
 	UITheme.apply_body_text(name_lbl)
 	info.add_child(name_lbl)
 
@@ -1042,12 +1237,14 @@ func _populate_回购() -> void:
 		return
 	var 提示: Label = Label.new()
 	提示.name = "BuyBackTip"
-	提示.text = "误售找回 · 按原价买回（最多保留最近 5 件）"
+	提示.text = "误售赎回 · 按原值买回（至多存近五件）"
 	UITheme.apply_aux_text(提示)
 	提示.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	_scroll_vbox.add_child(提示)
 	for i in 表.size():
+		var 回卡 := _make_回购_card(表[i], i)
 		_scroll_vbox.add_child(_make_回购_card(表[i], i))
+		_卡片淡入(回卡)
 
 func _make_回购_card(e: Dictionary, idx: int) -> PanelContainer:
 	var 名: String = str(e.get("名称", "—"))
@@ -1056,7 +1253,7 @@ func _make_回购_card(e: Dictionary, idx: int) -> PanelContainer:
 	panel.name = "BuyBack_%d" % idx
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = UITheme.COLOR_PANEL_BG
+	sb.bg_color = UITheme.获取面板底色()
 	sb.set_corner_radius_all(UITheme.RADIUS_PANEL)
 	panel.add_theme_stylebox_override("panel", sb)
 
@@ -1081,7 +1278,7 @@ func _make_回购_card(e: Dictionary, idx: int) -> PanelContainer:
 
 	var price := Label.new()
 	price.name = "BuyBackPrice"
-	price.text = "原价 %d 灵石" % 价
+	price.text = "原值 %d 灵石" % 价
 	UITheme.apply_value_text(price, false)
 	price.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 	info.add_child(price)
@@ -1107,6 +1304,13 @@ func _on_buyback_pressed(idx: int, btn: Button) -> void:
 	var 结果: Dictionary = Game.买回坊市物品(idx)
 	_toast(str(结果.get("msg", "—")))
 	_populate()
+
+func _卡片淡入(节点: Control) -> void:
+	if 节点 == null or not is_instance_valid(节点):
+		return
+	节点.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(节点, "modulate:a", 1.0, 0.2)
 
 func _on_back_pressed() -> void:
 	返回主页.emit()

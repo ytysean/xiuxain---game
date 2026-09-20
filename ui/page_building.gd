@@ -57,6 +57,12 @@ var _built: bool = false
 var _list_root: Control
 var _detail_root: Control
 var _detail_vbox: VBoxContainer
+var _detail_scroll: ScrollContainer
+var _header_holder: VBoxContainer
+var _tab_bar: HBoxContainer
+var _tab_stack: VBoxContainer
+var _tab_pages: Dictionary = {}
+var _tab_buttons: Dictionary = {}
 var _overview_司职数: Label
 var _overview_总等级: Label
 var _overview_月产出: Label
@@ -100,6 +106,14 @@ var _热区控件: Dictionary = {}  # key -> Control
 var _标签控件: Dictionary = {}  # key -> Control
 var _当前选中key: String = ""
 var _当前选中是否热区: bool = false
+
+# 丹房场景动画 banner（v4 暗示型施法循环）运行时状态
+var _丹房动画_frames: Array = []          # 48 帧 region 表（共用同一张图集，不额外占显存）
+var _丹房动画_单帧: AtlasTexture = null   # 实际上屏的唯一纹理对象：原地改 region 翻帧
+var _丹房动画_帧索引: int = 0
+var _丹房动画_计时: Timer = null          # 翻帧定时器（替代 AnimatedTexture，见 _build_场景英雄区）
+var _丹房动画_视图: TextureRect = null
+const _丹房动画_FPS: float = 12.0
 
 # hall_yushou 交互态（S1 ENG-S1-YUSHOU-WIRE）
 var _signals_connected: bool = false          # _connect_signals() 幂等守卫，保证 5 条信号只连一次
@@ -187,19 +201,19 @@ func _build_panorama_view(parent: Control) -> void:
 	# 殿阁图标网格视图（替代原场景图+热区跳转方式）
 	# 使用ScrollContainer支持滚动，GridContainer 3列布局，每个殿阁卡片包含图标、名称、等级
 	
-	# 12个殿阁的配置（key, 名称, 图标文件名）
+	# 13个殿阁的配置（key, 名称, 图标文件名）
 	var buildings: Array = [
 		{"key": "xichi", "name": "洗池·灵泉", "icon": "hall_xichi_36"},
 		{"key": "yushou", "name": "御兽堂", "icon": "hall_yushou_36"},
 		{"key": "zhenfa", "name": "阵法堂", "icon": "hall_zhenfa_36"},
-		{"key": "tanwei", "name": "探微堂", "icon": "hall_qidian_36"},
+		{"key": "tanwei", "name": "探微堂", "icon": "hall_tanwei_36"},
 		{"key": "cangjing", "name": "藏经阁", "icon": "hall_cangjing_36"},
 		{"key": "zhifa", "name": "执法堂", "icon": "hall_zhifa_36"},
 		{"key": "gongxun", "name": "功勋堂", "icon": "hall_gongxun_36"},
 		{"key": "lingtian", "name": "灵田", "icon": "hall_lingtian_36"},
 		{"key": "kuangmai", "name": "矿脉", "icon": "hall_kuangmai_36"},
 		{"key": "dantang", "name": "丹堂", "icon": "hall_dantang_36"},
-		{"key": "qitang", "name": "器堂", "icon": "hall_tanwei_36"},
+		{"key": "qitang", "name": "器堂", "icon": "hall_qidian_36"},
 		{"key": "yuying", "name": "接引殿", "icon": "hall_zhishi_36"},
 		{"key": "futang", "name": "符堂", "icon": "hall_futang_36"},
 	]
@@ -224,8 +238,8 @@ func _build_panorama_view(parent: Control) -> void:
 	title_label.name = "Title"
 	title_label.text = "◆ 宗门殿阁 ◆"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	UITheme.apply_section_title(title_label)
-	title_label.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_page_title(title_label)
+	title_label.add_theme_color_override("font_color", UITheme.获取金文字色())
 	title_label.add_theme_constant_override("shadow_offset_x", 2)
 	title_label.add_theme_constant_override("shadow_offset_y", 2)
 	title_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
@@ -234,11 +248,22 @@ func _build_panorama_view(parent: Control) -> void:
 	# 副标题
 	var subtitle_label := Label.new()
 	subtitle_label.name = "Subtitle"
-	subtitle_label.text = "点击殿阁图标查看详情与管理"
+	subtitle_label.text = "轻点殿阁，可观其详、理其事"
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_aux_text(subtitle_label)
-	subtitle_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	subtitle_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	vbox.add_child(subtitle_label)
+
+	# 铁律说明条（逐页精修 · 铁律前移）：把原先只藏在「?」帮助里的仿真铁律提到首屏，
+	# 让玩家第一眼就懂「殿阁自动产出、宗主只需裁决」，无需点开帮助。来源文案 page_building.gd:2231。
+	var 铁律条 := Label.new()
+	铁律条.name = "CreedBar"
+	铁律条.text = "各殿依职能自动产出资粮、培养弟子、研发技艺；你只需任免司职、裁定请示"
+	铁律条.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	铁律条.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_text(铁律条)
+	铁律条.add_theme_color_override("font_color", UITheme.获取金文字色())
+	vbox.add_child(铁律条)
 	
 	# 创建网格容器（3列）
 	var grid := GridContainer.new()
@@ -249,7 +274,8 @@ func _build_panorama_view(parent: Control) -> void:
 	grid.add_theme_constant_override("v_separation", int(round(16.0 * UITheme.UI_SCALE)))
 	vbox.add_child(grid)
 	
-	# 添加12个殿阁卡片
+	# 添加13个殿阁卡片
+	var 序号 := 0
 	for b in buildings:
 		var key: String = b.key
 		var name: String = b.name
@@ -301,10 +327,10 @@ func _build_panorama_view(parent: Control) -> void:
 		card_vbox.name = "CardVBox"
 		card_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card_vbox.add_theme_constant_override("separation", int(round(10.0 * UITheme.UI_SCALE)))
-		card_vbox.add_theme_constant_override("offset_left", int(round(16.0 * UITheme.UI_SCALE)))
-		card_vbox.add_theme_constant_override("offset_right", int(round(16.0 * UITheme.UI_SCALE)))
-		card_vbox.add_theme_constant_override("offset_top", int(round(16.0 * UITheme.UI_SCALE)))
-		card_vbox.add_theme_constant_override("offset_bottom", int(round(16.0 * UITheme.UI_SCALE)))
+		card_vbox.add_theme_constant_override("margin_left", int(round(16.0 * UITheme.UI_SCALE)))
+		card_vbox.add_theme_constant_override("margin_right", int(round(16.0 * UITheme.UI_SCALE)))
+		card_vbox.add_theme_constant_override("margin_top", int(round(16.0 * UITheme.UI_SCALE)))
+		card_vbox.add_theme_constant_override("margin_bottom", int(round(16.0 * UITheme.UI_SCALE)))
 		card.add_child(card_vbox)
 		
 		# 殿阁图标容器（用于放大动画）
@@ -334,7 +360,7 @@ func _build_panorama_view(parent: Control) -> void:
 			name_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.6))  # 可升级时名称更亮
 		else:
 			name_label.add_theme_color_override("font_color", Color(0.95, 0.90, 0.75))  # 金色文字
-		name_label.add_theme_font_size_override("font_size", int(round(18.0 * UITheme.UI_SCALE)))
+		UITheme.apply_project_font(name_label, int(round(18.0 * UITheme.UI_SCALE)), false)
 		card_vbox.add_child(name_label)
 		
 		# 殿阁等级（包含可升级箭头）
@@ -346,13 +372,13 @@ func _build_panorama_view(parent: Control) -> void:
 		
 		var level_label := Label.new()
 		level_label.name = "Level"
-		level_label.text = "Lv.%d" % level
+		level_label.text = "%d 重" % level
 		UITheme.apply_aux_text(level_label)
 		if 可升级:
 			level_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # 可升级时等级更亮
 		else:
-			level_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
-		level_label.add_theme_font_size_override("font_size", int(round(14.0 * UITheme.UI_SCALE)))
+			level_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
+		UITheme.apply_project_font(level_label, int(round(14.0 * UITheme.UI_SCALE)), false)
 		level_hbox.add_child(level_label)
 		
 		# 可升级箭头标记
@@ -361,20 +387,36 @@ func _build_panorama_view(parent: Control) -> void:
 			upgrade_arrow.name = "UpgradeArrow"
 			upgrade_arrow.text = "↑"
 			upgrade_arrow.add_theme_color_override("font_color", Color(0.4, 1.0, 0.5))  # 绿色向上箭头
-			upgrade_arrow.add_theme_font_size_override("font_size", int(round(16.0 * UITheme.UI_SCALE)))
+			UITheme.apply_project_font(upgrade_arrow, int(round(16.0 * UITheme.UI_SCALE)), false)
 			level_hbox.add_child(upgrade_arrow)
 		
 		# 可升级红点标记（右上角）
 		if 可升级:
+			# ★ 2026-09-15 修复：PanelContainer 继承 Container，会把**每一个**直接子节点
+			#   fit_child_in_rect 拉伸到整块矩形。红点若直接 card.add_child() 会盖满整张卡片
+			#   （整卡变红、名称/等级/图标全被遮住）。必须挂到一层「不绘制、不吃鼠标」的
+			#   Control 上，红点自身再用锚点定位到右上角。
+			var dot_layer := Control.new()
+			dot_layer.name = "DotLayer"
+			dot_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(dot_layer)
+
 			var red_dot := PanelContainer.new()
 			red_dot.name = "RedDot"
+			red_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			red_dot.custom_minimum_size = Vector2(int(round(16.0 * UITheme.UI_SCALE)), int(round(16.0 * UITheme.UI_SCALE)))
+			# 四向锚点均贴右上角，再靠负 offset 内缩 8px；
+			# 原实现只设了 anchor_right/anchor_top，anchor_left 缺省为 0 → 宽度被算成「整卡宽 + 36」。
+			red_dot.anchor_left = 1.0
 			red_dot.anchor_right = 1.0
 			red_dot.anchor_top = 0.0
+			red_dot.anchor_bottom = 0.0
 			red_dot.offset_right = -int(round(8.0 * UITheme.UI_SCALE))
 			red_dot.offset_top = int(round(8.0 * UITheme.UI_SCALE))
 			red_dot.offset_left = -int(round(24.0 * UITheme.UI_SCALE))
 			red_dot.offset_bottom = int(round(24.0 * UITheme.UI_SCALE))
+			# 呼吸动画以其自身中心缩放（16 逻辑 → 半径 8）
+			red_dot.pivot_offset = Vector2(int(round(8.0 * UITheme.UI_SCALE)), int(round(8.0 * UITheme.UI_SCALE)))
 			var red_dot_sb := StyleBoxFlat.new()
 			red_dot_sb.bg_color = Color(1.0, 0.2, 0.2, 1.0)
 			red_dot_sb.corner_radius_top_left = 8
@@ -382,7 +424,7 @@ func _build_panorama_view(parent: Control) -> void:
 			red_dot_sb.corner_radius_bottom_left = 8
 			red_dot_sb.corner_radius_bottom_right = 8
 			red_dot.add_theme_stylebox_override("panel", red_dot_sb)
-			card.add_child(red_dot)
+			dot_layer.add_child(red_dot)
 			
 			# 红点呼吸动画
 			var dot_tween := create_tween()
@@ -437,6 +479,10 @@ func _build_panorama_view(parent: Control) -> void:
 			breath_tween.tween_method(func(c): card_sb.border_color = Color(1.0, 0.85, 0.3, c), 0.6, 1.0, 1.0)
 			breath_tween.tween_method(func(c): card_sb.border_color = Color(1.0, 0.85, 0.3, c), 1.0, 0.6, 1.0)
 		
+		card.modulate.a = 0.0
+		var 入场 := create_tween()
+		入场.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(float(序号) * 0.05)
+		序号 += 1
 		grid.add_child(card)
 	
 	# 底部留白
@@ -548,7 +594,7 @@ func _update_debug_visuals() -> void:
 	if _坐标显示 != null:
 		_坐标显示.visible = _调试模式
 		if _调试模式:
-			_坐标显示.text = "【坐标】点击红框/蓝字查看"
+			_坐标显示.text = "【坐标】轻触红框/蓝字查看"
 
 func _update_debug_hint() -> void:
 	if _调试提示 == null or not _调试模式:
@@ -562,7 +608,7 @@ func _更新坐标显示() -> void:
 	if _坐标显示 == null or not _调试模式:
 		return
 	if _当前选中key == "":
-		_坐标显示.text = "【坐标】点击红框/蓝字查看"
+		_坐标显示.text = "【坐标】轻触红框/蓝字查看"
 		return
 	var 名称 = ""
 	if _当前选中是否热区:
@@ -628,7 +674,7 @@ func _export_coordinates() -> void:
 	var title := Label.new()
 	title.text = "【坐标已导出】截图复制下方坐标，按F4或ESC关闭"
 	title.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
-	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(title, UITheme.FONT_TITLE, true)
 	vbox.add_child(title)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -637,7 +683,7 @@ func _export_coordinates() -> void:
 	var label := Label.new()
 	label.text = 坐标文本
 	label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(label, UITheme.FONT_H2, true)
 	scroll.add_child(label)
 	# 点击关闭
 	panel.gui_input.connect(func(e):
@@ -670,7 +716,7 @@ func _build_overview(parent: Control) -> void:
 		hb.add_child(tr)
 
 	var title := Label.new()
-	title.text = "殿阁总览"
+	title.text = "殿阁一览"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_title_font(title)
 	hb.add_child(title)
@@ -690,7 +736,7 @@ func _build_overview(parent: Control) -> void:
 	var 等级_cell := VBoxContainer.new()
 	等级_cell.alignment = BoxContainer.ALIGNMENT_CENTER
 	var 等级_cap := Label.new()
-	等级_cap.text = "总等级"
+	等级_cap.text = "殿阁总品级"
 	UITheme.apply_aux_font(等级_cap)
 	等级_cell.add_child(等级_cap)
 	_overview_总等级 = Label.new()
@@ -772,11 +818,11 @@ func _build_overview(parent: Control) -> void:
 		灵脉hb.add_theme_constant_override("separation", UITheme.GRID)
 		气运vb.add_child(灵脉hb)
 		var 灵脉_cap := Label.new()
-		灵脉_cap.text = "灵脉等级"
+		灵脉_cap.text = "灵脉品级"
 		UITheme.apply_aux_font(灵脉_cap)
 		灵脉hb.add_child(灵脉_cap)
 		var 灵脉值_label := Label.new()
-		灵脉值_label.text = "%d级（灵气充沛度%d%%）" % [灵脉等级, 灵脉等级 * 10]
+		灵脉值_label.text = "%d 品（灵气充沛度 %d%%）" % [灵脉等级, 灵脉等级 * 10]
 		UITheme.apply_value_font(灵脉值_label, false)
 		灵脉hb.add_child(灵脉值_label)
 		# 气运加成提示
@@ -796,7 +842,7 @@ func _build_overview(parent: Control) -> void:
 	宗门.add_theme_constant_override("separation", UITheme.GRID)
 	经营vb.add_child(宗门)
 	var 宗门_cap := Label.new()
-	宗门_cap.text = "宗门等级·产出乘区"
+	宗门_cap.text = "宗门品级 · 资粮加成"
 	UITheme.apply_aux_font(宗门_cap)
 	宗门.add_child(宗门_cap)
 	_overview_宗门乘区 = Label.new()
@@ -881,7 +927,7 @@ func _build_overview(parent: Control) -> void:
 		社交vb.add_theme_constant_override("separation", 4)
 		宗门.add_child(社交vb)
 		var 社交标题 := Label.new()
-		社交标题.text = "修真社交"
+		社交标题.text = "结缘往来"
 		UITheme.apply_aux_font(社交标题)
 		社交vb.add_child(社交标题)
 		var 社交hb := HBoxContainer.new()
@@ -910,7 +956,7 @@ func _build_overview(parent: Control) -> void:
 		冒险vb.add_theme_constant_override("separation", 4)
 		宗门.add_child(冒险vb)
 		var 冒险标题 := Label.new()
-		冒险标题.text = "冒险深度"
+		冒险标题.text = "凶险历练"
 		UITheme.apply_aux_font(冒险标题)
 		冒险vb.add_child(冒险标题)
 		var 冒险hb := HBoxContainer.new()
@@ -1068,7 +1114,7 @@ func _build_passive_bar(parent: Control) -> void:
 	UITheme.apply_aux_font(cap)
 	hb.add_child(cap)
 	_passive_label = Label.new()
-	_passive_label.text = "负面事件减免 0%"
+	_passive_label.text = "凶险消减 0%"
 	UITheme.apply_aux_font(_passive_label)
 	hb.add_child(_passive_label)
 	parent.add_child(panel)
@@ -1111,7 +1157,7 @@ func _populate() -> void:
 		var 门派: int = int(Game.门派等级)
 		var 乘区: float = 1.0 + 0.02 * max(0, 门派 - 1)
 		if _overview_宗门乘区 != null:
-			_overview_宗门乘区.text = "Lv.%d · x%.1f%%" % [门派, 乘区 * 100.0]
+			_overview_宗门乘区.text = "%d 品 · 增益 %.1f%%" % [门派, 乘区 * 100.0]
 		var buff产出: float = 0.0
 		if Game.has_method("汇总负责人全局buff"):
 			var _b: Dictionary = Game.汇总负责人全局buff()
@@ -1125,7 +1171,7 @@ func _populate() -> void:
 		if typeof(减免) != TYPE_FLOAT and typeof(减免) != TYPE_INT:
 			减免 = 0.0
 	if _passive_label != null:
-		_passive_label.text = "负面事件减免 %d%%" % int(abs(减免))
+		_passive_label.text = "凶险消减 %d%%" % int(abs(减免))
 
 	# 全景图视图：列表和御兽堂分区不显示，跳过
 	if _list_vbox != null:
@@ -1158,7 +1204,7 @@ func _刷新根基() -> void:
 		_根基_拥挤.add_theme_color_override("font_color", 拥挤色)
 	if _根基_灵脉 != null:
 		# 灵气月产公式与 game_state 月度产出一致：30 + 灵脉等级×20
-		_根基_灵脉.text = "灵脉 Lv.%d · 灵气月产 %d" % [灵脉, 30 + 灵脉 * 20]
+		_根基_灵脉.text = "灵脉 %d 品 · 灵气月产 %d" % [灵脉, 30 + 灵脉 * 20]
 	if _扩建洞府_btn != null:
 		var 消耗: int = int(Game.获取洞府扩建消耗()) if Game.has_method("获取洞府扩建消耗") else 0
 		_扩建洞府_btn.text = "扩建洞府（%d灵石·+5间）" % 消耗
@@ -1318,7 +1364,7 @@ func _on打开邪修记录() -> void:
 	var 最近: Dictionary = 记录[记录.size() - 1]
 	var 结果文本: String = "胜利" if str(最近.get("结果", "")) == "胜利" else "失败"
 	if UIHint != null and UIHint.has_method("show_hint"):
-		UIHint.show_hint(null, "邪修记录", "最近一次：%s来袭，宗门%s（邪修战力%d，宗门战力%d）" % [str(最近.get("邪修", "")), 结果文本, int(最近.get("邪修战力", 0)), int(最近.get("宗门战力", 0))])
+		UIHint.show_hint(null, "邪修记录", "最近一次：%s来袭，宗门%s（邪修道行%d，宗门道行%d）" % [str(最近.get("邪修", "")), 结果文本, int(最近.get("邪修战力", 0)), int(最近.get("宗门战力", 0))])
 	refresh()
 
 func _on打开情劫状态() -> void:
@@ -1456,7 +1502,9 @@ func _add_hall_row(key: String, entry: Dictionary) -> void:
 	# 判断殿阁是否可升级
 	var 可升级: bool = false
 	if is_instance_valid(Game) and Game.has_method("升级殿阁"):
-		var 殿阁等级: int = int(entry.get("等级"))
+		# ★ 2026-09-16 修：原先「等级」裸取（缺键返 null ⇒ int(null) 在 4.7 直接抛错，
+		#   整页殿阁列表当场中断）。同函数 L1431 本就带默认值 1，此处与之一致。
+		var 殿阁等级: int = int(entry.get("等级", 1))
 		var 上限: int = 10
 		if Game.has_method("_殿阁等级上限"):
 			上限 = int(Game._殿阁等级上限())
@@ -1601,7 +1649,7 @@ func _yushou_蛋区(蛋列表: Array) -> void:
 func _yushou_库存区(库存: Array) -> void:
 	if 库存.is_empty():
 		return
-	_yushou_子标题("待契约灵兽（库存）")
+	_yushou_子标题("待契约灵兽（苑中）")
 	for 灵兽 in 库存:
 		if 灵兽 == null:
 			continue
@@ -1614,7 +1662,7 @@ func _yushou_库存区(库存: Array) -> void:
 func _yushou_队列区(队列: Array) -> void:
 	_yushou_子标题("引育计划队列（拨付经费）")
 	if 队列.is_empty():
-		_yushou_空行("（未设置引育计划，点击下方按钮添加）")
+		_yushou_空行("（未设置引育计划，轻触下方选项添加）")
 	for i in 队列.size():
 		var 条目 = 队列[i]
 		if not (条目 is Dictionary):
@@ -1849,7 +1897,7 @@ func _on_灵兽_兑换_新增_确认(预设序号: int, btn: Button = null) -> v
 # 注意 _refresh_yushou() 先渲染状态行、再判 Game 有效性，故 Game 为空时提示依然可见。
 func _yushou_数据层就绪(方法名: String) -> bool:
 	if not is_instance_valid(Game):
-		_yushou_提示("御兽堂数据未就绪（Game 未加载）。", false)
+		_yushou_提示("御兽堂讯息未明，请稍后再观。", false)
 		_yushou_重绘()
 		return false
 	if not Game.has_method(方法名):
@@ -1903,18 +1951,47 @@ func _build_detail_root() -> void:
 	bar.add_child(back_btn)
 	_detail_root.add_child(bar)
 
+	# 殿阁名/等级/职能：常驻顶部，切 Tab 不消失
+	_header_holder = VBoxContainer.new()
+	_header_holder.name = "HeaderHolder"
+	_header_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_root.add_child(_header_holder)
+
+	# 分页签栏（总览 / 经营 / 养成 / 设置）：把长页拆成「枢纽 + 分层」，告别三屏滚屏
+	var tab_panel := PanelContainer.new()
+	tab_panel.name = "TabBarPanel"
+	tab_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(
+		UITheme.C01_TAB_BAR_BG, UITheme.COLOR_BORDER_GOLD, 16, 2))
+	_tab_bar = HBoxContainer.new()
+	_tab_bar.name = "TabBar"
+	_tab_bar.add_theme_constant_override("separation", 0)
+	tab_panel.add_child(_tab_bar)
+	_detail_root.add_child(tab_panel)
+
 	var scroll := ScrollContainer.new()
 	scroll.name = "DetailScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_root.add_child(scroll)
+	_detail_scroll = scroll
 
-	_detail_vbox = VBoxContainer.new()
-	_detail_vbox.name = "DetailVBox"
-	_detail_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_vbox.add_theme_constant_override("separation", UITheme.GRID * 2)
-	scroll.add_child(_detail_vbox)
+	_tab_stack = VBoxContainer.new()
+	_tab_stack.name = "TabStack"
+	_tab_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_tab_stack)
+
+	_tab_pages = {}
+	for 页名 in ["总览", "经营", "养成", "设置"]:
+		var vb := VBoxContainer.new()
+		vb.name = "Tab_%s" % 页名
+		vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vb.add_theme_constant_override("separation", UITheme.GRID * 2)
+		_tab_stack.add_child(vb)
+		_tab_pages[页名] = vb
+	_detail_vbox = _tab_pages["总览"]
+
+	_build_tab_buttons()
 
 func _show_detail(key: String) -> void:
 	if _detail_root == null or _list_root == null:
@@ -1931,12 +2008,78 @@ func _on_back_pressed() -> void:
 	if _list_root != null:
 		_list_root.visible = true
 
-func _populate_building_detail(key: String) -> void:
-	if _detail_vbox == null:
+# ───────── 殿阁详情分页签（枢纽 + 分层，干掉三屏滚屏）─────────
+func _build_tab_buttons() -> void:
+	if _tab_bar == null or _tab_pages.is_empty():
 		return
-	for child in _detail_vbox.get_children():
-		_detail_vbox.remove_child(child)
-		child.queue_free()
+	_tab_buttons = {}
+	for 页名 in ["总览", "经营", "养成", "设置"]:
+		var btn := Button.new()
+		btn.name = "TabBtn_%s" % 页名
+		btn.text = 页名
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.custom_minimum_size = Vector2(0, 96)
+		UITheme.apply_tab_style(btn, false)
+		btn.add_theme_stylebox_override("normal", _make_tab_btn_style(false))
+		btn.add_theme_stylebox_override("pressed", _make_tab_btn_style(true))
+		btn.add_theme_stylebox_override("hover", _make_tab_btn_style(false))
+		btn.add_theme_stylebox_override("focus", _make_tab_btn_style(false))
+		btn.pressed.connect(_on_tab_selected.bind(页名))
+		_tab_bar.add_child(btn)
+		_tab_buttons[页名] = btn
+
+func _make_tab_btn_style(selected: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UITheme.C01_TAB_ACTIVE if selected else UITheme.C01_TAB_IDLE
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = UITheme.GRID * 1.5
+	sb.content_margin_right = UITheme.GRID * 1.5
+	sb.content_margin_top = UITheme.GRID
+	sb.content_margin_bottom = UITheme.GRID
+	return sb
+
+func _on_tab_selected(页名: String) -> void:
+	if _tab_pages == null or not _tab_pages.has(页名):
+		return
+	for 名 in _tab_pages.keys():
+		_tab_pages[名].visible = (名 == 页名)
+	if _tab_buttons != null:
+		for 名 in _tab_buttons.keys():
+			var sel: bool = (名 == 页名)
+			var b: Button = _tab_buttons[名]
+			UITheme.apply_tab_style(b, sel)
+			b.add_theme_stylebox_override("normal", _make_tab_btn_style(sel))
+			b.add_theme_stylebox_override("pressed", _make_tab_btn_style(true))
+			b.add_theme_stylebox_override("hover", _make_tab_btn_style(sel))
+			b.add_theme_stylebox_override("focus", _make_tab_btn_style(sel))
+	_detail_vbox = _tab_pages[页名]
+	if _detail_scroll != null:
+		_detail_scroll.scroll_vertical = 0
+
+func _set_tab(页名: String) -> void:
+	if _tab_pages != null and _tab_pages.has(页名):
+		_detail_vbox = _tab_pages[页名]
+
+func _refresh_tab_visibility() -> void:
+	if _tab_buttons == null or _tab_pages == null:
+		return
+	for 名 in _tab_pages.keys():
+		var 空: bool = _tab_pages[名].get_child_count() == 0
+		if _tab_buttons.has(名):
+			_tab_buttons[名].visible = not 空
+	_on_tab_selected("总览")
+
+func _populate_building_detail(key: String) -> void:
+	if _tab_pages.is_empty() or _header_holder == null:
+		return
+	# 清掉四个分页的全部旧内容，避免切殿阁时残留
+	for vb in _tab_pages.values():
+		for c in vb.get_children():
+			vb.remove_child(c)
+			c.queue_free()
+	for c in _header_holder.get_children():
+		_header_holder.remove_child(c)
+		c.queue_free()
 
 	if not is_instance_valid(Game):
 		return
@@ -1945,13 +2088,20 @@ func _populate_building_detail(key: String) -> void:
 		return
 	var entry = 列表.get(key, null)
 	if entry == null or not (entry is Dictionary):
+		# 未在册殿阁（司职列表缺该 key）：给出可读占位，而非「清空后直接 return」留白屏。
+		# 防御面：司职列表来自 Lore.司职定义；任一殿阁若漏登记，本页不再变成空白页。
+		_build_missing_hall_notice(key)
 		return
 
 	var 等级: int = int(_safe_get(entry, "等级", 1))
 	var 上限: int = _殿阁上限()
 
+	# 头部（殿阁名/等级/职能）常驻顶部，不随 Tab 滚动
 	_build_header(entry, 等级, 上限)
 
+	# ── 总览：hero 舞台 + 产出信息（首屏一眼看清这是哪座殿阁、产多少）──
+	_set_tab("总览")
+	_build_场景英雄区(key, 等级, 上限, entry)
 	var 产出区: VBoxContainer = _add_section("产出信息")
 	_add_kv_row(产出区, "产出", str(_safe_get(entry, "产出", "—")))
 	var 预估: int = 0
@@ -1961,6 +2111,8 @@ func _populate_building_detail(key: String) -> void:
 	var 等级乘区: float = 1.0 + 0.02 * max(0, 等级 - 1)
 	_add_kv_row(产出区, "等级乘区", "x%.2f" % 等级乘区)
 
+	# ── 经营：升级 / 任免 / 各殿阁运营模块（操作密集区）──
+	_set_tab("经营")
 	var 升级区: VBoxContainer = _add_section("升级操作")
 	_build_upgrade_bar(升级区, 等级, 上限)
 	_build_upgrade_button(升级区, key, 等级, 上限)
@@ -1982,124 +2134,128 @@ func _populate_building_detail(key: String) -> void:
 	if _任免展开 and _任免_key == key:
 		_任免选择器(人员区, key)
 
-	var 被动区: VBoxContainer = _add_section("被动效果")
-	_build_被动效果(被动区, entry)
-
-	# 功能开关区：仅当 entry 真实存在 负责人锁定(bool) 字段才展示 Toggle（设计规格附录A 降级项）
-	var 锁定v = entry.get("负责人锁定", null)
-	if typeof(锁定v) == TYPE_BOOL:
-		var 开关区: VBoxContainer = _add_section("功能开关")
-		_build_lock_toggle(开关区, key, bool(锁定v))
-
-	# 丹堂专属：炼丹系统
+	# 各殿阁专属运营模块（默认全部进「经营」分页；丹堂内部会把养成类拆去「养成」）
 	if key == "dantang":
 		_build_alchemy_ui(等级)
-	# 器堂专属：炼器系统
 	if key == "qitang":
 		_build_forge_ui(等级)
-	# 灵田专属：种植系统
 	if key == "lingtian":
 		_build_lingtian_ui(等级)
-	# 矿脉专属：开采系统
 	if key == "kuangmai":
 		_build_kuangmai_ui(等级)
-	# 藏经阁专属：功法系统
 	if key == "cangjing":
 		_build_cangjing_ui(等级)
-	# 接引殿专属：新弟子招募
 	if key == "yuying":
 		_build_yuying_ui(等级)
-	# 洗池·灵泉专属：命格重铸
 	if key == "xichi":
 		_build_xichi_ui(等级)
-	# 执法堂专属：门规纪律
 	if key == "zhifa":
 		_build_zhifa_ui(等级)
-	# 功勋堂专属：功绩声望
 	if key == "gongxun":
 		_build_gongxun_ui(等级)
-	# 阵法堂专属：护山大阵
 	if key == "zhenfa":
 		_build_zhenfa_ui(等级)
-	# 探微堂专属：藏宝图探查
 	if key == "tanwei":
 		_build_tanwei_ui(等级)
-	# 符堂专属：制符系统
 	if key == "futang":
 		_build_futang_ui(等级)
 
 	_build_footer(key, 等级, 上限)
 
+	# ── 养成：各殿阁长期收集/进度类（丹堂：丹纹图谱/炼丹史册/丹药库）──
+	_set_tab("养成")
+
+	# ── 设置：被动效果 / 功能开关（低频，沉底）──
+	_set_tab("设置")
+	var 被动区: VBoxContainer = _add_section("被动效果")
+	_build_被动效果(被动区, entry)
+	var 锁定v = entry.get("负责人锁定", null)
+	if typeof(锁定v) == TYPE_BOOL:
+		var 开关区: VBoxContainer = _add_section("功能开关")
+		_build_lock_toggle(开关区, key, bool(锁定v))
+
+	# 空分页自动隐藏，默认回到「总览」
+	_refresh_tab_visibility()
+
+func _build_missing_hall_notice(key: String) -> void:
+	# 未在册殿阁的可读占位页：说明它是哪座殿阁、为何未开、如何开启。
+	# 单一真源：Game.获取所有建筑列表()（名称/描述/需等级），不新造表。
+	_set_tab("总览")
+	var 名: String = "殿阁"
+	var 描述: String = ""
+	var 需等级: int = 0
+	if is_instance_valid(Game) and Game.has_method("获取所有建筑列表"):
+		for it in Game.获取所有建筑列表():
+			var d: Dictionary = it as Dictionary
+			if str(d.get("建筑ID", "")) == key:
+				名 = str(d.get("名称", 名))
+				描述 = str(d.get("描述", ""))
+				需等级 = int(d.get("需等级", 0))
+				break
+	var 门派等级: int = int(Game.get("门派等级")) if is_instance_valid(Game) else 0
+	var 区: VBoxContainer = _add_section(名)
+	var 主 := Label.new()
+	主.text = "【%s】尚未立堂" % 名
+	UITheme.apply_title_font(主)
+	主.add_theme_color_override("font_color", UITheme.获取金文字色())
+	区.add_child(主)
+	var 释 := Label.new()
+	释.text = "此殿尚未营建，故无司职、无产出。%s" % 描述
+	UITheme.apply_body_font(释)
+	释.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	释.add_theme_color_override("font_color", UITheme.获取次文字色())
+	区.add_child(释)
+	if 需等级 > 0:
+		var 条 := Label.new()
+		if 门派等级 >= 需等级:
+			条.text = "开启条件已满足（需宗门品级 %d，当前 %d 品）——待宗门营建后登记在册。" % [需等级, 门派等级]
+		else:
+			条.text = "开启条件：宗门品级达 %d 品（当前 %d 品）。" % [需等级, 门派等级]
+		UITheme.apply_aux_font(条)
+		条.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		条.add_theme_color_override("font_color", UITheme.获取弱文字色())
+		区.add_child(条)
+	_refresh_tab_visibility()
+
 func _build_header(entry: Dictionary, 等级: int, 上限: int) -> void:
+	# 紧凑单行头部：殿阁名（金）＋职能＋等级，常驻顶部不随 Tab 滚动。
+	# 旧版三行带边框面板过高，已收为单行以统一观感（符堂在内所有殿阁一致）。
 	var panel := PanelContainer.new()
 	panel.name = "HeaderSection"
 	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", UITheme.GRID)
-	panel.add_child(vbox)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", UITheme.GRID)
+	panel.add_child(hb)
 
 	var 名称 := Label.new()
 	名称.text = str(_safe_get(entry, "名称", "—"))
 	UITheme.apply_title_font(名称)
-	vbox.add_child(名称)
+	hb.add_child(名称)
+
+	hb.add_spacer(true)
 
 	var 职能 := Label.new()
 	职能.text = "职能：" + str(_safe_get(entry, "职能", "—"))
 	UITheme.apply_aux_font(职能)
-	vbox.add_child(职能)
+	hb.add_child(职能)
 
-	var 等级行 := HBoxContainer.new()
-	等级行.add_theme_constant_override("separation", UITheme.GRID)
 	var 等级标签 := Label.new()
-	等级标签.text = "等级 %d / %d" % [等级, 上限]
+	等级标签.text = "Lv %d / %d" % [等级, 上限]
 	UITheme.apply_value_font(等级标签, false)
-	等级行.add_child(等级标签)
-	等级行.add_spacer(true)
-	var 加成标签 := Label.new()
-	加成标签.text = "加成：" + str(_safe_get(entry, "加成维度", "—"))
-	UITheme.apply_aux_font(加成标签)
-	等级行.add_child(加成标签)
-	vbox.add_child(等级行)
+	hb.add_child(等级标签)
 
-	_detail_vbox.add_child(panel)
+	var 帮助 := UITheme.make_help_button("殿阁", "殿阁是宗门运转的枢纽：各殿依职能自动产出资粮、培养弟子、研发技艺。\n你只需任免司职、裁定请示，运转自洽。\n轻触顶部资源与各项数值，可查看其含义与产出。")
+	hb.add_child(帮助)
+
+	_header_holder.add_child(panel)
 
 func _add_section(标题: String) -> VBoxContainer:
-	var panel := PanelContainer.new()
-	panel.name = "Section_%s" % 标题
-	panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", UITheme.GRID)
-	panel.add_child(vbox)
-	var t := Label.new()
-	t.text = 标题
-	UITheme.apply_title_font(t)
-	vbox.add_child(t)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", UITheme.GRID)
-	vbox.add_child(content)
-	_detail_vbox.add_child(panel)
-	return content
+	# 复用共享 section 工具（ui/section_helper.gd）：非墨纹面板 + 金标题 + 内嵌内容层，与原实现一致
+	return SectionHelper.add_section(_detail_vbox, 标题, false, "title", "", true)
 
 func _add_kv_row(parent: Control, 标题: String, 值: String, 异常: bool = false) -> void:
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", UITheme.GRID)
-	var c := Label.new()
-	c.text = 标题
-	c.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	c.custom_minimum_size = Vector2(UITheme.GRID * 12, 0)
-	UITheme.apply_aux_font(c)
-	hb.add_child(c)
-	var v := Label.new()
-	v.text = 值
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if 异常:
-		UITheme.apply_value_font(v, true)
-	else:
-		UITheme.apply_body_font(v)
-	hb.add_child(v)
-	parent.add_child(hb)
+	# 复用共享 section 工具（ui/section_helper.gd）；左标签宽度 GRID*12=144 与殿阁原实现一致
+	SectionHelper.add_kv(parent, 标题, 值, 异常, Color.WHITE, UITheme.GRID * 12)
 
 func _build_upgrade_bar(parent: Control, 等级: int, 上限: int) -> void:
 	var bar := ProgressBar.new()
@@ -2193,7 +2349,143 @@ func _build_footer(key: String, 等级: int, 上限: int) -> void:
 
 	_detail_vbox.add_child(hb)
 
+## ───────── 殿阁详情「场景英雄区」─────────
+## 目标：详情页首屏一眼是「这是哪座殿阁 · 谁在管 · 产出多少 · 在干什么」，而不是一屏表单。
+## 做法：把该殿阁的场景动画提到页头正下方当"舞台"，底部压一条半透明玻璃信息带。
+## 新增殿阁：往 场景英雄图集 加一条映射 + 放图集资源即可
+##   （图集规格：8 列 × 6 行 = 48 帧，单帧 1080×707，与 danfang_sheet.png 同规）。
+const 场景英雄图集: Dictionary = {"dantang": "res://art/scene_anim/danfang_sheet.png"}
+const 场景英雄列数: int = 8
+const 场景英雄行数: int = 6
+const 场景英雄单帧宽: int = 1080
+const 场景英雄单帧高: int = 707
+const 场景英雄高度: float = 660.0
+const 场景英雄信息带高: float = 104.0
+
+func _build_场景英雄区(key: String, 等级: int, 上限: int, entry: Dictionary) -> void:
+	if _detail_vbox == null or not 场景英雄图集.has(key):
+		return
+	var sheet: Texture2D = load(str(场景英雄图集[key])) as Texture2D
+	if sheet == null:
+		return
+
+	# 图集 → 逐帧 AtlasTexture：完全 Control 原生，不依赖 AnimatedTexture / AnimatedSprite2D
+	_丹房动画_frames.clear()
+	for i in 场景英雄列数 * 场景英雄行数:
+		var at := AtlasTexture.new()
+		at.atlas = sheet
+		at.region = Rect2(
+			float(i % 场景英雄列数) * float(场景英雄单帧宽),
+			float(i / 场景英雄列数) * float(场景英雄单帧高),
+			float(场景英雄单帧宽), float(场景英雄单帧高))
+		_丹房动画_frames.append(at)
+
+	var hero := Control.new()
+	hero.name = "SceneHero"
+	hero.clip_contents = true
+	hero.custom_minimum_size = Vector2(0, 场景英雄高度)
+	hero.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail_vbox.add_child(hero)
+
+	_丹房动画_视图 = TextureRect.new()
+	_丹房动画_视图.name = "丹房场景动画"
+	_丹房动画_视图.texture = _丹房动画_frames[0]
+	_丹房动画_视图.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_丹房动画_视图.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_丹房动画_视图.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hero.add_child(_丹房动画_视图)
+
+	# 底部「玻璃信息带」：半透明深青 + 暗金描边，走 UITheme 既有蒙皮（零新增色值，避棘轮 FAIL）
+	var 玻璃带 := PanelContainer.new()
+	玻璃带.name = "HeroInfoStrip"
+	UITheme.apply_dynamics_panel_style(玻璃带, 0.72)
+	玻璃带.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	玻璃带.offset_left = UITheme.GRID
+	玻璃带.offset_right = -UITheme.GRID
+	玻璃带.offset_bottom = -UITheme.GRID
+	玻璃带.offset_top = -场景英雄信息带高
+	hero.add_child(玻璃带)
+
+	var 行 := HBoxContainer.new()
+	行.add_theme_constant_override("separation", UITheme.GRID)
+	玻璃带.add_child(行)
+
+	var 名标 := Label.new()
+	名标.text = str(_safe_get(entry, "名称", "殿阁"))
+	UITheme.apply_title_font_sized(名标, 34)
+	名标.add_theme_color_override("font_color", UITheme.获取金文字色())
+	行.add_child(名标)
+
+	var 等标 := Label.new()
+	等标.text = "Lv %d / %d" % [等级, 上限]
+	UITheme.apply_aux_font(等标)
+	等标.add_theme_color_override("font_color", UITheme.获取弱文字色())
+	行.add_child(等标)
+
+	var 产标 := Label.new()
+	var 预估: int = 0
+	if Game != null and Game.has_method("预估殿阁产出"):
+		预估 = int(Game.预估殿阁产出(key))
+	产标.text = "预估日产　%s　%d" % [str(_safe_get(entry, "产出", "—")), 预估]
+	UITheme.apply_body_font(产标)
+	产标.add_theme_color_override("font_color", UITheme.获取次文字色())
+	产标.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	产标.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	行.add_child(产标)
+
+	var 主标 := Label.new()
+	var 主事名 := "缺"
+	var 负责人 = _safe_get(entry, "负责人", null)
+	if 负责人 != null and 负责人 is Object:
+		var 名v = 负责人.get("姓名")
+		if 名v != null:
+			主事名 = str(名v)
+	var 已任命: bool = 主事名 != "缺"
+	主标.text = "主事 · %s" % (主事名 if 已任命 else "缺（待任命）")
+	UITheme.apply_body_font(主标)
+	主标.add_theme_color_override("font_color", UITheme.获取金文字色() if 已任命 else UITheme.获取警色())
+	行.add_child(主标)
+
+	# 翻帧：只持 1 个 AtlasTexture，定时器原地改 region 换帧（零新增纹理对象）。
+	# 不走 AnimatedTexture —— 其属性口径随引擎版本漂移（4.7 实测已无 fps，赋值即报
+	# "Invalid assignment of property 'fps'"），本页统一保持纯 Control 方案（见上方注释）。
+	_丹房动画_单帧 = AtlasTexture.new()
+	_丹房动画_单帧.atlas = sheet
+	_丹房动画_单帧.region = Rect2(0.0, 0.0, float(场景英雄单帧宽), float(场景英雄单帧高))
+	_丹房动画_帧索引 = 0
+	_丹房动画_视图.texture = _丹房动画_单帧
+
+	var 翻帧计时 := Timer.new()
+	翻帧计时.name = "丹房动画计时"
+	翻帧计时.wait_time = 1.0 / max(1.0, _丹房动画_FPS)
+	翻帧计时.one_shot = false
+	翻帧计时.autostart = false
+	翻帧计时.timeout.connect(_丹房动画_下一帧)
+	hero.add_child(翻帧计时)
+	_丹房动画_计时 = 翻帧计时
+
+	# 详情页隐藏 / 切到非「总览」分页（hero 被隐藏）时暂停，省手机端开销
+	_丹房动画_视图.visibility_changed.connect(func() -> void:
+		if not is_instance_valid(_丹房动画_计时):
+			return
+		if _丹房动画_视图.visible:
+			_丹房动画_计时.start()
+		else:
+			_丹房动画_计时.stop())
+	if _丹房动画_视图.visible:
+		翻帧计时.start()
+
+## 丹房英雄区逐帧回调：把唯一上屏纹理的 region 挪到下一帧（12fps，见 _丹房动画_计时）
+func _丹房动画_下一帧() -> void:
+	if not is_instance_valid(_丹房动画_单帧) or _丹房动画_frames.is_empty():
+		return
+	_丹房动画_帧索引 = (_丹房动画_帧索引 + 1) % _丹房动画_frames.size()
+	var 帧: AtlasTexture = _丹房动画_frames[_丹房动画_帧索引] as AtlasTexture
+	if 帧 != null:
+		_丹房动画_单帧.region = 帧.region
+
 ## === 炼丹系统 UI ===
+
 func _build_alchemy_ui(丹堂等级: int) -> void:
 	if _detail_vbox == null:
 		return
@@ -2203,6 +2495,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 			Game.宗门库房 = []
 		else:
 			return
+
 	# S38 炼丹因子网络（人/器/法/势：谁在影响丹纹一目了然，玩家据此知道该培养谁）
 	var 因子区: VBoxContainer = _add_section("炼丹因子")
 	var 师: String = str(Game.炼丹师摘要()) if (Game != null and Game.has_method("炼丹师摘要")) else ""
@@ -2236,6 +2529,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 	l提.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	因子区.add_child(l提)
 	# S37 丹纹图谱（长期收集：每炉都可能刷新纪录，每天登录有新期待）
+	_set_tab("养成")
 	var 纹区: VBoxContainer = _add_section("丹纹图谱")
 	var 纹览: Dictionary = (Game.丹纹总览() if (Game != null and Game.has_method("丹纹总览")) else {}) as Dictionary
 	var 头label := Label.new()
@@ -2273,6 +2567,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 		UITheme.apply_aux_font(新label)
 		纹区.add_child(新label)
 	# S39 丹炉：器之加成（成率/出纹/产量/品级/减毒/省材）
+	_set_tab("经营")
 	var 炉区: VBoxContainer = _add_section("丹炉")
 	var 炉摘要 := Label.new()
 	炉摘要.text = Game.丹炉摘要()
@@ -2338,6 +2633,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 			btn.pressed.connect(_on_丹方选中.bind(rid))
 		丹方grid.add_child(btn)
 	# ── 炼丹史册（P0-3 UI集成：展示炼丹历史记录和统计）──
+	_set_tab("养成")
 	var 炼丹史册区: VBoxContainer = _add_section("炼丹史册")
 	if AlchemySystem != null:
 		var 炼丹统计: Dictionary = AlchemySystem.获取炼丹统计()
@@ -2370,7 +2666,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 		if 炼丹历史.size() > 0:
 			var 历史标题 := Label.new()
 			历史标题.text = "最近炼丹记录（显示最近10条）"
-			历史标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(历史标题, UITheme.FONT_H2, true)
 			历史标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 			炼丹史册区.add_child(历史标题)
 			for 记录 in 炼丹历史:
@@ -2419,6 +2715,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 			炼丹史册区.add_child(无记录)
 	# 选中丹方详情（S39：成功率/产量/纹上限/压制/熟练度全可见）
 	if _选中丹方 != "":
+		_set_tab("经营")
 		var 详情区: VBoxContainer = _add_section("丹方详情")
 		var 丹方: Dictionary = Game.丹方配置(_选中丹方)
 		if 丹方.is_empty():
@@ -2474,7 +2771,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 					continue
 				var 拥有: int = int(m[2])
 				var row := Label.new()
-				row.text = "  · %s：%d/%d %s" % [str(m[0]), 拥有, 需量, "✓" if 拥有 >= 需量 else "✗"]
+				row.text = "  · %s：%d/%d %s" % [str(m[0]), 拥有, 需量, "✓" if 拥有 >= 需量 else "×"]
 				UITheme.apply_body_font(row)
 				if 拥有 < 需量:
 					row.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))
@@ -2486,6 +2783,7 @@ func _build_alchemy_ui(丹堂等级: int) -> void:
 			UITheme.apply_primary_button_style(炼btn)
 			炼btn.pressed.connect(_on_炼丹_pressed.bind(_选中丹方, 丹堂等级))
 			详情区.add_child(炼btn)	# 丹药库
+	_set_tab("养成")
 	var 库区: VBoxContainer = _add_section("丹药库")
 	var 背包: Array = Game.宗门库房
 	var 丹药数: int = 0
@@ -2575,15 +2873,15 @@ func _build_forge_ui(器堂等级: int) -> void:
 		else:
 			return
 	# 炼器等级显示
-	var 炼器等级区: VBoxContainer = _add_section("炼器等级")
+	var 炼器等级区: VBoxContainer = _add_section("炼器品级")
 	var 炼器加成: Dictionary = Game.获取炼器加成() if Game != null and Game.has_method("获取炼器加成") else {"等级": 1, "成功率加成": 0, "高品质加成": 0}
 	var 炼器等级label := Label.new()
-	炼器等级label.text = "当前等级：Lv.%d  成功率加成：+%.0f%%  高品质加成：+%.0f%%" % [int(炼器加成["等级"]), float(炼器加成["成功率加成"]), float(炼器加成["高品质加成"]) * 100]
+	炼器等级label.text = "当前品级：%d 品  成功率加成：+%.0f%%  高品质加成：+%.0f%%" % [int(炼器加成["等级"]), float(炼器加成["成功率加成"]), float(炼器加成["高品质加成"]) * 100]
 	UITheme.apply_body_font(炼器等级label)
 	炼器等级区.add_child(炼器等级label)
 	if Game != null and "炼器经验值" in Game:
 		var 炼器经验label := Label.new()
-		炼器经验label.text = "炼器经验：%d" % int(Game.炼器经验值)
+		炼器经验label.text = "炼器修为：%d" % int(Game.炼器经验值)
 		UITheme.apply_aux_font(炼器经验label)
 		炼器等级区.add_child(炼器经验label)
 	# S42 炼器因子网络（人/器/法/势：谁在影响锻造成功率与高品质一目了然）
@@ -2727,7 +3025,7 @@ func _build_forge_ui(器堂等级: int) -> void:
 		_add_kv_row(详情区, "类别", 类别名)
 		var 成功率: float = float(配方.get("基础成功率",50)) + float(max(0,器堂等级-1))*2.0 + float(Game.炼器成率加成(器堂等级) if (Game != null and Game.has_method("炼器成率加成")) else 0.0)
 		成功率 = clampf(成功率, 5.0, 95.0)
-		_add_kv_row(详情区, "成功率", "%.0f%%（含器堂等级+因子加成）" % 成功率)
+		_add_kv_row(详情区, "成功率", "%.0f%%（含器堂品级+因子加成）" % 成功率)
 		# 材料需求
 		var 材料label := Label.new()
 		材料label.text = "所需材料："
@@ -2743,7 +3041,7 @@ func _build_forge_ui(器堂等级: int) -> void:
 					拥有数 += 1
 			var 足够: bool = 拥有数 >= 需求数
 			var row := Label.new()
-			row.text = "  · %s：%d/%d %s" % [需求名, 拥有数, 需求数, "✓" if 足够 else "✗"]
+			row.text = "  · %s：%d/%d %s" % [需求名, 拥有数, 需求数, "✓" if 足够 else "×"]
 			UITheme.apply_body_font(row)
 			if not 足够:
 				row.add_theme_color_override("font_color", Color(0.8,0.4,0.4))
@@ -2779,7 +3077,7 @@ func _build_forge_ui(器堂等级: int) -> void:
 			if item == null or typeof(item)!=TYPE_OBJECT or "类别" not in item or str(item.类别) not in ["fa_qi", "shen_bing", "fabao"]:
 				continue
 			var btn := Button.new()
-			btn.text = "%s\n%s 战力:%d" % [str(item.名称), str(item.品阶), int(item.战力加成)]
+			btn.text = "%s\n%s 道行:%d" % [str(item.名称), str(item.品阶), int(item.战力加成)]
 			btn.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY * 1.3)
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			UITheme.apply_secondary_button_style(btn)
@@ -2825,7 +3123,7 @@ func _on_查看装备_pressed(索引: int) -> void:
 	if 装备.套装ID != null and str(装备.套装ID) != "":
 		var 套装名 = Item.套装库.get(str(装备.套装ID), {}).get("名称", str(装备.套装ID))
 		套装文本 = "\n套装：%s" % 套装名
-	var 提示: String = "%s\n%s\n战力：%d%s%s" % [str(装备.名称), str(装备.品阶), int(装备.战力加成), 词缀文本, 套装文本]
+	var 提示: String = "%s\n%s\n道行：%d%s%s" % [str(装备.名称), str(装备.品阶), int(装备.战力加成), 词缀文本, 套装文本]
 	if UIHint != null and UIHint.has_method("show_hint"):
 		UIHint.show_hint(null, "装备详情", 提示)
 
@@ -2874,7 +3172,7 @@ func _build_lingtian_ui(灵田等级: int) -> void:
 		btn.pressed.connect(_on_灵田地块点击.bind(i))
 		地块grid.add_child(btn)
 	# 可种植灵材列表
-	var 灵材区: VBoxContainer = _add_section("选择灵材（选中后点击空闲地块种植）")
+	var 灵材区: VBoxContainer = _add_section("选择灵材（选中后轻触空闲地块种植）")
 	var 灵材grid := GridContainer.new()
 	灵材grid.columns = 2
 	灵材grid.add_theme_constant_override("h_separation", UITheme.GRID)
@@ -2895,7 +3193,7 @@ func _build_lingtian_ui(灵田等级: int) -> void:
 	var 提示label := Label.new()
 	if _选中灵材 != "":
 		var 灵材 = LingTianSystem.灵材库.get(_选中灵材, {})
-		提示label.text = "已选中：%s，点击空闲地块开始种植" % str(灵材.get("名称",""))
+		提示label.text = "已选中：%s，轻触空闲地块开始种植" % str(灵材.get("名称",""))
 	else:
 		提示label.text = "提示：先选灵材点空闲地种植；成熟后点地块收获，留种不收可过培涨年份（封顶%d日，年份越高炼丹越强、售价越贵）" % LingTianSystem.过培上限天
 	UITheme.apply_aux_font(提示label)
@@ -2997,7 +3295,7 @@ func _build_kuangmai_ui(矿脉等级: int) -> void:
 		btn.pressed.connect(_on_矿脉矿点点击.bind(i))
 		矿点grid.add_child(btn)
 	# 可开采矿石列表
-	var 矿石区: VBoxContainer = _add_section("选择矿石（选中后点击空闲矿点开采）")
+	var 矿石区: VBoxContainer = _add_section("选择矿石（选中后轻触空闲矿点开采）")
 	var 矿石grid := GridContainer.new()
 	矿石grid.columns = 2
 	矿石grid.add_theme_constant_override("h_separation", UITheme.GRID)
@@ -3018,9 +3316,9 @@ func _build_kuangmai_ui(矿脉等级: int) -> void:
 	var 提示label := Label.new()
 	if _选中矿石 != "":
 		var 矿石 = KuangMaiSystem.矿石库.get(_选中矿石, {})
-		提示label.text = "已选中：%s，点击空闲矿点开始开采" % str(矿石.get("名称",""))
+		提示label.text = "已选中：%s，轻触空闲矿点开始开采" % str(矿石.get("名称",""))
 	else:
-		提示label.text = "提示：先选择矿石，再点击空闲矿点开采；完成后点击矿点收获"
+		提示label.text = "提示：先选择矿石，再轻触空闲矿点开采；完成后轻触矿点收获"
 	UITheme.apply_aux_font(提示label)
 	提示label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
 	_add_section("").add_child(提示label)
@@ -3047,7 +3345,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 	var 余额label := Label.new()
 	余额label.text = "当前悟道点：%d（每日产出+%d）" % [int(Game.悟道点), GongFaSystem.计算月产出(藏经阁等级)]
 	余额label.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	余额label.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(余额label, UITheme.FONT_H1, true)
 	余额区.add_child(余额label)
 	# 功法列表
 	var 功法区: VBoxContainer = _add_section("功法秘录（选中后参悟学习）")
@@ -3072,7 +3370,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 		var 自创标题 := Label.new()
 		自创标题.text = "—— 宗门自创功法 ——"
 		自创标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-		自创标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(自创标题, UITheme.FONT_TITLE, true)
 		功法grid.add_child(自创标题)
 		for 自创 in Game.自创功法列表:
 			var gid: String = str(自创.get("id", ""))
@@ -3122,7 +3420,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 			_add_kv_row(详情区, "品阶", GongFaSystem.获取品阶标签(str(功法.get("品阶",""))))
 			_add_kv_row(详情区, "类型", str(功法.get("类型","")))
 			_add_kv_row(详情区, "修炼加成", "+%.0f%%" % (float(功法.get("修炼加成",0))*100))
-			_add_kv_row(详情区, "战力加成", "+%d" % int(功法.get("战力加成",0)))
+			_add_kv_row(详情区, "道行加成", "+%d" % int(功法.get("战力加成",0)))
 			_add_kv_row(详情区, "解锁境界", str(功法.get("解锁境界","练气")))
 			_add_kv_row(详情区, "所需悟道点", "%d" % int(功法.get("所需悟道点",10)))
 			_add_kv_row(详情区, "描述", str(功法.get("描述","")))
@@ -3141,7 +3439,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 		# 显示第一个弟子的已学功法（简化版本，后续可以添加弟子选择）
 		var 目标弟子 = 弟子列表[0]
 		if 目标弟子 != null:
-			var 已学功法 = 目标弟子.get("已学功法", [])
+			var 已学功法 = 目标弟子.已学功法
 			if 已学功法 == null or 已学功法.size() == 0:
 				var empty := Label.new()
 				empty.text = "尚无已学功法"
@@ -3163,9 +3461,12 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 					功法btn.text = "%s\n%s（%s）\n%s" % [str(已学功法信息.get("名称","")), 熟练度文字, GongFaSystem.获取品阶标签(str(已学功法信息.get("品阶",""))), 进度文字]
 					# S41 已学功法显词条（词文声明提升到 for 功法ID 体级，与功法btn 同作用域，避免静态扫描跨作用域误报）
 					var 功法词条文本: String = ""
-					if 目标弟子 != null and typeof(目标弟子.get("功法词条", {})) == TYPE_DICTIONARY and 目标弟子.功法词条.has(功法ID):
-						for 条 in 目标弟子.功法词条[功法ID]:
-							var 类型名: String = {"修炼速度":"修炼", "战力":"战力", "突破":"突破"}.get(条["类型"], str(条["类型"]))
+					# 注：Disciple 未声明「功法词条」字段（disciple.gd 无此变量）。原来双参
+					# `get("功法词条", {})` 是拿 RefCounted 当字典用 → 恒报 "Expected 1 argument(s)"。
+					# 改用项目既定「有无属性」判据（in），缺字段即静默跳过，语义与现状一致。
+					if "功法词条" in 目标弟子 and (目标弟子.功法词条 as Dictionary).has(功法ID):
+						for 条 in (目标弟子.功法词条 as Dictionary)[功法ID]:
+							var 类型名: String = {"修炼速度":"修炼", "战力":"道行", "突破":"突破"}.get(条["类型"], str(条["类型"]))
 							var 值文本: String = ""
 							if 条["类型"] in ["修炼速度", "突破"]:
 								值文本 = "+%.0f%%" % (float(条["数值"]) * 100)
@@ -3180,7 +3481,7 @@ func _build_cangjing_ui(藏经阁等级: int) -> void:
 					已学区.add_child(功法btn)
 				# 提示
 				var hint := Label.new()
-				hint.text = "点击功法可遗忘（返还50%+悟道点）"
+				hint.text = "轻触功法可遗忘（返还50%+悟道点）"
 				UITheme.apply_aux_font(hint)
 				hint.add_theme_color_override("font_color", UITheme.color_text_body_dim())
 				已学区.add_child(hint)
@@ -3205,7 +3506,7 @@ func _on_遗忘功法(功法ID: String) -> void:
 	for 弟子 in 弟子列表:
 		if 弟子 == null:
 			continue
-		var 已学功法 = 弟子.get("已学功法", [])
+		var 已学功法 = 弟子.已学功法
 		if 已学功法 != null and 功法ID in 已学功法:
 			目标弟子 = 弟子
 			break
@@ -3272,7 +3573,8 @@ func _on_参悟自创功法(功法ID: String, 所需悟道点: int) -> void:
 		var 门槛序: int = Disciple.境界序.find(门槛境界)
 		if 弟子境界序 < 门槛序:
 			continue
-		var 已学 = 弟子.get("已学功法", [])
+		var 已学 = 弟子.已学功法
+		# 已学者跳过；否则选为参悟对象并结束查找
 		if 已学 != null and 功法ID in 已学:
 			continue
 		目标弟子 = 弟子
@@ -3310,7 +3612,7 @@ func _build_yuying_ui(接引殿等级: int) -> void:
 	var 招募信息 = RecruitSystem.招募弟子(接引殿等级)
 	# 招募信息
 	var 信息区: VBoxContainer = _add_section("接引招募")
-	_add_kv_row(信息区, "接引殿等级", "Lv.%d" % 接引殿等级)
+	_add_kv_row(信息区, "接引殿等级", "%d 重" % 接引殿等级)
 	_add_kv_row(信息区, "招募消耗", "%d灵石" % int(招募信息.get("消耗", 100)))
 	_add_kv_row(信息区, "招募冷却", "%d日" % int(招募信息.get("冷却", 3)))
 	_add_kv_row(信息区, "高品质加成", "+%.0f%%" % (float(招募信息.get("等级加成", 0))*100))
@@ -3384,7 +3686,7 @@ func _on_招募弟子(接引殿等级: int) -> void:
 ## === 洗池·灵泉：命格重铸UI ===
 func _build_xichi_ui(洗池等级: int) -> void:
 	var 信息区: VBoxContainer = _add_section("灵泉重铸")
-	_add_kv_row(信息区, "洗池等级", "Lv.%d" % 洗池等级)
+	_add_kv_row(信息区, "洗池等级", "%d 重" % 洗池等级)
 	_add_kv_row(信息区, "重铸消耗", "%d灵石" % XiChiSystem.重铸消耗(洗池等级))
 	_add_kv_row(信息区, "重铸成功率", "%.0f%%" % (XiChiSystem.重铸成功率(洗池等级)*100))
 	# 命格重铸按钮
@@ -3443,7 +3745,7 @@ func _on_重铸性格(洗池等级: int) -> void:
 ## === 执法堂：门规纪律UI ===
 func _build_zhifa_ui(执法堂等级: int) -> void:
 	var 信息区: VBoxContainer = _add_section("门规戒律")
-	_add_kv_row(信息区, "执法堂等级", "Lv.%d" % 执法堂等级)
+	_add_kv_row(信息区, "执法堂等级", "%d 重" % 执法堂等级)
 	_add_kv_row(信息区, "当前贡献点", "%d" % int(Game.贡献点) if Game != null else "0")
 	_add_kv_row(信息区, "月度贡献产出", "+%d/月" % (10 + max(0, 执法堂等级 - 1) * 5))
 	# 月度结算按钮
@@ -3473,7 +3775,7 @@ func _on_月度结算(执法堂等级: int) -> void:
 ## === 功勋堂：功绩声望UI ===
 func _build_gongxun_ui(功勋堂等级: int) -> void:
 	var 信息区: VBoxContainer = _add_section("功绩声望")
-	_add_kv_row(信息区, "功勋堂等级", "Lv.%d" % 功勋堂等级)
+	_add_kv_row(信息区, "功勋堂等级", "%d 重" % 功勋堂等级)
 	_add_kv_row(信息区, "当前贡献点", "%d" % int(Game.贡献点) if Game != null else "0")
 	_add_kv_row(信息区, "宗门声望", "随弟子功绩提升")
 	# 兑换商店
@@ -3484,13 +3786,13 @@ func _build_gongxun_ui(功勋堂等级: int) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = str(商品.get("名称", ""))
 		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.75))
-		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(name_lbl, UITheme.FONT_TITLE, true)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_lbl)
 		var cost_lbl := Label.new()
 		cost_lbl.text = "%d贡献" % int(商品.get("消耗贡献", 0))
 		cost_lbl.add_theme_color_override("font_color", Color(0.83, 0.69, 0.21))
-		cost_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(cost_lbl, UITheme.FONT_TITLE, true)
 		row.add_child(cost_lbl)
 		var buy_btn := Button.new()
 		buy_btn.text = "兑换"
@@ -3511,7 +3813,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 	# 总效果显示
 	var 效果区: VBoxContainer = _add_section("大阵总效果")
 	var 总效果 = ZhenFaSystem.计算效果(Game.阵法等级) if Game != null else {"防御":0, "修炼":0, "产出":0}
-	_add_kv_row(效果区, "阵法堂等级", "Lv.%d" % 阵法堂等级)
+	_add_kv_row(效果区, "阵法堂等级", "%d 重" % 阵法堂等级)
 	_add_kv_row(效果区, "防御加成", "+%d" % int(总效果.get("防御", 0)))
 	_add_kv_row(效果区, "修炼加成", "+%d%%" % int(总效果.get("修炼", 0)))
 	_add_kv_row(效果区, "产出加成", "+%d%%" % int(总效果.get("产出", 0)))
@@ -3535,20 +3837,20 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = "%s [%s]" % [str(阵法.get("名称","")), str(阵法.get("类型",""))]
 		name_lbl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60) if 已解锁 else Color(0.4, 0.4, 0.4))
-		name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+		UITheme.apply_project_font(name_lbl, UITheme.FONT_H1, true)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_row.add_child(name_lbl)
 		var lv_lbl := Label.new()
-		lv_lbl.text = "Lv.%d" % 当前等级 if 当前等级 > 0 else "未激活"
+		lv_lbl.text = "%d 重" % 当前等级 if 当前等级 > 0 else "未成"
 		lv_lbl.add_theme_color_override("font_color", Color(0.35, 0.68, 0.62) if 当前等级 > 0 else Color(0.5, 0.5, 0.5))
-		lv_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(lv_lbl, UITheme.FONT_TITLE, true)
 		name_row.add_child(lv_lbl)
 		card_vb.add_child(name_row)
 		# 描述
 		var desc_lbl := Label.new()
 		desc_lbl.text = str(阵法.get("描述", ""))
 		desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
-		desc_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(desc_lbl, UITheme.FONT_H2, true)
 		card_vb.add_child(desc_lbl)
 		# 效果
 		if 当前等级 > 0:
@@ -3562,7 +3864,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			if 产出 > 0: effect_text += "产出+%d%% " % 产出
 			effect_lbl.text = effect_text
 			effect_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
-			effect_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(effect_lbl, UITheme.FONT_H2, true)
 			card_vb.add_child(effect_lbl)
 			# 耐久度显示
 			var 最大耐久度: int = ZhenFaSystem.计算最大耐久度(当前等级)
@@ -3571,7 +3873,7 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			var 耐久度颜色 = Color(0.6, 0.8, 0.6) if 当前耐久度 > 最大耐久度 * 0.5 else (Color(0.9, 0.7, 0.3) if 当前耐久度 > 最大耐久度 * 0.2 else Color(0.9, 0.4, 0.4))
 			dur_lbl.text = "耐久度：%d/%d（%.0f%%）" % [当前耐久度, 最大耐久度, float(当前耐久度) / float(max(1, 最大耐久度)) * 100]
 			dur_lbl.add_theme_color_override("font_color", 耐久度颜色)
-			dur_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(dur_lbl, UITheme.FONT_H2, true)
 			card_vb.add_child(dur_lbl)
 			# 修复按钮（耐久度不满时显示）
 			if 当前耐久度 < 最大耐久度:
@@ -3595,9 +3897,9 @@ func _build_zhenfa_ui(阵法堂等级: int) -> void:
 			card_vb.add_child(up_btn)
 		else:
 			var lock_lbl := Label.new()
-			lock_lbl.text = "🔒 需阵法堂Lv.%d解锁" % 解锁等级
+			lock_lbl.text = "◇ 需阵法堂 %d 重解锁" % 解锁等级
 			lock_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.3))
-			lock_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(lock_lbl, UITheme.FONT_H2, true)
 			card_vb.add_child(lock_lbl)
 
 func _on_升级阵法(阵法ID: String, 当前等级: int, 阵法堂等级: int) -> void:
@@ -3617,7 +3919,7 @@ func _on_修复阵法(阵法ID: String) -> void:
 ## === 探微堂：藏宝图探查UI ===
 func _build_tanwei_ui(探微堂等级: int) -> void:
 	var 信息区: VBoxContainer = _add_section("江湖探查")
-	_add_kv_row(信息区, "探微堂等级", "Lv.%d" % 探微堂等级)
+	_add_kv_row(信息区, "探微堂等级", "%d 重" % 探微堂等级)
 	_add_kv_row(信息区, "探查范围", "方圆%d里" % (探微堂等级 * 100))
 	_add_kv_row(信息区, "藏宝图", "可定向探查秘境")
 	var btn := Button.new()
@@ -3688,7 +3990,7 @@ func _on_任免_pressed(btn: Button, key: String) -> void:
 # 列出全部弟子，点击即 Game.任命负责人(key, d)；阶位门槛由 Game 内部闸判定，不足则返回 false 并提示。
 func _任免选择器(parent: Control, key: String) -> void:
 	var 提示 := Label.new()
-	提示.text = "选择新主事（点击任命；再点「任免主事」收起）"
+	提示.text = "选择新主事（轻触任命；再点「任免主事」收起）"
 	提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	提示.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_aux_text(提示)
@@ -3832,7 +4134,7 @@ func _build_futang_ui(符堂等级: int) -> void:
 
 	# 符箓因子网络
 	var 符箓因子区: VBoxContainer = _add_section("绘符因子")
-	var 符师: String = str(Game.符箓师摘要()) if (Game != null and Game.has_method("符师摘要")) else ""
+	var 符师: String = str(Game.符箓师摘要()) if (Game != null and Game.has_method("符箓师摘要")) else ""
 	var l符 := Label.new()
 	l符.text = "主符：%s" % 符师
 	UITheme.apply_body_font(l符)
@@ -3865,7 +4167,7 @@ func _build_futang_ui(符堂等级: int) -> void:
 
 	# 符箓配方列表
 	var 配方区: VBoxContainer = _add_section("符箓秘录")
-	var 符箓配置: Array = Game.全部符箓() if (Game != null and Game.has_method("获取符箓配置列表")) else []
+	var 符箓配置: Array = Game.全部符箓() if (Game != null and Game.has_method("全部符箓")) else []
 	if 符箓配置.is_empty():
 		var 空配 := Label.new()
 		空配.text = "符箓配置为空"
@@ -3880,51 +4182,58 @@ func _build_futang_ui(符堂等级: int) -> void:
 		for 符 in 符箓配置:
 			var 符卡: VBoxContainer = VBoxContainer.new()
 			符卡.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			符卡.add_theme_constant_override("separation", UITheme.GRID / 2)
 			配方区.add_child(符卡)
 
 			var 名栏: HBoxContainer = HBoxContainer.new()
+			名栏.add_theme_constant_override("separation", UITheme.GRID)
 			符卡.add_child(名栏)
 
 			var 符名: Label = Label.new()
 			符名.text = "◆ %s" % str(符.get("名称", ""))
-			符名.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
-			符名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			符名.add_theme_color_override("font_color", UITheme.获取金文字色())
+			UITheme.apply_title_font(符名)
 			名栏.add_child(符名)
 
 			var 品阶: Label = Label.new()
-			品阶.text = "  [%s·%s]" % [str(符.get("grade", "")), str(符.get("sub_grade", ""))]
-			品阶.add_theme_color_override("font_color", Color(0.7, 0.8, 1.0))
+			品阶.text = "%s·%s" % [str(符.get("grade", "")), str(符.get("sub_grade", ""))]
+			品阶.add_theme_color_override("font_color", UITheme.C01_TEXT_JADE)
+			UITheme.apply_aux_font(品阶)
 			名栏.add_child(品阶)
 
 			var 效果: Label = Label.new()
 			效果.text = "效果：%s（%s）" % [str(符.get("use_effect", "")), str(符.get("effect_value", ""))]
-			效果.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+			效果.add_theme_color_override("font_color", UITheme.获取次文字色())
+			UITheme.apply_body_font(效果)
 			效果.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			符卡.add_child(效果)
 
 			var 材料栏: HBoxContainer = HBoxContainer.new()
+			材料栏.add_theme_constant_override("separation", UITheme.GRID)
 			符卡.add_child(材料栏)
 			var 材料label: Label = Label.new()
 			材料label.text = "材料：%s" % str(符.get("craft_material", ""))
-			材料label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.6))
+			材料label.add_theme_color_override("font_color", UITheme.获取弱文字色())
+			UITheme.apply_aux_font(材料label)
 			材料栏.add_child(材料label)
 
 			var 成率label: Label = Label.new()
 			var 基础成率: float = float(符.get("base_rate", 50))
-			成率label.text = "  基础成率：%.0f%%" % 基础成率
-			成率label.add_theme_color_override("font_color", Color(0.8, 0.7, 0.5))
+			成率label.text = "基础成率：%.0f%%" % 基础成率
+			成率label.add_theme_color_override("font_color", UITheme.获取金文字色())
+			UITheme.apply_aux_font(成率label)
 			材料栏.add_child(成率label)
 
 			var 制符按钮: Button = Button.new()
 			制符按钮.text = "绘制符箓"
-			制符按钮.custom_minimum_size = Vector2(0, 28)
+			制符按钮.custom_minimum_size = Vector2(0, UITheme.BTN_H_SECONDARY)
 			制符按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			制符按钮.modulate = Color(0.8, 1.0, 0.8)
+			UITheme.apply_secondary_button_style(制符按钮)
 			制符按钮.pressed.connect(_on_制符.bind(str(符.get("id", ""))))
 			符卡.add_child(制符按钮)
 
-			var 分隔: HSeparator = HSeparator.new()
-			符卡.add_child(分隔)
+			# 统一分隔资产（原 HSeparator 为自造控件，与其余殿阁不一致）
+			配方区.add_child(UITheme.make_divider_control())
 
 
 func _on_制符(符箓ID: String) -> void:

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bgk7ytb25qvhc"]
+
+[ext_resource type="Script" path="res://tests/_probe_popup_shot.gd" id="1_shot"]
+
+[node name="ProbePopupShot" type="Node"]
+script = ExtResource("1_shot")

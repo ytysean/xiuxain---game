@@ -1,0 +1,2 @@
+- after = `.workbuddy\_ph7visual\after`：**64 张**，mtime 2026-09-17 01:30:20 .. 2026-09-17 01:30:22
+- **硬判据（after-leg）**：`min(after png)=2026-09-17 01:30:20` **>** `max(源文件·含本批)=2026-09-17 01:28:33`（`ui_theme.gd`）→ **PASS ✅**

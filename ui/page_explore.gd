@@ -62,7 +62,7 @@ func _build_header(parent: Control) -> void:
 	if is_instance_valid(Game):
 		var 检查: Dictionary = Game.检查机缘("探秘境缘")
 		var VIP等级: int = Game.当前VIP等级()
-		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+		机缘label.text = "机缘：%d/%d（仙阶 %d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
 	UITheme.apply_aux_font(机缘label)
 	机缘label.custom_minimum_size = Vector2(200, 0)
 	hb.add_child(机缘label)
@@ -70,9 +70,9 @@ func _build_header(parent: Control) -> void:
 	# S1-4 付费：仙玉购买历练额外次数
 	var 历练btn := Button.new()
 	历练btn.name = "PayExpeditionBtn"
-	历练btn.text = "购买历练次数"
+	历练btn.text = "添请历练之资"
 	if is_instance_valid(Game):
-		历练btn.text = "购买历练次数（%d仙玉）" % Game.付费单价.get("历练额外", 15)
+		历练btn.text = "添请历练之资（%d 仙玉）" % Game.付费单价.get("历练额外", 15)
 	历练btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 	历练btn.pressed.connect(_on_付费_历练)
 	hb.add_child(历练btn)
@@ -87,7 +87,7 @@ func _build_tabs(parent: Control) -> void:
 		{"key": "realm", "name": "境界关卡"},
 		{"key": "secret", "name": "秘境探索"},
 		{"key": "challenge", "name": "秘境挑战"},
-		{"key": "investigate", "name": "调查任务"},
+		{"key": "investigate", "name": "察访疑踪"},
 		{"key": "history", "name": "历练史册"},
 	]
 	for t in tabs:
@@ -135,14 +135,17 @@ func _build_main_area(parent: Control) -> void:
 	hb.add_child(left_panel)
 
 	var left_vb := VBoxContainer.new()
-	left_vb.add_theme_constant_override("margin", UITheme.GRID)
+	left_vb.add_theme_constant_override("margin_left", UITheme.GRID)
+	left_vb.add_theme_constant_override("margin_right", UITheme.GRID)
+	left_vb.add_theme_constant_override("margin_top", UITheme.GRID)
+	left_vb.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	left_vb.add_theme_constant_override("separation", UITheme.GRID)
 	left_panel.add_child(left_vb)
 
 	var list_title := Label.new()
 	list_title.text = "关卡列表"
-	list_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	list_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(list_title, UITheme.FONT_H2, true)
+	list_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	left_vb.add_child(list_title)
 
 	var scroll := ScrollContainer.new()
@@ -162,7 +165,10 @@ func _build_main_area(parent: Control) -> void:
 	hb.add_child(right_panel)
 
 	_detail_content = VBoxContainer.new()
-	_detail_content.add_theme_constant_override("margin", UITheme.GRID)
+	_detail_content.add_theme_constant_override("margin_left", UITheme.GRID)
+	_detail_content.add_theme_constant_override("margin_right", UITheme.GRID)
+	_detail_content.add_theme_constant_override("margin_top", UITheme.GRID)
+	_detail_content.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	_detail_content.add_theme_constant_override("separation", UITheme.GRID)
 	right_panel.add_child(_detail_content)
 
@@ -209,7 +215,7 @@ func _refresh_stage_list() -> void:
 		btn.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(btn, UITheme.FONT_BODY, false)
 		var 已完成 = false
 		if _current_tab == "daily" and ExpeditionSystem.已完成日常.has(sid):
 			已完成 = true
@@ -255,8 +261,8 @@ func _刷新调查列表() -> void:
 	var 进行中 = (ExpeditionSystem.获取调查进行中() if ExpeditionSystem != null else {})
 	var title := Label.new()
 	title.text = "调查进行中（%d）" % 进行中.size()
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(title, UITheme.FONT_H2, true)
+	title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(title)
 	if 进行中.is_empty():
 		var none := Label.new()
@@ -274,8 +280,8 @@ func _刷新调查列表() -> void:
 			_detail_content.add_child(lbl)
 
 	var tip := Label.new()
-	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查任务；仅修为高于失踪者的弟子可接取。调查成功将按关卡难度判定生还或陨落（高风险常客死）。任务具因果联动：寻回后派生【追查真凶】、再派生【肃清秘境】；调查无果则升级【悬赏通缉】。弟子生死可于『弟子』页卡片的命魂灯，或详情页「命牌」查看。"
-	tip.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	tip.text = "低阶弟子历练失败可能失踪，宗门自动下发调查差事；仅修为高于失踪者的弟子可接取。调查成则按关卡难度判定生还或陨落（高风险常殒）。差事具因果联动：寻回后派生【追查真凶】、再派生【肃清秘境】；调查无果则升级【悬赏通缉】。弟子生死可于『弟子』页卡片的命魂灯，或详情页「命牌」查看。"
+	tip.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(tip)
 
@@ -313,7 +319,7 @@ func _make_investigate_card(tid: String, t: Dictionary) -> Control:
 		return panel
 
 	var opt := OptionButton.new()
-	opt.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	UITheme.apply_project_font(opt, UITheme.FONT_AUX, false)
 	opt.add_item("选择高阶弟子…", -1)
 	for e in 可接取:
 		opt.add_item("%s（%s·%d层）" % [e["姓名"], e["境界"], int(e["层数"])], e["id"])
@@ -345,13 +351,13 @@ func _refresh_detail() -> void:
 		return
 
 	if _selected_stage == "":
-		var hint := Label.new()
-		hint.text = "请从左侧择一关卡"
-		hint.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		hint.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_detail_content.add_child(hint)
+		# 2026-09-16：原为手搓 Label + SIZE_EXPAND_FILL —— 高度被撑满整栏（验收器报 TALL h=1379）、
+		# 文字顶在盒首、且无图标，与全项目空态观感不一致。改走统一空态组件。
+		_detail_content.add_child(UITheme.建空态(
+			"尚未择定关卡",
+			"自左侧名录中择一处，方可见其详情与历练安排",
+			"emoji_activity_map",
+			true))
 		return
 
 	if _current_tab == "challenge":
@@ -364,17 +370,17 @@ func _refresh_detail() -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = 关卡["名称"]
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_TITLE, true)
+	name_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(name_lbl)
 
 	var info := Label.new()
-	info.text = "推荐战力：%d | 时长：%d日 | 难度：%s\n解锁：%s\n%s" % [
+	info.text = "推荐道行：%d | 时长：%d日 | 难度：%s\n解锁：%s\n%s" % [
 		关卡["推荐战力"], 关卡["预计时长"],
 		"★".repeat(int(关卡["难度"])), 关卡["解锁境界"], 关卡["描述"]
 	]
-	info.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	info.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(info, UITheme.FONT_BODY, false)
+	info.add_theme_color_override("font_color", UITheme.获取主文字色())
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(info)
 
@@ -387,15 +393,15 @@ func _refresh_detail() -> void:
 
 	var select_title := Label.new()
 	select_title.text = "选择派遣弟子（1-3人，已选%d人）" % _selected_disciples.size()
-	select_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	select_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(select_title, UITheme.FONT_H2, true)
+	select_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	select_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	select_hbox.add_child(select_title)
 
 	var auto_btn := Button.new()
 	auto_btn.text = "尽数派遣"
 	auto_btn.custom_minimum_size = Vector2(UITheme.GRID * 4, 0)
-	auto_btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(auto_btn, UITheme.FONT_BODY, false)
 	auto_btn.pressed.connect(_auto_select_disciples)
 	select_hbox.add_child(auto_btn)
 
@@ -406,14 +412,14 @@ func _refresh_detail() -> void:
 
 	var preset_label := Label.new()
 	preset_label.text = "队伍预设："
-	preset_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	preset_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(preset_label, UITheme.FONT_BODY, false)
+	preset_label.add_theme_color_override("font_color", UITheme.获取主文字色())
 	preset_hbox.add_child(preset_label)
 
 	# 队伍预设下拉选择
 	_preset_option = OptionButton.new()
 	_preset_option.custom_minimum_size = Vector2(UITheme.GRID * 5, 0)
-	_preset_option.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(_preset_option, UITheme.FONT_BODY, false)
 	_preset_option.add_item("选择预设", 0)
 	if SectManager != null:
 		var 预设列表 = SectManager.获取队伍预设列表()
@@ -428,7 +434,7 @@ func _refresh_detail() -> void:
 	var apply_btn := Button.new()
 	apply_btn.text = "应用"
 	apply_btn.custom_minimum_size = Vector2(UITheme.GRID * 2, 0)
-	apply_btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(apply_btn, UITheme.FONT_BODY, false)
 	apply_btn.pressed.connect(_apply_current_preset)
 	preset_hbox.add_child(apply_btn)
 
@@ -436,7 +442,7 @@ func _refresh_detail() -> void:
 	var save_btn := Button.new()
 	save_btn.text = "录册"
 	save_btn.custom_minimum_size = Vector2(UITheme.GRID * 2, 0)
-	save_btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(save_btn, UITheme.FONT_BODY, false)
 	save_btn.pressed.connect(_save_current_preset)
 	preset_hbox.add_child(save_btn)
 
@@ -473,7 +479,7 @@ func _refresh_detail() -> void:
 				btn.custom_minimum_size = Vector2(0, UITheme.GRID * 3)
 				btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-				btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+				UITheme.apply_project_font(btn, UITheme.FONT_BODY, false)
 				btn.disabled = 在历练
 				if _selected_disciples.has(did):
 					btn.modulate = UITheme.C01_TEXT_JADE
@@ -493,11 +499,11 @@ func _refresh_detail() -> void:
 	var 预估成功率 = clamp(战力比 / float(关卡["难度"]), 0.05, 0.95) * 100
 
 	var preview := Label.new()
-	preview.text = "总战力：%d / 推荐：%d（%.0f%%）\n预估成功率：%.0f%%\n耗时：%d日" % [
+	preview.text = "总道行：%d / 推荐：%d（%.0f%%）\n预估成功率：%.0f%%\n耗时：%d日" % [
 		总战力, 关卡["推荐战力"], 战力比 * 100, 预估成功率, 关卡["预计时长"]
 	]
-	preview.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	preview.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(preview, UITheme.FONT_BODY, false)
+	preview.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_detail_content.add_child(preview)
 
 	# ===== 历练路线选择（P0-1新增）=====
@@ -506,8 +512,8 @@ func _refresh_detail() -> void:
 
 	var route_title := Label.new()
 	route_title.text = "选择历练路线"
-	route_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	route_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(route_title, UITheme.FONT_H2, true)
+	route_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(route_title)
 
 	var 可用路线: Array = ExpeditionSystem.获取关卡可用路线(_selected_stage)
@@ -527,7 +533,7 @@ func _refresh_detail() -> void:
 		]
 		route_btn.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
 		route_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		route_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(route_btn, UITheme.FONT_AUX, false)
 		if _selected_route == route_key:
 			route_btn.modulate = UITheme.C01_TEXT_JADE
 		var rk = route_key
@@ -540,8 +546,8 @@ func _refresh_detail() -> void:
 	var route_desc := Label.new()
 	var 当前路线配置: Dictionary = ExpeditionSystem.历练路线配置.get(_selected_route, {})
 	route_desc.text = str(当前路线配置.get("描述", ""))
-	route_desc.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-	route_desc.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(route_desc, UITheme.FONT_AUX, false)
+	route_desc.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	route_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(route_desc)
 
@@ -559,8 +565,8 @@ func _refresh_detail() -> void:
 		_detail_content.add_child(sep3)
 		var ongoing_title := Label.new()
 		ongoing_title.text = "进行中（%d）" % 进行中.size()
-		ongoing_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-		ongoing_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		UITheme.apply_project_font(ongoing_title, UITheme.FONT_H2, true)
+		ongoing_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 		_detail_content.add_child(ongoing_title)
 		for 实例ID in 进行中.keys():
 			var 实例 = 进行中[实例ID]
@@ -578,8 +584,14 @@ func _refresh_detail() -> void:
 			var card_panel := PanelContainer.new()
 			UITheme.apply_panel_style(card_panel)
 			_detail_content.add_child(card_panel)
+			card_panel.modulate.a = 0.0
+			var 卡入场 := card_panel.create_tween()
+			卡入场.tween_property(card_panel, "modulate:a", 1.0, 0.2)
 			var card_vb := VBoxContainer.new()
-			card_vb.add_theme_constant_override("margin", UITheme.GRID)
+			card_vb.add_theme_constant_override("margin_left", UITheme.GRID)
+			card_vb.add_theme_constant_override("margin_right", UITheme.GRID)
+			card_vb.add_theme_constant_override("margin_top", UITheme.GRID)
+			card_vb.add_theme_constant_override("margin_bottom", UITheme.GRID)
 			card_vb.add_theme_constant_override("separation", UITheme.GRID / 2)
 			card_panel.add_child(card_vb)
 
@@ -589,14 +601,14 @@ func _refresh_detail() -> void:
 			card_vb.add_child(name_row)
 			var ongoing_name_lbl := Label.new()
 			ongoing_name_lbl.text = "%s" % 关卡2.get("名称", "")
-			ongoing_name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-			ongoing_name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			UITheme.apply_project_font(ongoing_name_lbl, UITheme.FONT_BODY, false)
+			ongoing_name_lbl.add_theme_color_override("font_color", UITheme.获取主文字色())
 			ongoing_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			name_row.add_child(ongoing_name_lbl)
 			var route_lbl := Label.new()
 			route_lbl.text = "【%s】" % 路线名称
-			route_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-			route_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+			UITheme.apply_project_font(route_lbl, UITheme.FONT_AUX, false)
+			route_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 			name_row.add_child(route_lbl)
 
 			# 进度条
@@ -611,8 +623,8 @@ func _refresh_detail() -> void:
 			# 进度信息
 			var info_lbl := Label.new()
 			info_lbl.text = "进度：%.0f%% | 剩余%d日 | 奇遇%d次" % [进度 * 100, max(0, 剩余), 奇遇记录.size()]
-			info_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-			info_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+			UITheme.apply_project_font(info_lbl, UITheme.FONT_AUX, false)
+			info_lbl.add_theme_color_override("font_color", UITheme.获取次文字色())
 			card_vb.add_child(info_lbl)
 
 			# 待处理奇遇提示
@@ -620,11 +632,11 @@ func _refresh_detail() -> void:
 			if 待处理奇遇.size() > 0:
 				var 待处理_btn := Button.new()
 				var 待处理奇遇名: String = str(待处理奇遇[0].get("奇遇", {}).get("名称", "奇遇"))
-				待处理_btn.text = "✦ 待处理奇遇：%s（点击处理）✦" % 待处理奇遇名
+				待处理_btn.text = "◆ 待处理奇遇：%s（轻触处理）◆" % 待处理奇遇名
 				待处理_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
-				待处理_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-				待处理_btn.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
-				待处理_btn.modulate = UITheme.C01_TEXT_GOLD
+				UITheme.apply_project_font(待处理_btn, UITheme.FONT_AUX, false)
+				待处理_btn.add_theme_color_override("font_color", UITheme.获取金文字色())
+				待处理_btn.modulate = UITheme.获取金文字色()
 				var iid3 = 实例ID
 				待处理_btn.pressed.connect(func():
 					_弹出奇遇弹窗(iid3, 0)
@@ -635,14 +647,14 @@ func _refresh_detail() -> void:
 			if 奇遇记录.size() > 0:
 				var 奇遇_title := Label.new()
 				奇遇_title.text = "  奇遇记录："
-				奇遇_title.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-				奇遇_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+				UITheme.apply_project_font(奇遇_title, UITheme.FONT_AUX, false)
+				奇遇_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 				card_vb.add_child(奇遇_title)
 				for 奇遇 in 奇遇记录:
 					var 奇遇_lbl := Label.new()
 					奇遇_lbl.text = "    · %s" % str(奇遇.get("纪事", ""))
-					奇遇_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-					奇遇_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+					UITheme.apply_project_font(奇遇_lbl, UITheme.FONT_AUX, false)
+					奇遇_lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 					奇遇_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 					card_vb.add_child(奇遇_lbl)
 
@@ -655,7 +667,7 @@ func _refresh_detail() -> void:
 				收功_btn.text = "见好就收"
 				收功_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 				收功_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				收功_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				UITheme.apply_project_font(收功_btn, UITheme.FONT_AUX, false)
 				var iid1 = 实例ID
 				收功_btn.pressed.connect(func():
 					var 结果 = ExpeditionSystem.历练风险决策(iid1, "见好就收")
@@ -668,7 +680,7 @@ func _refresh_detail() -> void:
 				深入_btn.text = "继续深入"
 				深入_btn.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
 				深入_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				深入_btn.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				UITheme.apply_project_font(深入_btn, UITheme.FONT_AUX, false)
 				var iid2 = 实例ID
 				深入_btn.pressed.connect(func():
 					var 结果 = ExpeditionSystem.历练风险决策(iid2, "继续深入")
@@ -682,13 +694,13 @@ func _refresh_detail() -> void:
 			if bool(实例.get("提前结束", false)):
 				var 决策_lbl := Label.new()
 				决策_lbl.text = "  已决策：见好就收（奖励倍率%.0f%%）" % (float(实例.get("提前结束倍率", 0.5)) * 100)
-				决策_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				UITheme.apply_project_font(决策_lbl, UITheme.FONT_AUX, false)
 				决策_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_JADE)
 				card_vb.add_child(决策_lbl)
 			elif bool(实例.get("继续深入", false)):
 				var 决策_lbl := Label.new()
 				决策_lbl.text = "  已决策：继续深入（风险增加%.0f%%）" % (float(实例.get("风险增加", 0.1)) * 100)
-				决策_lbl.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+				UITheme.apply_project_font(决策_lbl, UITheme.FONT_AUX, false)
 				决策_lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
 				card_vb.add_child(决策_lbl)
 
@@ -773,7 +785,7 @@ func refresh() -> void:
 	if 机缘label != null and is_instance_valid(Game):
 		var 检查: Dictionary = Game.检查机缘("探秘境缘")
 		var VIP等级: int = Game.当前VIP等级()
-		机缘label.text = "机缘：%d/%d（VIP%d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
+		机缘label.text = "机缘：%d/%d（仙阶 %d）" % [检查.get("剩余", 0), 检查.get("上限", 0), VIP等级]
 	# P0-1: 检查并弹出待处理奇遇
 	检查并弹出奇遇()
 
@@ -840,7 +852,7 @@ func _刷新秘境挑战列表() -> void:
 		var 类型: String = 关卡.get("node_type", "normal")
 		var 体力耗: int = int(关卡.get("stamina_cost", 0))
 		var btn := Button.new()
-		btn.text = "%s\n推荐战力：%d | 气力%d%s%s" % [
+		btn.text = "%s\n推荐道行：%d | 气力%d%s%s" % [
 			关卡.get("stage_name", sid), 推荐, 体力耗,
 			(" | 精英" if 类型 == "elite" else ""),
 			("（已通关）" if 首通 else "")
@@ -848,7 +860,7 @@ func _刷新秘境挑战列表() -> void:
 		btn.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(btn, UITheme.FONT_BODY, false)
 		if not 解锁:
 			btn.disabled = true
 			btn.text += "\n（未解锁：%s）" % 关卡.get("unlock_condition", "")
@@ -862,8 +874,8 @@ func _刷新秘境挑战列表() -> void:
 		_stage_list_vbox.add_child(HSeparator.new())
 		var 高级标题: Label = Label.new()
 		高级标题.text = "◆ 高级秘境（多层挑战·专属掉落）"
-		高级标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-		高级标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		UITheme.apply_project_font(高级标题, UITheme.FONT_H2, true)
+		高级标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 		_stage_list_vbox.add_child(高级标题)
 		for 秘境 in 高级秘境列表:
 			var 秘境ID: String = str(秘境.get("secret_id", ""))
@@ -882,7 +894,7 @@ func _刷新秘境挑战列表() -> void:
 			sbtn.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
 			sbtn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			sbtn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			sbtn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(sbtn, UITheme.FONT_BODY, false)
 			sbtn.add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))
 			if not 已解锁:
 				sbtn.disabled = true
@@ -909,8 +921,8 @@ func _显示高级秘境详情(秘境ID: String) -> void:
 		return
 	var name_lbl := Label.new()
 	name_lbl.text = "◆ %s" % str(配置.get("名称", ""))
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_TITLE, true)
+	name_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(name_lbl)
 	var info := Label.new()
 	info.text = "层数：%d层 | 主属性：%s | 气力消耗：%d\n解锁条件：%s\nBOSS：%s" % [
@@ -918,50 +930,50 @@ func _显示高级秘境详情(秘境ID: String) -> void:
 		int(配置.get("体力消耗", 20)), str(配置.get("解锁条件", "")),
 		str(配置.get("BOSS", ""))
 	]
-	info.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	info.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(info, UITheme.FONT_BODY, false)
+	info.add_theme_color_override("font_color", UITheme.获取主文字色())
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(info)
 	_detail_content.add_child(HSeparator.new())
 	var 掉落标题: Label = Label.new()
 	掉落标题.text = "核心掉落"
-	掉落标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	掉落标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(掉落标题, UITheme.FONT_H2, true)
+	掉落标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(掉落标题)
 	var 掉落: Label = Label.new()
 	掉落.text = str(配置.get("核心掉落", ""))
-	掉落.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	掉落.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(掉落, UITheme.FONT_BODY, false)
+	掉落.add_theme_color_override("font_color", UITheme.获取主文字色())
 	掉落.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(掉落)
 	var 事件标题: Label = Label.new()
 	事件标题.text = "专属事件"
-	事件标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	事件标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(事件标题, UITheme.FONT_H2, true)
+	事件标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(事件标题)
 	var 事件: Label = Label.new()
 	事件.text = str(配置.get("专属事件", ""))
-	事件.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	事件.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(事件, UITheme.FONT_BODY, false)
+	事件.add_theme_color_override("font_color", UITheme.获取主文字色())
 	事件.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(事件)
 	var 奖励标题: Label = Label.new()
 	奖励标题.text = "通关保底奖励"
-	奖励标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	奖励标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(奖励标题, UITheme.FONT_H2, true)
+	奖励标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(奖励标题)
 	var 奖励: Label = Label.new()
 	奖励.text = str(配置.get("通关奖励", ""))
-	奖励.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	奖励.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(奖励, UITheme.FONT_BODY, false)
+	奖励.add_theme_color_override("font_color", UITheme.获取主文字色())
 	奖励.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(奖励)
 	_detail_content.add_child(HSeparator.new())
 	# P2 高级秘境多层战斗：出战弟子选择
 	var 出战标题: Label = Label.new()
-	出战标题.text = "⚔️ 选择出战弟子（最多3人）"
-	出战标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	出战标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	出战标题.text = "◆ 选择出战弟子（最多3人）"
+	UITheme.apply_project_font(出战标题, UITheme.FONT_H2, true)
+	出战标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(出战标题)
 	# 出战弟子列表
 	var 出战弟子列表: Array = Game.弟子列表 if Game != null else []
@@ -979,9 +991,9 @@ func _显示高级秘境详情(秘境ID: String) -> void:
 		弟子行.add_theme_constant_override("separation", 8)
 		弟子选择容器.add_child(弟子行)
 		var 勾选: CheckBox = CheckBox.new()
-		勾选.text = "%s（%s·战力%d）" % [str(d.get("姓名", "")), str(d.get("境界", "")), int(d.get("战力", 0))]
-		勾选.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		勾选.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		勾选.text = "%s（%s·道行%d）" % [str(d.get("姓名", "")), str(d.get("境界", "")), int(d.get("战力", 0))]
+		UITheme.apply_project_font(勾选, UITheme.FONT_BODY, false)
+		勾选.add_theme_color_override("font_color", UITheme.获取主文字色())
 		弟子行.add_child(勾选)
 		# 限制最多选3人
 		勾选.toggled.connect(func(选中: bool):
@@ -996,7 +1008,7 @@ func _显示高级秘境详情(秘境ID: String) -> void:
 		)
 	# 开始挑战按钮
 	var 挑战按钮: Button = Button.new()
-	挑战按钮.text = "⚔️ 开始挑战（消耗气力%d）" % int(配置.get("体力消耗", 20))
+	挑战按钮.text = "◆ 开始挑战（消耗气力%d）" % int(配置.get("体力消耗", 20))
 	挑战按钮.custom_minimum_size = Vector2(0, UITheme.BTN_H_PRIMARY)
 	挑战按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	UITheme.apply_primary_button_style(挑战按钮)
@@ -1015,36 +1027,36 @@ func _显示高级秘境详情(秘境ID: String) -> void:
 			child.queue_free()
 		var 结果标题: Label = Label.new()
 		if bool(结果.get("通关", false)):
-			结果标题.text = "🎉 挑战成功！通关%s" % str(配置.get("名称", ""))
+			结果标题.text = "◆ 挑战成功！通关%s" % str(配置.get("名称", ""))
 			结果标题.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		else:
-			结果标题.text = "⚔️ 挑战结束，到达第%d/%d层" % [int(结果.get("到达层数", 0)), int(结果.get("总层数", 0))]
+			结果标题.text = "◆ 挑战结束，到达第%d/%d层" % [int(结果.get("到达层数", 0)), int(结果.get("总层数", 0))]
 			结果标题.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
-		结果标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(结果标题, UITheme.FONT_TITLE, true)
 		_detail_content.add_child(结果标题)
 		_detail_content.add_child(HSeparator.new())
 		# 奖励信息
 		var 奖励信息: Label = Label.new()
-		奖励信息.text = "获得奖励：\n💰 灵石：%d\n📖 悟道点：%d" % [int(结果.get("灵石奖励", 0)), int(结果.get("悟道点奖励", 0))]
+		奖励信息.text = "获得奖励：\n◇ 灵石：%d\n◇ 悟道点：%d" % [int(结果.get("灵石奖励", 0)), int(结果.get("悟道点奖励", 0))]
 		var 掉落列表: Array = 结果.get("掉落", [])
 		if 掉落列表.size() > 0:
-			奖励信息.text += "\n🎁 材料：" + ", ".join(掉落列表)
-		奖励信息.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		奖励信息.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			奖励信息.text += "\n◇ 材料：" + ", ".join(掉落列表)
+		UITheme.apply_project_font(奖励信息, UITheme.FONT_BODY, false)
+		奖励信息.add_theme_color_override("font_color", UITheme.获取主文字色())
 		奖励信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_detail_content.add_child(奖励信息)
 		_detail_content.add_child(HSeparator.new())
 		# 战斗日志
 		var 日志标题: Label = Label.new()
-		日志标题.text = "📜 战斗日志"
-		日志标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-		日志标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		日志标题.text = "◇ 战斗日志"
+		UITheme.apply_project_font(日志标题, UITheme.FONT_H2, true)
+		日志标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 		_detail_content.add_child(日志标题)
 		var 战报: Array = 结果.get("战报", [])
 		for 日志 in 战报:
 			var 日志行: Label = Label.new()
 			日志行.text = str(日志)
-			日志行.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(日志行, UITheme.FONT_BODY, false)
 			日志行.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 			日志行.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			_detail_content.add_child(日志行)
@@ -1074,24 +1086,24 @@ func _刷新秘境挑战详情() -> void:
 	if not StageDataLoader.is_unlocked(_selected_stage, Game.门派等级, Game.已通关秘境):
 		var lock := Label.new()
 		lock.text = "未解锁：%s" % 关卡.get("unlock_condition", "")
-		lock.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		lock.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		UITheme.apply_project_font(lock, UITheme.FONT_BODY, false)
+		lock.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		_detail_content.add_child(lock)
 		return
 
 	var name_lbl := Label.new()
 	name_lbl.text = 关卡.get("stage_name", _selected_stage)
-	name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(name_lbl, UITheme.FONT_TITLE, true)
+	name_lbl.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(name_lbl)
 
 	var info := Label.new()
-	info.text = "推荐战力：%d | 气力消耗：%d | 类型：%s\n解锁条件：%s" % [
+	info.text = "推荐道行：%d | 气力消耗：%d | 类型：%s\n解锁条件：%s" % [
 		int(关卡.get("recommend_power", 0)), int(关卡.get("stamina_cost", 0)),
 		关卡.get("node_type", "normal"), 关卡.get("unlock_condition", "")
 	]
-	info.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	info.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(info, UITheme.FONT_BODY, false)
+	info.add_theme_color_override("font_color", UITheme.获取主文字色())
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(info)
 
@@ -1099,14 +1111,14 @@ func _刷新秘境挑战详情() -> void:
 
 	var select_title := Label.new()
 	select_title.text = "选择出战弟子（1-3人，已选%d人）" % _selected_disciples.size()
-	select_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	select_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(select_title, UITheme.FONT_H2, true)
+	select_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(select_title)
 
 	var auto_btn := Button.new()
 	auto_btn.text = "尽数派遣"
 	auto_btn.custom_minimum_size = Vector2(UITheme.GRID * 4, 0)
-	auto_btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(auto_btn, UITheme.FONT_BODY, false)
 	auto_btn.pressed.connect(_auto_select_disciples)
 	_detail_content.add_child(auto_btn)
 
@@ -1127,11 +1139,11 @@ func _刷新秘境挑战详情() -> void:
 			if did < 0:
 				continue
 			var btn := Button.new()
-			btn.text = "%s | %s | 战%d" % [str(d.姓名), str(d.境界), int(d.战力)]
+			btn.text = "%s | %s | 道%d" % [str(d.姓名), str(d.境界), int(d.战力)]
 			btn.custom_minimum_size = Vector2(0, UITheme.GRID * 3)
 			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(btn, UITheme.FONT_BODY, false)
 			if _selected_disciples.has(did):
 				btn.modulate = UITheme.C01_TEXT_JADE
 			var disciple_id: int = did
@@ -1148,9 +1160,9 @@ func _刷新秘境挑战详情() -> void:
 	var 推荐: int = int(关卡.get("recommend_power", 0))
 	var 战力比: float = float(总战力) / float(推荐) if 推荐 > 0 else 0.0
 	var preview := Label.new()
-	preview.text = "总战力：%d / 推荐：%d（%.0f%%）" % [总战力, 推荐, 战力比 * 100]
-	preview.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	preview.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	preview.text = "总道行：%d / 推荐：%d（%.0f%%）" % [总战力, 推荐, 战力比 * 100]
+	UITheme.apply_project_font(preview, UITheme.FONT_BODY, false)
+	preview.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_detail_content.add_child(preview)
 
 	var dispatch_btn := Button.new()
@@ -1230,11 +1242,11 @@ func _播放战报(战报: Dictionary, 日志: VBoxContainer, 攻血条: Progres
 			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
 		elif e.get("is_crit", false):
 			l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-			l.add_theme_font_size_override("font_size", int(UITheme.FONT_VALUE * 2))
+			UITheme.apply_project_font(l, int(UITheme.FONT_VALUE * 2), false)
 		elif 伤害 > 0:
-			l.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+			l.add_theme_color_override("font_color", UITheme.获取次文字色())
 		else:
-			l.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+			l.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		l.modulate.a = 0.0
 		日志.add_child(l)
 		var tw: Tween = create_tween()
@@ -1260,27 +1272,29 @@ func _展示战报(战报: Dictionary) -> void:
 	大.offset_top = 40
 	大.offset_bottom = -16
 	遮.add_child(大)
+	# 战报几乎占满屏 ⇒ 关缩放只淡入（全屏面板做 scale 会像画面被捏一下）
+	UITheme.弹窗入场(大, 遮, 0.22, false)
 	var 内容 := VBoxContainer.new()
 	大.add_child(内容)
 
 	var 胜: bool = 战报.get("is_win", false)
 	var 头 := Label.new()
-	头.text = "⚔ 秘境挑战：%s" % ("胜利" if 胜 else "失败")
-	头.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	头.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 胜 else UITheme.C01_TEXT_SECONDARY)
+	头.text = "◆ 秘境挑战：%s" % ("胜利" if 胜 else "失败")
+	UITheme.apply_project_font(头, UITheme.FONT_TITLE, true)
+	头.add_theme_color_override("font_color", UITheme.获取金文字色() if 胜 else UITheme.获取次文字色())
 	内容.add_child(头)
 
 	var 回合 := Label.new()
 	回合.text = "回合 %d ｜ 胜方剩余气血 %d" % [int(战报.get("round_count", 0)), int(战报.get("remaining_hp", 0))]
-	回合.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(回合, UITheme.FONT_BODY, false)
 	内容.add_child(回合)
 
 	var 赏 := Label.new()
 	var 摘要: String = 战报.get("赏赐摘要", "")
 	赏.text = "赏赐：%s" % (摘要 if 摘要 != "" else "无")
 	赏.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	赏.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	赏.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(赏, UITheme.FONT_BODY, false)
+	赏.add_theme_color_override("font_color", UITheme.获取主文字色())
 	内容.add_child(赏)
 
 	# 双方血条（S2 战斗过程演出）
@@ -1310,7 +1324,7 @@ func _展示战报(战报: Dictionary) -> void:
 
 	var 日志标 := Label.new()
 	日志标.text = "—— 战斗过程 ——"
-	日志标.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	日志标.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	内容.add_child(日志标)
 
 	var 滚 := ScrollContainer.new()
@@ -1390,15 +1404,18 @@ func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
 	_奇遇弹窗遮罩.add_child(大面板)
 
 	var 内容 := VBoxContainer.new()
-	内容.add_theme_constant_override("margin", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_left", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_right", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_top", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_bottom", UITheme.GRID * 2)
 	内容.add_theme_constant_override("separation", UITheme.GRID)
 	大面板.add_child(内容)
 
 	# 标题
 	var 标题 := Label.new()
-	标题.text = "✦ 历练奇遇 ✦"
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	标题.text = "◆ 历练奇遇 ◆"
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
+	标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(标题)
 
@@ -1408,16 +1425,16 @@ func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
 	# 奇遇名称
 	var 奇遇名 := Label.new()
 	奇遇名.text = str(奇遇.get("名称", "奇遇"))
-	奇遇名.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	奇遇名.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(奇遇名, UITheme.FONT_H2, true)
+	奇遇名.add_theme_color_override("font_color", UITheme.获取金文字色())
 	奇遇名.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(奇遇名)
 
 	# 奇遇描述
 	var 奇遇描述 := Label.new()
 	奇遇描述.text = str(奇遇.get("描述", ""))
-	奇遇描述.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	奇遇描述.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(奇遇描述, UITheme.FONT_BODY, false)
+	奇遇描述.add_theme_color_override("font_color", UITheme.获取主文字色())
 	奇遇描述.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	内容.add_child(奇遇描述)
 
@@ -1427,8 +1444,8 @@ func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
 	# 选项标题
 	var 选项标题 := Label.new()
 	选项标题.text = "—— 请做出选择 ——"
-	选项标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	选项标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(选项标题, UITheme.FONT_H2, true)
+	选项标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 	选项标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(选项标题)
 
@@ -1445,7 +1462,7 @@ func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
 		]
 		选项按钮.custom_minimum_size = Vector2(0, UITheme.GRID * 5)
 		选项按钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		选项按钮.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(选项按钮, UITheme.FONT_BODY, false)
 		选项按钮.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		var idx = i
 		选项按钮.pressed.connect(func(): _on_奇遇选项选择(idx))
@@ -1454,10 +1471,14 @@ func _弹出奇遇弹窗(实例ID: String, 奇遇索引: int) -> void:
 	# 提示
 	var 提示 := Label.new()
 	提示.text = "选择将影响历练结果，请谨慎决策"
-	提示.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-	提示.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	UITheme.apply_project_font(提示, UITheme.FONT_AUX, false)
+	提示.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	提示.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(提示)
+
+	# 入场：遮罩先暗 → 面板淡现。本面板占屏约 91%（offset_top/bottom 各 80），
+	# 做 scale 弹入会看到四边明显内缩再外撑，故关缩放只走 alpha。
+	UITheme.弹窗入场(大面板, _奇遇弹窗遮罩, 0.22, false)
 
 # 奇遇选项选择
 func _on_奇遇选项选择(选项索引: int) -> void:
@@ -1484,16 +1505,23 @@ func _显示奇遇结果(结果: Dictionary) -> void:
 	_奇遇弹窗遮罩.add_child(大面板)
 
 	var 内容 := VBoxContainer.new()
-	内容.add_theme_constant_override("margin", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_left", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_right", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_top", UITheme.GRID * 2)
+	内容.add_theme_constant_override("margin_bottom", UITheme.GRID * 2)
 	内容.add_theme_constant_override("separation", UITheme.GRID)
 	大面板.add_child(内容)
+
+	# 结果面板替换旧面板：遮罩已在位（modulate 已是 1.0），这里只淡入新面板。
+	# 若把遮罩一并传入，遮罩会被从 1.0 拉到 0 再回 1.0，闪一下黑。
+	UITheme.弹窗入场(大面板, null, 0.2, false)
 
 	# 结果标题
 	var 成功: bool = bool(结果.get("选择成功", false))
 	var 标题 := Label.new()
-	标题.text = "✦ 奇遇结果 ✦"
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 成功 else UITheme.C01_TEXT_SECONDARY)
+	标题.text = "◆ 奇遇结果 ◆"
+	UITheme.apply_project_font(标题, UITheme.FONT_TITLE, true)
+	标题.add_theme_color_override("font_color", UITheme.获取金文字色() if 成功 else UITheme.获取次文字色())
 	标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	内容.add_child(标题)
 
@@ -1506,8 +1534,8 @@ func _显示奇遇结果(结果: Dictionary) -> void:
 		str(结果.get("选项名称", "")),
 		"成功" if 成功 else "未能如愿"
 	]
-	信息.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	信息.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(信息, UITheme.FONT_BODY, false)
+	信息.add_theme_color_override("font_color", UITheme.获取主文字色())
 	信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	内容.add_child(信息)
 
@@ -1516,8 +1544,8 @@ func _显示奇遇结果(结果: Dictionary) -> void:
 	# 纪事
 	var 纪事 := Label.new()
 	纪事.text = str(结果.get("纪事", ""))
-	纪事.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	纪事.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 成功 else UITheme.C01_TEXT_SECONDARY)
+	UITheme.apply_project_font(纪事, UITheme.FONT_H2, true)
+	纪事.add_theme_color_override("font_color", UITheme.获取金文字色() if 成功 else UITheme.获取次文字色())
 	纪事.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	内容.add_child(纪事)
 
@@ -1527,15 +1555,15 @@ func _显示奇遇结果(结果: Dictionary) -> void:
 		内容.add_child(HSeparator.new())
 		var 效果标题 := Label.new()
 		效果标题.text = "—— 获得效果 ——"
-		效果标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-		效果标题.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		UITheme.apply_project_font(效果标题, UITheme.FONT_H2, true)
+		效果标题.add_theme_color_override("font_color", UITheme.获取金文字色())
 		效果标题.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		内容.add_child(效果标题)
 		for key in 效果.keys():
 			var 效果_lbl := Label.new()
 			效果_lbl.text = "· %s：%s" % [str(key), str(效果[key])]
-			效果_lbl.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-			效果_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			UITheme.apply_project_font(效果_lbl, UITheme.FONT_BODY, false)
+			效果_lbl.add_theme_color_override("font_color", UITheme.获取主文字色())
 			内容.add_child(效果_lbl)
 
 	# 确认按钮
@@ -1565,8 +1593,8 @@ func _刷新历练史册() -> void:
 	# 标题
 	var title := Label.new()
 	title.text = "历练史册"
-	title.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(title, UITheme.FONT_TITLE, true)
+	title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(title)
 
 	# 统计信息
@@ -1583,8 +1611,8 @@ func _刷新历练史册() -> void:
 	stat_label.text = "总历练：%d次 | 成功：%d次 | 失败：%d次 | 成功率：%.0f%%\n完美结局：%d次 | 大捷：%d次 | 奇遇总触发：%d次" % [
 		总次数, 成功次数, 失败次数, 成功率 * 100, 完美次数, 大捷次数, 奇遇总次数
 	]
-	stat_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-	stat_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	UITheme.apply_project_font(stat_label, UITheme.FONT_BODY, false)
+	stat_label.add_theme_color_override("font_color", UITheme.获取主文字色())
 	stat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail_content.add_child(stat_label)
 
@@ -1596,8 +1624,8 @@ func _刷新历练史册() -> void:
 	if history.is_empty():
 		var hint := Label.new()
 		hint.text = "暂无历练记录，派遣弟子外出历练后将在此记录"
-		hint.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		hint.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		UITheme.apply_project_font(hint, UITheme.FONT_BODY, false)
+		hint.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hint.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_detail_content.add_child(hint)
@@ -1605,8 +1633,8 @@ func _刷新历练史册() -> void:
 
 	var list_title := Label.new()
 	list_title.text = "最近历练记录（显示最近20条）"
-	list_title.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-	list_title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	UITheme.apply_project_font(list_title, UITheme.FONT_H2, true)
+	list_title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	_detail_content.add_child(list_title)
 
 	# 滚动容器
@@ -1652,24 +1680,24 @@ func _刷新历练史册() -> void:
 
 		var name_label := Label.new()
 		name_label.text = "%s · %s" % [弟子名, 关卡名]
-		name_label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
-		name_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		UITheme.apply_project_font(name_label, UITheme.FONT_H2, true)
+		name_label.add_theme_color_override("font_color", UITheme.获取主文字色())
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row1.add_child(name_label)
 
-		var 结局颜色: Color = UITheme.C01_TEXT_TERTIARY
+		var 结局颜色: Color = UITheme.获取弱文字色()
 		match 结局:
-			"完美": 结局颜色 = UITheme.C01_TEXT_GOLD
+			"完美": 结局颜色 = UITheme.获取金文字色()
 			"大捷": 结局颜色 = Color(1, 0.84, 0)
 			"深入": 结局颜色 = Color(0.6, 0.8, 1)
 			"稳妥": 结局颜色 = Color(0.6, 1, 0.6)
-			"普通": 结局颜色 = UITheme.C01_TEXT_PRIMARY
+			"普通": 结局颜色 = UITheme.获取主文字色()
 			"险归": 结局颜色 = Color(1, 0.6, 0.4)
 			"失败": 结局颜色 = Color(1, 0.4, 0.4)
 
 		var result_label := Label.new()
 		result_label.text = "[%s] 评级：%s" % [结局, 评级]
-		result_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+		UITheme.apply_project_font(result_label, UITheme.FONT_BODY, false)
 		result_label.add_theme_color_override("font_color", 结局颜色)
 		row1.add_child(result_label)
 
@@ -1683,15 +1711,15 @@ func _刷新历练史册() -> void:
 
 		var time_label := Label.new()
 		time_label.text = "第%d游戏日" % 时间
-		time_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		time_label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		UITheme.apply_project_font(time_label, UITheme.FONT_BODY, false)
+		time_label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row2.add_child(time_label)
 
 		if 奇遇次数 > 0:
 			var adventure_label := Label.new()
 			adventure_label.text = "触发奇遇：%d次" % 奇遇次数
-			adventure_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(adventure_label, UITheme.FONT_BODY, false)
 			adventure_label.add_theme_color_override("font_color", Color(0.8, 0.6, 1))
 			row2.add_child(adventure_label)
 
@@ -1706,8 +1734,8 @@ func _刷新历练史册() -> void:
 			奖励文本 = "，奖励：" + "、".join(奖励列表)
 		var desc_label := Label.new()
 		desc_label.text = "路线：%s%s" % [路线, 奖励文本]
-		desc_label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-		desc_label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+		UITheme.apply_project_font(desc_label, UITheme.FONT_BODY, false)
+		desc_label.add_theme_color_override("font_color", UITheme.获取次文字色())
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vb.add_child(desc_label)
 
@@ -1725,7 +1753,7 @@ func _刷新历练史册() -> void:
 			观战btn.text = "观战回放"
 			观战btn.custom_minimum_size = Vector2(0, UITheme.GRID * 4)
 			观战btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-			观战btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(观战btn, UITheme.FONT_BODY, false)
 			var 回放战报: Dictionary = 原始战报
 			var 回放攻方: Array = 攻方快照
 			var 回放守方: Array = 守方快照
@@ -1738,6 +1766,6 @@ func _刷新历练史册() -> void:
 		else:
 			var 归档label := Label.new()
 			归档label.text = "（此战已归档，仅存战绩）"
-			归档label.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
-			归档label.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+			UITheme.apply_project_font(归档label, UITheme.FONT_AUX, false)
+			归档label.add_theme_color_override("font_color", UITheme.获取弱文字色())
 			vb.add_child(归档label)

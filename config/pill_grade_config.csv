@@ -1,0 +1,5 @@
+grade_id,grade_name,effect_scale,price_scale,toxin_scale,mark_cap_delta,mark_rate_scale,yield_scale,weight,desc
+sg_low,下品,0.80,0.70,1.30,-1,0.80,1.40,40,丹色晦暗药性驳杂一炉多得而效微
+sg_mid,中品,1.00,1.00,1.00,0,1.00,1.00,32,丹色匀净药性中正为宗门常用之数
+sg_high,上品,1.25,1.50,0.75,1,1.15,0.75,20,丹晕流转药力醇厚可入内库
+sg_top,极品,1.60,2.40,0.55,2,1.30,0.55,8,丹霞盈室瑕不掩瑜百年难遇之珍

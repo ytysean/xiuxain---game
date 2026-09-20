@@ -21,13 +21,13 @@ deduce_cultivation_great,【%s】修为精进至%s·大圆满，可尝试突破
 deduce_year_end_eval,【宗门】岁末考评 %s，论功行赏，灵石+%d（余 %d 并入七载大典）：
 seven_year_ceremony_done,%d七载宗门大考礼成（本年评定 %s），论功行赏、重宝颁赐，宗门至此再进一步
 seven_year_grand_ceremony,%d七载，太玄宗七载大典礼成，普天同庆，万修来朝，宗门威仪更盛
-sect_promote_seven_year,太玄宗于%d 年七载大典正式晋：Lv.%d 宗门，辖地扩张，弟子云集
-sect_promote_notice,【宗门】七载大典！太玄宗晋升至 Lv.%d！灵脉修炼速度 +%d%%
+sect_promote_seven_year,太玄宗于%d 年七载大典正式晋升至 %d 品宗门，辖地扩张，弟子云集
+sect_promote_notice,【宗门】七载大典！太玄宗晋升至 %d 品！灵脉修炼速度 +%d%%
 sect_ceremony_reward,【宗门】七载大典论功行赏，灵石+%d（历年岁末之积
 sect_ceremony_bestow,【宗门】七载大典赐掌门上品法宝
 sect_exam_done,【宗门】七载宗门大考礼成，万象更新
-heritage_codex_complete,【图录%s 已集齐，宗门产出运势小成（产出+%d%%）。
-milestone_reached,宗门达成%s】，获得%s，宗门道统更进一步
+heritage_codex_complete,【图录%s】已集齐，宗门产出运势小成（产出+%d%%）。
+milestone_reached,宗门达成【%s】，获得%s，宗门道统更进一步
 hall_lingtian_harvest,【灵田】灵草大丰收，灵石产出翻倍！
 hall_dantang_refine,【丹堂】丹火纯青，额外丹元折算灵石
 hall_dantang_gift,丹堂额外炼制一枚【%s】，赐予弟子【%s】
@@ -45,9 +45,9 @@ hall_xichi_cleanse,洗髓池机缘，【%s】洗去【%s】心障，转化【%s�
 hall_xichi_purify,【洗髓池】天道垂青，【%s】洗去心障，心性转善
 hall_achievement_good,【政绩%s】主事治业有成，全宗产出微增
 hall_achievement_great,【政绩%s】主事任期政绩卓著，宗门上下称颂（声望+%d）
-recruit_tianpin_found,接引大典检出天品灵根弟子率%s】，全宗士气大振
-sect_grade_promote,太玄宗历经沉淀，宗门品级晋升至 Lv.%d，灵脉愈发醇厚，全宗上下欢欣
-sect_grade_promote_notice,【宗门】太玄宗晋升：Lv.%d！灵脉修炼速度 +%d%%
+recruit_tianpin_found,测灵大典检出天品灵根弟子率%s】，全宗士气大振
+sect_grade_promote,太玄宗历经沉淀，宗门品级晋升至 %d 品，灵脉愈发醇厚，全宗上下欢欣
+sect_grade_promote_notice,【宗门】太玄宗晋升：%d 品！灵脉修炼速度 +%d%%
 beast_eggs_hatched,御兽堂有 %d 枚灵兽蛋孵化完成，可前往绑定%d
 beast_no_bindable,无符合条件的空闲弟子可绑定（低资质仅能携：灵阶灵兽）
 beast_contract_released,%s】已解除%s灵兽契约，灵兽返回御兽堂

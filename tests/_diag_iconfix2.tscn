@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://l5v00k131lki"]
+
+[ext_resource type="Script" path="res://tests/_diag_iconfix2.gd" id="1_diag2"]
+
+[node name="DiagIconFix2" type="Node"]
+script = ExtResource("1_diag2")

@@ -1,0 +1,8 @@
+# SELFTEST 断言
+
+- 00_home      want=COLOR_DELTA   got=COLOR_DELTA   PASS
+- S01_丹方       want=LAYOUT_SHIFT  got=LAYOUT_SHIFT  PASS
+- S02_传送阵      want=IDENTICAL     got=IDENTICAL     PASS
+- S03_傀儡       want=IDENTICAL     got=IDENTICAL     PASS
+
+SELFTEST PASS

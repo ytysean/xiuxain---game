@@ -1,0 +1,4 @@
+codex_id,codex_name,need_score,success_bonus,rate_bonus,desc
+cx_1,初窥纹道,8,2.0,0.02,图谱初成丹堂火候渐稳
+cx_2,纹法精通,24,4.0,0.05,纹法精通炼丹成功率与出纹率齐增
+cx_3,丹纹宗师,48,8.0,0.08,丹纹宗师炉火纯青高纹常出

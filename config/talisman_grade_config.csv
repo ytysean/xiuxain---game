@@ -1,0 +1,5 @@
+grade_id,grade_name,effect_scale,price_scale,mark_cap_delta,mark_rate_scale,yield_scale,weight,desc
+tg_low,下品,0.80,0.70,-1,0.80,1.40,40,符色晦暗效力驳杂一炉多得而效微
+tg_mid,中品,1.00,1.00,0,1.00,1.00,32,符纹匀净效力中正为宗门常用之数
+tg_high,上品,1.25,1.50,1,1.15,0.75,20,符晕流转灵力醇厚可入内库
+tg_top,极品,1.60,2.40,2,1.30,0.55,8,符光盈室瑕不掩瑜百年难遇之珍

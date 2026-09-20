@@ -93,19 +93,19 @@ func _build_activity(parent: Control) -> void:
 	var lab := Label.new()
 	lab.text = "今日活跃度"
 	UITheme.apply_aux_text(lab)
-	lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	var val := Label.new()
 	val.name = "ActivityValue"
 	val.text = "0 / 100"
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	UITheme.apply_value_text(val)
-	val.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	val.add_theme_color_override("font_color", UITheme.获取金文字色())
 	row.add_child(lab)
 	row.add_child(val)
 	act.add_child(row)
 
-	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.C01_TEXT_GOLD, int(round(8.0 * UITheme.UI_SCALE)))
+	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.获取金文字色(), int(round(8.0 * UITheme.UI_SCALE)))
 	_activity_fill = prog.fill
 	act.add_child(prog.control)
 	parent.add_child(act)
@@ -217,7 +217,7 @@ func _populate() -> void:
 		_:
 			var tasks: Array = _collect_tasks()
 			if tasks.is_empty():
-				_add_empty("宗务清闲，静待机缘" % _current_tab)
+				_add_empty("宗务清闲，静待机缘")
 			else:
 				for t in tasks:
 					_add_task_card(t)
@@ -262,7 +262,7 @@ func _make_milestone_card(m: Dictionary, done: bool) -> PanelContainer:
 	sb.bg_color = UITheme.C01_FLOAT_BG
 	sb.set_corner_radius_all(int(round(10.0 * UITheme.UI_SCALE)))
 	sb.set_border_width_all(1)
-	sb.border_color = UITheme.C01_TEXT_GOLD if done else UITheme.C01_GOLD_LINE
+	sb.border_color = UITheme.获取金文字色() if done else UITheme.C01_GOLD_LINE
 	sb.set_content_margin_all(UITheme.PAD_PANEL)
 	card.add_theme_stylebox_override("panel", sb)
 
@@ -281,20 +281,20 @@ func _make_milestone_card(m: Dictionary, done: bool) -> PanelContainer:
 	var title: Label = Label.new()
 	title.text = str(m.get("名称", "—"))
 	UITheme.apply_section_title(title)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if done else UITheme.C01_TEXT_PRIMARY)
+	title.add_theme_color_override("font_color", UITheme.获取金文字色() if done else UITheme.获取主文字色())
 	mid.add_child(title)
 
 	var cond: Label = Label.new()
 	cond.text = _里程碑条件描述(m)
 	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_text(cond)
-	cond.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	cond.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	mid.add_child(cond)
 
 	var rew: Label = Label.new()
 	rew.text = "奖励：" + _里程碑奖励描述(m)
 	UITheme.apply_aux_text(rew)
-	rew.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if done else UITheme.C01_TEXT_TERTIARY)
+	rew.add_theme_color_override("font_color", UITheme.获取金文字色() if done else UITheme.获取弱文字色())
 	mid.add_child(rew)
 
 	hb.add_child(mid)
@@ -306,7 +306,7 @@ func _make_milestone_card(m: Dictionary, done: bool) -> PanelContainer:
 	tag.size_flags_horizontal = Control.SIZE_SHRINK_END
 	tag.custom_minimum_size = Vector2(int(round(72.0 * UITheme.UI_SCALE)), 0)
 	UITheme.apply_aux_text(tag)
-	tag.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if done else UITheme.C01_TEXT_TERTIARY)
+	tag.add_theme_color_override("font_color", UITheme.获取金文字色() if done else UITheme.获取弱文字色())
 	hb.add_child(tag)
 
 	card.add_child(hb)
@@ -319,7 +319,7 @@ func _make_milestone_dot(done: bool) -> Control:
 	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = UITheme.C01_TEXT_GOLD if done else Color(0.5, 0.5, 0.5, 0.6)
+	sb.bg_color = UITheme.获取金文字色() if done else Color(0.5, 0.5, 0.5, 0.6)
 	sb.set_corner_radius_all(int(round(8.0 * UITheme.UI_SCALE)))
 	sb.set_content_margin_all(0)
 	sb.set_border_width_all(0)
@@ -353,7 +353,7 @@ func _add_milestone_footer() -> void:
 	lab.text = "传承史册·宗门里程碑一览"
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_aux_text(lab)
-	lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	_list_parent.add_child(lab)
 
 # ───────── 成就（拍板结论1：成就 Tab 真实化；S1 安全子集 19 条接线 + 145 条 placeholder 置灰容错）─────────
@@ -400,7 +400,7 @@ func _populate_悬赏榜() -> void:
 	# 悬赏列表
 	var 悬赏榜: Dictionary = Game.get("宗门悬赏榜") if is_instance_valid(Game) else {}
 	if 悬赏榜 == null or 悬赏榜.is_empty():
-		_add_empty("悬赏榜空空如也，点击上方按钮发布悬赏")
+		_add_empty("悬赏榜空空如也，轻触上方按钮发布悬赏")
 		return
 	for bid in 悬赏榜:
 		var b: Dictionary = 悬赏榜[bid]
@@ -415,7 +415,7 @@ func _make_bounty_card(b: Dictionary) -> PanelContainer:
 	sb.set_corner_radius_all(int(round(10.0 * UITheme.UI_SCALE)))
 	sb.set_border_width_all(1)
 	var 状态: String = str(b.get("状态", ""))
-	var border_col: Color = UITheme.C01_TEXT_GOLD if 状态 == "进行中" else (UITheme.C05_PROG_FILL if 状态 == "招募中" else Color(0.5, 0.5, 0.5))
+	var border_col: Color = UITheme.获取金文字色() if 状态 == "进行中" else (UITheme.C05_PROG_FILL if 状态 == "招募中" else Color(0.5, 0.5, 0.5))
 	sb.border_color = border_col
 	sb.set_content_margin_all(UITheme.PAD_PANEL)
 	card.add_theme_stylebox_override("panel", sb)
@@ -451,13 +451,13 @@ func _make_bounty_card(b: Dictionary) -> PanelContainer:
 	# 进度
 	var 已收集: int = int(b.get("已收集", 0))
 	var 需求: int = int(b.get("需求数量", 0))
-	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.C01_TEXT_GOLD, int(round(6.0 * UITheme.UI_SCALE)))
+	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.获取金文字色(), int(round(6.0 * UITheme.UI_SCALE)))
 	prog.fill.anchor_right = clamp(float(已收集) / float(max(需求, 1)), 0.0, 1.0)
 	vb.add_child(prog.control)
 	var prog_lab := Label.new()
 	prog_lab.text = "进度：%d/%d" % [已收集, 需求]
 	UITheme.apply_aux_text(prog_lab)
-	prog_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	prog_lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	vb.add_child(prog_lab)
 	# 奖励和接取人
 	var info_row := HBoxContainer.new()
@@ -477,7 +477,7 @@ func _make_bounty_card(b: Dictionary) -> PanelContainer:
 		var taker_lab := Label.new()
 		taker_lab.text = "接取人：%s" % (str(d.姓名) if d != null else "未知")
 		UITheme.apply_aux_text(taker_lab)
-		taker_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		taker_lab.add_theme_color_override("font_color", UITheme.获取金文字色())
 		info_row.add_child(taker_lab)
 	vb.add_child(info_row)
 	# 有效期
@@ -486,7 +486,7 @@ func _make_bounty_card(b: Dictionary) -> PanelContainer:
 	var expire_lab := Label.new()
 	expire_lab.text = "剩余：%d日" % max(0, 剩余日)
 	UITheme.apply_aux_text(expire_lab)
-	expire_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	expire_lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	vb.add_child(expire_lab)
 	# 撤销按钮（仅招募中状态）
 	if 状态 == "招募中":
@@ -660,7 +660,7 @@ func _open_publish_panel() -> void:
 		ir_val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ir_val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_value_text(ir_val)
-		ir_val.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		ir_val.add_theme_color_override("font_color", UITheme.获取金文字色())
 		item_reward_row.add_child(ir_val)
 		var ir_btn := Button.new()
 		ir_btn.text = "选择"
@@ -877,14 +877,14 @@ func _make_achievement_header(已得: int, 总: int) -> Control:
 	var lab := Label.new()
 	lab.text = "成就点数"
 	UITheme.apply_aux_text(lab)
-	lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	hb.add_child(lab)
 	var val := Label.new()
 	val.text = "%d / %d" % [已得, 总]
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	UITheme.apply_value_text(val)
-	val.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	val.add_theme_color_override("font_color", UITheme.获取金文字色())
 	hb.add_child(val)
 	return hb
 
@@ -898,7 +898,7 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 	sb.bg_color = UITheme.C01_FLOAT_BG
 	sb.set_corner_radius_all(int(round(10.0 * UITheme.UI_SCALE)))
 	sb.set_border_width_all(1)
-	var border_col: Color = UITheme.C01_TEXT_GOLD if done else (UITheme.C01_GOLD_LINE if not is_placeholder else Color(0.4, 0.4, 0.4, 0.5))
+	var border_col: Color = UITheme.获取金文字色() if done else (UITheme.C01_GOLD_LINE if not is_placeholder else Color(0.4, 0.4, 0.4, 0.5))
 	sb.border_color = border_col
 	sb.set_content_margin_all(UITheme.PAD_PANEL)
 	card.add_theme_stylebox_override("panel", sb)
@@ -920,13 +920,13 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 	var title: Label = Label.new()
 	title.text = str(a.get("ach_name", "—"))
 	UITheme.apply_section_title(title)
-	var title_col: Color = UITheme.C01_TEXT_GOLD if done else (UITheme.C01_TEXT_PRIMARY if not is_placeholder else Color(0.6, 0.6, 0.6, 0.8))
+	var title_col: Color = UITheme.获取金文字色() if done else (UITheme.获取主文字色() if not is_placeholder else Color(0.6, 0.6, 0.6, 0.8))
 	title.add_theme_color_override("font_color", title_col)
 	title_row.add_child(title)
 	var cat_lab: Label = Label.new()
 	cat_lab.text = "[%s]" % str(a.get("category", ""))
 	UITheme.apply_aux_text(cat_lab)
-	cat_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	cat_lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	title_row.add_child(cat_lab)
 	mid.add_child(title_row)
 
@@ -934,7 +934,7 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 	cond.text = _成就条件描述(a)
 	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_text(cond)
-	var cond_col: Color = UITheme.C01_TEXT_TERTIARY if not is_placeholder else Color(0.5, 0.5, 0.5, 0.8)
+	var cond_col: Color = UITheme.获取弱文字色() if not is_placeholder else Color(0.5, 0.5, 0.5, 0.8)
 	cond.add_theme_color_override("font_color", cond_col)
 	mid.add_child(cond)
 	
@@ -957,8 +957,8 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 				var progress_text := Label.new()
 				progress_text.name = "ProgressText"
 				progress_text.text = "进度：%d / %d (%.0f%%)" % [int(当前值), int(目标值), 进度百分比 * 100]
-				progress_text.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
-				progress_text.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+				UITheme.apply_project_font(progress_text, UITheme.FONT_BODY, false)
+				progress_text.add_theme_color_override("font_color", UITheme.获取弱文字色())
 				progress_container.add_child(progress_text)
 				
 				# 进度条背景
@@ -1000,7 +1000,7 @@ func _make_achievement_card(a: Dictionary, done: bool) -> PanelContainer:
 	tag.size_flags_horizontal = Control.SIZE_SHRINK_END
 	tag.custom_minimum_size = Vector2(int(round(72.0 * UITheme.UI_SCALE)), 0)
 	UITheme.apply_aux_text(tag)
-	var tag_col: Color = UITheme.C01_TEXT_GOLD if done else (Color(0.5, 0.5, 0.5, 0.8) if is_placeholder else UITheme.C01_TEXT_TERTIARY)
+	var tag_col: Color = UITheme.获取金文字色() if done else (Color(0.5, 0.5, 0.5, 0.8) if is_placeholder else UITheme.获取弱文字色())
 	tag.add_theme_color_override("font_color", tag_col)
 	hb.add_child(tag)
 
@@ -1015,7 +1015,7 @@ func _add_achievement_reward(parent: Control, a: Dictionary, is_placeholder: boo
 	hb.add_theme_constant_override("separation", int(round(10.0 * UITheme.UI_SCALE)))
 	if is_placeholder:
 		var lab: Label = Label.new()
-		lab.text = "奖励：神秘奖励（S2 待实装）"
+		lab.text = "奖励：神秘奖励"
 		UITheme.apply_aux_text(lab)
 		lab.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
 		hb.add_child(lab)
@@ -1023,9 +1023,9 @@ func _add_achievement_reward(parent: Control, a: Dictionary, is_placeholder: boo
 		return
 	# 标准资源（q-1 拍板：灵石/灵气/声望 三标准资源；功勋非标准资源，不发）
 	var parts: Array = [
-		["reward_lingshi", "灵石", UITheme.C01_TEXT_GOLD],
+		["reward_lingshi", "灵石", UITheme.获取金文字色()],
 		["reward_lingqi", "灵气", UITheme.C05_REWARD_BLUE],
-		["reward_shengwang", "声望", UITheme.C01_TEXT_GOLD],
+		["reward_shengwang", "声望", UITheme.获取金文字色()],
 	]
 	var any: bool = false
 	for p in parts:
@@ -1054,7 +1054,7 @@ func _add_achievement_reward(parent: Control, a: Dictionary, is_placeholder: boo
 		var lab: Label = Label.new()
 		lab.text = "无奖励"
 		UITheme.apply_body_text(lab)
-		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		hb.add_child(lab)
 	parent.add_child(hb)
 
@@ -1066,16 +1066,16 @@ func _成就条件描述(a: Dictionary) -> String:
 	var p: String = str(a.get("condition_param", ""))
 	var extra: String = str(a.get("condition_extra", ""))
 	match ct:
-		"sect_level": return "门派等级 ≥ %s" % p
+		"sect_level": return "宗门品级 ≥ %s" % p
 		"disciple_count": return "弟子数 ≥ %s" % p
 		"disciple_realm_count": return "拥有 %s 期弟子 ≥ %s 名" % [extra, p]
 		"disciple_all_realm": return "全宗弟子均达 %s" % extra
 		"disciple_linggen": return "拥有 %s 灵根弟子 ≥ %s 名" % [extra, p]
 		"master_realm": return "掌门境界 ≥ 第 %s 重" % p
 		"beast_count": return "灵兽数 ≥ %s" % p
-		"building_level": return "%s 殿阁等级 ≥ %s" % [extra, p]
-		"building_any_level": return "任意殿阁等级 ≥ %s" % p
-		"building_total_level": return "殿阁总等级 ≥ %s" % p
+		"building_level": return "%s 殿阁品级 ≥ %s" % [extra, p]
+		"building_any_level": return "任意殿阁品级 ≥ %s" % p
+		"building_total_level": return "殿阁总品级 ≥ %s" % p
 		"reputation": return "声望 ≥ %s" % p
 		"prosperity": return "繁荣度 ≥ %s" % p
 		_: return "达成条件"
@@ -1084,7 +1084,7 @@ func _achievement_grade_color(grade: String) -> Color:
 	match grade:
 		"传说": return Color(0.95, 0.55, 0.25)
 		"史诗": return Color(0.65, 0.35, 0.85)
-		"稀有": return UITheme.C01_TEXT_GOLD
+		"稀有": return UITheme.获取金文字色()
 		"普通": return UITheme.C01_FLOAT_BG
 		_: return UITheme.C01_FLOAT_BG
 
@@ -1093,10 +1093,10 @@ func _add_achievement_footer() -> void:
 	sep.add_theme_constant_override("separation", int(round(16.0 * UITheme.UI_SCALE)))
 	_list_parent.add_child(sep)
 	var lab: Label = Label.new()
-	lab.text = "（共 %d 条成就，S1 已实装 %d 条，更多内容 S2 续作）" % [int(Game.get("成就配置").size()) if Game.get("成就配置") is Array else 0, _wired_count()]
+	lab.text = "（共 %d 条成就，已实装 %d 条）" % [int(Game.get("成就配置").size()) if Game.get("成就配置") is Array else 0, _wired_count()]
 	lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_aux_text(lab)
-	lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	_list_parent.add_child(lab)
 
 func _wired_count() -> int:
@@ -1127,13 +1127,13 @@ func _add_task_card(task: Dictionary) -> void:
 	var title: Label = Label.new()
 	title.text = str(q.get("quest_name", "—"))
 	UITheme.apply_section_title(title)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	title.add_theme_color_override("font_color", UITheme.获取主文字色())
 	mid.add_child(title)
 	var desc: Label = Label.new()
 	desc.text = str(q.get("target_desc", "—"))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_text(desc)
-	desc.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	desc.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	mid.add_child(desc)
 
 	_add_reward(mid, q)
@@ -1144,6 +1144,9 @@ func _add_task_card(task: Dictionary) -> void:
 
 	card.add_child(hb)
 	_list_parent.add_child(card)
+	card.modulate.a = 0.0
+	var 卡入场 := create_tween()
+	卡入场.tween_property(card, "modulate:a", 1.0, 0.2)
 
 # ───────── 主线任务卡（实时进度 + 三态按钮）─────────
 func _add_main_card(task: Dictionary) -> void:
@@ -1165,20 +1168,20 @@ func _add_main_card(task: Dictionary) -> void:
 	var title: Label = Label.new()
 	title.text = str(task.get("name", "—"))
 	UITheme.apply_section_title(title)
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	title.add_theme_color_override("font_color", UITheme.获取主文字色())
 	mid.add_child(title)
 
 	var desc: Label = Label.new()
 	desc.text = str(task.get("desc", "—"))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_text(desc)
-	desc.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	desc.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	mid.add_child(desc)
 
 	# 进度条 current / target
 	var prog_row := HBoxContainer.new()
 	prog_row.add_theme_constant_override("separation", UITheme.GRID)
-	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.C01_TEXT_GOLD, int(round(8.0 * UITheme.UI_SCALE)))
+	var prog: Dictionary = _make_progress(UITheme.C05_PROG_TRACK, UITheme.获取金文字色(), int(round(8.0 * UITheme.UI_SCALE)))
 	prog.control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var tgt: int = _to_int(task.get("target"), 1)
 	var cur: int = _to_int(task.get("current"), 0)
@@ -1187,7 +1190,7 @@ func _add_main_card(task: Dictionary) -> void:
 	var prog_lab := Label.new()
 	prog_lab.text = "%d / %d" % [cur, tgt]
 	UITheme.apply_aux_text(prog_lab)
-	prog_lab.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	prog_lab.add_theme_color_override("font_color", UITheme.获取金文字色())
 	prog_row.add_child(prog_lab)
 	mid.add_child(prog_row)
 
@@ -1199,14 +1202,17 @@ func _add_main_card(task: Dictionary) -> void:
 
 	card.add_child(hb)
 	_list_parent.add_child(card)
+	card.modulate.a = 0.0
+	var 卡入场 := create_tween()
+	卡入场.tween_property(card, "modulate:a", 1.0, 0.2)
 
 func _add_main_reward(parent: Control, task: Dictionary) -> void:
 	# reward_caoyao 对应真实资源「灵草」
 	var parts: Array = [
-		["reward_lingjing", "灵石", UITheme.C01_TEXT_GOLD],
+		["reward_lingjing", "灵石", UITheme.获取金文字色()],
 		["reward_lingqi", "灵气", UITheme.C05_REWARD_BLUE],
-		["reward_shengwang", "声望", UITheme.C01_TEXT_GOLD],
-		["reward_caoyao", "灵草", UITheme.C01_TEXT_GOLD],
+		["reward_shengwang", "声望", UITheme.获取金文字色()],
+		["reward_caoyao", "灵草", UITheme.获取金文字色()],
 	]
 	var hb := HBoxContainer.new()
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1238,7 +1244,7 @@ func _add_main_reward(parent: Control, task: Dictionary) -> void:
 		var lab: Label = Label.new()
 		lab.text = "无奖励"
 		UITheme.apply_body_text(lab)
-		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		hb.add_child(lab)
 	parent.add_child(hb)
 
@@ -1280,10 +1286,10 @@ func _add_reward(parent: Control, q: Dictionary) -> void:
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_theme_constant_override("separation", int(round(10.0 * UITheme.UI_SCALE)))
 	var parts: Array = [
-		["reward_lingjing", "灵石", UITheme.C01_TEXT_GOLD],
+		["reward_lingjing", "灵石", UITheme.获取金文字色()],
 		["reward_lingqi", "灵气", UITheme.C05_REWARD_BLUE],
-		["reward_shengwang", "声望", UITheme.C01_TEXT_GOLD],
-		["reward_xianyu", "仙玉", UITheme.C01_TEXT_GOLD],
+		["reward_shengwang", "声望", UITheme.获取金文字色()],
+		["reward_xianyu", "仙玉", UITheme.获取金文字色()],
 	]
 	var any: bool = false
 	for p in parts:
@@ -1312,7 +1318,7 @@ func _add_reward(parent: Control, q: Dictionary) -> void:
 		var lab: Label = Label.new()
 		lab.text = "无奖励"
 		UITheme.apply_body_text(lab)
-		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		lab.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		hb.add_child(lab)
 	parent.add_child(hb)
 
@@ -1343,12 +1349,9 @@ func _make_card_button(task: Dictionary) -> Button:
 	return b
 
 func _add_empty(text: String) -> void:
-	var l := Label.new()
-	l.text = text
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	UITheme.apply_aux_text(l)
-	l.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
-	_list_parent.add_child(l)
+	# ★ 2026-09-16（#009 逐页精修）：委托全项目统一空态组件（见 UITheme.建空态）。
+	#   原先各页自写、都只有「一行小字」。任务列表筛选后为空属局部空态 ⇒ 紧凑模式。
+	_list_parent.add_child(UITheme.建空态(text, "", "", true))
 
 # ───────── 交互 ─────────
 func _on_claim_daily(序号: int) -> void:
@@ -1434,7 +1437,7 @@ func _update_tab_styles() -> void:
 		var sb := StyleBoxFlat.new()
 		if sel:
 			sb.bg_color = UITheme.C01_AVATAR_BG
-			sb.border_color = UITheme.C01_TEXT_GOLD
+			sb.border_color = UITheme.获取金文字色()
 			sb.set_border_width_all(1)
 		else:
 			sb.bg_color = Color(0, 0, 0, 0)
@@ -1445,7 +1448,7 @@ func _update_tab_styles() -> void:
 		b.add_theme_stylebox_override("hover", sb)
 		b.add_theme_stylebox_override("pressed", sb)
 		UITheme.apply_section_title(b)
-		b.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if sel else UITheme.C01_TEXT_TERTIARY)
+		b.add_theme_color_override("font_color", UITheme.获取金文字色() if sel else UITheme.获取弱文字色())
 
 func _update_tab_reddots() -> void:
 	if _tab_reddots.is_empty() or not is_instance_valid(Game):
@@ -1554,7 +1557,7 @@ func _style_gold_button(b: BaseButton) -> void:
 func _style_ghost_button(b: BaseButton) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.1, 0.1, 0.15, 0.6)
-	normal.border_color = UITheme.C01_TEXT_TERTIARY
+	normal.border_color = UITheme.获取弱文字色()
 	normal.set_corner_radius_all(int(round(13.0 * UITheme.UI_SCALE)))
 	normal.set_border_width_all(1)
 	normal.set_content_margin_all(UITheme.GRID)
@@ -1567,19 +1570,20 @@ func _show_toast(text: String) -> void:
 	if _toast_panel == null:
 		_toast_panel = Panel.new()
 		_toast_panel.name = "ToastPanel"
-		_toast_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0.043, 0.078, 0.094, 0.92), UITheme.C01_GOLD_LINE, 8, 1))
+		_toast_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0.106, 0.153, 0.169, 0.92), UITheme.C01_GOLD_LINE, 8, 1))
 		_toast_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 		_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_toast_panel.visible = false
 		var lab := Label.new()
 		lab.name = "ToastText"
 		UITheme.apply_aux_text(lab)
-		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		lab.add_theme_color_override("font_color", UITheme.获取金文字色())
 		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_toast_panel.add_child(lab)
 		_toast_label = lab
 		add_child(_toast_panel)
 	_toast_label.text = text
+	Game.添加提示(text)
 	_toast_panel.visible = true
 	var font: Font = _toast_label.get_theme_font("font")
 	var text_size: Vector2 = font.get_string_size(_toast_label.text, HORIZONTAL_ALIGNMENT_CENTER, -1, int(round(14.0 * UITheme.UI_SCALE)))
@@ -1592,7 +1596,7 @@ func _show_toast(text: String) -> void:
 
 func _apply_dark_capsule(b: BaseButton) -> void:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = UITheme.COLOR_PANEL_BG
+	normal.bg_color = UITheme.获取面板底色()
 	normal.border_color = UITheme.C01_GOLD_LINE
 	normal.set_corner_radius_all(int(round(13.0 * UITheme.UI_SCALE)))
 	normal.set_border_width_all(1)
@@ -1602,7 +1606,7 @@ func _apply_dark_capsule(b: BaseButton) -> void:
 	b.add_theme_stylebox_override("hover", normal)
 	b.add_theme_stylebox_override("disabled", normal)
 	UITheme.apply_aux_text(b)
-	b.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	b.add_theme_color_override("font_color", UITheme.获取弱文字色())
 
 # ───────── 活跃度宝箱（决策 2：视觉脚手架 + 置灰禁用，点击弹轻提示，不碰数据层）─────────
 func _build_activity_chests(parent: Control) -> void:
@@ -1678,21 +1682,21 @@ func _refresh_chest_button(threshold: int, b: Button) -> void:
 	var bg: Color = UITheme.C01_FLOAT_BG
 	var border: Color = UITheme.C01_GOLD_LINE
 	var icon_mod: Color = Color(0.55, 0.55, 0.55, 0.65)
-	var font_col: Color = UITheme.C01_TEXT_TERTIARY
+	var font_col: Color = UITheme.获取弱文字色()
 
 	match state:
 		"canclaim":
 			tex_path = CHEST_CANCLAIM
 			bg = UITheme.C01_FLOAT_BG
-			border = UITheme.C01_TEXT_GOLD
+			border = UITheme.获取金文字色()
 			icon_mod = Color.WHITE
-			font_col = UITheme.C01_TEXT_GOLD
+			font_col = UITheme.获取金文字色()
 		"claimed":
 			tex_path = CHEST_CLAIMED
 			bg = Color(UITheme.C01_FLOAT_BG, 0.55)
 			border = UITheme.C01_GOLD_LINE
 			icon_mod = Color(0.55, 0.55, 0.55, 0.55)
-			font_col = UITheme.C01_TEXT_TERTIARY
+			font_col = UITheme.获取弱文字色()
 
 	var tex: Texture2D = UITheme.load_hd_icon(tex_path)
 	if icon != null:
@@ -1728,7 +1732,7 @@ func _toast_at(text: String, anchor_btn: Button) -> void:
 	if _toast_panel == null:
 		_toast_panel = Panel.new()
 		_toast_panel.name = "ToastPanel"
-		_toast_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0.043, 0.078, 0.094, 0.92), UITheme.C01_GOLD_LINE, 8, 1))
+		_toast_panel.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox_flat(Color(0.106, 0.153, 0.169, 0.92), UITheme.C01_GOLD_LINE, 8, 1))
 		_toast_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 		_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_toast_panel.visible = false
@@ -1741,11 +1745,12 @@ func _toast_at(text: String, anchor_btn: Button) -> void:
 		lab.add_theme_constant_override("margin_left", int(round(12.0 * UITheme.UI_SCALE)))
 		lab.add_theme_constant_override("margin_right", int(round(12.0 * UITheme.UI_SCALE)))
 		UITheme.apply_body_text(lab)
-		lab.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		lab.add_theme_color_override("font_color", UITheme.获取主文字色())
 		_toast_panel.add_child(lab)
 		_toast_label = lab
 		add_child(_toast_panel)
 	_toast_label.text = text
+	Game.添加提示(text)
 	_toast_panel.visible = true
 
 	# 计算尺寸：水平内边距 24@480，最小宽 160@480，高 40@480

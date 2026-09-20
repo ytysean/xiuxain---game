@@ -117,7 +117,7 @@ const ENTRY_SUB_PAGES: Dictionary = {
 	"药园": PageHerbGardenScene,
 	"丹方": PagePillFormulaScene,
 	"装备图纸": PageEquipmentBlueprintScene,
-	"活动中心": PageActivityScene,
+	"宗门时令": PageActivityScene,
 	"宗门气运": PageSectQiScene,
 	"凡人王朝": PageDynastyScene,
 	"拍卖行": PageAuctionScene,
@@ -148,6 +148,8 @@ const ENTRY_SUB_PAGES: Dictionary = {
 
 var _top_bar: Control
 var _bottom_bar: Control
+var _红点信号已连: bool = false      # 红点更新信号是否已连接（lazy，免时序假设）
+var _红点刷新排队: bool = false      # 同帧多次红点更新合并成一次角标回灌
 var _page_container: Control
 var _sub_page_container: Control
 var _sub_bg: ColorRect = null
@@ -168,6 +170,12 @@ var _当前传讯: Dictionary = {}
 
 # B7：宗门气象抽屉（首页气象带入口 → 待批传讯批复 + 内嵌心弦）
 var _气象抽屉: Control = null
+# 2026-09-14：山门气象 / 万仙大誓 自 ui/page_disciple.gd 迁入本抽屉（宗门级内容归宗门级入口）
+var _宗气运缓存: String = ""
+var _宗气运日: int = -1
+var _宗气运标签: Label = null
+var _宗望气按钮: Button = null
+var _宗方针按钮: Button = null
 
 # B8：从舆图跳出的目标系统，返回时回到舆图（索引页作为落脚点，少走回头路）
 var _舆图回跳: bool = false
@@ -213,7 +221,7 @@ func _build() -> void:
 	_sub_bg = ColorRect.new()
 	_sub_bg.name = "SubPageBG"
 	_sub_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_sub_bg.color = UITheme.SECONDARY_CONTENT_BG
+	_sub_bg.color = UITheme.获取页面底色()
 	_sub_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sub_bg.visible = false
 	_sub_page_container.add_child(_sub_bg)
@@ -224,7 +232,7 @@ func _build() -> void:
 	_sub_top_bg.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_sub_top_bg.offset_top = 0.0
 	_sub_top_bg.offset_bottom = UITheme.TOPBAR_H
-	_sub_top_bg.color = UITheme.SECONDARY_CONTENT_BG
+	_sub_top_bg.color = UITheme.获取页面底色()
 	_sub_top_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sub_top_bg.visible = false
 	add_child(_sub_top_bg)
@@ -248,10 +256,20 @@ func _build() -> void:
 				var 宗门页: Control = _make_real_page(SectHomePageScene, id)
 				_页_宗门 = 宗门页
 				# 01 屏 1:1：8 入口上行 + 隐藏UI开关信号
-				宗门页.entry_selected.connect(_on_首页入口)
-				宗门页.hide_ui_requested.connect(_on_hide_ui_requested)
+				# 注：宗门页 extends Control 未声明 class_name，静态类型查不到其独有信号，
+				# 故用字符串信号名连接（运行时安全，规避「Control 基类无 entry_selected」静态错）。
+				宗门页.connect("entry_selected", _on_首页入口)
+				宗门页.connect("hide_ui_requested", _on_hide_ui_requested)
 				if 宗门页.has_signal("气象带请求"):
-					宗门页.气象带请求.connect(_on_气象带请求)
+					宗门页.connect("气象带请求", _on_气象带请求)
+				if 宗门页.has_signal("时令横幅请求"):
+					宗门页.connect("时令横幅请求", _on_时令横幅请求)
+				if 宗门页.has_signal("传讯栏请求"):
+					宗门页.connect("传讯栏请求", _on_传讯栏请求)
+				if 宗门页.has_signal("快照卡请求"):
+					宗门页.connect("快照卡请求", _on_快照卡请求)
+				if 宗门页.has_signal("测灵大典请求"):
+					宗门页.connect("测灵大典请求", _打开测灵大典)
 				_pages[id] = 宗门页
 			"弟子":
 				var 弟子页: Control = _make_real_page(PageDiscipleScene, id)
@@ -303,16 +321,16 @@ func _构建传讯通知条() -> void:
 	hb.add_theme_constant_override("margin_bottom", 6)
 	panel.add_child(hb)
 	var icon := Label.new()
-	icon.text = "✉"
+	icon.text = "◇"
 	icon.add_theme_color_override("font_color", Color(0.95, 0.80, 0.40))
-	icon.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(icon, UITheme.FONT_H1, true)
 	hb.add_child(icon)
 	var msg := Label.new()
 	msg.name = "Msg"
 	msg.text = "传讯符燃，千里传音..."
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg.add_theme_color_override("font_color", Color(0.92, 0.88, 0.78))
-	msg.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(msg, UITheme.FONT_TITLE, true)
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(msg)
 	# 点击区域
@@ -354,7 +372,7 @@ func _显示传讯弹窗(传讯: Dictionary) -> void:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(700, 0)
 	var psb := StyleBoxFlat.new()
-	psb.bg_color = Color(0.12, 0.15, 0.14, 0.98)
+	psb.bg_color = Color(0.122, 0.169, 0.192, 0.98)
 	psb.border_color = Color(0.78, 0.65, 0.34, 0.9)
 	psb.set_border_width_all(2)
 	psb.set_corner_radius_all(10)
@@ -363,19 +381,21 @@ func _显示传讯弹窗(传讯: Dictionary) -> void:
 	panel.add_theme_stylebox_override("panel", psb)
 	shade.add_child(panel)
 	panel.position = Vector2((get_viewport().size.x - 700) / 2, get_viewport().size.y * 0.3)
+	# 居中卡片弹窗 ⇒ 走缩放弹入（轴心退到 custom_minimum_size，入树当帧即可算对）
+	UITheme.弹窗入场(panel, shade, 0.22, true)
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 12)
 	panel.add_child(vb)
 	var title := Label.new()
 	title.text = "【传讯】%s" % str(传讯.get("发件人", ""))
 	title.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
-	title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
 	vb.add_child(title)
 	var content := Label.new()
 	content.text = str(传讯.get("内容", ""))
 	content.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_theme_color_override("font_color", Color(0.88, 0.90, 0.88))
-	content.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	UITheme.apply_project_font(content, UITheme.FONT_TITLE, true)
 	vb.add_child(content)
 	# 选项按钮
 	var 选项: Array = 传讯.get("选项", [])
@@ -384,7 +404,7 @@ func _显示传讯弹窗(传讯: Dictionary) -> void:
 		var btn := Button.new()
 		btn.text = str(opt.get("文本", ""))
 		btn.custom_minimum_size = Vector2(0, 48)
-		btn.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+		UITheme.apply_project_font(btn, UITheme.FONT_TITLE, true)
 		btn.pressed.connect(func(idx=i): _回复传讯(int(传讯.get("传讯ID", 0)), idx, shade))
 		vb.add_child(btn)
 
@@ -396,11 +416,179 @@ func _回复传讯(传讯ID: int, 选项索引: int, shade: ColorRect) -> void:
 	else:
 		UIHint.show_hint(self, "回复失败", str(结果.get("原因", "未知错误")))
 
+# ───────── 测灵大典（首页活动窗 → 交互弹窗）─────────
+## S1 红线：首页活动窗仅展示 + 抛 测灵大典请求 信号；候选生成/换人/结算全部在后端 Game。
+## 本弹窗：候选列表（逐项[换]）+ [换一批候选] + 奖励预览 + [确认招收] → Game.确认测灵招收 → refresh_all（首页窗自动隐藏）。
+func _打开测灵大典() -> void:
+	if Game == null or not Game.测灵可用():
+		if Game != null and Game.has_method("添加提示"):
+			Game.添加提示("测灵大典气机未复")
+		return
+	var 候选: Array[Disciple] = Game.生成测灵候选()
+
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.5)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(shade)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(720, 0)
+	var psb := StyleBoxFlat.new()
+	psb.bg_color = Color(0.122, 0.169, 0.192, 0.98)
+	psb.border_color = Color(0.85, 0.66, 0.32, 0.9)
+	psb.set_border_width_all(2)
+	psb.set_corner_radius_all(10)
+	psb.content_margin_left = 24; psb.content_margin_right = 24
+	psb.content_margin_top = 18; psb.content_margin_bottom = 18
+	panel.add_theme_stylebox_override("panel", psb)
+	shade.add_child(panel)
+	panel.position = Vector2((get_viewport().size.x - 720) / 2, get_viewport().size.y * 0.16)
+	UITheme.弹窗入场(panel, shade, 0.22, true)
+
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	panel.add_child(vb)
+
+	var title := Label.new()
+	title.text = "◈ 测灵大典"
+	title.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
+	vb.add_child(title)
+
+	var 副 := Label.new()
+	副.text = "一年一度的测灵大典开启，宗主可择才而收。本届名额 %d 人，点击「换」可另择其人。" % Game.测灵名额()
+	副.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	副.add_theme_color_override("font_color", Color(0.88, 0.90, 0.88))
+	UITheme.apply_project_font(副, UITheme.FONT_BODY, false)
+	vb.add_child(副)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 360)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vb.add_child(scroll)
+	var 列表 := VBoxContainer.new()
+	列表.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	列表.add_theme_constant_override("separation", 6)
+	scroll.add_child(列表)
+
+	var 奖励标签 := Label.new()
+	奖励标签.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
+	UITheme.apply_project_font(奖励标签, UITheme.FONT_BODY, true)
+	vb.add_child(奖励标签)
+
+	var 操作 := HBoxContainer.new()
+	操作.add_theme_constant_override("separation", 12)
+	vb.add_child(操作)
+	var 换一批 := Button.new()
+	换一批.text = "换一批候选"
+	换一批.custom_minimum_size = Vector2(0, 48)
+	UITheme.apply_project_font(换一批, UITheme.FONT_BODY, true)
+	换一批.pressed.connect(func():
+		var 新: Array[Disciple] = Game.重掷测灵候选()
+		shade.set_meta("候选", 新)
+		_重绘测灵候选(shade)
+	)
+	操作.add_child(换一批)
+	var 确认 := Button.new()
+	确认.text = "确认招收"
+	确认.custom_minimum_size = Vector2(0, 48)
+	确认.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UITheme.apply_project_font(确认, UITheme.FONT_TITLE, true)
+	确认.pressed.connect(func():
+		var 当前: Array[Disciple] = shade.get_meta("候选", [])
+		var r: Dictionary = Game.确认测灵招收(当前)
+		shade.queue_free()
+		if int(r.get("冷却剩余", 0)) > 0:
+			Game.添加提示("测灵大典气机未复（剩余 %d 日）" % int(r.get("冷却剩余", 0)))
+		else:
+			var 奖: Dictionary = r.get("奖励", {})
+			Game.添加提示("测灵大典礼成：招收新徒 %d 人 · 贡献点 +%d · 灵石 +%d" % [int(r.get("人数", 0)), int(奖.get("贡献点", 0)), int(奖.get("灵石", 0))])
+		refresh_all()
+	)
+	操作.add_child(确认)
+
+	# 落盘可变状态 → 初次绘制
+	shade.set_meta("候选", 候选)
+	shade.set_meta("列表", 列表)
+	shade.set_meta("奖励标签", 奖励标签)
+	_重绘测灵候选(shade)
+
+# 重绘候选列表 + 刷新奖励预览（状态存于 shade meta，换人/换一批后调用）
+func _重绘测灵候选(shade: Control) -> void:
+	if Game == null:
+		return
+	var 候选: Array[Disciple] = shade.get_meta("候选", [])
+	var 列表: VBoxContainer = shade.get_meta("列表") as VBoxContainer
+	var 奖励标签: Label = shade.get_meta("奖励标签") as Label
+	for c in 列表.get_children():
+		c.queue_free()
+	for i in range(候选.size()):
+		var 行 := _建测灵候选行(候选[i], i, shade)
+		列表.add_child(行)
+	var 预览: Dictionary = Game.测灵奖励预览(候选)
+	奖励标签.text = "本届奖励预览：贡献点 +%d · 灵石 +%d · 高潜弟子 %d 人" % [int(预览.get("贡献点", 0)), int(预览.get("灵石", 0)), int(预览.get("高潜人数", 0))]
+
+# 单行候选（姓名/资质/灵根/品阶/身份/年龄 + [换]）
+func _建测灵候选行(d: Disciple, 索引: int, shade: Control) -> PanelContainer:
+	var 行 := PanelContainer.new()
+	var rsb := StyleBoxFlat.new()
+	rsb.bg_color = Color(0.122, 0.169, 0.192, 0.9)
+	rsb.set_corner_radius_all(6)
+	rsb.content_margin_left = 12; rsb.content_margin_right = 12
+	rsb.content_margin_top = 8; rsb.content_margin_bottom = 8
+	行.add_theme_stylebox_override("panel", rsb)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	行.add_child(hb)
+	var 信息 := Label.new()
+	信息.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	信息.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var 年龄文本: String = ("%.0f岁" % d.年龄) if d.年龄 > 0.0 else "—"
+	信息.text = "%s｜资质 %s｜灵根 %s｜%s｜%s｜%s" % [d.姓名, d.资质, d.灵根, d.灵根品阶, d.身份, 年龄文本]
+	信息.add_theme_color_override("font_color", Color(0.88, 0.90, 0.88))
+	UITheme.apply_project_font(信息, UITheme.FONT_BODY, false)
+	if d.灵根品阶 in ["天品", "极品"]:
+		信息.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
+	hb.add_child(信息)
+	var 换 := Button.new()
+	换.text = "换"
+	换.custom_minimum_size = Vector2(56, 0)
+	UITheme.apply_project_font(换, UITheme.FONT_BODY, true)
+	换.pressed.connect(func():
+		var 当前: Array[Disciple] = shade.get_meta("候选", [])
+		Game.换测灵候选(当前, 索引)
+		shade.set_meta("候选", 当前)
+		_重绘测灵候选(shade)
+	)
+	hb.add_child(换)
+	return 行
+
 # ───────── B7：宗门气象抽屉（UX §4.13 · 首页气象带入口）─────────
 ## 抽屉 =「待批传讯（可批复）」+「心弦（内嵌 page_chat）」；不做独立大页。
 ## 写操作（回复传讯）留在交互层，首页气象带本身只读 → 分层干净。
 func _on_气象带请求() -> void:
 	_打开气象抽屉()
+
+# ───────── P0-5 定稿：首页新信息面请求（首页只读 + 抛信号，交互一律在本层执行）─────────
+## 时令横幅 → 宗门时令页（走既有 ENTRY_SUB_PAGES 路由，复用 gating）
+func _on_时令横幅请求() -> void:
+	_on_首页入口("宗门时令")
+
+## 传讯栏 → 气象抽屉（内含「待批传讯（可批复）」；UX §4.13 传讯不做独立大页，故不另造页）
+func _on_传讯栏请求() -> void:
+	_打开气象抽屉()
+
+## 快照卡 → 按卡键跳转（弟子名册 / 殿阁司职 / 气象抽屉裁决 / 宗门气运）
+func _on_快照卡请求(卡键: String) -> void:
+	match 卡键:
+		"弟子":
+			_on_tab_selected("弟子")
+		"司职":
+			_on_tab_selected("殿阁")
+		"裁决":
+			_打开气象抽屉()
+		"气运":
+			_on_首页入口("宗门气运")
 
 func _关闭气象抽屉() -> void:
 	if _气象抽屉 != null and is_instance_valid(_气象抽屉):
@@ -434,23 +622,25 @@ func _打开气象抽屉() -> void:
 	panel.size = Vector2(panel_w, panel_h)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var psb := StyleBoxFlat.new()
-	psb.bg_color = UITheme.COLOR_PANEL_BG
+	psb.bg_color = UITheme.获取面板底色()
 	psb.set_corner_radius_all(24)
 	psb.set_border_width_all(2)
-	psb.border_color = UITheme.COLOR_BORDER_GOLD
+	psb.border_color = UITheme.获取暗金边色()
 	panel.add_theme_stylebox_override("panel", psb)
 	shade.add_child(panel)
+	# 抽屉自底部升起。本面板是绝对定位（上面已直接给 position/size）⇒ 可安全补间 position。
+	UITheme.抽屉入场(panel, shade, Vector2(0, 1), 140.0, 0.26)
 
 	# 标题行
 	var title := Label.new()
 	title.text = "宗门气象"
 	title.position = Vector2(36.0, 24.0)
-	title.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
-	title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE1)
+	UITheme.apply_project_font(title, UITheme.FONT_H1, true)
+	title.add_theme_color_override("font_color", UITheme.获取主文字色())
 	panel.add_child(title)
 
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = "◇"
 	close_btn.custom_minimum_size = Vector2(72, 72)
 	close_btn.position = Vector2(panel_w - 108.0, 20.0)
 	UITheme.apply_secondary_button_style(close_btn)
@@ -469,8 +659,14 @@ func _打开气象抽屉() -> void:
 	vb.add_theme_constant_override("separation", 14)
 	scroll.add_child(vb)
 
-	# 段 1：待批传讯（需决策层）
-	_建抽屉段标题(vb, "待批传讯")
+	# 段 1：山门气象（宗门级望气 + 突破方针）—— 2026-09-14 自弟子录迁入
+	_建山门气象段(vb)
+
+	# 段 2：万仙大誓（全宗共誓）—— 2026-09-14 自弟子录迁入
+	_建万仙大誓段(vb)
+
+	# 段 3：待批传讯（需决策层）
+	_建抽屉段标题(vb, "待批复传讯")
 	var 待批 = Game.get("待处理传讯") if is_instance_valid(Game) else null
 	if 待批 == null or not (待批 is Array) or (待批 as Array).is_empty():
 		_建抽屉空态(vb, "（暂无门人来讯）")
@@ -491,7 +687,7 @@ func _打开气象抽屉() -> void:
 func _建抽屉段标题(parent: Control, 文本: String) -> void:
 	var lbl := Label.new()
 	lbl.text = 文本
-	lbl.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+	UITheme.apply_project_font(lbl, UITheme.FONT_H2, true)
 	lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	parent.add_child(lbl)
 
@@ -499,9 +695,148 @@ func _建抽屉段标题(parent: Control, 文本: String) -> void:
 func _建抽屉空态(parent: Control, 文本: String) -> void:
 	var lbl := Label.new()
 	lbl.text = 文本
-	lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(lbl, UITheme.FONT_AUX, true)
 	lbl.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_DIM)
 	parent.add_child(lbl)
+
+## ───────── 2026-09-14：山门气象 / 万仙大誓 自「弟子录」迁入 ─────────
+## 背景：这两块原固定在弟子录首屏（≈540px），玩家点进「弟子」要先划过它们才看得到弟子卡片。
+## 二者都是**宗门级**内容（宗门气运 / 全宗共誓），归口到宗门级入口（首页气象带 → 本抽屉）。
+## 分层：本层承载写操作（与 §4.13 传讯批复同范式），弟子录只保留弟子相关读值。
+
+## 段：山门气象（望宗门气运 + 突破方针）
+func _建山门气象段(parent: Control) -> void:
+	_建抽屉段标题(parent, "山门气象")
+	_宗气运标签 = Label.new()
+	_宗气运标签.text = _宗气运文本()
+	_宗气运标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_project_font(_宗气运标签, UITheme.FONT_BODY, true)
+	_宗气运标签.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
+	parent.add_child(_宗气运标签)
+
+	_宗望气按钮 = Button.new()
+	_宗望气按钮.text = "望宗门气运（%d灵石）" % Karma.望宗门价
+	_宗望气按钮.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	UITheme.apply_project_font(_宗望气按钮, UITheme.FONT_BODY, true)
+	UITheme.apply_secondary_button_style(_宗望气按钮)
+	_宗望气按钮.disabled = (not is_instance_valid(Game)) or int(Game.灵石) < Karma.望宗门价
+	_宗望气按钮.pressed.connect(_on_抽屉望宗门)
+	parent.add_child(_宗望气按钮)
+
+	# C3 宗主干预接口③：突破方针（宗主定方向 → 整体平移弟子 AI 冲关阈值）
+	_宗方针按钮 = Button.new()
+	_宗方针按钮.text = "突破方针：%s" % _当前突破方针()
+	_宗方针按钮.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+	UITheme.apply_project_font(_宗方针按钮, UITheme.FONT_BODY, true)
+	UITheme.apply_secondary_button_style(_宗方针按钮)
+	_宗方针按钮.pressed.connect(_on_抽屉切换方针)
+	parent.add_child(_宗方针按钮)
+
+## 段：万仙大誓（全宗共誓）
+func _建万仙大誓段(parent: Control) -> void:
+	_建抽屉段标题(parent, "万仙大誓（全宗共誓）")
+	if not is_instance_valid(Game):
+		return
+	var 进行中: Dictionary = Game.万仙大誓
+	if not 进行中.is_empty():
+		var info := Label.new()
+		info.text = "「%s」　剩余 %d / %d 日　全宗修炼×%.2f" % [
+			str(进行中.get("名称", "")), int(进行中.get("剩余日", 0)),
+			int(进行中.get("期限", 0)), float(进行中.get("buff_cult", 1.0))]
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_project_font(info, UITheme.FONT_BODY, true)
+		info.add_theme_color_override("font_color", UITheme.获取主文字色())
+		parent.add_child(info)
+		return
+	var 表: Dictionary = Game._读表_万仙大誓()
+	if 表.is_empty():
+		_建抽屉空态(parent, "（暂无可立之誓）")
+		return
+	for k in 表.keys():
+		var 配: Dictionary = 表[k] as Dictionary
+		var 卡 := PanelContainer.new()
+		# 复用统一扁平面板蒙皮（禁裸 StyleBoxFlat）：与首页悬浮节点/宗门动态面板同皮，
+		# 也满足 audit_ui 棘轮（裸 StyleBoxFlat 只准降不准升）。
+		UITheme.apply_panel_style_flat(卡, UITheme.COLOR_BG_CONTENT, UITheme.COLOR_HOME_DIVIDER, 12, 1)
+		parent.add_child(卡)
+		var 盒 := VBoxContainer.new()
+		盒.add_theme_constant_override("separation", 8)
+		卡.add_child(盒)
+		var 名 := Label.new()
+		名.text = "%s（限期%d日）" % [str(配.get("name", "")), int(配.get("duration_days", 14))]
+		UITheme.apply_project_font(名, UITheme.FONT_H2, true)
+		名.add_theme_color_override("font_color", UITheme.获取主文字色())
+		盒.add_child(名)
+		var 描 := Label.new()
+		描.text = str(配.get("desc", ""))
+		描.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		UITheme.apply_project_font(描, UITheme.FONT_BODY, false)
+		描.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_DIM)
+		盒.add_child(描)
+		var 誓钮 := Button.new()
+		誓钮.text = "率全宗共誓"
+		誓钮.custom_minimum_size = Vector2(0, UITheme.SIZE_SM)
+		UITheme.apply_project_font(誓钮, UITheme.FONT_BODY, true)
+		UITheme.apply_primary_button_style(誓钮)
+		誓钮.pressed.connect(_on_抽屉发起大誓.bind(str(k)))
+		盒.add_child(誓钮)
+
+## 山门气象读值（会话内缓存，不写存档；过期需重设坛）
+func _宗气运文本() -> String:
+	if _宗气运缓存 == "":
+		return "未观山门气象 —— 设坛望气，可观全宗整体气运。"
+	if not is_instance_valid(Game):
+		return _宗气运缓存
+	if (int(Game.累计游戏日) - _宗气运日) >= Karma.望气有效期:
+		return "山门气象已变，需重设坛观望"
+	return _宗气运缓存
+
+## 望宗门气运：扣灵石 → 记缓存 → 写推演 → 刷新本段
+func _on_抽屉望宗门() -> void:
+	if not is_instance_valid(Game):
+		return
+	if int(Game.灵石) < Karma.望宗门价:
+		UIHint.show_hint(self, "望气", "灵石不足，无法设坛")
+		return
+	var 列表 = Game.get("弟子列表")
+	if 列表 == null or not (列表 is Array):
+		return
+	Game.灵石 -= Karma.望宗门价
+	_宗气运缓存 = Karma.宗门气象(列表)
+	_宗气运日 = int(Game.累计游戏日)
+	Game._加推演条目("设坛望气，观山门气象：" + _宗气运缓存, Game.ET_INFO, Game.PRIO_NORMAL)
+	if _宗气运标签 != null and is_instance_valid(_宗气运标签):
+		_宗气运标签.text = _宗气运文本()
+	if _宗望气按钮 != null and is_instance_valid(_宗望气按钮):
+		_宗望气按钮.disabled = int(Game.灵石) < Karma.望宗门价
+
+## C3：当前突破方针（读 Game；缺省「顺其自然」）
+func _当前突破方针() -> String:
+	if not is_instance_valid(Game) or "突破方针" not in Game:
+		return "顺其自然"
+	return String(Game.突破方针)
+
+## C3：循环切换突破方针（稳中求进 → 顺其自然 → 搏一线天机），并回显方针释义
+func _on_抽屉切换方针() -> void:
+	if not is_instance_valid(Game):
+		return
+	var 表: Array = Game.获取突破方针列表()
+	if 表.is_empty():
+		return
+	var idx: int = 表.find(_当前突破方针())
+	var 下一个: String = String(表[(idx + 1) % 表.size()])
+	var 结果: Dictionary = Game.设置突破方针(下一个)
+	if _宗方针按钮 != null and is_instance_valid(_宗方针按钮):
+		_宗方针按钮.text = "突破方针：%s" % _当前突破方针()
+	UIHint.show_hint(self, "突破方针 · %s" % 下一个, String(结果.get("说明", "")))
+
+## 发起万仙大誓：立誓成功后重开抽屉以显示「进行中」状态
+func _on_抽屉发起大誓(so_id: String) -> void:
+	if not is_instance_valid(Game):
+		return
+	Game.发起万仙大誓(so_id)
+	_关闭气象抽屉()
+	_打开气象抽屉()
 
 ## 待批传讯卡片：发件人 + 内容 + 选项批复按钮
 func _建传讯卡片(parent: Control, 传讯: Variant) -> void:
@@ -522,14 +857,14 @@ func _建传讯卡片(parent: Control, 传讯: Variant) -> void:
 
 	var 头 := Label.new()
 	头.text = "【%s】%s" % [str(传讯.get("发件人", "")), str(传讯.get("类型", ""))]
-	头.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
-	头.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE1)
+	UITheme.apply_project_font(头, UITheme.FONT_H2, true)
+	头.add_theme_color_override("font_color", UITheme.获取主文字色())
 	vb.add_child(头)
 
 	var 内容 := Label.new()
 	内容.text = str(传讯.get("内容", ""))
 	内容.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	内容.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(内容, UITheme.FONT_BODY, true)
 	内容.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	vb.add_child(内容)
 
@@ -539,7 +874,7 @@ func _建传讯卡片(parent: Control, 传讯: Variant) -> void:
 		var btn := Button.new()
 		btn.text = str(opt.get("文本", ""))
 		btn.custom_minimum_size = Vector2(0, 64)
-		btn.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+		UITheme.apply_project_font(btn, UITheme.FONT_BODY, true)
 		UITheme.apply_secondary_button_style(btn)
 		# 用 bind 传参：立即求值，避免闭包捕获循环变量
 		btn.pressed.connect(_抽屉批复传讯.bind(int(传讯.get("传讯ID", 0)), i))
@@ -592,8 +927,12 @@ func _show_page(tab_id: String) -> void:
 	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_current = page
 	_last_tab_page = tab_id
+	# 一级页切换淡入（平级跳转只做透明度，不加位移——位移会被读成「进了下一层」）。
+	UITheme.页面入场(page)
 	# 切换一级页时，若二级页还开着则先收起。
 	_close_sub_page()
+	# 切页是最可能改变红点状态的时刻（进入即读掉），故每次切页回灌一次角标
+	_刷新底部Tab红点()
 
 func _on_tab_selected(tab_id: String) -> void:
 	# P0-1 防御：未开启的 Tab 不切页（正常路径已被置灰按钮拦下）
@@ -611,6 +950,46 @@ func _应用底部Tab解锁() -> void:
 		return
 	for tab_id in PAGE_IDS:
 		_bottom_bar.设置Tab可用(String(tab_id), SystemUnlock.入口可显示(String(tab_id)))
+	_刷新底部Tab红点()
+
+## 底部 Tab 角标回灌（红点单一来源 = red_dot_init；本组件只搬运，不算状态）。
+## 时机：建栏后一次、每次切页后一次（切页是红点最可能变化的时刻），
+##   以及红点管理器广播「红点更新」时（数据变动的统一出口）。
+func _刷新底部Tab红点() -> void:
+	if _bottom_bar == null or not is_instance_valid(_bottom_bar):
+		return
+	if not _bottom_bar.has_method("设置Tab红点"):
+		return
+	_lazy连接红点信号()
+	for tab_id in PAGE_IDS:
+		var t: String = String(tab_id)
+		var id: String = "TAB_" + t
+		_bottom_bar.设置Tab红点(t, UITheme.红点可见(id), UITheme.红点数值(id))
+
+## lazy 连接：红点源由 main 在 game_ui 之前初始化，但为免时序假设，
+## 首次回灌时补连一次；连上后置位不再重连（重复连接会重复触发）。
+func _lazy连接红点信号() -> void:
+	if _红点信号已连:
+		return
+	var 源: Object = UITheme.红点源
+	if 源 == null or not is_instance_valid(源):
+		return
+	if not 源.has_signal("红点更新"):
+		return
+	源.connect("红点更新", _on_红点更新)
+	_红点信号已连 = true
+
+## 同帧合并：一次刷新会 emit 十几个 ID，逐条回灌会做十几次全量遍历。
+## 用 call_deferred 压到帧末只跑一次（5 个 Tab × 少量判断，开销可忽略）。
+func _on_红点更新(_id: String) -> void:
+	if _红点刷新排队:
+		return
+	_红点刷新排队 = true
+	call_deferred("_红点刷新落盘")
+
+func _红点刷新落盘() -> void:
+	_红点刷新排队 = false
+	_刷新底部Tab红点()
 
 ## 点了未开启的置灰 Tab：只给可读条件提示，不切页（置灰不留洞 + X15 必有反馈）
 func _on_tab_blocked(tab_id: String) -> void:
@@ -674,6 +1053,12 @@ func _show_sub_page(id: String, scene: PackedScene) -> void:
 		# 二级页统一返回信号 → 关闭二级页
 		if page.has_signal("返回主页"):
 			page.返回主页.connect(_on_二级页返回)
+		# 2026-09-15 修：部分页声明的是「返回请求」而非「返回主页」（page_activity 宗门时令 /
+		# page_explore 历练），此前全项目无人 connect ⇒ 实机「返回点不动」。
+		# 语义等同「返回主页」，在此统一接上，避免逐页补线漏掉新页。
+		if page.has_signal("返回请求"):
+			if not page.返回请求.is_connected(_on_二级页返回):
+				page.返回请求.connect(_on_二级页返回)
 		# 设置页「退出登录」→ 转发至 main 账号系统登出流程
 		if page.has_signal("登出请求"):
 			page.登出请求.connect(_on_设置页登出)
@@ -715,6 +1100,10 @@ func _show_sub_page(id: String, scene: PackedScene) -> void:
 		page.set_system_name(id)
 	if page.has_method("refresh"):
 		page.refresh()
+	# 二级页入场：淡入 + 由右向左滑入（滑入方向即层级语义，与「← 返回」构成可读导航轴）。
+	# 必须放在 refresh() 之后：refresh 里可能重排布局/改 position，先播就会被打断。
+	UITheme.二级页入场(page)
+	UITheme.列表错峰入场(page)
 
 # 打开全服拍卖大典（page_auction「全服钮」触发；S54 信号此前无人连接）。
 func _open_全服拍卖() -> void:
@@ -743,6 +1132,17 @@ func _on_舆图请求(id: String) -> void:
 	var 目标: String = String(ENTRY_ALIAS.get(id, id))
 	_舆图回跳 = not (目标 in PAGE_IDS)
 	_on_首页入口(id)
+
+# 页面缓存是刻意设计（切页只 remove_child、实例留字典复用），故运行时
+# OBJECT_ORPHAN_NODE_COUNT 恒高并非泄漏；但退出前若不释放，会留下数千条
+# CanvasItem / ShapedTextData 的 RID 泄漏告警，真机上易被判为异常退出。
+func _exit_tree() -> void:
+	for 键 in _sub_pages.keys():
+		var p: Node = _sub_pages[键]
+		if p != null and is_instance_valid(p) and p.get_parent() == null:
+			p.free()
+	_sub_pages.clear()
+	_current_sub = null
 
 func _close_sub_page() -> void:
 	if _current_sub != null and is_instance_valid(_current_sub):
@@ -817,6 +1217,9 @@ func _refresh_all_pages() -> void:
 
 # 对外只读刷新入口：main.gd 在 弟子变动 / 读档 / 新游戏 后调用，重拉各只读页数据，零玩法/战斗触碰
 func refresh_all() -> void:
+	# ★ 2026-09-16（#18）：读档 / 新游戏后回灌动效偏好。
+	#   Game 在 UITheme 之后注册，UITheme._ready 里读不到 设置项，此处是首个安全时机。
+	UITheme.载入动效偏好()
 	_refresh_all_pages()
 
 # 打开宗主详情页（全屏二级页 · 标准 sub_page 流程）：与 ENTRY_SUB_PAGES 共用 _show_sub_page 的 z 序 /
@@ -1038,7 +1441,15 @@ func _open_faction_quest_shop() -> void:
 
 # 轻量提示：暂无系统入口的反馈（当前用 print，后续可替换为顶层 Toast 控件）。
 func _toast(text: String) -> void:
+	# ★ 2026-09-16 修（P0 通路断链 · 波及全项目 37 处调用点）：
+	#   原实现只有 print，等于「Game.提示 信号 → 屏幕」这条总线的**最后一米是断的**
+	#   ⇒ 全项目 37 处 Game.添加提示() 的反馈玩家 100% 看不到（只进控制台）。
+	#   而 ToastManager（autoload，components/ToastManager.gd）早就是可用的全局轻提示组件
+	#   （ui/disciple_detail_page.gd 已正确使用），此处直接复用，零新增资产。
+	#   保留 print：验收探针与人工排查都依赖日志里的 [GameUI] 断言。
 	print("[GameUI] %s" % text)
+	if is_instance_valid(ToastManager) and ToastManager.has_method("show_tip"):
+		ToastManager.show_tip(text)
 
 # ───────── 宗主详情页：P0 实装（7 权责路由 + 改名弹窗）─────────
 # 7 权责按钮 → 路由到已有的对应系统页（让按钮真正有反应）；无后端的域诚实 toast。

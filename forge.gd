@@ -586,8 +586,6 @@ static func 炼器(配方ID: String, 背包: Array, 器堂等级: int = 1, 炼�
 		var 心境 = ""
 		if "心境" in 炼器弟子:
 			心境 = str(炼器弟子.心境)
-		elif 炼器弟子.has_method("get"):
-			心境 = str(炼器弟子.get("心境", ""))
 		if 心境 == "专注":
 			成功率 += 5.0
 		elif 心境 == "浮躁":

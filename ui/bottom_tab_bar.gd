@@ -2,6 +2,8 @@ extends Control
 
 # 底部主导航（01 屏画布 v5 1:1 复刻 · Ardot 2:115~2:126，1080×1920 实机基准）。
 # 坐标唯一数据源 = compose_v5_framed.py 1080p 实测值，按 UI_SCALE=2.25 反推为**本地坐标**。
+# @ui-space: logical —— 同 sect_home_page：本文件为逻辑空间孤岛，几何写逻辑单位后 ×UI_SCALE，
+#   出现 `XXX / UITheme.UI_SCALE` 属合法换算而非混用（audit_ui.py 依此判定，勿删）。
 # 本控件锚定于屏幕底部，高度 UITheme.TAB_H=215px；本地 y=0 对应屏幕 y=1705。
 # 5 Tab 均分 460 逻辑宽；选中态 = 122×122 金环 + 底部金指示线 + 108px 图标不透明；
 # 未选中 = 108px 图标 α0.5 + 暗青底；标签统一 25px 白粗体置底。
@@ -40,12 +42,24 @@ const LBL_CENTER_Y: float = 58.0   # 调整标签Y坐标
 const LBL_H: float = 11.111111          # 25 / 2.25
 const LBL_FONT: int = 10                # 稍微缩小字体
 
+# ── 红点角标（对齐微信 Tab / 原生桌面角标规格）──
+# 直径 12 逻辑 ≈ 27 物理像素：微信 Tab 红点约 8dp，1080p 屏上 ≈ 24px，同档位。
+# 数字角标高 16 逻辑 ≈ 36 物理，与顶栏 / 首页入口保持一致（同屏同类角标必须同尺寸）。
+# 落点 = 图标 45° 外沿（ICON_DIA × 0.37，与 sect_home_page._make_red_dot 同口径），
+#   使角标"咬"住图标右上角而非游离在空白处。
+const DOT_DIA: float = 12.0
+const NUM_DIA: float = 16.0
+const DOT_OFF_RATIO: float = 0.37
+
 var _selected: String = "宗门"
 var _tab_icons: Dictionary = {}        # id -> TextureRect
 var _tab_rings: Dictionary = {}        # id -> Panel（选中金环）
 var _tab_inds: Dictionary = {}         # id -> ColorRect（底部金指示线）
 var _tab_labels: Dictionary = {}       # id -> Label
 var _tab_disabled: Dictionary = {}     # id -> true（P0-1 洋葱解锁：未开启置灰）
+var _tab_dots: Dictionary = {}         # id -> Panel（圆点角标：只表示「有新」，无数量语义）
+var _tab_nums: Dictionary = {}         # id -> Panel（数字角标：携带具体数量）
+var _tab_cx: Dictionary = {}           # id -> float（Tab 中心 x，角标定位基准）
 
 func _ready() -> void:
 	var tab_h: float = UITheme.TAB_H
@@ -78,7 +92,7 @@ func _build_bg() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UITheme.C01_TAB_BAR_BG
-	sb.border_color = UITheme.C01_TEXT_GOLD
+	sb.border_color = UITheme.获取金文字色()
 	sb.set_corner_radius_all(int(round(TAB_BAR_R * UITheme.UI_SCALE)))
 	sb.set_border_width_all(int(round(TAB_BAR_BORDER * UITheme.UI_SCALE)))
 	sb.set_content_margin_all(0)
@@ -100,7 +114,7 @@ func _build_tab(id: String, i: int) -> void:
 	ring.visible = active
 	var ring_sb := StyleBoxFlat.new()
 	ring_sb.bg_color = Color(0, 0, 0, 0)
-	ring_sb.border_color = UITheme.C01_TEXT_GOLD
+	ring_sb.border_color = UITheme.获取金文字色()
 	ring_sb.set_corner_radius_all(int(round(SEL_RING_DIA * 0.5 * UITheme.UI_SCALE)))
 	ring_sb.set_border_width_all(int(round(SEL_RING_W * UITheme.UI_SCALE)))
 	ring_sb.set_content_margin_all(0)
@@ -118,6 +132,13 @@ func _build_tab(id: String, i: int) -> void:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.modulate = Color(1, 1, 1, 1.0 if active else 0.5)
+	# 图标底座：**按图标**决定（见 UITheme.ICON_BASE_WHITELIST 长注释），不可直接读总开关。
+	# 当前 tab_* 全为「金边高清图」自带金环 → 均不在白名单内，不会叠加（叠加会成双影）。
+	# 将来若 tab_* 重做成裸图，只需把 stem 加进白名单即可，此处无需再改。
+	if UITheme.图标需要底座(TAB_ICON_STEM.get(id, "") + "_36"):
+		var 底: TextureRect = UITheme.建图标底座(ICON_DIA, active)
+		_place(底, icon_x, icon_y, ICON_DIA, ICON_DIA)
+		add_child(底)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(icon)
 	_tab_icons[id] = icon
@@ -127,7 +148,7 @@ func _build_tab(id: String, i: int) -> void:
 	ind.name = "Indicator_" + id
 	var ind_x: float = cx - IND_W * 0.5
 	_place(ind, ind_x, IND_Y, IND_W, IND_H)
-	ind.color = UITheme.C01_TEXT_GOLD
+	ind.color = UITheme.获取金文字色()
 	ind.visible = active
 	ind.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ind)
@@ -162,10 +183,31 @@ func _build_tab(id: String, i: int) -> void:
 	btn.add_theme_stylebox_override("disabled", empty)
 	add_child(btn)
 
+	# ── 红点角标 ──
+	# 建在 Hitbox **之后** ⇒ 视觉在最上层（Godot 中后 add 者在上），
+	#   且两者 mouse_filter 均为 IGNORE ⇒ 点击照常穿透到 Hitbox，**不抢 Tab 热区**。
+	#   「一眼就很好点」的关键就在这：角标只是标记，点的是整块 Tab。
+	# 形态二选一，同一时刻只显示一个：有数量 → 数字胶囊（向左扩）；只有状态 → 圆点。
+	_tab_cx[id] = cx
+	var 斜: float = ICON_DIA * DOT_OFF_RATIO
+	var 圆: Panel = UITheme.make_red_dot(DOT_DIA)
+	圆.name = "TabDot_" + id
+	_place(圆, cx + 斜 - DOT_DIA * 0.5, ICON_CENTER_Y - 斜 - DOT_DIA * 0.5, DOT_DIA, DOT_DIA)
+	add_child(圆)
+	圆.visible = false
+	_tab_dots[id] = 圆
+
+	var 数: Panel = UITheme.make_red_dot_number(0, NUM_DIA)
+	数.name = "TabNum_" + id
+	_place(数, cx + 斜 - NUM_DIA * 0.5, ICON_CENTER_Y - 斜 - NUM_DIA * 0.5, NUM_DIA, NUM_DIA)
+	add_child(数)
+	数.visible = false
+	_tab_nums[id] = 数
+
 func _apply_label_style(lbl: Label, active: bool) -> void:
 	var fsz: int = int(round(float(LBL_FONT) * UITheme.UI_SCALE))
 	UITheme.apply_title_font_sized(lbl, fsz)
-	lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	lbl.add_theme_color_override("font_color", UITheme.获取主文字色())
 
 func select(tab_id: String) -> void:
 	if not (tab_id in TABS):
@@ -192,6 +234,43 @@ func 设置Tab可用(tab_id: String, 可用: bool) -> void:
 func 是否可用(tab_id: String) -> bool:
 	return not bool(_tab_disabled.get(tab_id, false))
 
+## 回灌某 Tab 的角标状态（红点单一来源 = red_dot_init / 状态管理器，本组件**只展示**）。
+## 数量 > 0 → 数字角标；仅有状态 → 圆点角标；皆无 → 隐藏。
+## 与 设置Tab可用 同一条纪律：条件判定不在本组件内做，由 game_ui 读单一来源后回灌。
+func 设置Tab红点(tab_id: String, 有红点: bool, 数量: int = 0) -> void:
+	if not (tab_id in TABS):
+		return
+	var 圆: Panel = _tab_dots.get(tab_id, null)
+	var 数: Panel = _tab_nums.get(tab_id, null)
+	if 圆 == null or 数 == null:
+		return
+	if 数量 > 0:
+		圆.visible = false
+		# 顺序不可反：先改数量（内部重算 custom_minimum_size），再按新宽度定位；
+		#   反过来会拿旧宽度摆位 ⇒ 从「9」变「12」时角标会向右溢出。
+		UITheme.设置红点数量(数, 数量)
+		数.visible = true
+		_place_tab_num(tab_id)
+	elif 有红点:
+		数.visible = false
+		圆.visible = true
+	else:
+		圆.visible = false
+		数.visible = false
+
+## 数字角标定位：右边缘与圆点右边缘对齐、垂直居中。
+## 微信的多位数角标同样是「右贴角、向左扩」—— 位数变化时锚点不跳，视觉才稳。
+func _place_tab_num(tab_id: String) -> void:
+	var 数: Panel = _tab_nums.get(tab_id, null)
+	if 数 == null:
+		return
+	var cx: float = float(_tab_cx.get(tab_id, 0.0))
+	var 斜: float = ICON_DIA * DOT_OFF_RATIO
+	var 右缘: float = cx + 斜 + DOT_DIA * 0.5
+	var w: float = 数.custom_minimum_size.x
+	var h: float = 数.custom_minimum_size.y
+	_place(数, 右缘 - w, ICON_CENTER_Y - 斜 - h * 0.5, w, h)
+
 func _apply_state(id: String, active: bool) -> void:
 	var 可用: bool = 是否可用(id)
 	var 选中: bool = active and 可用
@@ -215,7 +294,7 @@ func _apply_state(id: String, active: bool) -> void:
 	if lbl != null:
 		_apply_label_style(lbl, 选中)
 		if not 可用:
-			lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+			lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 
 func _on_tab_pressed(tab_id: String) -> void:
 	if not 是否可用(tab_id):

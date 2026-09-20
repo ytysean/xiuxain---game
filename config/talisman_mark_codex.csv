@@ -1,0 +1,4 @@
+codex_id,codex_name,need_score,success_bonus,rate_bonus,desc
+fx_1,初窥符纹,8,2.0,0.02,符纹初成符堂笔力渐稳
+fx_2,符纹精通,24,4.0,0.05,精通符纹绘符成功率与出纹率齐增
+fx_3,符纹宗师,48,8.0,0.08,符纹宗师笔走龙蛇高纹常出

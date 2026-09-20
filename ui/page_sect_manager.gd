@@ -43,8 +43,8 @@ var _战事目标选: String = ""
 const 可宣战势力: Array = ["魔道邪宗", "中立散修", "上古妖兽", "远古遗泽", "丹器师公会"]
 # 兽潮三策略说明（Game.兽潮防御 只接受这三个字符串）
 const 兽潮策略说明: Dictionary = {
-	"坚守": "以护山大阵硬扛：损失减半，另得半额奖励。最稳妥。",
-	"出击": "主动迎战：胜则双倍奖励并得 20 悟道点，败则双倍损失。",
+	"坚守": "以护山大阵硬扛：损失×0.5，另得奖励×0.5。最稳妥。",
+	"出击": "主动迎战：胜则奖励×2并得 20 悟道点，败则损失×2。",
 	"求和": "献灵石换退兵：无战斗无奖励，灵石不足则失败。",
 }
 
@@ -87,17 +87,8 @@ func _build() -> void:
 	_build_content_area(_body)
 
 func _build_header(parent: Control) -> void:
-	var bar := HBoxContainer.new()
-	bar.name = "HeaderBar"
-	bar.add_theme_constant_override("separation", UITheme.GRID)
-	var back: Button = UITheme.make_back_button(_on_back_pressed)
-	bar.add_child(back)
-	var title := Label.new()
-	title.text = "宗主管理"
-	UITheme.apply_page_title(title)
-	bar.add_child(title)
-	parent.add_child(bar)
-
+	# P0-3.5 统一顶栏：建顶栏（暗金描边底 + 金环返回键 + 亮金标题 + 可选信息提示 + 右侧操作簇）
+	parent.add_child(UITheme.建顶栏("宗主管理", _on_back_pressed, []))
 func _build_tabs(parent: Control) -> void:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -198,10 +189,10 @@ func _populate() -> void:
 # 本 tab 把三个策略接成玩家可点的决策，死 API 由此变活。
 func _populate_beast_wave() -> void:
 	var card := _make_card("兽潮防务")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
-	desc.text = "兽潮来袭须择一应对。在宗弟子的总战力越高，坚守减伤越多、出击胜率越高。"
+	desc.text = "兽潮来袭须择一应对。在宗弟子的总道行越高，坚守减伤越多、出击胜率越高。"
 	UITheme.apply_body_text(desc)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)
@@ -216,7 +207,7 @@ func _populate_beast_wave() -> void:
 		return
 
 	_add_info_row(vb, "兽潮名称", str(兽潮.get("名称", "未知")))
-	_add_info_row(vb, "推荐战力", str(int(兽潮.get("推荐战力", 0))))
+	_add_info_row(vb, "推荐道行", str(int(兽潮.get("推荐战力", 0))))
 	_add_info_row(vb, "剩余怪物", str(int(兽潮.get("剩余怪物", 0))))
 	_add_info_row(vb, "基础伤害", str(int(兽潮.get("基础伤害", 0))))
 	_add_info_row(vb, "基础奖励", str(int(兽潮.get("基础奖励", 0))))
@@ -226,7 +217,7 @@ func _populate_beast_wave() -> void:
 		for d in Game.弟子列表:
 			if d != null and d is Disciple and d.状态 == "在宗":
 				宗门总战力 += int(d.战力)
-	_add_info_row(vb, "宗门总战力", str(宗门总战力))
+	_add_info_row(vb, "宗门总道行", str(宗门总战力))
 
 	for 策略 in 兽潮策略说明.keys():
 		var hb := HBoxContainer.new()
@@ -274,7 +265,7 @@ func _populate_war() -> void:
 	var 阵营战争: Dictionary = Game.获取进行中阵营战争() if Game != null else {}
 	if not 阵营战争.is_empty():
 		var card := _make_card("正魔大战")
-		var vb := card.get_node("VBox")
+		var vb := card.find_child("VBox", true, false)
 
 		var desc := Label.new()
 		desc.text = "正魔大战正酣，宗门须择一立场。参战可得阵营声望，中立可坐收渔利。"
@@ -292,7 +283,7 @@ func _populate_war() -> void:
 			"参战正道": "投入正道阵营，共抗魔道。正道声望+20，魔道声望-10",
 			"参战魔道": "投入魔道阵营，与正道为敌。魔道声望+20，正道声望-10",
 			"中立": "闭关中立，坐山观虎斗，得灵石100",
-			"渔利": "趁乱取利，五成几率得灵石300-600，失败则损200-400",
+			"渔利": "趁乱取利，50%几率得灵石300-600，失败则损200-400",
 		}
 		for 选择 in 阵营选项.keys():
 			var hb := HBoxContainer.new()
@@ -315,7 +306,7 @@ func _populate_war() -> void:
 	# 势力战争
 	var 进行中战争: Dictionary = Game.获取进行中战争() if Game != null else {}
 	var card2 := _make_card("势力征伐")
-	var vb2 := card2.get_node("VBox")
+	var vb2 := card2.find_child("VBox", true, false)
 
 	if 进行中战争.is_empty():
 		# 无进行中战争，显示发起战争面板
@@ -434,7 +425,7 @@ func _populate_master_title() -> void:
 	if Game == null:
 		return
 	var card := _make_card("宗主道号")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "宗主道号彰显宗门之主的修为与威望，装备后可获全宗增益。"
@@ -450,8 +441,8 @@ func _populate_master_title() -> void:
 			var cur_hb := HBoxContainer.new()
 			cur_hb.add_theme_constant_override("separation", 12)
 			var icon := Label.new()
-			icon.text = "👑"
-			icon.add_theme_font_size_override("font_size", UITheme.FONT_DISPLAY)
+			icon.text = "★"
+			UITheme.apply_project_font(icon, UITheme.FONT_DISPLAY, true)
 			cur_hb.add_child(icon)
 			var cur_vb := VBoxContainer.new()
 			cur_vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -459,7 +450,7 @@ func _populate_master_title() -> void:
 			name_lbl.text = str(t.get("title_name", ""))
 			var 品质: String = str(t.get("quality", "凡品"))
 			name_lbl.add_theme_color_override("font_color", Game.获取称号品质颜色(品质))
-			name_lbl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+			UITheme.apply_project_font(name_lbl, UITheme.FONT_H1, true)
 			cur_vb.add_child(name_lbl)
 			var desc_lbl := Label.new()
 			var 加成类型: String = str(t.get("bonus_type", ""))
@@ -468,7 +459,7 @@ func _populate_master_title() -> void:
 			match 加成类型:
 				"全宗修炼": 加成文本 = "全宗修炼速度+%.0f%%" % (加成值 * 100)
 				"全宗产出": 加成文本 = "全宗产出+%.0f%%" % (加成值 * 100)
-				"全宗战力": 加成文本 = "全宗战力+%.0f%%" % (加成值 * 100)
+				"全宗战力": 加成文本 = "全宗道行+%.0f%%" % (加成值 * 100)
 				"全宗突破": 加成文本 = "全宗突破率+%.0f%%" % (加成值 * 100)
 				"全宗悟道": 加成文本 = "全宗悟道+%.0f%%" % (加成值 * 100)
 				"全属性": 加成文本 = "全属性+%.0f%%" % (加成值 * 100)
@@ -492,7 +483,7 @@ func _populate_master_title() -> void:
 	var 已获得: Array = Game.宗主已获得称号 if "宗主已获得称号" in Game else []
 	if 已获得.is_empty():
 		var empty_lbl := Label.new()
-		empty_lbl.text = "尚未获得任何道号，提升宗主修为与宗门等级可得。"
+		empty_lbl.text = "尚未获得任何道号，提升宗主修为与宗门品级可得。"
 		UITheme.apply_aux_text(empty_lbl)
 		vb.add_child(empty_lbl)
 	else:
@@ -537,7 +528,7 @@ func _装备宗主称号(title_id: String) -> void:
 func _populate_overview() -> void:
 	# 宗门概览
 	var card := _make_card("宗门概览")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var 路线名 = _管理器.获取发展路线() if _管理器 != null else "均衡发展"
 	_add_info_row(vb, "当前发展路线", 路线名)
@@ -560,14 +551,14 @@ func _populate_overview() -> void:
 
 	# 快捷操作提示
 	var tip := Label.new()
-	tip.text = "提示：点击上方各Tab进入对应管理功能"
+	tip.text = "提示：轻触上方各栏进入对应管理功能"
 	UITheme.apply_aux_text(tip)
 	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(tip)
 
 func _populate_development_route() -> void:
 	var card := _make_card("宗门发展路线")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "选择宗门发展路线，将获得对应加成，但其他领域会略有下降。"
@@ -606,7 +597,7 @@ func _populate_development_route() -> void:
 
 func _populate_hall_appointment() -> void:
 	var card := _make_card("殿阁负责人任命")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "任命弟子担任各殿阁负责人，负责人天赋越高，殿阁效率加成越大。"
@@ -651,7 +642,7 @@ func _populate_hall_appointment() -> void:
 
 func _populate_disciple_position() -> void:
 	var card := _make_card("弟子任职分配")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "分配弟子到各殿阁任职，任职弟子在对应领域效率+50%。"
@@ -709,7 +700,7 @@ func _populate_disciple_position() -> void:
 
 func _populate_discipline() -> void:
 	var card := _make_card("戒律裁决")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var 待裁决 = _管理器.获取待裁决违规() if _管理器 != null else []
 	if 待裁决.is_empty():
@@ -725,7 +716,7 @@ func _populate_discipline() -> void:
 			var 弟子名 = str(d.姓名) if d != null else "未知弟子"
 
 			var 事件卡 := _make_card("违规事件 #" + str(i + 1))
-			var 事件vb := 事件卡.get_node("VBox")
+			var 事件vb := 事件卡.find_child("VBox", true, false)
 
 			_add_info_row(事件vb, "涉事弟子", 弟子名)
 			_add_info_row(事件vb, "违规类型", 违规["违规类型"])
@@ -756,7 +747,7 @@ func _populate_discipline() -> void:
 
 func _populate_requests() -> void:
 	var card := _make_card("弟子请示")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var 待回应 = _管理器.获取待回应请示() if _管理器 != null else []
 	if 待回应.is_empty():
@@ -772,7 +763,7 @@ func _populate_requests() -> void:
 			var 弟子名 = str(d.姓名) if d != null else "未知弟子"
 
 			var 事件卡 := _make_card("请示 #" + str(i + 1))
-			var 事件vb := 事件卡.get_node("VBox")
+			var 事件vb := 事件卡.find_child("VBox", true, false)
 
 			_add_info_row(事件vb, "请示弟子", 弟子名)
 			_add_info_row(事件vb, "请示类型", 请示["请示类型"])
@@ -805,7 +796,7 @@ func _populate_requests() -> void:
 
 func _populate_reviews() -> void:
 	var card := _make_card("宗主批阅")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var 待批阅 = _管理器.获取待批阅事务() if _管理器 != null else []
 	if 待批阅.is_empty():
@@ -818,7 +809,7 @@ func _populate_reviews() -> void:
 		for i in range(待批阅.size()):
 			var 事务 = 待批阅[i]
 			var 事件卡 := _make_card("事务 #" + str(i + 1) + "：" + 事务["标题"])
-			var 事件vb := 事件卡.get_node("VBox")
+			var 事件vb := 事件卡.find_child("VBox", true, false)
 
 			_add_info_row(事件vb, "事务ID", 事务["事务ID"])
 			var 详情 = 事务.get("详情", {})
@@ -847,7 +838,7 @@ func _populate_reviews() -> void:
 
 func _populate_core_disciples() -> void:
 	var card := _make_card("核心弟子管理")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "核心弟子获得资源倾斜（修炼速度+50%），但普通弟子可能心生不满。"
@@ -896,10 +887,10 @@ func _populate_core_disciples() -> void:
 
 func _populate_technology() -> void:
 	var card := _make_card("宗门科技树")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
-	desc.text = "研究宗门科技，提升全宗实力。（当前为框架，具体科技内容待补充）"
+	desc.text = "研究宗门科技，提升全宗实力。"
 	UITheme.apply_body_text(desc)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)
@@ -919,10 +910,10 @@ func _populate_technology() -> void:
 
 func _populate_diplomacy() -> void:
 	var card := _make_card("对外关系管理")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
-	desc.text = "管理与其他宗门的外交关系。（当前为框架，具体宗门待补充）"
+	desc.text = "管理与其他宗门的外交关系。"
 	UITheme.apply_body_text(desc)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)
@@ -942,10 +933,10 @@ func _populate_diplomacy() -> void:
 
 func _populate_council() -> void:
 	var card := _make_card("宗门议事会")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
-	desc.text = "召开宗门议事会，与长老们商议宗门大事。（当前为框架，具体议题待补充）"
+	desc.text = "召开宗门议事会，与长老们商议宗门大事。"
 	UITheme.apply_body_text(desc)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(desc)
@@ -970,7 +961,10 @@ func _make_card(标题: String) -> PanelContainer:
 	card.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 	var vb := VBoxContainer.new()
 	vb.name = "VBox"
-	vb.add_theme_constant_override("margin", UITheme.GRID)
+	vb.add_theme_constant_override("margin_left", UITheme.GRID)
+	vb.add_theme_constant_override("margin_right", UITheme.GRID)
+	vb.add_theme_constant_override("margin_top", UITheme.GRID)
+	vb.add_theme_constant_override("margin_bottom", UITheme.GRID)
 	vb.add_theme_constant_override("separation", UITheme.GRID / 2)
 	card.add_child(vb)
 
@@ -982,6 +976,9 @@ func _make_card(标题: String) -> PanelContainer:
 	var sep := HSeparator.new()
 	vb.add_child(sep)
 
+	card.modulate.a = 0.0
+	var sectmgr_卡入场 := card.create_tween()
+	sectmgr_卡入场.tween_property(card, "modulate:a", 1.0, 0.2)
 	return card
 
 func _add_info_row(parent: VBoxContainer, 标签: String, 值: String) -> void:
@@ -1050,7 +1047,7 @@ func _on_tab_pressed(t: String) -> void:
 # ===== 商队管理 =====
 func _populate_caravan() -> void:
 	var card := _make_card("商队管理")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	# §11.15 优化：打开面板即结算到期商队（现实时间模型，离线/未推演也能正确返还）+ 刷新每日配额
 	if is_instance_valid(Game):
@@ -1209,9 +1206,9 @@ func _populate_caravan() -> void:
 			var 决策标签: String = ""
 			var 事件名: String = str(记录.get("事件", ""))
 			if 事件名.ends_with("·优策"):
-				决策标签 = "｜crew优（≥120分）"
+				决策标签 = "｜策优（≥120分）"
 			elif 事件名.ends_with("·失策"):
-				决策标签 = "｜crew失（<120分）"
+				决策标签 = "｜策失（<120分）"
 			信息.text = "%s | %s%s | 货款:%d 净利:%+d灵石" % [
 				记录["地区名"], 事件名, 决策标签, int(记录["实际收益"]), 净利
 			]
@@ -1262,18 +1259,18 @@ func _populate_caravan() -> void:
 		if not Game.商队系统.灵舟坞建造中.is_empty():
 			var 建中 = Game.灵舟坞建造信息()
 			var 剩余 = int(建中.get("完成日", 0)) - Game.累计游戏日
-			坞信息.text = "建造中：%s（目标等级%d），预计剩余 %d 日" % [
+			坞信息.text = "建造中：%s（目标%d品），预计剩余 %d 日" % [
 				Game.商队系统.灵舟坞表.get("sd%02d" % int(建中.get("目标档", 0)), {}).get("dock_name", ""),
 				int(建中.get("目标档", 0)), max(0, 剩余)]
 		elif Game.已建灵舟坞():
-			坞信息.text = "已建成飞舟坞（等级%d），可跨域通商至紫府仙都/北海商港" % Game.商队系统.灵舟坞等级
+			坞信息.text = "已建成飞舟坞（%d品），可跨域通商至紫府仙都/北海商港" % Game.商队系统.灵舟坞等级
 		else:
 			var 建 = Game.灵舟坞建造信息()
 			if 建.get("可建", false):
 				var 材料txt = ""
 				for m in 建.get("材料", []):
 					材料txt += "%s ×%d（有%d）  " % [str(m.get("名", "")), int(m.get("需", 0)), int(m.get("有", 0))]
-				坞信息.text = "可建：%s（Lv%d）｜需门派%d级｜工费灵石%d｜历时%d日\n灵材：%s" % [
+				坞信息.text = "可建：%s（第%d品）｜需门派%d品｜工费灵石%d｜历时%d日\n灵材：%s" % [
 					str(建.get("名称", "")), int(建.get("等级", 1)), int(建.get("需门派等级", 99)),
 					int(建.get("工费", 0)), int(建.get("时日", 0)), 材料txt.strip_edges()]
 			else:
@@ -1328,7 +1325,10 @@ func _populate_caravan() -> void:
 					var 中文 = Game.商队系统.灵材名称表.get(gid, gid)
 					var 有 = 0
 					for it in Game.宗门库房:
-						if it != null and str(it.get("名称", "")) == 中文:
+						# ★ 2026-09-16 修（真 bug · 红线⑤同族）：宗门库房元素是 Item（RefCounted），
+						#   双参 .get() 抛错并中断 ⇒ 商队「灵材备货」统计恒为 0。
+						var v名: Variant = it.get("名称") if it != null else null
+						if v名 != null and String(v名) == 中文:
 							有 += 1
 					材料txt += "%s×%d(有%d) " % [中文, n, 有]
 				var 信息 := Label.new()
@@ -1381,7 +1381,7 @@ func _populate_caravan() -> void:
 		# ---- 灵舟库存 ----
 		if Game.商队系统.灵舟库存.size() > 0:
 			var 库头 := Label.new()
-			库头.text = "◆ 灵舟库存"
+			库头.text = "◆ 灵舟存量"
 			UITheme.apply_section_title(库头)
 			vb.add_child(库头)
 			if Game.商队系统.虚空大阵冷却日 > Game.累计游戏日:
@@ -1682,7 +1682,7 @@ func _ship_formation_effect_text(fm: Dictionary) -> String:
 		"durability":
 			return "增耐久 +%d" % int(val)
 		"war":
-			return "增战力 +%d" % int(val)
+			return "增道行 +%d" % int(val)
 		"regen":
 			return "回灵聚气·核心自续"
 		"void":
@@ -1702,7 +1702,7 @@ func _show_ship_formation_panel(索引: int) -> void:
 	var 舟定义 = Game.商队系统.宗门灵舟表.get(str(舟.get("ship_id", "")), {})
 	var 已刻 = 舟.get("阵法", [])
 	var card: PanelContainer = _make_card("刻录阵法 · %s" % str(舟.get("名称", "")))
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 
 	var 概: Label = Label.new()
 	概.text = "品阶 T%d｜阵法槽 %d/%d｜特性：%s" % [
@@ -1716,7 +1716,7 @@ func _show_ship_formation_panel(索引: int) -> void:
 		var v = Game.司职列表["zhenfa"].get("等级", 1)
 		阵法堂等级 = int(v) if v != null else 1
 	var 堂注: Label = Label.new()
-	堂注.text = "当前阵法堂司职等级：%d" % 阵法堂等级
+	堂注.text = "当前阵法堂司职品级：%d" % 阵法堂等级
 	UITheme.apply_aux_text(堂注)
 	vb.add_child(堂注)
 
@@ -1738,7 +1738,7 @@ func _show_ship_formation_panel(索引: int) -> void:
 		if 已刻.size() >= int(舟定义.get("formation_slots", 0)):
 			空.text = "阵法槽已满，无法继续刻录"
 		else:
-			空.text = "暂无可刻阵法（受阵法堂等级或灵舟特性限制）"
+			空.text = "暂无可刻阵法（受阵法堂品级或灵舟特性限制）"
 		UITheme.apply_aux_text(空)
 		vb.add_child(空)
 	else:
@@ -1803,7 +1803,7 @@ func _show_ship_rename_panel(索引: int) -> void:
 	var 舟 = Game.商队系统.灵舟库存[索引]
 	var 余 = int(舟.get("可命名次数", 1))
 	var card: PanelContainer = _make_card("灵舟命名 · %s" % str(舟.get("名称", "")))
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	var 注: Label = Label.new()
 	if 余 > 0:
 		注.text = "当前名：【%s】｜重命名机会剩余 %d 次（每舟仅可命名一次）" % [str(舟.get("名称", "")), 余]
@@ -1900,7 +1900,7 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	_派遣接商单 = ""
 
 	var card: PanelContainer = _make_card("派遣商队 · %s" % 地区["名称"])
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 
 	# —— 市场情报（§11.20 BUG-D + UX：地区偏好 / 封顶 / 独占 / 风险一览，玩家一眼看清配货方向与上限）——
 	var 城市id: String = str(地区.get("id", ""))
@@ -1908,7 +1908,7 @@ func _show_dispatch_panel(地区ID: String) -> void:
 	for c in 地区.get("偏好类别", []):
 		偏好名.append(str(c))
 	var 偏好拼接: String = "、".join(偏好名) if not 偏好名.is_empty() else "（无）"
-	# 独占判定（与 game_state.gd:1007 同步：has 且 压价率=0 ⇒ 独占；无记录 ⇒ 默认独占；否则 ✗-x%）
+	# 独占判定（与 game_state.gd:1007 同步：has 且 压价率=0 ⇒ 独占；无记录 ⇒ 默认独占；否则 ×-x%）
 	var 独占文: String = "✓ 默认独占"
 	if Game.商队系统.商路竞争状态.has(城市id):
 		var 压: float = float(Game.商队系统.商路竞争状态[城市id].get("压价率", 0.0))
@@ -2070,7 +2070,7 @@ func _show_dispatch_panel(地区ID: String) -> void:
 
 	# —— 人员编组 ——
 	var 人: Label = Label.new()
-	人.text = "◆ 人员编组（掌柜智谋→价差 / 护卫战力→抗风险 / 脚夫→运力）"
+	人.text = "◆ 人员编组（掌柜智谋→价差 / 护卫道行→抗风险 / 脚夫→运力）"
 	UITheme.apply_section_title(人)
 	vb.add_child(人)
 	for pid in ["p001", "p002", "p003"]:
@@ -2089,7 +2089,7 @@ func _show_dispatch_panel(地区ID: String) -> void:
 			for d in Game.弟子列表:
 				if d == null:
 					continue
-				选.add_item("%s（%s·战力%d·道心%d）" % [d.姓名, d.境界, int(d.战力), int(d.道心)], int(d.弟子ID))
+				选.add_item("%s（%s·道行%d·道心%d）" % [d.姓名, d.境界, int(d.战力), int(d.道心)], int(d.弟子ID))
 		选.item_selected.connect(_刷新运力提示)
 		_派遣岗位选[pid] = 选
 		行.add_child(标签)
@@ -2384,7 +2384,7 @@ func _估物品价(物品: Item) -> int:
 # ===== 阵营声望 =====
 func _populate_faction() -> void:
 	var card := _make_card("阵营声望")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 
 	var desc := Label.new()
 	desc.text = "与各大阵营建立关系，提升声望可获得专属权益。正道与魔道对立，提升一方会降低另一方。"
@@ -2417,7 +2417,7 @@ func _populate_faction() -> void:
 
 	# 声望等级说明
 	var 说明头 := Label.new()
-	说明头.text = "◆ 声望等级"
+	说明头.text = "◆ 声望阶位"
 	UITheme.apply_section_title(说明头)
 	vb.add_child(说明头)
 
@@ -2433,7 +2433,7 @@ func _populate_faction() -> void:
 func _populate_faction_power() -> void:
 	# 派系总览卡片
 	var card := _make_card("宗门派系")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 	
 	var desc := Label.new()
 	desc.text = "宗门内部各方势力此消彼长，宗主需平衡各方，避免一家独大。洞察人心、平衡权力，方为宗主之道。"
@@ -2472,7 +2472,10 @@ func _populate_faction_power() -> void:
 				var 派系卡 := PanelContainer.new()
 				派系卡.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(true))
 				var 派系vb := VBoxContainer.new()
-				派系vb.add_theme_constant_override("margin", UITheme.GRID)
+				派系vb.add_theme_constant_override("margin_left", UITheme.GRID)
+				派系vb.add_theme_constant_override("margin_right", UITheme.GRID)
+				派系vb.add_theme_constant_override("margin_top", UITheme.GRID)
+				派系vb.add_theme_constant_override("margin_bottom", UITheme.GRID)
 				派系vb.add_theme_constant_override("separation", UITheme.GRID / 2)
 				派系卡.add_child(派系vb)
 				
@@ -2480,7 +2483,7 @@ func _populate_faction_power() -> void:
 				var 名行 := HBoxContainer.new()
 				名行.add_theme_constant_override("separation", UITheme.GRID)
 				var 名标 := Label.new()
-				名标.text = "🏛 %s" % 派系名
+				名标.text = "◇ %s" % 派系名
 				UITheme.apply_title_font(名标)
 				名行.add_child(名标)
 				var 型标 := Label.new()
@@ -2526,15 +2529,15 @@ func _populate_faction_power() -> void:
 				# 满意度评价
 				var 评价 := ""
 				if 满意度 >= 80:
-					评价 = "🟢 非常满意，全力支持宗主"
+					评价 = "● 非常满意，全力支持宗主"
 				elif 满意度 >= 60:
-					评价 = "🟡 满意，正常执行任务"
+					评价 = "● 满意，正常执行差事"
 				elif 满意度 >= 40:
-					评价 = "🟠 一般，可能消极怠工"
+					评价 = "● 一般，可能消极怠工"
 				elif 满意度 >= 20:
-					评价 = "🔴 不满，可能暗中抵制"
+					评价 = "● 不满，可能暗中抵制"
 				else:
-					评价 = "⚠️ 非常不满，恐生肘腋之变！"
+					评价 = "⚠ 非常不满，恐生肘腋之变！"
 				var 评价标 := Label.new()
 				评价标.text = 评价
 				UITheme.apply_body_text(评价标)
@@ -2544,7 +2547,7 @@ func _populate_faction_power() -> void:
 	
 	# 宗门派系政策卡片
 	var 政策卡 := _make_card("宗门派系政策")
-	var 政策vb := 政策卡.get_node("VBox")
+	var 政策vb := 政策卡.find_child("VBox", true, false)
 	
 	var 政策desc := Label.new()
 	政策desc.text = "宗主可对各派系采取不同政策，平衡各方势力。"
@@ -2614,7 +2617,7 @@ func _方针滑条(标签: String, 最小: float, 最大: float, 步: float, 默
 	var 值标 := Label.new()
 	值标.text = 格式 % int(默认 * 100) if 格式 == "%d%%" else str(默认)
 	UITheme.apply_value_text(值标)
-	值标.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	值标.add_theme_color_override("font_color", UITheme.获取金文字色())
 	行.add_child(值标)
 	vb.add_child(行)
 	var 滑 := HSlider.new()
@@ -2669,7 +2672,7 @@ func _方针选项(标签: String, 选项: Array, 当前: String, 回调: Callab
 
 func _populate_policy() -> void:
 	var card := _make_card("宗门治理方针")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 	
 	var 说明 := Label.new()
 	说明.text = "设定宗门治理总方针，推演月起由系统自动执行。修改即时生效。"
@@ -2722,7 +2725,7 @@ func _populate_policy() -> void:
 
 func _populate_memorial() -> void:
 	var card := _make_card("奏折决策中心")
-	var vb := card.get_node("VBox")
+	var vb := card.find_child("VBox", true, false)
 	
 	if Game == null or Game.待决奏折.size() == 0:
 		var 空 := Label.new()
@@ -2739,7 +2742,10 @@ func _populate_memorial() -> void:
 		案.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 		var 内 := VBoxContainer.new()
 		内.name = "VBox"
-		内.add_theme_constant_override("margin", UITheme.GRID)
+		内.add_theme_constant_override("margin_left", UITheme.GRID)
+		内.add_theme_constant_override("margin_right", UITheme.GRID)
+		内.add_theme_constant_override("margin_top", UITheme.GRID)
+		内.add_theme_constant_override("margin_bottom", UITheme.GRID)
 		内.add_theme_constant_override("separation", UITheme.GRID / 2)
 		案.add_child(内)
 		
@@ -2749,7 +2755,7 @@ func _populate_memorial() -> void:
 		var 标签 := Label.new()
 		标签.text = "【" + 重大 + "】"
 		UITheme.apply_section_title(标签)
-		var 色: Color = UITheme.C01_TEXT_GOLD
+		var 色: Color = UITheme.获取金文字色()
 		if 重大 == "存亡":
 			色 = Color(0.9, 0.3, 0.3)
 		标签.add_theme_color_override("font_color", 色)
@@ -2779,7 +2785,7 @@ func _populate_memorial() -> void:
 				UITheme.apply_button_label(钮, true)
 			else:
 				UITheme.apply_button_label(钮, false)
-				钮.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+				钮.add_theme_color_override("font_color", UITheme.获取主文字色())
 			var 本序: int = 序
 			var 本文本: String = 文本
 			钮.pressed.connect(func():
@@ -2790,9 +2796,9 @@ func _populate_memorial() -> void:
 			行.add_child(钮)
 			if 预览 != "":
 				var 预 := Label.new()
-				预.text = "↳ " + 预览
+				预.text = "→ " + 预览
 				UITheme.apply_aux_text(预)
-				预.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+				预.add_theme_color_override("font_color", UITheme.获取弱文字色())
 				预.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				预.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				行.add_child(预)
@@ -2811,7 +2817,7 @@ func _populate_bounty() -> void:
 		var 提示: Label = Label.new()
 		提示.text = _任务榜提示
 		UITheme.apply_aux_text(提示)
-		提示.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		提示.add_theme_color_override("font_color", UITheme.获取金文字色())
 		提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(提示)
 	_content.add_child(_构建请命卡())
@@ -2823,7 +2829,7 @@ func _populate_bounty() -> void:
 ## 弟子主动请命：宗主准/驳，驳回则其志难伸、心境 -3
 func _构建请命卡() -> Control:
 	var card: PanelContainer = _make_card("弟子请命（待宗主定夺）")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	if Game.弟子请命列表.size() == 0:
 		var 空: Label = Label.new()
 		空.text = "门下安分，暂无请命。"
@@ -2835,7 +2841,10 @@ func _构建请命卡() -> Control:
 		var 案: PanelContainer = PanelContainer.new()
 		案.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 		var 内: VBoxContainer = VBoxContainer.new()
-		内.add_theme_constant_override("margin", UITheme.GRID)
+		内.add_theme_constant_override("margin_left", UITheme.GRID)
+		内.add_theme_constant_override("margin_right", UITheme.GRID)
+		内.add_theme_constant_override("margin_top", UITheme.GRID)
+		内.add_theme_constant_override("margin_bottom", UITheme.GRID)
 		内.add_theme_constant_override("separation", UITheme.GRID / 2)
 		案.add_child(内)
 
@@ -2860,13 +2869,13 @@ func _构建请命卡() -> Control:
 		var 准: Button = Button.new()
 		准.text = "准其所请"
 		UITheme.apply_button_label(准, true)
-		准.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		准.add_theme_color_override("font_color", UITheme.获取主文字色())
 		准.pressed.connect(func(): _on_准请命(本序))
 		行.add_child(准)
 		var 驳: Button = Button.new()
 		驳.text = "驳回（心境 -3）"
 		UITheme.apply_button_label(驳, false)
-		驳.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		驳.add_theme_color_override("font_color", UITheme.获取主文字色())
 		驳.pressed.connect(func(): _on_驳请命(本序))
 		行.add_child(驳)
 		内.add_child(行)
@@ -2879,7 +2888,7 @@ func _构建请命卡() -> Control:
 ## 执行中：弟子已接取，到期由推演自动结算
 func _构建执行中卡() -> Control:
 	var card: PanelContainer = _make_card("执行中")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	var 列表: Array = Game.取宗门任务进行中()
 	if 列表.size() == 0:
 		var 空: Label = Label.new()
@@ -2891,7 +2900,10 @@ func _构建执行中卡() -> Control:
 		var 案: PanelContainer = PanelContainer.new()
 		案.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 		var 内: VBoxContainer = VBoxContainer.new()
-		内.add_theme_constant_override("margin", UITheme.GRID)
+		内.add_theme_constant_override("margin_left", UITheme.GRID)
+		内.add_theme_constant_override("margin_right", UITheme.GRID)
+		内.add_theme_constant_override("margin_top", UITheme.GRID)
+		内.add_theme_constant_override("margin_bottom", UITheme.GRID)
 		内.add_theme_constant_override("separation", UITheme.GRID / 2)
 		案.add_child(内)
 
@@ -2924,8 +2936,8 @@ func _构建执行中卡() -> Control:
 
 ## 招募中：已挂榜、无人接取（或尚未到月度判定时刻）
 func _构建招募中卡() -> Control:
-	var card: PanelContainer = _make_card("任务榜 · 招募中")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var card: PanelContainer = _make_card("差事榜 · 招募中")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	var 有: bool = false
 	for tid in Game.宗门任务榜:
 		var 任务: Dictionary = Game.宗门任务榜[tid]
@@ -2936,7 +2948,10 @@ func _构建招募中卡() -> Control:
 		var 案: PanelContainer = PanelContainer.new()
 		案.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 		var 内: VBoxContainer = VBoxContainer.new()
-		内.add_theme_constant_override("margin", UITheme.GRID)
+		内.add_theme_constant_override("margin_left", UITheme.GRID)
+		内.add_theme_constant_override("margin_right", UITheme.GRID)
+		内.add_theme_constant_override("margin_top", UITheme.GRID)
+		内.add_theme_constant_override("margin_bottom", UITheme.GRID)
 		内.add_theme_constant_override("separation", UITheme.GRID / 2)
 		案.add_child(内)
 
@@ -2956,14 +2971,14 @@ func _构建招募中卡() -> Control:
 		var 撤: Button = Button.new()
 		撤.text = "撤榜"
 		UITheme.apply_button_label(撤, false)
-		撤.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		撤.add_theme_color_override("font_color", UITheme.获取主文字色())
 		撤.pressed.connect(func(): _on_撤任务(本ID))
 		内.add_child(撤)
 
 		vb.add_child(案)
 	if not 有:
 		var 空: Label = Label.new()
-		空.text = "榜上无任务。可于下方挂榜，弟子会依自身主目标自行接取。"
+		空.text = "榜上无差事。可于下方挂榜，弟子会依自身主目标自行接取。"
 		UITheme.apply_body_text(空)
 		空.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vb.add_child(空)
@@ -2973,11 +2988,11 @@ func _构建招募中卡() -> Control:
 ## 发布新任务：选模板 → 调报酬档位 → 挂榜（报酬由宗门库房拨付实物）
 func _构建挂榜卡() -> Control:
 	var card: PanelContainer = _make_card("发布新任务")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	var 全部: Array = SectBounty.全部模板()
 	if 全部.size() == 0:
 		var 空: Label = Label.new()
-		空.text = "任务榜模板未载入（config/sect_bounty_config.csv）。"
+		空.text = "差事榜模板未载入。"
 		UITheme.apply_body_text(空)
 		vb.add_child(空)
 		return card
@@ -2995,14 +3010,14 @@ func _构建挂榜卡() -> Control:
 			var 钮: Button = Button.new()
 			钮.text = SectBounty.摘要(模板)
 			UITheme.apply_button_label(钮, false)
-			钮.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 选中 else UITheme.C01_TEXT_PRIMARY)
+			钮.add_theme_color_override("font_color", UITheme.获取金文字色() if 选中 else UITheme.获取主文字色())
 			钮.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			钮.pressed.connect(func(): _on_选模板(本ID))
 			vb.add_child(钮)
 
 	if _发布模板选 == "":
 		var 导: Label = Label.new()
-		导.text = "点上方任务以选定，再调报酬档位，然后挂榜。"
+		导.text = "点上方差事以选定，再调报酬档位，然后挂榜。"
 		UITheme.apply_aux_text(导)
 		导.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vb.add_child(导)
@@ -3026,7 +3041,7 @@ func _构建挂榜卡() -> Control:
 		var b: Button = Button.new()
 		b.text = _档差名(本档)
 		UITheme.apply_button_label(b, 本档 == _发布档差)
-		b.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD if 本档 == _发布档差 else UITheme.C01_TEXT_PRIMARY)
+		b.add_theme_color_override("font_color", UITheme.获取金文字色() if 本档 == _发布档差 else UITheme.获取主文字色())
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(func(): _on_设档差(本档))
 		档行.add_child(b)
@@ -3042,14 +3057,14 @@ func _构建挂榜卡() -> Control:
 		var 警: Label = Label.new()
 		警.text = "库房无此阶之物，届时报酬落空，弟子恐生怨望。"
 		UITheme.apply_aux_text(警)
-		警.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		警.add_theme_color_override("font_color", UITheme.获取金文字色())
 		警.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vb.add_child(警)
 
 	var 挂: Button = Button.new()
 	挂.text = "挂榜：【%s】" % str(选模板.get("bounty_name", ""))
 	UITheme.apply_button_label(挂, true)
-	挂.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	挂.add_theme_color_override("font_color", UITheme.获取主文字色())
 	挂.pressed.connect(func(): _on_挂榜())
 	vb.add_child(挂)
 	return card
@@ -3169,7 +3184,7 @@ func _populate_merit() -> void:
 		var 提示: Label = Label.new()
 		提示.text = _功勋提示
 		UITheme.apply_aux_text(提示)
-		提示.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+		提示.add_theme_color_override("font_color", UITheme.获取金文字色())
 		提示.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(提示)
 	_content.add_child(_构建功勋总览卡())
@@ -3180,7 +3195,7 @@ func _populate_merit() -> void:
 ## 总览：公中 / 个人账户合计 / 规则说明 / 库藏定价格
 func _构建功勋总览卡() -> Control:
 	var card: PanelContainer = _make_card("功勋总览")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 
 	var 合计: int = 0
 	var 有余额: int = 0
@@ -3198,13 +3213,13 @@ func _构建功勋总览卡() -> Control:
 	_add_info_row(vb, "个人功勋合计", "%d（有余额者 %d / 在宗 %d）" % [合计, 有余额, 在宗数])
 
 	var 规: Label = Label.new()
-	规.text = "交宗之物：七成记入个人功勋，三成归入公中，实物入宗门库藏；功勋可在此兑库藏诸物。"
+	规.text = "交宗之物：70%记入个人功勋，30%归入公中，实物入宗门库藏；功勋可在此兑库藏诸物。"
 	UITheme.apply_aux_text(规)
 	规.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(规)
 
 	var 自: Label = Label.new()
-	自.text = "弟子每月至多自兑一件，且须留存两成功勋、库藏该品阶余量充裕方兑。"
+	自.text = "弟子每月至多自兑一件，且须留存20%功勋、库藏该品阶余量充裕方兑。"
 	UITheme.apply_aux_text(自)
 	自.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(自)
@@ -3227,7 +3242,7 @@ func _构建功勋总览卡() -> Control:
 ## 选择弟子：仅列有余额者，按余额降序（最多 12），选中描金
 func _构建功勋弟子卡() -> Control:
 	var card: PanelContainer = _make_card("选择弟子")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 
 	var 名单: Array = []
 	for d in Game.弟子列表:
@@ -3264,9 +3279,9 @@ func _构建功勋弟子卡() -> Control:
 		钮.text = "%s（%s）功勋 %d" % [str(弟子.姓名), str(弟子.境界), 弟子.贡献账户]
 		UITheme.apply_button_label(钮, false)
 		if 本ID == _功勋弟子选:
-			钮.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+			钮.add_theme_color_override("font_color", UITheme.获取金文字色())
 		else:
-			钮.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+			钮.add_theme_color_override("font_color", UITheme.获取主文字色())
 		钮.pressed.connect(func(): _on_选功勋弟子(本ID))
 		vb.add_child(钮)
 	if 名单.size() > 上限:
@@ -3280,7 +3295,7 @@ func _构建功勋弟子卡() -> Control:
 ## 兑换清单：库藏全部可兑之物 + 保命护身
 func _构建功勋兑换卡() -> Control:
 	var card: PanelContainer = _make_card("兑换（宗主代兑）")
-	var vb: VBoxContainer = card.get_node("VBox")
+	var vb: VBoxContainer = card.find_child("VBox", true, false)
 	if _功勋弟子选 < 0:
 		var 空: Label = Label.new()
 		空.text = "请先在上方的弟子中选择一人。"
@@ -3324,7 +3339,10 @@ func _构建功勋兑换卡() -> Control:
 		var 案: PanelContainer = PanelContainer.new()
 		案.add_theme_stylebox_override("panel", UITheme.make_panel_stylebox(false))
 		var 内: VBoxContainer = VBoxContainer.new()
-		内.add_theme_constant_override("margin", UITheme.GRID)
+		内.add_theme_constant_override("margin_left", UITheme.GRID)
+		内.add_theme_constant_override("margin_right", UITheme.GRID)
+		内.add_theme_constant_override("margin_top", UITheme.GRID)
+		内.add_theme_constant_override("margin_bottom", UITheme.GRID)
 		内.add_theme_constant_override("separation", UITheme.GRID / 2)
 		案.add_child(内)
 
@@ -3341,7 +3359,7 @@ func _构建功勋兑换卡() -> Control:
 			钮.text = "功勋不足（需 %d）" % 价
 		钮.disabled = not 买得起
 		UITheme.apply_button_label(钮, 买得起)
-		钮.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+		钮.add_theme_color_override("font_color", UITheme.获取主文字色())
 		钮.pressed.connect(func(): _on_代兑(本ID, 本项))
 		内.add_child(钮)
 
@@ -3421,13 +3439,13 @@ func _populate_hudao() -> void:
 
 			var 弟子名label := Label.new()
 			弟子名label.text = "弟子：%s" % str(护道人.get("弟子姓名", ""))
-			弟子名label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(弟子名label, UITheme.FONT_H2, true)
 			弟子名label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.5))
 			行1.add_child(弟子名label)
 
 			var 护道人名label := Label.new()
 			护道人名label.text = "护道人：%s（%s）" % [str(护道人.get("护道人姓名", "")), str(护道人.get("护道人等级", ""))]
-			护道人名label.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+			UITheme.apply_project_font(护道人名label, UITheme.FONT_H2, true)
 			护道人名label.add_theme_color_override("font_color", Color(0.7, 0.8, 0.7))
 			行1.add_child(护道人名label)
 
@@ -3438,19 +3456,19 @@ func _populate_hudao() -> void:
 
 			var 功德label := Label.new()
 			功德label.text = "功德：%d" % int(护道人.get("功德", 0))
-			功德label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(功德label, UITheme.FONT_BODY, false)
 			功德label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			行2.add_child(功德label)
 
 			var 剩余label := Label.new()
 			剩余label.text = "剩余：%d日" % int(护道人.get("剩余天数", 0))
-			剩余label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(剩余label, UITheme.FONT_BODY, false)
 			剩余label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			行2.add_child(剩余label)
 
 			var 替死label := Label.new()
-			替死label.text = "替死玉符：%s" % ("已激活" if bool(护道人.get("替死玉符", false)) else "未激活")
-			替死label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			替死label.text = "替死玉符：%s" % ("已启" if bool(护道人.get("替死玉符", false)) else "未启")
+			UITheme.apply_project_font(替死label, UITheme.FONT_BODY, false)
 			替死label.add_theme_color_override("font_color", Color(0.9, 0.6, 0.3) if bool(护道人.get("替死玉符", false)) else Color(0.5, 0.5, 0.5))
 			行2.add_child(替死label)
 
@@ -3464,28 +3482,28 @@ func _populate_hudao() -> void:
 			var 续缘btn := Button.new()
 			续缘btn.text = "续缘（%d符）" % Game.护道续缘符
 			续缘btn.custom_minimum_size = Vector2(0, 28)
-			续缘btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(续缘btn, UITheme.FONT_BODY, false)
 			续缘btn.pressed.connect(_on_hudao_xuyuan.bind(弟子ID))
 			行3.add_child(续缘btn)
 
 			var 功德btn := Button.new()
 			功德btn.text = "功德+200（%d牌）" % Game.功德玉牌
 			功德btn.custom_minimum_size = Vector2(0, 28)
-			功德btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(功德btn, UITheme.FONT_BODY, false)
 			功德btn.pressed.connect(_on_hudao_gongde.bind(弟子ID))
 			行3.add_child(功德btn)
 
 			var 气运btn := Button.new()
 			气运btn.text = "气运加持（%d符）" % Game.气运符箓
 			气运btn.custom_minimum_size = Vector2(0, 28)
-			气运btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(气运btn, UITheme.FONT_BODY, false)
 			气运btn.pressed.connect(_on_hudao_qiyun.bind(弟子ID))
 			行3.add_child(气运btn)
 
 			var 替死btn := Button.new()
 			替死btn.text = "替死玉符（%d符）" % Game.替死玉符
 			替死btn.custom_minimum_size = Vector2(0, 28)
-			替死btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(替死btn, UITheme.FONT_BODY, false)
 			替死btn.pressed.connect(_on_hudao_tisi.bind(弟子ID))
 			行3.add_child(替死btn)
 
@@ -3502,7 +3520,7 @@ func _populate_hudao() -> void:
 	if not 待配备.is_empty():
 		var 待配备标题 := Label.new()
 		待配备标题.text = "待配备护道人（%d名）" % 待配备.size()
-		待配备标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+		UITheme.apply_project_font(待配备标题, UITheme.FONT_H2, true)
 		待配备标题.add_theme_color_override("font_color", Color(0.9, 0.6, 0.3))
 		_content.add_child(待配备标题)
 
@@ -3514,7 +3532,7 @@ func _populate_hudao() -> void:
 
 			var 名label := Label.new()
 			名label.text = "%s（%s）" % [d.姓名, 待["需求"]]
-			名label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(名label, UITheme.FONT_BODY, false)
 			名label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 			名label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			行.add_child(名label)
@@ -3522,7 +3540,7 @@ func _populate_hudao() -> void:
 			var 配备btn := Button.new()
 			配备btn.text = "自动配备"
 			配备btn.custom_minimum_size = Vector2(80, 28)
-			配备btn.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+			UITheme.apply_project_font(配备btn, UITheme.FONT_BODY, false)
 			配备btn.pressed.connect(_on_hudao_peibei.bind(d.弟子ID))
 			行.add_child(配备btn)
 

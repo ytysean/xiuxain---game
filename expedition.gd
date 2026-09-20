@@ -59,7 +59,7 @@ const 关卡库: Dictionary = {
 	"realm_zhuji_3": {
 		"名称": "筑基·妖兽围猎", "类型": "realm", "推荐战力": 1200, "难度": 3,
 		"解锁境界": "筑基", "预计时长": 5,
-		"描述": "筑基第三关，围猎高阶妖兽验证战力。",
+		"描述": "筑基第三关，围猎高阶妖兽验证道行。",
 		"掉落池": "pool_realm_zhuji", "事件池": "event_combat"
 	},
 	"realm_zhuji_4": {
@@ -677,7 +677,7 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 	for did in 弟子ID列表:
 		var d = _获取弟子(did)
 		if d != null:
-			总战力 += int(d.get("战力", 0))
+			总战力 += int(d.战力)
 	# S1-1：先构造双方真实战斗快照（玩家队 + 关卡真实怪物）
 	var 攻方快照 = _聚合队伍快照(弟子ID列表)
 	var 守方快照 = _构造敌方快照(关卡ID)
@@ -695,9 +695,9 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 	for did in 弟子ID列表:
 		var d = _获取弟子(did)
 		if d != null:
-			平均心境 += int(d.get("心境", 60))
-			平均道心 += int(d.get("道心", 20))
-			平均心魔 += int(d.get("心魔值", 0))
+			平均心境 += int(d.心境)
+			平均道心 += int(d.道心)
+			平均心魔 += int(d.心魔值)
 	if 弟子ID列表.size() > 0:
 		平均心境 /= 弟子ID列表.size()
 		平均道心 /= 弟子ID列表.size()
@@ -769,7 +769,7 @@ func _结算单个历练(实例ID: String) -> Dictionary:
 								Game.增加阵营声望("正道宗门", -2)
 								Game.增加阵营声望("魔道邪宗", 1)
 						if Game.has_method("添加纪事"):
-							Game.添加纪事("毒道", "历练施毒", "%s历练前暗中施放%s（%s），敌方战力削弱%d，受到%d点毒素伤害。%s" % [str(队长.姓名 if 队长 != null else "弟子"), 毒药["名称"], 毒类型, 毒伤, 实际毒伤, str(用毒判定.get("原因", ""))], 1)
+							Game.添加纪事("毒道", "历练施毒", "%s历练前暗中施放%s（%s），敌方道行削弱%d，受到%d点毒素伤害。%s" % [str(队长.姓名 if 队长 != null else "弟子"), 毒药["名称"], 毒类型, 毒伤, 实际毒伤, str(用毒判定.get("原因", ""))], 1)
 						break
 	# 判定成功/失败（S1-1：真实战斗引擎替代掷骰绕过）
 	var 战报 = {"is_win": false, "battle_log": []}
@@ -1094,7 +1094,7 @@ func _标记失踪(弟子ID: int, 关卡: Dictionary) -> void:
 		"链": "失踪", "链序": 1, "前驱任务ID": "",   # P3 任务联动：本任务为链首（A）
 	}
 	if Game != null and Game.has_method("添加纪事"):
-		Game.添加纪事("历练", "弟子失踪", "%s 于【%s】历练失败，不知所踪，宗门已下发调查任务" % [d.姓名, 关卡.get("名称", "")], 2)
+		Game.添加纪事("历练", "弟子失踪", "%s 于【%s】历练失败，不知所踪，宗门已下发调查差事" % [d.姓名, 关卡.get("名称", "")], 2)
 
 # P3 保命环节：灵兽护主替死（绑定灵兽中有护主技能则代弟子挡劫，消耗该兽）
 func _灵兽护主替死(d: Object) -> bool:
@@ -1180,7 +1180,7 @@ func _派生后继任务(前驱: Dictionary, 分支: String) -> String:
 
 func 开始调查(任务ID: String, 接取弟子ID列表: Array) -> Dictionary:
 	if not 调查任务列表.has(任务ID):
-		return {"成功": false, "原因": "调查任务不存在"}
+		return {"成功": false, "原因": "调查差事不存在"}
 	if 接取弟子ID列表.is_empty() or 接取弟子ID列表.size() > 3:
 		return {"成功": false, "原因": "需派遣1-3名高阶弟子"}
 	var 任务 = 调查任务列表[任务ID]
@@ -1524,7 +1524,8 @@ func _获取弟子(弟子ID: int):
 	if 弟子列表 == null:
 		弟子列表 = []
 	for d in 弟子列表:
-		if int(d.get("弟子ID", -1)) == 弟子ID:
+		# 弟子是 Disciple（RefCounted），禁 .get(双参)——会抛错并使本函数永远返回 null
+		if int(d.弟子ID) == 弟子ID:
 			return d
 	return null
 

@@ -392,18 +392,18 @@ static func _resolve_timeout(battle_state: Dictionary) -> void:
 	var total_power: int = attacker_power + defender_power
 	if total_power <= 0:
 		battle_state["战斗结果"] = BattleResult.DRAW
-		battle_state["战斗日志"].append("超时，双方均无战力，平局！")
+		battle_state["战斗日志"].append("超时，双方均无道行，平局！")
 		return
 	var attacker_ratio: float = float(attacker_power) / float(total_power)
 	if attacker_ratio > 0.6:
 		battle_state["战斗结果"] = BattleResult.ATTACKER_WIN
-		battle_state["战斗日志"].append("超时，攻方剩余战力占比%.0f%%，攻方胜利！" % (attacker_ratio * 100))
+		battle_state["战斗日志"].append("超时，攻方剩余道行占比%.0f%%，攻方胜利！" % (attacker_ratio * 100))
 	elif attacker_ratio < 0.4:
 		battle_state["战斗结果"] = BattleResult.DEFENDER_WIN
-		battle_state["战斗日志"].append("超时，守方剩余战力占比%.0f%%，守方胜利！" % ((1.0 - attacker_ratio) * 100))
+		battle_state["战斗日志"].append("超时，守方剩余道行占比%.0f%%，守方胜利！" % ((1.0 - attacker_ratio) * 100))
 	else:
 		battle_state["战斗结果"] = BattleResult.DRAW
-		battle_state["战斗日志"].append("超时，双方战力接近（攻方%.0f%%），平局！" % (attacker_ratio * 100))
+		battle_state["战斗日志"].append("超时，双方道行接近（攻方%.0f%%），平局！" % (attacker_ratio * 100))
 
 # ============ 计算剩余总战力 ============
 static func _calculate_remaining_power(battle_state: Dictionary, side: String) -> int:

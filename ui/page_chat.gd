@@ -28,6 +28,8 @@ func _build_ui() -> void:
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
 
 	if not 嵌入模式:
@@ -38,14 +40,14 @@ func _build_ui() -> void:
 
 		var title: Label = Label.new()
 		title.text = "心弦"
-		title.add_theme_font_size_override("font_size", UITheme.FONT_H1)
-		title.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE1)
+		UITheme.apply_project_font(title, UITheme.FONT_H1, true)
+		title.add_theme_color_override("font_color", UITheme.获取主文字色())
 		header.add_child(title)
 
 		header.add_spacer(false)
 
 		var close_btn: Button = Button.new()
-		close_btn.text = "✕"
+		close_btn.text = "◇"
 		close_btn.custom_minimum_size = Vector2(40, 36)
 		UITheme.apply_secondary_button_style(close_btn)
 		close_btn.pressed.connect(_on_close)
@@ -54,7 +56,7 @@ func _build_ui() -> void:
 	# 说明
 	var tip: Label = Label.new()
 	tip.text = "（门人心念所至，皆显于此）"
-	tip.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(tip, UITheme.FONT_BODY, false)
 	tip.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_DIM)
 	main.add_child(tip)
 
@@ -126,7 +128,7 @@ func _build心念卡片(msg: Dictionary) -> void:
 	else:
 		发送者标签.text = "%s：" % 发送者
 		发送者标签.add_theme_color_override("font_color", UITheme.C01_TEXT_JADE)
-	发送者标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(发送者标签, UITheme.FONT_BODY, false)
 	发送者标签.custom_minimum_size = Vector2(100, 0)
 	row.add_child(发送者标签)
 
@@ -134,7 +136,7 @@ func _build心念卡片(msg: Dictionary) -> void:
 	var 内容标签: Label = Label.new()
 	内容标签.text = 内容
 	内容标签.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	内容标签.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(内容标签, UITheme.FONT_BODY, false)
 	内容标签.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	内容标签.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(内容标签)

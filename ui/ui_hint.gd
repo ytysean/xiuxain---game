@@ -23,7 +23,7 @@ func show_hint(anchor: Control, title: String, body: String) -> void:
 	add_child(_shade)
 	_panel = PanelContainer.new()
 	var psb := StyleBoxFlat.new()
-	psb.bg_color = Color(0.12, 0.18, 0.17, 0.97)
+	psb.bg_color = Color(0.122, 0.169, 0.192, 0.97)
 	psb.border_color = Color(0.78, 0.65, 0.34, 0.8)
 	psb.set_border_width_all(1)
 	psb.set_corner_radius_all(8)
@@ -37,15 +37,20 @@ func show_hint(anchor: Control, title: String, body: String) -> void:
 	var tl := Label.new()
 	tl.text = title
 	tl.add_theme_color_override("font_color", Color(0.91, 0.83, 0.60))
-	tl.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(tl, UITheme.FONT_H1, true)
 	vb.add_child(tl)
 	var bl := Label.new()
 	bl.text = body
 	bl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bl.custom_minimum_size = Vector2(600, 0)
 	bl.add_theme_color_override("font_color", Color(0.85, 0.88, 0.90))
-	bl.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
+	# ★ 2026-09-15 修复：正文原用 FONT_TITLE(45)+Bold，与标题 FONT_H1(48) 几乎同大 → 弹窗失衡。
+	#   正文回落 FONT_BODY(27) 常规字重，与全局正文口径一致。
+	UITheme.apply_project_font(bl, UITheme.FONT_BODY, false)
 	vb.add_child(bl)
+	# 气泡入场：只做 scale/alpha。定位要等下一帧 _process 拿到面板真实尺寸后才算，
+	# 这里若补间 position 会与随后的定位互相打架（两处写同一属性）。
+	UITheme.弹窗入场(_panel, null, 0.16, true)
 	_locate_pending = true
 
 func _process(_dt: float) -> void:

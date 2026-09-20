@@ -1,0 +1,19 @@
+memorial_id,memorial_name,category,weight,text,opt1_text,opt1_effect,opt2_text,opt2_effect,opt3_text,opt3_effect,description
+mm_zhenzai,请赈饥民疏,赈灾,10,{郡}连岁不登，饥民嗷嗷待哺。郡守上疏，请宗门开仓赈济。,开仓放粮，散谷三千石,lingshi:-60;gratitude:+8;disaster:-2,遣弟子施粥安民,lingshi:-20;gratitude:+4;merit:+3,置之不理,morale:-3;gratitude:-5,赈灾三选：散财最多换感恩，中等换愿力，无视则失民心
+mm_zhishui,请修河堤疏,治水,9,{郡}河堤年久失修，汛期将至，郡守请宗门助修。,倾力助修，加固百里,lingshi:-70;disaster:-3;gratitude:+5,遣懂水土之弟子前往,lingshi:-25;disaster:-2;gratitude:+2,以朝廷之事，推与官府,disaster:+2;gratitude:-3,治水：花钱消灾 vs 便宜行事 vs 推开
+mm_chuanyao,请除妖患疏,除妖,9,{郡}近有妖物昼伏夜出，噬人畜，郡守惶惧，请宗门除之。,遣精锐弟子除妖,lingshi:-30;gratitude:+7;repute:+2,授以符箓令其自保,lingshi:-10;gratitude:+2,妖患自当自了,gratitude:-6;morale:-2,除妖：派人是正解，给符箓是敷衍
+mm_chuandao,请传道疏,传道,10,{郡}百姓向慕仙道，愿立祠奉宗门，请遣弟子传道。,遣弟子驻郡传道,incense:+30;gratitude:+5;merit:+5,许其自建祠，遥领即可,incense:+10;gratitude:+1,仙凡有别，不许,incense:-5;gratitude:-3,传道：换香火与愿力，是国教前哨战
+mm_bianfa,请辩法疏,辩法,8,{郡}有外道法师聚众说法，诋毁宗门，请遣弟子往辩。,遣辩才弟子往折之,merit:+8;gratitude:+4;incense:+10,请官府驱逐了事,gratitude:-2;relation:-2,不予理会,incense:-10;gratitude:-4,辩法：赢则香火愿力双收，输则失地
+mm_xingxue,请兴学疏,兴学,8,{郡}请宗门资助乡学，以教化子弟，亦为宗门储才。,厚资乡学，广设斋舍,lingshi:-50;gratitude:+6;talent:1,略助束脩，聊表心意,lingshi:-15;gratitude:+2,学在官府，非我所司,gratitude:-4,兴学：花钱买苗子与感恩
+mm_jianfu,请减赋疏,减赋,8,{郡}赋役繁重，民不堪命。郡守请宗门为之上言天子。,上言天子，力请减赋,morale:+4;gratitude:+7;relation:-3,以宗门名义代输其赋,lingshi:-40;gratitude:+5;morale:+2,赋税国事，宗门不宜预,gratitude:-5;morale:-2,减赋：民心与感恩大涨，但触怒朝廷
+mm_pingpan,请平叛疏,平叛,7,{郡}有乱民啸聚山林，官军屡剿不利，请宗门助剿。,遣弟子助剿，犁庭扫穴,lingshi:-40;gratitude:+8;loyalty:+6;repute:+3,只擒其首，余者不问,lingshi:-15;gratitude:+4;loyalty:+2,此乃官府之责,loyalty:-6;morale:-3,平叛：最传统的护国实绩
+mm_duanan,请断疑案疏,断案,7,{郡}有疑狱三年不决，牵连甚众，请宗门遣人断之。,遣弟子明察秋毫,gratitude:+6;merit:+4;repute:+2,以常理断之，从宽发落,gratitude:+2,不敢预闻人事,gratitude:-4,断案：零成本换感恩
+mm_qiuxian,求贤诏,求贤,7,天子下诏求贤于天下，{郡}举荐宗门弟子入朝。,遣弟子应诏入朝,gratitude:+3;relation:+6;longevity:+2;merit:+5,举荐一名记名弟子,gratitude:+1;relation:+2;merit:+2,修真之人，不事王侯,gratitude:-2;relation:-4,求贤：换对宗门关系，是国师线前哨
+mm_heqin,和亲议,和亲,6,朝廷欲以宗室女和亲边族，请宗门遣人护送。,遣精锐护送，以全其礼,relation:+5;repute:+4;lingshi:-20,遣一名弟子随行,relation:+2;repute:+1,边事与我何干,relation:-3,和亲：换关系与商路声望
+mm_qianmin,请迁民实边疏,迁民,6,{郡}地广人稀，请迁内地流民实之，宗门可否护送？,全力护送，安插妥当,lingshi:-45;gratitude:+7;loyalty:+4,遣弟子沿途照应,lingshi:-15;gratitude:+3,非我宗门之事,gratitude:-4;disaster:+1,迁民：花钱换郡县实控
+mm_zhuqian,请铸钱疏,铸钱,6,朝廷欲铸新钱，请宗门助以灵材，以充国用。,献上灵材，以结其心,lingshi:-55;relation:+7;longevity:+2,略助少许,lingshi:-15;relation:+2,灵材岂可资凡人,relation:-5,铸钱：用灵石换关系与国祚
+mm_yuebing,请阅兵疏,阅兵,6,天子将于{郡}大阅，请宗门遣弟子观礼，以壮声威。,遣精锐列阵助威,relation:+4;repute:+3;gratitude:+3,遣一名长老往贺,relation:+2;gratitude:+1,不赴,relation:-3,阅兵：低成本换关系
+mm_kaicang,请开常平仓疏,开仓,7,{郡}常平仓已空，青黄不接，请宗门借粮。,借粮三千石，秋后还,lingshi:-35;gratitude:+6;morale:+2,无偿予之,lingshi:-60;gratitude:+9;merit:+4,仓廪亦空,gratitude:-5;morale:-2,开仓：借与送的取舍
+mm_xuanguan,请择良吏疏,选官,7,{郡}缺郡守，朝廷请宗门举荐一人。,举荐清廉之士,gratitude:+6;loyalty:+5;relation:+2,举荐宗门记名弟子,loyalty:+7;relation:-2;gratitude:+2,不预人事,gratitude:-3,选官：清廉换感恩，自己人换忠顺但触怒朝廷
+mm_suigong,岁贡议,岁贡,7,朝廷议增宗门岁贡，遣使来问。,慨然允之，以安其心,lingshi:-50;relation:+8;longevity:+2,与之争辩，减其半,relation:-2;lingshi:-20;repute:+2,峻拒之,relation:-8;longevity:-2,岁贡：花钱买平安 vs 硬顶
+mm_yimin,异民归附疏,异民,6,{郡}有异族慕化来归，请宗门示以可否。,悉心安抚，编入版籍,gratitude:+6;loyalty:+5;omen_next:1,许其自成一落,gratitude:+2;loyalty:+2,逐之出境,gratitude:-5;morale:-2,异民：善待则次日必降祥瑞（omen_next）

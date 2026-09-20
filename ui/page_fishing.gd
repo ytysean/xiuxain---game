@@ -8,6 +8,8 @@ extends Control
 signal 返回主页
 
 const TABS: Array = ["总览", "垂钓", "图录"]
+const 渔获增速_绿区: float = 0.35
+const 渔获衰减_非绿区: float = 0.25
 
 var _built: bool = false
 var _cur: String = "总览"
@@ -37,36 +39,41 @@ func _build() -> void:
 	if _built:
 		return
 	_built = true
+	# ★ 2026-09-17 F1（05 灵钓）：背景晕影画框——顶 0–11% / 底 88–100% 压暗，中部 11–88% 全透明（非蒙版）。
+	#   仅引用 UITheme.建背景晕影渐变()（原样，禁改停点 / 禁改 获取场景压暗色() 本体）；零新色值。
+	#   置于 main 之前 ⇒ 层级在内容之下；mouse_filter=IGNORE 不拦触控。
+	var 背景: TextureRect = TextureRect.new()
+	背景.name = "BGVeil"
+	背景.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var 背景渐变 := GradientTexture2D.new()
+	背景渐变.gradient = UITheme.建背景晕影渐变()
+	背景渐变.fill_from = Vector2(0.5, 0.0)
+	背景渐变.fill_to = Vector2(0.5, 1.0)
+	背景.texture = 背景渐变
+	背景.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	背景.stretch_mode = TextureRect.STRETCH_SCALE
+	背景.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(背景)
 	# 修复（实机验收抓出 · 2026-09-12）：本页根节点是 Control（非容器），子节点 anchors 全 0，
 	# ScrollContainer 最小尺寸为 0 → 塌成 0×0 且 clip_contents=true 把正文整块裁掉。
 	# 与 page_chat 同构：先挂一个全屏 VBoxContainer 作为唯一布局宿主。
 	var main: VBoxContainer = VBoxContainer.new()
 	main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main.add_theme_constant_override("separation", 8)
+	main.add_theme_constant_override("margin_left", UITheme.MARGIN)
+	main.add_theme_constant_override("margin_right", UITheme.MARGIN)
 	add_child(main)
-	var 顶栏: HBoxContainer = HBoxContainer.new()
-	顶栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main.add_child(顶栏)
-	var 返回按钮: Button = Button.new()
-	返回按钮.text = "← 返回宗门"
-	返回按钮.custom_minimum_size = Vector2(120, 36)
-	返回按钮.pressed.connect(_on返回)
-	顶栏.add_child(返回按钮)
-	var 标题: Label = Label.new()
-	标题.text = "  灵渊垂钓"
-	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
-	顶栏.add_child(标题)
+	# ★ 2026-09-17 F2（05 灵钓）：顶栏接统一房模板（18 页同款，含坊市 page_shop.gd:104）。
+	#   返回钮走 make_back_button ⇒ 得返回环；标题走 apply_page_title(FONT_TITLE=45)。
+	#   M1 随本条自然消解：原「␣␣灵渊垂钓」前导空格 hack 一并移除。
+	main.add_child(UITheme.建顶栏("灵渊垂钓", _on返回))
 	var 标签栏: HBoxContainer = HBoxContainer.new()
 	标签栏.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.add_child(标签栏)
-	for 标签名 in TABS:
-		var 按钮: Button = Button.new()
-		按钮.text = 标签名
-		按钮.custom_minimum_size = Vector2(100, 32)
-		按钮.pressed.connect(Callable(self, "_切换标签").bind(标签名))
-		标签栏.add_child(按钮)
-		_tab_btns[标签名] = 按钮
+	# ★ 2026-09-16（#009 逐页精修）：建钮循环收口到 UITheme.建标签栏（原先 19 页各自手搓，
+	#   且 custom_minimum_size 宽度在 80/90/100/110 之间漂移）。统一为最小宽 100 + EXPAND_FILL
+	#   ⇒ 少量页签自动均分不空、多量页签不溢出、宽度全局一致。
+	_tab_btns = UITheme.建标签栏(标签栏, TABS, Callable(self, "_切换标签"), _cur)
 	var 滚: ScrollContainer = ScrollContainer.new()
 	滚.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	滚.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -82,6 +89,7 @@ func _build() -> void:
 	_刷新内容()
 
 func _切换标签(标签名: String) -> void:
+	_关收杆结算()   # 切页时收起结算弹窗，避免残留遮挡
 	_cur = 标签名
 	_垂钓中 = false
 	_按住 = false
@@ -89,8 +97,7 @@ func _切换标签(标签名: String) -> void:
 	_刷新内容()
 
 func _刷新标签按钮() -> void:
-	for k in _tab_btns:
-		_tab_btns[k].modulate = Color(1, 1, 1, 1) if k == _cur else Color(0.6, 0.6, 0.6, 1)
+	UITheme.刷新标签高亮(_tab_btns, _cur)
 
 func _刷新内容() -> void:
 	for c in _content.get_children():
@@ -110,13 +117,13 @@ func _建_总览() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "钓道境界：%s" % 钓.钓道境界名()
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H1)
+	UITheme.apply_project_font(标题, UITheme.FONT_H2, true)
 	_content.add_child(标题)
 	var 进度文: Label = Label.new()
 	if 进度.get("满", false):
 		进度文.text = "已臻钓道极致。累计钓获 %d 次。" % 钓.累计钓获次数
 	else:
-		进度文.text = "经验 %d / %d（再获 %d 经验可晋%s）\n累计钓获 %d 次" % [进度.get("已得", 0), 进度.get("需", 0), 进度.get("需", 0) - 进度.get("已得", 0), 钓.钓道境界表[钓.钓道境界 + 1].get("名", ""), 钓.累计钓获次数]
+		进度文.text = "修为 %d / %d（再积 %d 修为可晋%s）\n累计钓获 %d 次" % [进度.get("已得", 0), 进度.get("需", 0), 进度.get("需", 0) - 进度.get("已得", 0), 钓.钓道境界表[钓.钓道境界 + 1].get("名", ""), 钓.累计钓获次数]
 	进度文.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY)
 	进度文.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(进度文)
@@ -140,6 +147,7 @@ func _建_总览() -> void:
 	_content.add_child(提示)
 	var 晋: Button = Button.new()
 	晋.text = "以灵材淬炼钓具（晋阶）"
+	UITheme.apply_secondary_button_style(晋)
 	晋.custom_minimum_size = Vector2(0, 44)
 	晋.pressed.connect(_晋升钓具)
 	_content.add_child(晋)
@@ -152,6 +160,7 @@ func _建_总览() -> void:
 	_content.add_child(规文)
 	var 参赛: Button = Button.new()
 	参赛.text = "参与本周灵钓大赛"
+	UITheme.apply_secondary_button_style(参赛)
 	参赛.custom_minimum_size = Vector2(0, 44)
 	参赛.pressed.connect(_参与大赛)
 	_content.add_child(参赛)
@@ -163,6 +172,7 @@ func _建_垂钓() -> void:
 	for 渊 in 钓.可钓灵渊():
 		var b: Button = Button.new()
 		b.text = 渊.get("名", "灵渊")
+		UITheme.apply_secondary_button_style(b)
 		b.custom_minimum_size = Vector2(0, 40)
 		b.pressed.connect(Callable(self, "_选灵渊").bind(int(渊.get("id"))))
 		_content.add_child(b)
@@ -179,12 +189,17 @@ func _建_垂钓() -> void:
 	for 饵 in Game.灵钓系统.钓鱼灵饵表:
 		var eb: Button = Button.new()
 		eb.text = 饵.get("名称", "凡饵")
+		UITheme.apply_secondary_button_style(eb)
 		eb.custom_minimum_size = Vector2(0, 36)
 		eb.pressed.connect(Callable(self, "_选灵饵").bind(饵.get("名称", "凡饵")))
 		_content.add_child(eb)
-	_content.add_child(_分隔(""))
+	# ★ 2026-09-17 F4（05 灵钓）：空标题当间隔条 → 改显式 Control 间隔（GRID_SM）。
+	var 间隔: Control = Control.new()
+	间隔.custom_minimum_size = Vector2(0, UITheme.GRID_SM)
+	_content.add_child(间隔)
 	var 抛竿: Button = Button.new()
 	抛竿.text = "抛竿入水"
+	UITheme.apply_secondary_button_style(抛竿)
 	抛竿.custom_minimum_size = Vector2(0, 48)
 	抛竿.pressed.connect(_抛竿)
 	_content.add_child(抛竿)
@@ -263,19 +278,31 @@ func _选灵渊(id: int) -> void:
 	_当前灵渊id = id
 
 func _抛竿() -> void:
+	var 可钓: Array = Game.灵钓系统.可钓灵渊()
+	var 可选id: Array = []
+	for 渊 in 可钓:
+		可选id.append(int(渊.get("id")))
+	if _当前灵渊id <= 0 or not 可选id.has(_当前灵渊id):
+		UIHint.show_hint(self, "灵钓 · 抛竿", "请先择定一处灵渊，再抛竿入水。")
+		return
 	_张力参数 = Game.灵钓系统.开始灵钓(_当前灵渊id)
 	_垂钓中 = true
 	_张力 = 0.0
 	_渔获进度 = 0.0
 	if _收线热区 != null:
 		_收线热区.visible = true
+		_收线热区.self_modulate = Color.WHITE
 	_update状态("已抛竿，静待鱼讯……")
 
 func _on收线按下() -> void:
 	_按住 = true
+	if _收线热区 != null:
+		_收线热区.self_modulate = UITheme.COLOR_TEXT_GOLD
 
 func _on收线抬起() -> void:
 	_按住 = false
+	if _收线热区 != null:
+		_收线热区.self_modulate = Color.WHITE
 
 func _update状态(t: String) -> void:
 	if _状态文本 != null:
@@ -298,16 +325,30 @@ func _process(delta: float) -> void:
 	var 绿下: float = float(_张力参数.get("绿区下", 42.0))
 	var 绿上: float = float(_张力参数.get("绿区上", 68.0))
 	if _张力 >= 绿下 and _张力 <= 绿上:
-		_渔获进度 += delta * 0.35   # 绿区每秒约 0.35 进度 [PLACEHOLDER·待实机调]
+		_渔获进度 += delta * 渔获增速_绿区
 	else:
-		_渔获进度 -= delta * 0.25
+		_渔获进度 -= delta * 渔获衰减_非绿区
 	_渔获进度 = clampf(_渔获进度, 0.0, 1.0)
+	_刷新张力反馈(绿下, 绿上)
 	if _张力条 != null:
 		_张力条.value = _张力
 	if _渔获条 != null:
 		_渔获条.value = _渔获进度
 	if _渔获进度 >= 1.0:
 		_起钩()
+
+func _刷新张力反馈(绿下: float, 绿上: float) -> void:
+	if _状态文本 == null:
+		return
+	if _张力 >= 绿下 and _张力 <= 绿上:
+		_状态文本.text = "✓ 张力适中（绿区），保持收线待鱼力竭"
+		_状态文本.add_theme_color_override("font_color", UITheme.COLOR_STATUS_SUCCESS)
+	elif _张力 > 绿上:
+		_状态文本.text = "↑ 张力过高，松开放线降温"
+		_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_RED)
+	else:
+		_状态文本.text = "↓ 张力不足，按住收线蓄力"
+		_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 
 func _断线() -> void:
 	_垂钓中 = false
@@ -316,8 +357,12 @@ func _断线() -> void:
 	_渔获进度 = 0.0
 	if _收线热区 != null:
 		_收线热区.visible = false
+		_收线热区.self_modulate = Color.WHITE
+	UIHint.show_hint(self, "灵钓 · 断线", "张力过载，鱼线崩断，空手而归。")
 	_最近结果 = {"成功": false, "原因": "张力过载，鱼线崩断"}
 	_update状态("张力过载，鱼线崩断，空手而归。")
+	if _状态文本 != null:
+		_状态文本.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	_刷新内容()
 
 func _起钩() -> void:
@@ -329,6 +374,7 @@ func _起钩() -> void:
 	_最近结果 = Game.灵钓系统.结算钓获(表现, _当前灵渊id)
 	_update状态("起钩！")
 	_刷新内容()
+	_弹收杆结算()   # 收杆结算弹窗（页内结果保留，关弹窗后仍可查）
 
 func _格式结果(r: Dictionary) -> String:
 	if not r.get("成功", false):
@@ -380,6 +426,230 @@ func _on使用回溯符() -> void:
 	else:
 		UIHint.show_hint(self, "灵钓 · 回溯", "回溯失败：%s" % 结果.get("原因", ""))
 
+# ===== 收杆结算弹窗 =====
+# 参考模拟垂钓品类惯例（Stardew 的「鱼名 + 尺寸 + 首次收录 / 新纪录」三件套，
+# COTW / Fishing Planet 的稀有度色框 + 光效 + 入场动画），按本项目修真口径落地：
+#   - 品阶色取 UIThemeConfig.QUALITY_COLOR（唯一色源，禁在本页造色值）；
+#   - 重量「钧」/ 长度「尺」沿用后端字段，文案修真化；
+#   - 晕影基色走 UITheme.获取场景压暗色()（铁律：禁用 获取面板底色()）。
+# 立绘走抠底通道（fish_cut/），资产未到位时后端自动回退原图 —— 不白屏。
+const 品阶_STEM: Dictionary = {
+	"凡阶": "fan", "灵阶": "ling", "宝阶": "bao",
+	"王阶": "wang", "圣阶": "sheng", "仙阶": "xian", "道阶": "dao",
+}
+
+var _结算层: Control = null
+
+func _品阶色(品阶名: String) -> Color:
+	var stem: String = String(品阶_STEM.get(品阶名, ""))
+	if stem == "":
+		return UITheme.COLOR_TEXT_GOLD   # 神秘 / 未知品阶 → 金
+	return UIThemeConfig.get_quality_color(stem)
+
+func _关收杆结算() -> void:
+	if _结算层 != null and is_instance_valid(_结算层):
+		_结算层.queue_free()
+	_结算层 = null
+
+func _弹收杆结算() -> void:
+	var r: Dictionary = _最近结果
+	if not bool(r.get("成功", false)):
+		return
+	var 名称: String = String(r.get("名称", ""))
+	if 名称 == "":
+		return
+	_关收杆结算()
+	var 色: Color = _品阶色(String(r.get("品阶", "")))
+
+	# —— 全屏层：遮罩 + 居中内容；mouse_filter=STOP 拦截穿透 ——
+	var 层: Control = Control.new()
+	层.name = "FishingResult"
+	层.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	层.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(层)
+	_结算层 = 层
+
+	var 墨: Color = UITheme.获取场景压暗色()
+	墨.a = 0.88
+	var 遮罩: ColorRect = ColorRect.new()
+	遮罩.color = 墨
+	遮罩.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	遮罩.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	层.add_child(遮罩)
+
+	# 居中宿主：CenterContainer 保证子节点保持自身最小尺寸并居中。
+	# 坑：直接给 VBox 用 PRESET_CENTER，size=0 时 offsets 全 0，撑开后会向右下延伸，
+	#     立绘区被压扁、内容整体偏位（实机探针抓出）。
+	var 居中: CenterContainer = CenterContainer.new()
+	居中.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	居中.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	层.add_child(居中)
+
+	var 外框: VBoxContainer = VBoxContainer.new()
+	外框.custom_minimum_size = Vector2(UITheme.RESULT_PANEL_W, 0)
+	外框.alignment = BoxContainer.ALIGNMENT_CENTER
+	外框.add_theme_constant_override("separation", UITheme.GRID)
+	居中.add_child(外框)
+	# 结算内容居中卡片 ⇒ 缩放弹入。scale 不与 CenterContainer 的居中重排冲突（它只管 position/size）。
+	UITheme.弹窗入场(外框, 遮罩, 0.26, true)
+
+	# —— 品阶横幅 ——
+	var 横幅: Label = Label.new()
+	if String(r.get("品阶", "")) == "神秘":
+		横幅.text = "◆ 神 秘 遭 遇 ◆"
+	elif bool(r.get("仙阶现身", false)):
+		横幅.text = "◆ 仙 缘 降 临 ◆"
+	else:
+		横幅.text = "— %s · %s · %s —" % [r.get("品阶", ""), r.get("五行", ""), r.get("分层", "")]
+	UITheme.apply_project_font(横幅, UITheme.FONT_H2, true)
+	横幅.add_theme_color_override("font_color", 色)
+	横幅.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	外框.add_child(横幅)
+
+	# —— 立绘（抠底通道）——
+	var 立绘: TextureRect = TextureRect.new()
+	立绘.texture = Game.灵钓系统.获取灵鱼立绘(名称, int(r.get("混沌变体ID", -1)), true)
+	立绘.custom_minimum_size = Vector2(0, UITheme.RESULT_ART_H)
+	立绘.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	立绘.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	立绘.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if 立绘.texture == null:
+		var 占位: Label = Label.new()
+		占位.text = "暂无画像"
+		占位.custom_minimum_size = Vector2(0, UITheme.RESULT_ART_H)
+		占位.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		占位.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		UITheme.apply_project_font(占位, UITheme.FONT_AUX, false)
+		占位.add_theme_color_override("font_color", UITheme.COLOR_TEXT_DISABLED)
+		外框.add_child(占位)
+	else:
+		外框.add_child(立绘)
+
+	# —— 名号（品阶色）——
+	var 名标: Label = Label.new()
+	名标.text = 名称
+	UITheme.apply_project_font(名标, UITheme.FONT_H1, true)
+	名标.add_theme_color_override("font_color", 色)
+	名标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	名标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	外框.add_child(名标)
+
+	# —— 徽记行（首见 / 新纪录 / 破境 / 回溯符）——
+	var 徽记: Array = []
+	if bool(r.get("新收录", false)):
+		徽记.append("★ 图录首见")
+	if bool(r.get("新纪录", false)):
+		徽记.append("★ 新纪录")
+	if bool(r.get("境界突破", false)):
+		徽记.append("◆ 钓道突破")
+	if bool(r.get("获得回溯符", false)):
+		徽记.append("◆ 得回溯符")
+	if not 徽记.is_empty():
+		var 徽记标: Label = Label.new()
+		徽记标.text = "　".join(徽记)
+		UITheme.apply_project_font(徽记标, UITheme.FONT_BODY, true)
+		徽记标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
+		徽记标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		徽记标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		外框.add_child(徽记标)
+
+	# —— 数据行 ——
+	var 数据: Label = Label.new()
+	if String(r.get("品阶", "")) == "神秘" or bool(r.get("仙阶现身", false)):
+		数据.text = String(r.get("提示", ""))
+	else:
+		数据.text = "灵韵 %d · 重 %.1f 钧 · 长 %.1f 尺 · 难度 %d" % [
+			int(r.get("灵韵", 0)), float(r.get("重量", 0.0)),
+			float(r.get("长度", 0.0)), int(r.get("钓获难度", 0)),
+		]
+	UITheme.apply_project_font(数据, UITheme.FONT_BODY, false)
+	数据.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
+	数据.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	数据.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	外框.add_child(数据)
+
+	var 用途: String = String(r.get("用途", ""))
+	if 用途 != "":
+		var 用途标: Label = Label.new()
+		用途标.text = "用途：%s" % 用途
+		UITheme.apply_project_font(用途标, UITheme.FONT_AUX, false)
+		用途标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+		用途标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		用途标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		外框.add_child(用途标)
+
+	var 来处标: Label = Label.new()
+	来处标.text = "钓自 %s · 钓道修为 +%d" % [r.get("灵渊名", "灵渊"), int(r.get("获得经验", 0))]
+	UITheme.apply_project_font(来处标, UITheme.FONT_AUX, false)
+	来处标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+	来处标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	外框.add_child(来处标)
+
+	# —— 混沌孑遗赐名 ——
+	var 命名框: LineEdit = null
+	if bool(r.get("需要命名", false)):
+		var 特征: String = String(r.get("混沌特征", ""))
+		if 特征 != "":
+			var 特征标: Label = Label.new()
+			特征标.text = "特征：%s" % 特征
+			UITheme.apply_project_font(特征标, UITheme.FONT_AUX, false)
+			特征标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
+			特征标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			特征标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			外框.add_child(特征标)
+		命名框 = LineEdit.new()
+		命名框.placeholder_text = "为此孑遗赐名…"
+		命名框.custom_minimum_size = Vector2(0, UITheme.RESULT_INPUT_H)
+		命名框.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		外框.add_child(命名框)
+
+	# —— 按钮行 ——
+	var 按钮行: HBoxContainer = HBoxContainer.new()
+	按钮行.alignment = BoxContainer.ALIGNMENT_CENTER
+	按钮行.add_theme_constant_override("separation", UITheme.GRID)
+	外框.add_child(按钮行)
+
+	if 命名框 != null:
+		var 命名钮: Button = Button.new()
+		命名钮.text = "赐名收录"
+		UITheme.apply_secondary_button_style(命名钮)
+		命名钮.custom_minimum_size = Vector2(UITheme.RESULT_BTN_W, UITheme.RESULT_BTN_H)
+		命名钮.pressed.connect(func():
+			_on混沌命名(命名框.text)
+			_关收杆结算()
+		)
+		按钮行.add_child(命名钮)
+
+	var 继续钮: Button = Button.new()
+	继续钮.text = "继续垂钓"
+	UITheme.apply_secondary_button_style(继续钮)
+	继续钮.custom_minimum_size = Vector2(UITheme.RESULT_BTN_W, UITheme.RESULT_BTN_H)
+	继续钮.pressed.connect(_关收杆结算)
+	按钮行.add_child(继续钮)
+
+	if Game.灵钓系统.获取回溯符数量() > 0:
+		var 回溯钮: Button = Button.new()
+		回溯钮.text = "使用回溯符"
+		UITheme.apply_secondary_button_style(回溯钮)
+		回溯钮.custom_minimum_size = Vector2(UITheme.RESULT_BTN_W, UITheme.RESULT_BTN_H)
+		回溯钮.pressed.connect(func():
+			_on使用回溯符()
+			_关收杆结算()
+		)
+		按钮行.add_child(回溯钮)
+
+	# —— 入场动画：整层淡入 + 外框缩放弹入 ——
+	await get_tree().process_frame
+	if not is_instance_valid(层):
+		return
+	外框.pivot_offset = 外框.size * 0.5
+	外框.scale = Vector2(0.86, 0.86)
+	层.modulate.a = 0.0
+	var tw: Tween = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(层, "modulate:a", 1.0, 0.22)
+	tw.tween_property(外框, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 # ===== 图录 =====
 # 灵鱼图鉴墙：2 列卡片（立绘缩略 + 名称），未收录压暗；点卡片展开详情（大图 + 描述）。
 # 立绘走 Game.灵钓系统.获取灵鱼立绘(名)，无资产回落「暂无画像」占位（禁崩）。
@@ -392,7 +662,7 @@ func _建_图录() -> void:
 	var 标题: Label = Label.new()
 	标题.text = "灵钓图录：已收录 %d / %d" % [已收.size(), 灵钓行.size()]
 	标题.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
-	标题.add_theme_font_size_override("font_size", UITheme.FONT_H2)
+	UITheme.apply_project_font(标题, UITheme.FONT_H2, true)
 	_content.add_child(标题)
 	if _选中图录 != "":
 		_content.add_child(_建_图录详情(_选中图录, 已收.has(_选中图录), 灵钓行))
@@ -433,7 +703,7 @@ func _建_图录卡片(名: String, 已收录: bool) -> Control:
 		占位.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		占位.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		占位.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		占位.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(占位, UITheme.FONT_AUX, false)
 		占位.add_theme_color_override("font_color", UITheme.COLOR_TEXT_DISABLED)
 		占位.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		盒.add_child(占位)
@@ -445,7 +715,7 @@ func _建_图录卡片(名: String, 已收录: bool) -> Control:
 	名标.text = 名 if 已收录 else "%s（未收录）" % 名
 	名标.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	名标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	名标.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	UITheme.apply_project_font(名标, UITheme.FONT_AUX, false)
 	名标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD if 已收录 else UITheme.COLOR_TEXT_DISABLED)
 	名标.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	盒.add_child(名标)
@@ -473,7 +743,7 @@ func _建_图录详情(名: String, 已收录: bool, 灵钓行: Array) -> Contro
 		占位.custom_minimum_size = Vector2(230, 230)
 		占位.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		占位.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		占位.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+		UITheme.apply_project_font(占位, UITheme.FONT_AUX, false)
 		占位.add_theme_color_override("font_color", UITheme.COLOR_TEXT_DISABLED)
 		盒.add_child(占位)
 	else:
@@ -487,13 +757,13 @@ func _建_图录详情(名: String, 已收录: bool, 灵钓行: Array) -> Contro
 	var 名标: Label = Label.new()
 	名标.text = "%s%s" % [名, "" if 已收录 else "（尚未收录）"]
 	名标.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	名标.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	UITheme.apply_project_font(名标, UITheme.FONT_BODY, false)
 	名标.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD if 已收录 else UITheme.COLOR_TEXT_DISABLED)
 	信息.add_child(名标)
 	var 描: Label = Label.new()
 	描.text = String(数据.get("描述", ""))
 	描.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	描.add_theme_font_size_override("font_size", UITheme.FONT_AUX)
+	UITheme.apply_project_font(描, UITheme.FONT_AUX, false)
 	描.add_theme_color_override("font_color", UITheme.COLOR_TEXT_AUX)
 	信息.add_child(描)
 	return 面板
@@ -503,10 +773,12 @@ func _选图录(名: String) -> void:
 	_刷新内容()
 
 func _分隔(t: String) -> Label:
+	# ★ 2026-09-17 F3+F4（05 灵钓）：收口到统一分节组件 apply_section_title（FONT_H2=33）。
+	#   保留本页既有暗金分节色（显式 token 覆盖，承 03 判例「显式裁定>口头默认」），零未授权色变。
 	var l: Label = Label.new()
 	l.text = t
+	UITheme.apply_section_title(l)
 	l.add_theme_color_override("font_color", UITheme.COLOR_TEXT_BODY_GOLD)
-	l.add_theme_font_size_override("font_size", UITheme.FONT_TITLE)
 	return l
 
 func _晋升钓具() -> void:

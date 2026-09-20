@@ -44,18 +44,15 @@ func _build() -> void:
 	面板.name = "MainPanel"
 	_place(面板, 边距, 300.0, 屏宽 - 边距 * 2.0, 254.0)
 	面板.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var 面板样式 := StyleBoxFlat.new()
-	面板样式.bg_color = UITheme.C01_FLOAT_BG
-	面板样式.border_color = UITheme.C01_TEXT_GOLD
-	面板样式.set_corner_radius_all(int(round(8.0 * UITheme.UI_SCALE)))
-	面板样式.set_border_width_all(int(round(2.0 * UITheme.UI_SCALE)))
-	面板样式.set_content_margin_all(0)
-	面板.add_theme_stylebox_override("panel", 面板样式)
+	UITheme.style_popup_panel(面板)
 	add_child(面板)
 
 	_build_title()
 	_build_input()
 	_build_bottom()
+
+	# 居中卡片⇒缩放弹入（_place 给的是绝对 sizing，轴心退到 minimum 即可算对）
+	UITheme.弹窗入场(面板, _shade, 0.24, true)
 
 	_built = true
 
@@ -67,7 +64,7 @@ func _build_title() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.text = "宗主易名"
 	UITheme.apply_title_font_sized(title, int(round(20.0 * UITheme.UI_SCALE)))
-	title.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	title.add_theme_color_override("font_color", UITheme.获取金文字色())
 	add_child(title)
 
 	# 副标题提示
@@ -78,7 +75,7 @@ func _build_title() -> void:
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hint.text = "修改宗主名（仅显示用，不影响数值）"
 	UITheme.apply_body_font_sized(hint, int(round(12.0 * UITheme.UI_SCALE)))
-	hint.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	hint.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	add_child(hint)
 	# 易名玉牒数量提示
 	var card_hint := Label.new()
@@ -100,10 +97,10 @@ func _build_input() -> void:
 	_name_edit.max_length = 12
 	_name_edit.right_icon = null
 	UITheme.apply_body_font_sized(_name_edit, int(round(15.0 * UITheme.UI_SCALE)))
-	_name_edit.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
-	_name_edit.add_theme_color_override("caret_color", UITheme.C01_TEXT_GOLD)
-	_name_edit.add_theme_color_override("placeholder_color", UITheme.C01_TEXT_TERTIARY)
-	var le_sb: StyleBoxFlat = UITheme.make_panel_stylebox_flat(UITheme.C01_SCENE_BASE, UITheme.C01_TEXT_GOLD, 8, 1)
+	_name_edit.add_theme_color_override("font_color", UITheme.获取主文字色())
+	_name_edit.add_theme_color_override("caret_color", UITheme.获取金文字色())
+	_name_edit.add_theme_color_override("placeholder_color", UITheme.获取弱文字色())
+	var le_sb: StyleBoxFlat = UITheme.make_panel_stylebox_flat(UITheme.C01_SCENE_BASE, UITheme.获取金文字色(), 8, 1)
 	_name_edit.add_theme_stylebox_override("normal", le_sb)
 	_name_edit.add_theme_stylebox_override("focus", le_sb)
 	_name_edit.add_theme_stylebox_override("pressed", le_sb)
@@ -129,7 +126,7 @@ func _build_bottom() -> void:
 	confirm.add_theme_stylebox_override("hover", c正常)
 	confirm.add_theme_stylebox_override("focus", c正常)
 	UITheme.apply_title_font_sized(confirm, int(round(14.0 * UITheme.UI_SCALE)))
-	confirm.add_theme_color_override("font_color", UITheme.COLOR_TEXT_TITLE2)
+	confirm.add_theme_color_override("font_color", UITheme.获取次文字色())
 	confirm.pressed.connect(_on_confirm)
 	add_child(confirm)
 
@@ -138,16 +135,16 @@ func _build_bottom() -> void:
 	cancel.text = "作罢"
 	_place(cancel, 边距 + 24.0 + bw + 16.0, by, bw, bh)
 	cancel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var x正常: StyleBoxFlat = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE, 1.0), UITheme.C01_TEXT_GOLD, 8, 2)
+	var x正常: StyleBoxFlat = UITheme.make_panel_stylebox_flat(Color(UITheme.C01_SCENE_BASE, 1.0), UITheme.获取金文字色(), 8, 2)
 	var x按下: StyleBoxFlat = UITheme.make_panel_stylebox_flat(
 		Color(UITheme.C01_SCENE_BASE.r * 0.8, UITheme.C01_SCENE_BASE.g * 0.8, UITheme.C01_SCENE_BASE.b * 0.8, 1.0),
-		UITheme.C01_TEXT_GOLD, 8, 2)
+		UITheme.获取金文字色(), 8, 2)
 	cancel.add_theme_stylebox_override("normal", x正常)
 	cancel.add_theme_stylebox_override("pressed", x按下)
 	cancel.add_theme_stylebox_override("hover", x正常)
 	cancel.add_theme_stylebox_override("focus", x正常)
 	UITheme.apply_title_font_sized(cancel, int(round(14.0 * UITheme.UI_SCALE)))
-	cancel.add_theme_color_override("font_color", UITheme.C01_TEXT_GOLD)
+	cancel.add_theme_color_override("font_color", UITheme.获取金文字色())
 	cancel.pressed.connect(_on_cancel)
 	add_child(cancel)
 
@@ -187,12 +184,12 @@ func _on_confirm() -> void:
 	# 易名玉牒逻辑：有牒则消耗1张，无牒则用仙玉直接购牒并使用
 	if Game.改名卡数量 > 0:
 		Game.改名卡数量 -= 1
-		print("[易名弹窗] 使用易名玉牒1张，剩余: %d" % Game.改名卡数量)
+		Game.添加提示("使用易名玉牒1张，剩余: %d" % Game.改名卡数量)
 	else:
 		var 价格: int = Game.改名卡仙玉价格
 		var 总仙玉: int = Game.仙玉_绑定 + Game.仙玉_非绑定
 		if 总仙玉 < 价格:
-			print("[易名弹窗] 仙玉不足，需要 %d，当前 %d" % [价格, 总仙玉])
+			Game.添加提示("仙玉不足，需要 %d，当前 %d" % [价格, 总仙玉])
 			return
 		# 优先扣绑定仙玉
 		if Game.仙玉_绑定 >= 价格:
@@ -201,7 +198,7 @@ func _on_confirm() -> void:
 			var 剩余: int = 价格 - Game.仙玉_绑定
 			Game.仙玉_绑定 = 0
 			Game.仙玉_非绑定 -= 剩余
-		print("[易名弹窗] 无易名玉牒，消耗 %d 仙玉购牒并易名" % 价格)
+		Game.添加提示("无易名玉牒，消耗 %d 仙玉购牒并易名" % 价格)
 	Game.宗主名 = 新名
 	宗主名已改.emit(新名)
 	关闭()

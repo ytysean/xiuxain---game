@@ -11,8 +11,11 @@ config_version=5
 [application]
 
 config/name="太玄宗门录"
-run/main_scene="res://main.tscn"
+config/version="0.1.0"
+run/main_scene="res://boot.tscn"
 config/features=PackedStringArray("4.7")
+boot_splash/bg_color=Color(0.075, 0.18, 0.153, 1)
+boot_splash/image="res://art/splash/boot_splash.png"
 
 [autoload]
 
@@ -55,5 +58,6 @@ theme/custom="res://theme/main_theme.tres"
 
 [rendering]
 
+textures/vram_compression/import_etc2_astc=true
 2d/snap_2d_transforms_to_pixel=true
 2d/snap_2d_vertices_to_pixel=true

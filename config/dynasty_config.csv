@@ -1,0 +1,7 @@
+policy_id,policy_name,tribute_rate,talent_rate,army_rate,attitude_decay,crisis_weight,description
+dp_chongdao,崇道,1.3,1.2,0.8,0.7,0.9,举国崇奉仙道，供奉丰厚，灵根苗子多出自道观
+dp_zhongwen,重文,1.0,1.0,0.8,1.0,1.0,以文取士，民风温厚，苗子资质普遍更佳
+dp_shangwu,尚武,0.8,1.0,1.4,1.3,1.2,穷兵黩武，兵锋强盛而供奉寡薄
+dp_shemi,奢靡,1.5,0.8,1.0,1.0,1.4,皇室奢靡索贡无度，短期供奉极厚而民心易崩
+dp_caiji,猜忌,1.0,1.0,1.1,2.0,1.1,君主多疑，对宗门态度衰减加倍，需持续维护
+dp_miefa,灭法,0.0,0.0,1.5,2.5,1.5,禁绝修仙，断绝供奉与苗子，兵锋直指宗门（最难档）

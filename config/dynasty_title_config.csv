@@ -1,0 +1,8 @@
+title_id,title_name,need_relation,need_gratitude_count,need_grade,merit_kind,need_merit,right_desc,duty_type,duty_cost,duty_desc,decree_slots,tribute_bonus
+dt_weicefeng,未册封,0,0,1,none,0,仅被动收受郡县供奉,none,0,无,0,0
+dt_huguozong,护国宗,60,3,1,none,0,可接朝廷委托、向郡县差遣弟子办差,tribute,0,须应朝廷征调，不可拒绝朝廷指派的差事,1,0.08
+dt_guoshi,国师,75,4,5,none,0,可荐举官员左右派系权重、可调停民变,recommend,60,每月须荐举官员，耗灵石60；荐举对象即为其押注的派系（权重+4、恩遇+1）,3,0.25
+dt_dishi,帝师,90,5,6,merit,300,可押注皇位继承人,heir,0,须押注继承人，押错则新帝对宗门关系暴跌,5,0.40
+dt_jianguo,监国,95,6,8,merit,500,可废立皇帝（不可逆大事件）,regent,0,宗门气运与国祚绑定，王朝覆灭则宗门同受重伤,5,0.55
+dt_shezheng,摄政,0,0,8,karma,300,供奉翻倍、可操控国策,regent,0,民心持续下滑，改朝换代即翻车,7,0.80
+dt_zili,自立为王,0,0,8,none,0,脱离王朝自立，与旧朝永久敌对,independent,0,再无朝廷委托，郡县关系全部重置,0,0

@@ -228,7 +228,7 @@ func _build_hero(parent: Control) -> void:
 	_info_name = Label.new()
 	_info_name.text = "—"
 	UITheme.apply_title_font_sized(_info_name, int(round(20.0 * UITheme.UI_SCALE)))
-	_info_name.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	_info_name.add_theme_color_override("font_color", UITheme.获取主文字色())
 	_info_name.add_theme_color_override("font_shadow_color", UITheme.C01_SHADOW)
 	_info_name.add_theme_constant_override("shadow_offset_x", 2)
 	_info_name.add_theme_constant_override("shadow_offset_y", 2)
@@ -242,7 +242,7 @@ func _build_hero(parent: Control) -> void:
 	realm_panel.name = "RealmPanel"
 	var realm_sb := StyleBoxFlat.new()
 	realm_sb.bg_color = Color(0.06, 0.05, 0.03, 0.88)
-	realm_sb.border_color = UITheme.COLOR_BORDER_GOLD
+	realm_sb.border_color = UITheme.获取暗金边色()
 	realm_sb.set_corner_radius_all(6)
 	realm_sb.set_border_width_all(1)
 	realm_sb.content_margin_left = 8.0
@@ -266,7 +266,7 @@ func _build_hero(parent: Control) -> void:
 	realm_desc.name = "RealmDesc"
 	realm_desc.text = "（宗门当前最高境界）"
 	UITheme.apply_body_font_sized(realm_desc, int(round(11.0 * UITheme.UI_SCALE)))
-	realm_desc.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	realm_desc.add_theme_color_override("font_color", UITheme.获取次文字色())
 	realm_desc.add_theme_color_override("font_shadow_color", UITheme.C01_SHADOW)
 	realm_desc.add_theme_constant_override("shadow_offset_x", 1)
 	realm_desc.add_theme_constant_override("shadow_offset_y", 1)
@@ -278,7 +278,7 @@ func _build_hero(parent: Control) -> void:
 	days_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	days_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	UITheme.apply_body_font_sized(days_label, int(round(12.0 * UITheme.UI_SCALE)))
-	days_label.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	days_label.add_theme_color_override("font_color", UITheme.获取主文字色())
 	days_label.add_theme_color_override("font_shadow_color", UITheme.C01_SHADOW)
 	days_label.add_theme_constant_override("shadow_offset_x", 2)
 	days_label.add_theme_constant_override("shadow_offset_y", 2)
@@ -313,7 +313,7 @@ func _build_privilege(parent: Control) -> void:
 		cap.text = str(item["标签"])
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_aux_text(cap)
-		cap.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		cap.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		col.add_child(cap)
 
 
@@ -361,7 +361,7 @@ func _make_auth_icon_button(分类: String, 图标路径: String) -> Control:
 	label.text = 分类
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	UITheme.apply_body_font_sized(label, int(round(11.0 * UITheme.UI_SCALE)))
-	label.add_theme_color_override("font_color", UITheme.C01_TEXT_SECONDARY)
+	label.add_theme_color_override("font_color", UITheme.获取次文字色())
 	wrapper.add_child(label)
 	return wrapper
 
@@ -380,7 +380,7 @@ func _build_history(parent: Control) -> void:
 	more_btn.flat = true
 	more_btn.custom_minimum_size = Vector2(0, int(round(32.0 * UITheme.UI_SCALE)))
 	UITheme.apply_body_font_sized(more_btn, int(round(11.0 * UITheme.UI_SCALE)))
-	more_btn.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	more_btn.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	more_btn.add_theme_color_override("font_hover_color", UITheme.COLOR_TEXT_GOLD)
 	var sb_more := StyleBoxFlat.new()
 	sb_more.bg_color = Color(0, 0, 0, 0)
@@ -398,8 +398,8 @@ func _make_module_panel(parent: Control, title: String) -> VBoxContainer:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(UITheme.COLOR_PANEL_BG, 0.5)
-	sb.border_color = Color(UITheme.COLOR_BORDER_GOLD, 0.3)
+	sb.bg_color = Color(UITheme.获取面板底色(), 0.5)
+	sb.border_color = Color(UITheme.获取暗金边色(), 0.3)
 	sb.set_corner_radius_all(12)
 	sb.set_border_width_all(1)
 	sb.set_content_margin_all(10)
@@ -435,12 +435,12 @@ func _make_history_row(名称: String, 日: int) -> HBoxContainer:
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UITheme.apply_body_font_sized(name_lbl, int(round(12.0 * UITheme.UI_SCALE)))
-	name_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
+	name_lbl.add_theme_color_override("font_color", UITheme.获取主文字色())
 	row.add_child(name_lbl)
 	var day_lbl := Label.new()
 	day_lbl.text = "第 %d 日" % 日
 	UITheme.apply_aux_text(day_lbl)
-	day_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+	day_lbl.add_theme_color_override("font_color", UITheme.获取弱文字色())
 	row.add_child(day_lbl)
 	return row
 
@@ -518,7 +518,7 @@ func _refresh_history() -> void:
 		empty.text = "尚无纪事"
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		UITheme.apply_aux_text(empty)
-		empty.add_theme_color_override("font_color", UITheme.C01_TEXT_TERTIARY)
+		empty.add_theme_color_override("font_color", UITheme.获取弱文字色())
 		_history_box.add_child(empty)
 		return
 	for entry in 履历:

@@ -1,0 +1,4 @@
+heresy_id,name,desc,spread_rate,threshold,tribute_penalty,morale_penalty,convert_drag
+he_fo,佛门,浮屠东来，说因果轮回。百姓易于接受，却不再供奉仙道。,0.9,30,0.95,-1,0.85
+he_mo,魔门,魔焰西渐，许人以力与长生。蔓延极快，且供奉大半入其囊中。,1.15,25,0.88,-2,1.1
+he_yinsi,淫祀,淫祠遍地，巫觋惑众。供奉虽厚而人心思乱，苗子亦驳杂不纯。,1.0,20,0.9,-3,1.0

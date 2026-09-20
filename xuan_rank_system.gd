@@ -70,7 +70,7 @@ func _取个人榜数据() -> Array:
 			名 = "%s·%s" % [Game.宗门名, d.姓名]
 		else:
 			名 = "%s·%s" % [Game.宗门名, d.道号]
-		榜.append({"名": 名, "战力": int(d.战力), "境界值": Disciple.境界表.get(d.境界), "自己": false})
+		榜.append({"名": 名, "战力": int(d.战力), "境界值": Disciple.境界序.find(d.境界), "自己": false})
 	var 掌门战力: int = _宗主战力()
 	榜.append({"名": "%s·%s（你方）" % [Game.宗门名, Game.宗主名], "战力": 掌门战力, "境界值": _宗主境界(), "自己": true})
 	return 榜

@@ -14,13 +14,9 @@ signal 消息中心请求
 
 const CONTAINER_H: float = 84.0   # 含 22px 顶边距：167 + 22 = 189 → /2.25
 
-# v5 顶部资源栏面板：移到屏幕顶部边缘，收窄宽度
-const PANEL_X: float = 12.0
+# v5 顶部资源栏：P0-7 去面板化后「面板框」已退役（原 PANEL_X/W/R/BORDER），仅保留内容锚点。
 const PANEL_Y: float = 0.0
-const PANEL_W: float = 456.0
 const PANEL_H: float = 70.0
-const PANEL_R: float = 14.222222
-const PANEL_BORDER: float = 0.888889
 
 # 左身份区：宗门徽记 + 宗门名 + Lv（配合新框体位置调整）
 const AVATAR_CX: float = 37.777778
@@ -49,7 +45,7 @@ const CAL_LINE1_SIZE: int = 12
 const CAL_LINE2_Y: float = 43.0
 const CAL_LINE2_SIZE: int = 8
 const FALLBACK_CALENDAR1: String = "太玄 三年 · 五月"
-const FALLBACK_CALENDAR2: String = "午时 · 宗门日程"
+const FALLBACK_CALENDAR2: String = "午时 · 山门时课"
 
 # 右资源区：4 卡竖排（图标-数值 2 层，均居中于卡）
 # 调整位置避免图标和文字重叠
@@ -76,6 +72,14 @@ const RES_SLOT_W: float = 50.0   # 资源槽宽度
 const RES_SLOT_H: float = 70.0
 const RES_FONT: int = 10          # 数值字体大小
 
+# 资源详情文案：点资源槽弹「是什么 + 怎么用 + 日产」。
+const _RESOURCE_DESC: Dictionary = {
+	"灵石": "宗门通用硬通货：延揽弟子、炼器炼丹、兴建殿阁、坊市贸易皆需。\n日产源于弟子供奉、坊市盈余与机缘事件。",
+	"灵气": "天地灵气：弟子修炼、突破与布阵的根基。\n由灵田、聚灵阵持续产出，闭关时吸收更快。",
+	"灵植": "灵田所产灵草灵药：炼丹与疗伤的核心材料。\n由司职弟子打理灵田自动收获。",
+	"香火": "信众供奉之香火愿力：化为宗门气运与突破助力。\n道场宏扬、护佑苍生可增香火。",
+}
+
 var _res_values: Dictionary = {}   # name -> 数值 Label
 var _res_buttons: Dictionary = {}    # name -> 点击热区 Button
 var _sect_name_lbl: Label = null
@@ -85,8 +89,32 @@ var _calendar2_lbl: Label = null
 var _detail_popup: Control = null    # 资源详情弹窗（懒加载）
 var _avatar_icon: TextureRect = null   # 顶部宗徽图（创建宗门后由 refresh_avatar 替换为玩家选定的宗主头像）
 var _popup_instance: Control = null    # 头像选择弹窗（预热常驻实例，零加载延迟）
+# 消息按钮几何（设计逻辑）。未读角标的宽度随位数变化，刷新时须按角标实际宽度重定位，
+# 故提为类常量而不是 _build_message_button 的局部变量。
+const MSG_BTN_X: float = 440.0
+const MSG_BTN_Y: float = 10.0
+const MSG_BTN_W: float = 36.0
+const MSG_BTN_H: float = 50.0
+# 图标显示直径（逻辑）。按钮本身只是热区，视觉主体是这枚图标。
+# ★ 2026-09-16：直径 26 → 28、纵向中心由「按钮中心(35)」改为**对齐资源图标行(28)**。
+#   实测（像素量化）：原落位比资源图标行低 7.7 逻辑，读起来像"沉在数值行里"；
+#   资源块的整体中心虽是 35，但**图标行**在 28、数值行在 48，入口图标必须跟图标行成列。
+const MSG_ICON_DIA: float = 28.0
+const MSG_ICON_CX: float = MSG_BTN_X + MSG_BTN_W * 0.5
+const MSG_ICON_CY: float = RES_ICON_CENTER_Y
+# 未读角标：高 16 逻辑（≈12dp），落点 = 图标 45° 外沿再外扩 1 逻辑。
+# 45° 处的径向分量 = R/√2 ≈ 0.707R ⇒ 角标**半压在图标右上角**，是大厂角标通用落点。
+#
+# ★ 右缘**固定**取按钮右缘（而非「图标 45° + 半宽」）：屏宽 480、按钮右缘 476，余量只有 4 逻辑；
+#   若跟着图标直径漂，把图标调大一档就会把角标顶出屏幕。固定右缘后图标尺寸可自由调整。
+#   取右缘而非圆心锚定，还兼顾「位数 1→2（9→99）时向左生长」——右缘不动才不会越界。
+const MSG_DOT_SIZE: float = 16.0
+const MSG_DOT_RIGHT: float = MSG_BTN_X + MSG_BTN_W - 2.0
+const MSG_DOT_TOP: float = MSG_ICON_CY - MSG_ICON_DIA * 0.5 * 0.707 - MSG_DOT_SIZE * 0.5
+
 var _消息按钮: Button = null          # S56 消息中心入口按钮
-var _消息未读标签: Label = null       # S56 消息未读数标签
+var _消息红点: Control = null          # S56 消息未读角标（数字红点：红胶囊 + 白字深描边）
+var _消息红点呼吸: Tween = null        # 角标呼吸句柄（隐藏时必须 kill，否则循环叠加越闪越快）
 
 func _ready() -> void:
 	# 顶栏容器：占屏幕顶部 189px 可视区（含 22px 上边距）
@@ -103,6 +131,19 @@ func _ready() -> void:
 	grow_vertical = Control.GROW_DIRECTION_END
 	custom_minimum_size = Vector2(0, bar_h)
 
+	# ★ 2026-09-15 修（实机 bug：二级页「← 返回宗门」点了完全没反应）：
+	#   本根节点原为默认 MOUSE_FILTER_STOP，而 CONTAINER_H(84 逻辑 = 189 物理) 比真实
+	#   可见内容 (PANEL_H = 70 逻辑 = 157.5 物理) 高出 31.5px —— 这条**看不见的死带**
+	#   把落在 y≈157~189 的所有点击全部吞掉。而二级页容器 offset_top = UITheme.TOPBAR_H(156)，
+	#   各页自己的「返回」钮恰好贴在容器顶端 (y 156~222)，其中心 y≈189 正中这条死带
+	#   ⇒ 实机表现 = 「返回点不动」。引擎拾取实测：点 (60,189) 的 hovered = TopBar(Control)。
+	#   （52 个二级页审计中 20 页复现，直接 emit pressed 则全部正常关闭 ⇒ 信号链路无恙，
+	#     纯粹是点击被根节点截胡。）
+	#   本根节点是纯布局容器，自身不需要接收点击：真实热区 AvatarHit / NameHit /
+	#   EntryBtn_* / 消息按钮 全部自带 MOUSE_FILTER_STOP，故根节点改 IGNORE 安全，
+	#   多余高度不再吞事件。
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	_build()
 	refresh()
 	_预热弹窗()
@@ -116,17 +157,22 @@ func _build() -> void:
 	_build_message_button()
 
 func _build_panel() -> void:
-	var bg := Panel.new()
+	# P0-7 去面板化：原「btn_frame 悬浮框」（描边 + 圆角 + 半透底 = 一块贴在场景上的深色板）
+	#   → 「顶部 scrim 渐隐条」（无框、向下淡出，与背景自然融合）。
+	#   依据：网易游戏学院《窗口界面设计规范》「避免场景很亮、底板很暗的尴尬」。
+	var bg := TextureRect.new()
 	bg.name = "BG"
-	_place(bg, PANEL_X, PANEL_Y, PANEL_W, PANEL_H)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = UITheme.C01_PANEL_A
-	sb.border_color = UITheme.C01_LINE_GOLD
-	sb.set_corner_radius_all(int(round(PANEL_R * UITheme.UI_SCALE)))
-	sb.set_border_width_all(int(round(PANEL_BORDER * UITheme.UI_SCALE)))
-	sb.set_content_margin_all(0)
-	bg.add_theme_stylebox_override("panel", sb)
+	var gt := GradientTexture2D.new()
+	gt.gradient = UITheme.建顶栏渐隐()
+	gt.fill_from = Vector2(0.5, 0.0)
+	gt.fill_to = Vector2(0.5, 1.0)
+	bg.texture = gt
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	# 高度严格止于顶栏边界（PANEL_H×UI_SCALE ≈ 157px ≈ TOPBAR_H 156）—— 首页「宗门中枢」
+	# 面板顶边在 168px，若 scrim 下探过深会把面板首行压暗（首版 PANEL_H+24 实测踩到）。
+	_place(bg, 0.0, 0.0, 480.0, PANEL_H)
 	add_child(bg)
 
 func _build_avatar() -> void:
@@ -139,7 +185,7 @@ func _build_avatar() -> void:
 	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0)
-	sb.border_color = UITheme.C01_TEXT_GOLD
+	sb.border_color = UITheme.获取金文字色()
 	sb.set_corner_radius_all(int(AVATAR_RING_DIA * UITheme.UI_SCALE / 2.0))
 	sb.set_border_width_all(int(AVATAR_RING_BORDER * UITheme.UI_SCALE))
 	sb.set_content_margin_all(0)
@@ -152,6 +198,10 @@ func _build_avatar() -> void:
 	_avatar_icon.texture = UITheme.load_hd_icon("avatar_sect_36")
 	_avatar_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_avatar_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# 同一张宗主头像要服务两个显示档位（顶栏 117px / 弹窗预览 252~270px），
+	# 单一 size_limit 无法同时匹配 ⇒ 交给 mipmap 按 LOD 自适应采样。
+	# 纹理侧已开 mipmaps/generate=true；此处必须显式指定带 mipmap 的过滤，否则 mipmap 不生效。
+	_avatar_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	var icon_x: float = AVATAR_CX - AVATAR_RING_DIA * 0.5
 	var icon_y: float = AVATAR_CY - AVATAR_RING_DIA * 0.5
 	_place(_avatar_icon, icon_x, icon_y, AVATAR_RING_DIA, AVATAR_RING_DIA)
@@ -205,7 +255,7 @@ func _build_avatar() -> void:
 
 	# 宗门名
 	_sect_name_lbl = _mk_label("SectName", SECT_NAME_X, SECT_NAME_Y, SECT_NAME_W, SECT_NAME_H,
-		SECT_NAME_SIZE, UITheme.C01_TEXT_PRIMARY, true,
+		SECT_NAME_SIZE, UITheme.获取主文字色(), true,
 		HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_CENTER)
 	# Lv.等级（青绿）
 	_level_lbl = _mk_label("SectLevel", SECT_NAME_X, LEVEL_Y, SECT_NAME_W, 14.0,
@@ -237,23 +287,17 @@ func _build_calendar() -> void:
 	panel.name = "Calendar"
 	_place(panel, CAL_X, CAL_Y, CAL_W, CAL_H)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = UITheme.C01_PANEL_LIGHT
-	sb.border_color = UITheme.C01_TEXT_GOLD
-	sb.set_corner_radius_all(int(round(CAL_R * UITheme.UI_SCALE)))
-	sb.set_border_width_all(int(round(CAL_BORDER * UITheme.UI_SCALE)))
-	sb.set_content_margin_all(0)
-	panel.add_theme_stylebox_override("panel", sb)
+	UITheme.应用九宫格(panel, "card_bg")  # P0-4：小卡材质（替代裸 StyleBoxFlat）
 	add_child(panel)
 
 	# 行高各占一半，保证两行均居中
 	_calendar1_lbl = _mk_label_in(panel, "CalLine1", FALLBACK_CALENDAR1,
 		0.0, 0.0, CAL_W, CAL_H * 0.5,
-		CAL_LINE1_SIZE, UITheme.C01_TEXT_GOLD, true,
+		CAL_LINE1_SIZE, UITheme.获取金文字色(), true,
 		HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
 	_calendar2_lbl = _mk_label_in(panel, "CalLine2", FALLBACK_CALENDAR2,
 		0.0, CAL_H * 0.5, CAL_W, CAL_H * 0.5,
-		CAL_LINE2_SIZE, UITheme.C01_TEXT_TERTIARY, false,
+		CAL_LINE2_SIZE, UITheme.获取弱文字色(), false,
 		HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
 
 func _build_resources() -> void:
@@ -299,9 +343,9 @@ func _build_resources() -> void:
 		var label_x: float = cx - label_w * 0.5  # 基于cx居中，与图标对齐
 		var val_lbl: Label = _mk_label("Val_" + nm,
 			label_x, RES_VAL_CENTER_Y - 6.0, label_w, 12.0,
-			RES_FONT, UITheme.C01_TEXT_TERTIARY, true,
+			RES_FONT, UITheme.获取弱文字色(), true,
 			HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
-		val_lbl.text = "0"
+		val_lbl.text = "—"  # P0-6 续：占位统一「—」，刷新后按真实值覆盖
 		val_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		val_lbl.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 		val_lbl.clip_text = false
@@ -309,18 +353,15 @@ func _build_resources() -> void:
 
 # S56：消息中心入口按钮
 func _build_message_button() -> void:
-	# 消息按钮位置：资源栏右侧
-	var btn_x: float = 440.0
-	var btn_y: float = 10.0
-	var btn_w: float = 36.0
-	var btn_h: float = 50.0
-
 	_消息按钮 = Button.new()
 	_消息按钮.name = "MessageBtn"
 	_消息按钮.flat = true
-	_消息按钮.text = "📜"
-	_消息按钮.add_theme_font_size_override("font_size", int(round(20.0 * UITheme.UI_SCALE)))
-	_place(_消息按钮, btn_x, btn_y, btn_w, btn_h)
+	# ★ 2026-09-16：原为 `text = "◇"` 系统 emoji —— 灰白纸卷直接压在山水背景上，
+	#   既无描边也无体积感，风格与全局金质图标体系脱节（emoji 随系统字体渲染，
+	#   不同机型还各不相同）。改用项目已有的 `entry_feifuchuanxin_36`
+	#   （「飞符传讯」入口图标，与传送讯中心同一语义、同一美术体系），零新资产。
+	_消息按钮.text = ""
+	_place(_消息按钮, MSG_BTN_X, MSG_BTN_Y, MSG_BTN_W, MSG_BTN_H)
 	_消息按钮.mouse_filter = Control.MOUSE_FILTER_STOP
 	var 空样式 := StyleBoxEmpty.new()
 	_消息按钮.add_theme_stylebox_override("normal", 空样式)
@@ -330,34 +371,62 @@ func _build_message_button() -> void:
 	_消息按钮.pressed.connect(_on_message_pressed)
 	add_child(_消息按钮)
 
-	# 未读消息数红点
-	_消息未读标签 = Label.new()
-	_消息未读标签.name = "MsgUnread"
-	_消息未读标签.text = ""
-	_消息未读标签.add_theme_font_size_override("font_size", int(round(10.0 * UITheme.UI_SCALE)))
-	_消息未读标签.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
-	_消息未读标签.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_消息未读标签.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_place(_消息未读标签, btn_x + btn_w - 12, btn_y - 2, 16.0, 16.0)
-	_消息未读标签.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_消息未读标签)
+	var icon := TextureRect.new()
+	icon.name = "MsgIcon"
+	icon.texture = UITheme.load_hd_icon("entry_feifuchuanxin_36")
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_place(icon, MSG_ICON_CX - MSG_ICON_DIA * 0.5, MSG_ICON_CY - MSG_ICON_DIA * 0.5,
+		MSG_ICON_DIA, MSG_ICON_DIA)
+	add_child(icon)
+
+	# 未读消息角标：走统一数字红点（红胶囊 + 白字深描边）。
+	# ★ 旧实现是**纯白字 Label 且没有底色**（注释写着「红色背景」，但从未落地）⇒
+	#   白字直接飘在亮色山水上，几乎读不出来，也不符合角标规范。
+	_消息红点 = UITheme.make_red_dot_number(0, MSG_DOT_SIZE)
+	_消息红点.name = "MsgUnread"
+	_消息红点.visible = false
+	_消息红点.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_消息红点)
 
 	# 刷新未读数
 	_refresh_message_unread()
 
-# 刷新消息未读数
+# 刷新消息未读数（S56 角标 → 统一数字红点）
 func _refresh_message_unread() -> void:
-	if _消息未读标签 == null:
+	if _消息红点 == null:
 		return
-	if not is_instance_valid(Game):
-		_消息未读标签.text = ""
+	var 未读数: int = 0
+	if is_instance_valid(Game) and Game.消息系统 != null:
+		未读数 = int(Game.消息系统.获取总未读数())
+	if 未读数 <= 0:
+		_停呼吸消息角标()
+		_消息红点.visible = false
 		return
-	var 未读数: int = Game.消息系统.获取总未读数()
-	if 未读数 > 0:
-		_消息未读标签.text = str(min(未读数, 99))
-		# 红色背景
-	else:
-		_消息未读标签.text = ""
+	# 先定量（位数变化会改胶囊宽度），再定落点，最后才播入场动画 ——
+	# 动画需要以「最终尺寸」算轴心，顺序颠倒会让两位数角标从错误轴心弹出。
+	UITheme.设置红点数量(_消息红点, 未读数)
+	# 位数变化会改胶囊宽度（9 → 99 → 99+）⇒ 右缘锚定、向左生长，避免两位数时顶出屏幕右边界。
+	_消息红点.position = Vector2(MSG_DOT_RIGHT * UITheme.UI_SCALE - _消息红点.size.x,
+		MSG_DOT_TOP * UITheme.UI_SCALE)
+	# 仅在「无 → 有」这一刻播入场动画：refresh() 每次全量刷新都会走到这里，
+	# 无条件播动画会让角标随任意刷新反复弹跳。
+	if not _消息红点.visible:
+		_消息红点.visible = true
+		UITheme.animate_red_dot_appear(_消息红点)
+		# 有未读时角标轻微呼吸（1.0 ↔ 0.82）：数字角标是本作唯一的「持续提示」，
+		# 只此一处，避免满屏红点一起闪。
+		if _消息红点呼吸 == null or not _消息红点呼吸.is_valid():
+			_消息红点呼吸 = UITheme.start_red_dot_breathe(_消息红点)
+
+# 停呼吸并复位透明度：kill 后 Tween 会把 modulate.a 留在暗态，必须显式拉回 1.0。
+func _停呼吸消息角标() -> void:
+	if _消息红点呼吸 != null and _消息红点呼吸.is_valid():
+		_消息红点呼吸.kill()
+	_消息红点呼吸 = null
+	if _消息红点 != null and is_instance_valid(_消息红点):
+		_消息红点.modulate.a = 1.0
 
 # 点击消息按钮
 func _on_message_pressed() -> void:
@@ -410,19 +479,28 @@ func refresh() -> void:
 # 顶栏头像刷新：按 Game.宗主头像 取玩家选定头像纹理；缺省回落宗门徽记默认金边图标。
 # 仅展示，零玩法/战斗触碰——玩家档案更换头像时由 game_ui._refresh_all_pages 批量触发。
 
-# 圆形头像纹理包装：AtlasTexture 取「顶 1:1 段」（头顶→腰部），保证圆框内胸像完整（不切喉/切脚），
+# 圆形头像纹理包装：AtlasTexture 取头部特写段，保证小尺寸圆框内也能看清人脸。
+# 优先使用 game_state 的 per-avatar 裁切表（修正复杂头像脸中心偏移），未命中时回落默认。
 # 再交由圆形 mask shader 裁四角。仅展示用途，零玩法/战斗触碰。
-func _取圆框纹理(原图: Texture2D) -> Texture2D:
+func _取圆框纹理(原图: Texture2D, 裁切: Dictionary = {}) -> Texture2D:
 	if 原图 == null or 原图.get_width() <= 0:
 		return UITheme.load_hd_icon("avatar_sect_36")
 	var w: float = float(原图.get_width())
 	var h: float = float(原图.get_height())
 	var at := AtlasTexture.new()
 	at.atlas = 原图
-	# 居中裁 w×w 正方形（与 popup._圆形化 一致），避免顶部裁切导致圆框内胸像偏上
-	var y0: float = (h - w) * 0.5
-	y0 = max(0.0, y0)
-	at.region = Rect2(0.0, y0, w, w)
+	# 2026-09-16：顶栏小头像改用头部特写裁切；
+	# 优先使用 per-avatar 裁切表，未命中时回落 (0.5W, 0.325H, s=0.55W)。
+	var cx: float = float(裁切.get("cx", 0.5))
+	var cy: float = float(裁切.get("cy", 0.325))
+	var s: float = float(裁切.get("s", 0.55))
+	var 边长: float = w * s
+	var x: float = w * cx - 边长 * 0.5
+	var y: float = h * cy - 边长 * 0.5
+	# 钳制在纹理边界内
+	x = maxf(0.0, minf(x, w - 边长))
+	y = maxf(0.0, minf(y, h - 边长))
+	at.region = Rect2(x, y, 边长, 边长)
 	at.filter_clip = true
 	return at
 
@@ -432,7 +510,10 @@ func refresh_avatar() -> void:
 	var 原图: Texture2D = null
 	if is_instance_valid(Game) and Game.has_method("取宗主头像纹理"):
 		原图 = Game.取宗主头像纹理()  # 缺省参 = Game.宗主头像
-	_avatar_icon.texture = _取圆框纹理(原图)
+	var 裁切: Dictionary = {}
+	if is_instance_valid(Game) and Game.has_method("取宗主头像裁切"):
+		裁切 = Game.取宗主头像裁切()
+	_avatar_icon.texture = _取圆框纹理(原图, 裁切)
 
 # 点击头像区 → 唤起头像选择弹窗（全屏暗底模态）。仅 UI 入口，零玩法/战斗触碰。
 func _on_avatar_pressed() -> void:
@@ -511,7 +592,7 @@ func _refresh_identity() -> void:
 		_sect_name_lbl.text = _read_text("宗门名", FALLBACK_宗门名)
 	if _level_lbl != null:
 		var lv: int = _read_level()
-		_level_lbl.text = "Lv.%d" % lv
+		_level_lbl.text = "%d 品" % lv
 
 func _read_text(field: String, fallback: String) -> String:
 	if not is_instance_valid(Game):
@@ -549,7 +630,7 @@ func _refresh_calendar() -> void:
 	var 时辰表: Array = ["子时", "丑时", "寅时", "卯时", "辰时", "巳时", "午时", "未时", "申时", "酉时", "戌时", "亥时"]
 	var hour_index: int = int((d % 30) / 2.5)
 	hour_index = clampi(hour_index, 0, 11)
-	_calendar2_lbl.text = "%s · 宗门日程" % 时辰表[hour_index]
+	_calendar2_lbl.text = "%s · 山门时课" % 时辰表[hour_index]
 
 func refresh_resources() -> void:
 	if not is_instance_valid(Game):
@@ -561,7 +642,14 @@ func refresh_resources() -> void:
 			v = int(raw)
 		var lbl: Label = _res_values.get(cfg["name"], null)
 		if lbl != null:
-			lbl.text = _format_value(v)
+			# P0-6 续：零值显示「—」而非「0」，避免首档无数据时"没做"的观感
+			if v == 0:
+				lbl.text = "—"
+			else:
+				# 数值滚动：只在数值真的变化时滚（UITween 内部对相等值直接返回）。
+				# 首次从占位「—」滚上来，自带入场感；必须传 _format_value，
+				# 否则滚动中段会在 "1,448" 与 "1449" 之间跳字。
+				UITween.tween_number(lbl, v, 0.45, _format_value)
 
 # 资源详情弹窗：点击资源槽后在其下方弹出小面板，仅显示月产。
 func _on_resource_pressed(res_name: String) -> void:
@@ -578,9 +666,10 @@ func _show_resource_detail(res_name: String) -> void:
 	if cfg.is_empty():
 		return
 
+	var desc: String = _RESOURCE_DESC.get(res_name, "此乃宗门重要修行资粮。")
 	var prod_text: String = _production_text(res_name, cfg.get("prod_key", ""))
 
-	# 透明遮罩：点击弹窗外关闭（几乎不可见）。
+	# 透明遮罩：点击弹窗外关闭
 	var shade := ColorRect.new()
 	shade.name = "DetailShade"
 	shade.color = Color(0.0, 0.0, 0.0, 0.01)
@@ -589,42 +678,55 @@ func _show_resource_detail(res_name: String) -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(shade)
 
-	# 面板：140×44 逻辑尺寸，跟随点击资源槽正下方。
+	# 面板：跟随点击资源槽正下方（沿用既有安全区 clamp）
 	var panel := Panel.new()
 	panel.name = "DetailPanel"
 	panel.top_level = true
-	var pw: float = 140.0 * UITheme.UI_SCALE
-	var ph: float = 44.0 * UITheme.UI_SCALE
+	var pw: float = 280.0 * UITheme.UI_SCALE
+	var ph: float = 160.0 * UITheme.UI_SCALE
 	var btn: Button = _res_buttons.get(res_name, null)
 	var px: float = 0.0
 	var py: float = 0.0
 	if btn != null and is_instance_valid(btn):
 		var btn_pos: Vector2 = btn.global_position
 		px = btn_pos.x + btn.size.x * 0.5 - pw * 0.5
-		py = btn_pos.y + btn.size.y + 32.0 * UITheme.UI_SCALE  # 从4改为32，避开右上角隐藏UI图标
+		py = btn_pos.y + btn.size.y + 32.0 * UITheme.UI_SCALE
 	else:
-		var viewport: Vector2 = get_viewport_rect().size
-		px = (viewport.x - pw) * 0.5
-		py = viewport.y * 0.4
+		var viewport0: Vector2 = get_viewport_rect().size
+		px = (viewport0.x - pw) * 0.5
+		py = viewport0.y * 0.4
 	var viewport: Vector2 = get_viewport_rect().size
 	px = clampf(px, 8.0 * UITheme.UI_SCALE, viewport.x - pw - 8.0 * UITheme.UI_SCALE)
-	py = clampf(py, PANEL_H * UITheme.UI_SCALE + 32.0 * UITheme.UI_SCALE, viewport.y - ph - 8.0 * UITheme.UI_SCALE)  # 最小值从4改为32，与y偏移一致
+	py = clampf(py, PANEL_H * UITheme.UI_SCALE + 32.0 * UITheme.UI_SCALE, viewport.y - ph - 8.0 * UITheme.UI_SCALE)
 	panel.position = Vector2(px, py)
 	panel.size = Vector2(pw, ph)
 	panel.add_theme_stylebox_override("panel",
-		UITheme.make_panel_stylebox_flat(UITheme.COLOR_PANEL_BG, UITheme.COLOR_BORDER_GOLD, 8, 1))
+		UITheme.make_panel_stylebox_flat(UITheme.获取面板底色(), UITheme.获取暗金边色(), UITheme.RADIUS_PANEL, 1))
 	add_child(panel)
 
-	var prod_lbl := Label.new()
-	prod_lbl.name = "DetailProd"
-	prod_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	prod_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prod_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	prod_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	prod_lbl.text = prod_text
-	UITheme.apply_body_font_sized(prod_lbl, int(round(12.0 * UITheme.UI_SCALE)))
-	prod_lbl.add_theme_color_override("font_color", UITheme.C01_TEXT_PRIMARY)
-	panel.add_child(prod_lbl)
+	# 内容：标题 + 说明 + 日产
+	var vb := VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vb.add_theme_constant_override("separation", int(round(8.0 * UITheme.UI_SCALE)))
+	panel.add_child(vb)
+	var tl := Label.new()
+	tl.text = res_name
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UITheme.apply_title_font_sized(tl, int(round(15.0 * UITheme.UI_SCALE)))
+	tl.add_theme_color_override("font_color", UITheme.获取金文字色())
+	vb.add_child(tl)
+	var dl := Label.new()
+	dl.text = desc
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_body_font_sized(dl, int(round(12.0 * UITheme.UI_SCALE)))
+	dl.add_theme_color_override("font_color", UITheme.获取主文字色())
+	vb.add_child(dl)
+	var pl := Label.new()
+	pl.text = prod_text
+	pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UITheme.apply_aux_font_sized(pl, int(round(11.0 * UITheme.UI_SCALE)))
+	pl.add_theme_color_override("font_color", UITheme.C01_TEXT_JADE)
+	vb.add_child(pl)
 
 	_detail_popup = panel
 	shade.gui_input.connect(func(event: InputEvent):

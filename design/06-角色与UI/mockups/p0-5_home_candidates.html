@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>太玄宗门录 · 宗门首页重排候选稿 v2（P0-5）</title>
+<style>
+  :root{
+    /* ===== Token 全量取自 res://ui_theme.gd（P0-2 三层 Token）===== */
+    --mat-base-top:#22333A;      /* MAT_BASE_TOP */
+    --mat-base-bottom:#162024;   /* MAT_BASE_BOTTOM */
+    --mat-surface:#1B272B;       /* MAT_SURFACE */
+    --mat-row-top:#273942;       /* MAT_ROW_TOP */
+    --mat-row-bottom:#1C262C;    /* MAT_ROW_BOTTOM */
+    --mat-card-top:#2B4049;      /* MAT_CARD_TOP */
+    --mat-card-bottom:#1F2B31;   /* MAT_CARD_BOTTOM */
+    --mat-edge-dark:#6E5726;     /* MAT_EDGE_DARK */
+    --mat-edge-light:#E8CE8A;    /* MAT_EDGE_LIGHT */
+    --mat-gold-top:#C9A656;      /* MAT_GOLD_TOP */
+    --mat-gold-bottom:#8C6E2E;   /* MAT_GOLD_BOTTOM */
+    --mat-gold-hi:#F0DCA0;       /* MAT_GOLD_HI */
+    --c-gold:rgb(201,166,86);         /* COLOR_BORDER_GOLD #C9A656 */
+    --c-line-gold:rgba(214,177,106,.47); /* C01_LINE_GOLD */
+    --c-jade:rgb(107,196,182);        /* C01_TEXT_JADE */
+    --t-primary:#F2F5F3;         /* C01_TEXT_PRIMARY */
+    --t-gold:#D6B06A;            /* C01_TEXT_GOLD */
+    --t-sec:#CFC6B2;             /* C01_TEXT_SECONDARY */
+    --t-ter:#9FB3B0;             /* C01_TEXT_TERTIARY */
+    --tab-bar:rgba(22,32,36,.94);/* C01_TAB_BAR_BG */
+    --tab-active:rgba(110,87,38,.42); /* C01_TAB_ACTIVE */
+    --tab-idle:rgba(27,39,43,.55);    /* C01_TAB_IDLE */
+    --r-panel:12px;              /* RADIUS_PANEL */
+    --r-btn:6px;                 /* RADIUS_BUTTON */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0D1416;color:var(--t-sec);
+    font-family:"Source Han Sans CN","Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif;
+    padding:26px 20px 60px;-webkit-font-smoothing:antialiased}
+  .page-head{max-width:1520px;margin:0 auto 18px;text-align:center}
+  .page-head h1{font-size:20px;font-weight:700;color:var(--t-gold);letter-spacing:.06em}
+  .page-head p{font-size:13px;color:var(--t-ter);margin-top:9px;line-height:1.75}
+  .page-head code{color:var(--t-gold);font-size:12.5px}
+
+  .revise{max-width:1520px;margin:18px auto 24px;border:1px solid rgba(110,87,38,.7);
+    border-left:3px solid var(--mat-edge-light);border-radius:var(--r-panel);
+    background:linear-gradient(180deg,rgba(43,64,73,.5),rgba(22,32,36,.5));padding:16px 20px}
+  .revise h3{font-size:13.5px;color:var(--mat-gold-hi);margin-bottom:10px;letter-spacing:.06em}
+  .revise ul{list-style:none;font-size:12.5px;line-height:1.95;color:var(--t-sec)}
+  .revise li::before{content:"— ";color:var(--mat-edge-light)}
+  .revise .del{color:#D98A7A;text-decoration:line-through}
+  .revise .add{color:var(--c-jade)}
+  .revise code{color:var(--t-gold);font-size:12px}
+
+  .toolbar{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .toolbar button{background:linear-gradient(180deg,var(--mat-base-top),var(--mat-base-bottom));
+    border:1px solid var(--mat-edge-dark);border-radius:var(--r-btn);color:var(--t-sec);
+    font-size:12.5px;padding:8px 16px;cursor:pointer;font-family:inherit;transition:.15s}
+  .toolbar button:hover{border-color:var(--mat-edge-light);color:var(--t-gold)}
+  .toolbar button.on{background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    border-color:var(--mat-edge-light);color:#162024;font-weight:700}
+
+  .board{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;max-width:1520px;margin:0 auto}
+  .slot{width:432px}
+  .slot-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding-left:2px;flex-wrap:wrap}
+  .slot-head .tag{font-size:12px;font-weight:700;color:#162024;
+    background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    padding:3px 10px;border-radius:var(--r-btn);border:1px solid var(--mat-edge-light)}
+  .slot-head .nm{font-size:15px;font-weight:700;color:var(--t-primary)}
+  .slot-head .sub{font-size:11.5px;color:var(--t-ter)}
+  .slot-head .verdict{font-size:11px;font-weight:700;padding:2px 9px;border-radius:var(--r-btn)}
+  .slot-head .verdict.yes{background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    color:#162024;border:1px solid var(--mat-edge-light)}
+  .slot-head .verdict.no{background:rgba(120,60,50,.28);color:#D98A7A;border:1px solid rgba(217,138,122,.5)}
+  .slot.dim .phone{opacity:.4;filter:grayscale(.4)}
+  .verdict-block{max-width:1520px;margin:20px auto 6px;border:1px solid rgba(214,177,106,.55);
+    border-left:3px solid var(--mat-gold-hi);border-radius:var(--r-panel);
+    background:linear-gradient(180deg,rgba(201,166,86,.16),rgba(22,32,36,.62));padding:16px 20px}
+  .verdict-block h3{font-size:14px;color:var(--mat-gold-hi);margin-bottom:10px;letter-spacing:.06em}
+  .verdict-block table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+  .verdict-block th,.verdict-block td{border-bottom:1px solid rgba(110,87,38,.4);
+    padding:7px 9px;text-align:left;color:var(--t-sec);vertical-align:top;line-height:1.8}
+  .verdict-block th{color:var(--t-gold);font-weight:700;font-size:12px}
+  .verdict-block .pick{color:var(--mat-gold-hi);font-weight:700}
+  .verdict-block .drop{color:#D98A7A}
+  .verdict-block code{color:var(--t-gold);font-size:12px}
+
+  .phone{width:432px;height:768px;overflow:hidden;position:relative;
+    border:2px solid var(--mat-edge-dark);border-radius:16px;background:var(--mat-base-bottom);
+    box-shadow:0 0 0 1px rgba(232,206,138,.10),0 14px 40px rgba(0,0,0,.55)}
+  .screen{width:1080px;height:1920px;transform:scale(.4);transform-origin:top left;position:absolute;top:0;left:0}
+
+  .abs{position:absolute}
+  .panel{background:linear-gradient(180deg,var(--mat-base-top),var(--mat-base-bottom));
+    border:2px solid var(--mat-edge-dark);border-radius:var(--r-panel)}
+  .card{background:linear-gradient(180deg,var(--mat-card-top),var(--mat-card-bottom));
+    border:2px solid var(--mat-edge-dark);border-radius:var(--r-panel)}
+  .row{background:linear-gradient(180deg,var(--mat-row-top),var(--mat-row-bottom));
+    border:2px solid var(--mat-edge-dark);border-radius:var(--r-panel)}
+  .btn-gold{background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    border:2px solid var(--mat-edge-light);border-radius:var(--r-btn);color:#162024;font-weight:700;
+    display:flex;align-items:center;justify-content:center}
+  .btn-ghost{background:rgba(27,39,43,.62);border:2px solid var(--mat-edge-dark);
+    border-radius:var(--r-btn);color:var(--t-gold);display:flex;align-items:center;justify-content:center}
+  .tp{color:var(--t-primary)} .tg{color:var(--t-gold)} .ts{color:var(--t-sec)}
+  .tt{color:var(--t-ter)} .tj{color:var(--c-jade)}
+
+  /* 背景 */
+  .sky{position:absolute;inset:0;background:linear-gradient(180deg,#1E3038 0%,#17262C 38%,#101A1F 72%,#0C1417 100%)}
+  .sky svg{width:1080px;height:1920px;display:block}
+  .veil{position:absolute;inset:0;background:
+    linear-gradient(180deg,rgba(22,32,36,.72) 0%,rgba(22,32,36,.30) 22%,rgba(22,32,36,.08) 42%,rgba(22,32,36,.22) 60%,rgba(22,32,36,.78) 100%)}
+
+  /* ① 顶栏 */
+  .topbar{left:0;top:0;width:1080px;height:156px;
+    background:linear-gradient(180deg,rgba(34,51,58,.96),rgba(22,32,36,.96));
+    border-bottom:2px solid var(--c-line-gold);display:flex;align-items:center;padding:0 30px;gap:18px}
+  .avatar{width:92px;height:92px;border-radius:50%;flex:0 0 auto;
+    background:radial-gradient(circle at 34% 30%,#3C5A63,#22333A 70%);
+    border:2px solid var(--c-gold);display:flex;align-items:center;justify-content:center;
+    font-size:38px;color:var(--mat-gold-hi)}
+  .namebox{flex:0 0 auto;min-width:238px}
+  .namebox .n{font-size:33px;font-weight:700;color:var(--t-primary);letter-spacing:.04em}
+  .namebox .m{font-size:21px;color:var(--t-ter);margin-top:6px}
+  .lv{font-size:21px;color:var(--c-jade);border:2px solid rgba(107,196,182,.42);
+    border-radius:var(--r-btn);padding:2px 10px;margin-left:10px;vertical-align:3px}
+  .res{display:flex;gap:12px;margin-left:auto}
+  .res .slot2{width:132px;height:88px;border-radius:var(--r-btn);
+    background:rgba(27,39,43,.62);border:2px solid rgba(110,87,38,.75);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .res .slot2 .k{font-size:18px;color:var(--t-ter)}
+  .res .slot2 .v{font-size:24px;font-weight:700;color:var(--t-gold)}
+  .msg{width:76px;height:76px;border-radius:50%;border:2px solid var(--mat-edge-dark);
+    background:rgba(27,39,43,.62);display:flex;align-items:center;justify-content:center;position:relative}
+  .dot-red{position:absolute;top:-4px;right:-4px;min-width:26px;height:26px;border-radius:13px;
+    background:#C0392B;border:2px solid #162024;color:#fff;font-size:15px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+  /* ★ ② 时令横幅 */
+  .actbanner{left:36px;width:1008px;border-radius:var(--r-panel);
+    background:linear-gradient(90deg,rgba(201,166,86,.30),rgba(140,110,46,.16) 46%,rgba(22,32,36,.86));
+    border:2px solid var(--mat-edge-light);display:flex;align-items:center;gap:18px;padding:0 22px;
+    position:relative;overflow:hidden}
+  .actbanner .lbl{font-size:19px;font-weight:700;color:#162024;
+    background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    border:2px solid var(--mat-edge-light);border-radius:var(--r-btn);padding:3px 12px;flex:0 0 auto}
+  .actbanner .nm{font-size:27px;font-weight:700;color:var(--mat-gold-hi);letter-spacing:.06em;flex:0 0 auto}
+  .actbanner .cd{font-size:21px;color:var(--t-sec);flex:1}
+  .actbanner .cd b{color:var(--t-gold);font-weight:700}
+  .actbanner .go{width:132px;height:56px;font-size:21px;flex:0 0 auto}
+
+  /* 气象带 */
+  .weather{left:36px;width:1008px;border-radius:var(--r-panel);
+    background:linear-gradient(180deg,rgba(34,51,58,.86),rgba(22,32,36,.86));
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;gap:14px;padding:0 24px}
+  .weather .ico{width:32px;height:32px;border-radius:50%;
+    background:radial-gradient(circle,#F0DCA0,#C9A656 70%);flex:0 0 auto}
+  .weather .tx{font-size:22px;color:var(--t-sec);white-space:nowrap;overflow:hidden}
+  .weather .tag{font-size:17px;color:var(--t-ter);flex:0 0 auto}
+
+  /* ★ 传讯信息栏 */
+  .wire{left:36px;width:1008px;border-radius:var(--r-panel);
+    background:linear-gradient(180deg,rgba(39,57,66,.96),rgba(28,38,44,.96));
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;gap:16px;padding:0 22px;
+    position:relative}
+  .wire.hot{border-color:var(--mat-edge-light)}
+  .wire .tt1{font-size:23px;font-weight:700;color:var(--mat-gold-hi);flex:0 0 auto;letter-spacing:.04em}
+  .wire .cnt{font-size:19px;color:#162024;font-weight:700;flex:0 0 auto;
+    background:linear-gradient(180deg,var(--mat-gold-top),var(--mat-gold-bottom));
+    border-radius:10px;padding:2px 11px}
+  .wire .line{flex:1;min-width:0}
+  .wire .line .from{font-size:19px;color:var(--c-jade)}
+  .wire .line .say{font-size:22px;color:var(--t-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wire .go{width:118px;height:54px;font-size:19px;flex:0 0 auto}
+
+  /* 匾额 */
+  .plaque{left:326px;width:428px;
+    background:linear-gradient(180deg,rgba(44,62,69,.90),rgba(22,32,36,.90));
+    border:3px solid var(--mat-edge-dark);border-radius:var(--r-panel);
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .plaque .t1{font-size:42px;font-weight:700;color:var(--mat-gold-hi);letter-spacing:.24em}
+  .plaque .t2{font-size:17px;color:var(--t-ter);letter-spacing:.3em;margin-top:4px}
+
+  .sec-title{display:flex;align-items:center;gap:14px}
+  .sec-title .cn{font-size:25px;font-weight:700;color:var(--t-gold);letter-spacing:.10em}
+  .sec-title .en{font-size:16px;color:var(--t-ter);letter-spacing:.08em}
+  .sec-title .ln{flex:1;height:2px;background:linear-gradient(90deg,var(--c-line-gold),transparent)}
+
+  /* 快照卡 */
+  .snap{width:243px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:7px;position:relative}
+  .snap .ic{width:62px;height:62px;border-radius:50%;
+    background:radial-gradient(circle at 36% 30%,#3C5A63,#1F2B31 72%);
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;justify-content:center;font-size:28px}
+  .snap .k{font-size:20px;color:var(--t-ter);letter-spacing:.06em}
+  .snap .v{font-size:36px;font-weight:700;color:var(--t-gold);line-height:1}
+  .snap .v small{font-size:18px;color:var(--t-sec);font-weight:400;margin-left:4px}
+  .snap .cap{font-size:16.5px;color:var(--t-ter);text-align:center;line-height:1.45}
+  .snap .cap b{color:var(--c-jade);font-weight:400}
+  .snap .bar{width:168px;height:10px;border-radius:5px;background:rgba(22,32,36,.62);overflow:hidden}
+  .snap .bar i{display:block;height:100%;background:linear-gradient(90deg,#8C6E2E,#D6B06A)}
+  .snap .more{font-size:17px;color:var(--t-gold)}
+
+  /* 高频操作 */
+  .op{width:243px;height:252px;border-radius:var(--r-panel);
+    background:linear-gradient(180deg,var(--mat-card-top),var(--mat-card-bottom));
+    border:2px solid var(--mat-edge-dark);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+  .op.hot{border-color:var(--mat-edge-light);
+    background:linear-gradient(180deg,rgba(201,166,86,.24),rgba(140,110,46,.14))}
+  .op .ic{width:104px;height:104px;border-radius:50%;
+    background:radial-gradient(circle at 36% 30%,#3F606A,#1F2B31 74%);
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;justify-content:center;font-size:46px}
+  .op .k{font-size:28px;font-weight:700;color:var(--t-primary);letter-spacing:.08em}
+  .op .cap{font-size:17px;color:var(--t-ter)}
+  .op .lock{font-size:16px;color:var(--t-ter);border:2px solid rgba(159,179,176,.34);
+    border-radius:var(--r-btn);padding:1px 8px}
+
+  /* 快捷条 */
+  .qitem{border-radius:var(--r-panel);background:rgba(27,39,43,.72);
+    border:2px solid var(--mat-edge-dark);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative}
+  .qitem .ic{width:58px;height:58px;border-radius:50%;background:rgba(34,51,58,.9);
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;justify-content:center;font-size:27px}
+  .qitem .k{font-size:19px;color:var(--t-sec)}
+
+  /* Tab */
+  .tabbar{left:0;bottom:0;width:1080px;height:200px;background:var(--tab-bar);
+    border-top:2px solid var(--c-line-gold);display:flex;align-items:center;padding:0 24px 18px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .tab .ic{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:34px;background:var(--tab-idle);border:2px solid var(--mat-edge-dark);position:relative}
+  .tab .k{font-size:20px;color:var(--t-ter);letter-spacing:.08em}
+  .tab.on .ic{background:var(--tab-active);border-color:var(--mat-edge-light);color:var(--mat-gold-hi)}
+  .tab.on .k{color:var(--t-gold);font-weight:700}
+  .tab .ic .ind{position:absolute;bottom:6px;width:44px;height:4px;border-radius:2px;background:#D6B06A}
+
+  /* 司职 / 请示 行 */
+  .col-head{display:flex;align-items:center;justify-content:space-between}
+  .col-head .cn{font-size:24px;font-weight:700;color:var(--t-gold);letter-spacing:.08em}
+  .wrow{display:flex;align-items:center;gap:14px;padding:0 18px;position:relative}
+  .wrow .ic{width:62px;height:62px;border-radius:50%;flex:0 0 auto;
+    background:radial-gradient(circle at 36% 30%,#3C5A63,#1F2B31 72%);
+    border:2px solid var(--mat-edge-dark);display:flex;align-items:center;justify-content:center;font-size:26px}
+  .wrow .nm{font-size:23px;color:var(--t-sec)}
+  .wrow .own{font-size:18px;color:var(--c-jade)}
+  .wrow .vl{font-size:24px;font-weight:700;color:var(--t-gold);margin-left:auto}
+  .wrow .st{font-size:17px;color:var(--t-ter)}
+  .wrow .go{width:104px;height:56px;font-size:19px;flex:0 0 auto}
+  .wrow.empty{opacity:.72;border-style:dashed}
+
+  .thumbzone{position:absolute;left:0;top:1280px;width:1080px;height:640px;
+    background:linear-gradient(180deg,rgba(192,57,43,.02),rgba(192,57,43,.16));
+    border-top:2px dashed rgba(214,177,106,.75);display:none;pointer-events:none}
+  .thumbzone span{position:absolute;left:30px;top:16px;font-size:22px;color:#F0DCA0;
+    background:rgba(22,32,36,.86);border:2px solid var(--mat-edge-dark);
+    border-radius:var(--r-btn);padding:4px 14px}
+  .thumbzone .reach{position:absolute;right:34px;bottom:150px;width:520px;height:520px;border-radius:50%;
+    border:2px dashed rgba(240,220,160,.5);background:radial-gradient(circle,rgba(240,220,160,.10),transparent 68%)}
+  body.show-thumb .thumbzone{display:block}
+  .safe{position:absolute;left:0;top:0;width:1080px;height:64px;background:rgba(192,57,43,.10);
+    border-bottom:1px dashed rgba(214,177,106,.5);display:none;pointer-events:none}
+  body.show-thumb .safe{display:block}
+
+  .notes{margin-top:14px;font-size:12px;line-height:1.9;color:var(--t-ter)}
+  .notes b{color:var(--t-gold);font-weight:700}
+  .notes .ok{color:var(--c-jade)}
+  .notes .bad{color:#D98A7A}
+
+  .tokwrap{max-width:1520px;margin:42px auto 0}
+  .tokwrap h2{font-size:15px;color:var(--t-gold);margin-bottom:14px;text-align:center;letter-spacing:.08em}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border:1px solid rgba(110,87,38,.6);padding:7px 10px;text-align:left}
+  th{background:rgba(34,51,58,.7);color:var(--t-gold);font-weight:700}
+  td{color:var(--t-sec)}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:3px;
+    border:1px solid rgba(232,206,138,.4);vertical-align:-2px;margin-right:7px}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>《太玄宗门录》宗门首页重排 · 三套候选稿 <span style="color:var(--c-jade)">v2 修订版</span>（P0-5）</h1>
+  <p>
+    1080×1920 一比一还原；配色/圆角/字号<b>全部取自 <code>ui_theme.gd</code> 现网 Token</b>，坐标为 Godot 设计坐标真值。
+    图标位为占位符，落地时替换 <code>art/icons/entry/entry_*_36.png</code>。
+  </p>
+</div>
+
+<div class="verdict-block">
+  <h3>★ 骨架裁决：采用 A「宗门中枢」（B / C 的司职双栏不采用）</h3>
+  <p style="font-size:12.5px;line-height:1.9;color:var(--t-sec)">
+    依据 = <b>代码实证的系统维度</b> + <b>真人操作手感</b>，四条判据全部来自代码，不是偏好：
+  </p>
+  <table>
+    <tr><th style="width:132px">判据</th><th>代码 / 文档实证</th><th style="width:216px">裁决</th></tr>
+    <tr>
+      <td>司职明细<b>已有归属页</b></td>
+      <td><code>ui/page_building.gd:3</code> 注释即写明「殿阁页（§4 核心经营）：只读展示 <b>殿阁总览（司职数 + Σ等级）+ 司职列表（12 行）</b> + 殿阁被动」；底部 Tab 第 3 位 <code>殿阁 → PageBuildingScene</code>（<code>game_ui.gd:261</code>）</td>
+      <td><span class="drop">B / C 左栏「司职产出表」＝重复页</span>，撞 X12「一义一名一页」→ 不上首页，只在快照卡给概览数字 + 跳转</td>
+    </tr>
+    <tr>
+      <td>传讯是<b>孤儿系统</b></td>
+      <td><code>game_state.gd:1206 待处理传讯数量()</code> ＋ <code>:969 待处理传讯</code>（含发件人/内容/选项）；UX §4.13 明确「聊天/传讯<b>不做独立大页</b>，融入首页」</td>
+      <td><span class="pick">A 的传讯栏保留</span>（真缺口的唯一合法承载）；B/C 的「5 行请示双栏」超出"一条信息栏"口径</td>
+    </tr>
+    <tr>
+      <td>移动端<b>密度上限</b></td>
+      <td>UX 总纲 ＋ 全网调研：同屏控件 ≤5–6、信息密度约 PC 的 50–60%；反向案例「PC 界面搬手机 ＝ 灾难 UI」（了不起的修仙模拟器）</td>
+      <td><span class="drop">B 双栏 10 行（每栏仅 492px 宽）超上限</span>；A 中密度（4 卡 + 4 按钮）落在安全区</td>
+    </tr>
+    <tr>
+      <td>落地<b>产能</b></td>
+      <td>A 全部取数现成：<code>弟子列表.size()</code>／<code>司职列表</code>（<code>game_state.gd:4112</code>）／<code>待处理传讯数量()</code>／<code>获取气运等级()</code> → <b>零后端新增</b>、零新色值</td>
+      <td><span class="pick">A 可直接进 sect_home_page.gd</span>；B/C 需为双栏再写三处只读适配</td>
+    </tr>
+  </table>
+  <p style="font-size:12px;line-height:1.9;color:var(--t-ter);margin-top:10px">
+    ⚠ 按裁决微调一处：A 的快照卡 2 由「本月产」→「<b>司职在任 9/12</b>」——月产与司职明细属殿阁页，首页只给「谁在管」的概览与跳转，同一信息不两处展示。
+  </p>
+</div>
+
+<div class="revise">
+  <h3>v2 修订（按老大反馈，三条全部代码实证）</h3>
+  <ul>
+    <li><b>① 删掉"一键收取"</b> —— <span class="del">一键收取 / 一键全收</span> 全部移除，改为 <span class="add">「司职弟子自动执行」状态视图</span>。
+      依据：<code>disciple.gd:655</code> 阶位轴（执事→堂主→长老→供奉）＋ <code>game_state.gd:186</code> 司职门槛映射（yuying/lingtian/kuangmai）＋ <code>offline_manager.gd</code> 离线管理。
+      <b>宗主是管理者，不下场点收</b>。</li>
+    <li><b>② 补"时令"入口</b> —— 宗门时令（<code>entry_activity_36</code> → <code>page_activity.gd</code>）原被埋在「更多 → 对外关系」，现提升为
+      <span class="add">首页顶部时令横幅</span> ＋ 快捷条入口，双保险可见。</li>
+    <li><b>③ 补"传讯信息栏"</b> —— <code>game_state.gd:968</code> 已有完整实时传讯系统（待处理传讯/传讯历史/新传讯到达/弟子历练传讯/护法传讯/洞府传讯），
+      首页原本只有一个弱图标，现补 <span class="add">横向传讯信息栏</span>，显示待批复条数＋最新请示摘要，点击进「传讯录」批复。B7 气象带（心念轮播）保留不动。</li>
+  </ul>
+</div>
+
+<div class="toolbar">
+  <button id="btnThumb">拇指热区 / 安全区</button>
+  <button id="btnZoom">放大到 100%</button>
+</div>
+
+<div class="board" id="board">
+
+  <!-- ==================== A ==================== -->
+  <div class="slot">
+    <div class="slot-head">
+      <span class="tag">A</span><span class="nm">宗门中枢</span>
+      <span class="verdict yes">✅ 定稿骨架</span>
+      <span class="sub">管理视角 · 中密度 · 落地版</span>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="sky"><svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="820" cy="300" r="86" fill="#E8CE8A" opacity="0.10"/>
+        <path d="M0 980 L170 800 L300 900 L430 720 L600 940 L760 820 L900 960 L1080 860 L1080 1920 L0 1920 Z" fill="#14262C" opacity="0.95"/>
+        <path d="M0 1120 L200 960 L360 1080 L540 920 L720 1100 L900 1000 L1080 1120 L1080 1920 L0 1920 Z" fill="#0F1C21" opacity="0.98"/>
+        <path d="M0 1320 L240 1180 L480 1300 L760 1160 L1080 1320 L1080 1920 L0 1920 Z" fill="#0A1418"/>
+      </svg></div>
+      <div class="veil"></div>
+
+      <div class="abs topbar">
+        <div class="avatar">玄</div>
+        <div class="namebox">
+          <div class="n">太玄宗<span class="lv">门派·三级</span></div>
+          <div class="m">太玄历 三年·秋　·　云海封山</div>
+        </div>
+        <div class="res">
+          <div class="slot2"><div class="k">灵石</div><div class="v">12,480</div></div>
+          <div class="slot2"><div class="k">灵植</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">香火</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">声望</div><div class="v">320</div></div>
+        </div>
+        <div class="msg">✉<span class="dot-red">3</span></div>
+      </div>
+
+      <!-- ★ 时令横幅 -->
+      <div class="abs actbanner" style="top:168px;height:92px">
+        <span class="lbl">大典盛事</span>
+        <span class="nm">宗门大比</span>
+        <span class="cd">群英会武 · 剩余 <b>2 日 12 时</b>　｜　另有 3 项时令可参与</span>
+        <span class="go btn-gold">前往 ›</span>
+      </div>
+
+      <!-- 匾额 + 气象带 -->
+      <div class="abs plaque" style="top:336px;height:104px">
+        <div class="t1">太玄</div><div class="t2">T A I X U A N</div>
+      </div>
+      <div class="abs weather" style="top:468px;height:72px">
+        <span class="tag">气象</span>
+        <div class="ico"></div>
+        <div class="tx">云海之下灵脉微潮 —— 宜闭关参悟，或遣弟子下山历练。</div>
+      </div>
+
+      <!-- ★ 传讯信息栏 -->
+      <div class="abs wire hot" style="top:572px;height:96px">
+        <span class="tt1">弟子传讯</span>
+        <span class="cnt">3</span>
+        <div class="line">
+          <div class="from">丹堂 · 林清霜</div>
+          <div class="say">炉温失稳，火候难持 —— 请宗主定夺开炉时序…</div>
+        </div>
+        <span class="go btn-gold">批复 ›</span>
+      </div>
+
+      <!-- 运转快照 -->
+      <div class="abs sec-title" style="left:36px;top:690px;width:1008px">
+        <span class="cn">宗门运转</span><span class="en">司职弟子主理 · 无需宗主经手</span><span class="ln"></span>
+      </div>
+      <div class="abs" style="left:36px;top:736px;display:flex;gap:12px">
+        <div class="card snap" style="height:240px">
+          <div class="ic">👥</div>
+          <div class="k">门中弟子</div>
+          <div class="v">58<small>名</small></div>
+          <div class="cap">在册 56 · 游历 2<br><span class="more">查看名册 ›</span></div>
+        </div>
+        <div class="card snap" style="height:240px">
+          <div class="ic">🏅</div>
+          <div class="k">司职在任</div>
+          <div class="v">9<small>/12</small></div>
+          <div class="cap">空缺 3 · 待宗主指派<br><span class="more">去殿阁 ›</span></div>
+        </div>
+        <div class="card snap" style="height:240px">
+          <div class="bdg dot-red" style="position:absolute;top:12px;right:12px">7</div>
+          <div class="ic">📜</div>
+          <div class="k">待宗主裁决</div>
+          <div class="v">7<small>件</small></div>
+          <div class="cap">批阅 · 任命 · 请托<br><span class="more">聚合处理 ›</span></div>
+        </div>
+        <div class="card snap" style="height:240px">
+          <div class="ic">✨</div>
+          <div class="k">宗门气运</div>
+          <div class="v">82<small>/100</small></div>
+          <div class="bar"><i style="width:82%"></i></div>
+          <div class="cap">兴旺 · 灵气充盈</div>
+        </div>
+      </div>
+
+      <!-- 高频操作 -->
+      <div class="abs sec-title" style="left:36px;top:1006px;width:1008px">
+        <span class="cn">常用</span><span class="en">落于拇指热区</span><span class="ln"></span>
+      </div>
+      <div class="abs" style="left:36px;top:1052px;display:flex;gap:12px">
+        <div class="op hot"><div class="ic">🀄</div><div class="k">宗务</div><div class="lock">门派三级解锁</div></div>
+        <div class="op hot"><div class="ic">⚔</div><div class="k">历练</div><div class="cap">派遣 · 见闻回报</div></div>
+        <div class="op hot"><div class="ic">🏅</div><div class="k">司职</div><div class="cap">任命 · 空缺指派</div></div>
+        <div class="op hot"><div class="ic">🏮</div><div class="k">坊市</div><div class="cap">交易 · 收购</div></div>
+      </div>
+
+      <!-- 快捷条 -->
+      <div class="abs" style="left:36px;top:1336px;display:flex;gap:12px">
+        <div class="qitem" style="width:158px;height:176px"><div class="ic">🗺</div><div class="k">天下</div></div>
+        <div class="qitem" style="width:158px;height:176px"><div class="ic">📨</div><div class="k">灵讯</div>
+          <span class="dot-red" style="position:absolute;top:8px;right:8px">3</span></div>
+        <div class="qitem" style="width:158px;height:176px;border-color:var(--mat-edge-light)"><div class="ic">🎏</div><div class="k">时令</div>
+          <span class="dot-red" style="position:absolute;top:8px;right:8px"></span></div>
+        <div class="qitem" style="width:158px;height:176px"><div class="ic">🕯</div><div class="k">日供</div></div>
+        <div class="qitem" style="width:158px;height:176px"><div class="ic">📚</div><div class="k">宗门典藏</div></div>
+        <div class="qitem" style="width:158px;height:176px"><div class="ic">⋯</div><div class="k">更多</div></div>
+      </div>
+      <div class="abs" style="left:36px;top:1572px;width:1008px;height:2px;background:linear-gradient(90deg,transparent,var(--c-line-gold),transparent)"></div>
+
+      <div class="abs tabbar">
+        <div class="tab on"><div class="ic">⛩<span class="ind"></span></div><div class="k">宗门</div></div>
+        <div class="tab"><div class="ic">👥</div><div class="k">弟子</div></div>
+        <div class="tab"><div class="ic">🏛</div><div class="k">殿阁</div></div>
+        <div class="tab"><div class="ic">⚔</div><div class="k">历练</div></div>
+        <div class="tab"><div class="ic">📖</div><div class="k">纪事</div></div>
+      </div>
+
+      <div class="safe"></div>
+      <div class="thumbzone"><span>拇指热区（下 1/3）</span><div class="reach"></div></div>
+    </div></div>
+    <div class="notes">
+      <b>结构</b>：顶栏 0–156 ｜ <b>时令横幅 168–260</b> ｜ 匾额 336–440 ｜ 气象带 468–540 ｜ <b>传讯栏 572–668</b> ｜ 快照 736–976 ｜ 高频操作 1052–1304 ｜ 快捷条 1336–1512 ｜ Tab 1720–1920<br>
+      <span class="ok">✅</span> 全程<b>无手动收取</b>：月产卡只显示「丹堂·林清霜 主理 · 自动归库」——宗主管的是"人"，不是"点"<br>
+      <span class="ok">✅</span> 时令横幅占据顶栏正下方黄金位（限时+倒计时+前往），时令不再需要进"更多"两层<br>
+      <span class="ok">✅</span> 传讯栏 = 弟子请示流，与 B7 气象带（心念）上下呼应，构成"宗门情报面"<br>
+      <span class="bad">⚠</span> 信息层级偏多（顶栏+时令+气象+传讯+快照+操作+快捷），需靠"只显 Top1 传讯 + 快照卡 ≤4"控密度
+    </div>
+  </div>
+
+  <!-- ==================== B ==================== -->
+  <div class="slot dim">
+    <div class="slot-head">
+      <span class="tag">B</span><span class="nm">司职工作台</span>
+      <span class="verdict no">✗ 不采用</span>
+      <span class="sub">左栏司职表＝殿阁 Tab 已有（重复页）｜双栏 10 行超移动端密度上限</span>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="sky"><svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="300" cy="270" r="80" fill="#E8CE8A" opacity="0.09"/>
+        <path d="M0 700 L190 560 L340 660 L520 500 L700 680 L880 580 L1080 700 L1080 1920 L0 1920 Z" fill="#12232A" opacity="0.95"/>
+        <path d="M0 860 L230 720 L430 850 L640 700 L860 860 L1080 760 L1080 1920 L0 1920 Z" fill="#0D1A1F"/>
+      </svg></div>
+      <div class="veil"></div>
+
+      <div class="abs topbar">
+        <div class="avatar">玄</div>
+        <div class="namebox">
+          <div class="n">太玄宗<span class="lv">门派·三级</span></div>
+          <div class="m">太玄历 三年·秋　·　云海封山</div>
+        </div>
+        <div class="res">
+          <div class="slot2"><div class="k">灵石</div><div class="v">12,480</div></div>
+          <div class="slot2"><div class="k">灵植</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">香火</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">声望</div><div class="v">320</div></div>
+        </div>
+        <div class="msg">✉<span class="dot-red">3</span></div>
+      </div>
+
+      <div class="abs actbanner" style="top:168px;height:92px">
+        <span class="lbl">大典盛事</span>
+        <span class="nm">宗门大比</span>
+        <span class="cd">群英会武 · 剩余 <b>2 日 12 时</b></span>
+        <span class="go btn-gold">前往 ›</span>
+      </div>
+
+      <div class="abs plaque" style="top:296px;height:96px">
+        <div class="t1">太玄</div><div class="t2">T A I X U A N</div>
+      </div>
+      <div class="abs weather" style="top:416px;height:68px">
+        <span class="tag">气象</span>
+        <div class="ico"></div>
+        <div class="tx">云海之下灵脉微潮 —— 宜闭关参悟，或遣弟子下山历练。</div>
+      </div>
+
+      <div class="abs wire hot" style="top:508px;height:92px">
+        <span class="tt1">弟子传讯</span>
+        <span class="cnt">3</span>
+        <div class="line">
+          <div class="from">丹堂 · 林清霜</div>
+          <div class="say">炉温失稳，火候难持 —— 请宗主定夺开炉时序…</div>
+        </div>
+        <span class="go btn-gold">批复 ›</span>
+      </div>
+
+      <!-- 双栏 -->
+      <div class="abs card" style="left:36px;top:628px;width:492px;height:1058px;padding:20px">
+        <div class="col-head">
+          <span class="cn">宗门司职</span>
+          <span class="btn-ghost" style="width:150px;height:56px;font-size:19px">司职总览 ›</span>
+        </div>
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px">
+          <div class="row wrow" style="height:146px">
+            <div class="ic">🏮</div>
+            <div><div class="nm">丹堂</div><div class="own">林清霜 主理</div></div>
+            <div style="margin-left:auto;text-align:right"><div class="vl">+4,200</div><div class="st">自动归库</div></div>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">🌿</div>
+            <div><div class="nm">灵田</div><div class="own">云 舒 主理</div></div>
+            <div style="margin-left:auto;text-align:right"><div class="vl">+12 株</div><div class="st">灵植 · 长势佳</div></div>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">⛏</div>
+            <div><div class="nm">矿脉</div><div class="own">石敢当 主理</div></div>
+            <div style="margin-left:auto;text-align:right"><div class="vl">+3,200</div><div class="st">灵气 · 潮汐期</div></div>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">📖</div>
+            <div><div class="nm">藏经阁</div><div class="own">苏怀瑾 主理</div></div>
+            <div style="margin-left:auto;text-align:right"><div class="vl">整理中</div><div class="st">待定夺藏目</div></div>
+          </div>
+          <div class="row wrow empty" style="height:146px">
+            <div class="ic">🎓</div>
+            <div><div class="nm">传功殿</div><div class="own" style="color:var(--t-ter)">司职空缺</div></div>
+            <span class="go btn-gold" style="margin-left:auto">指派</span>
+          </div>
+        </div>
+        <div style="margin-top:18px;font-size:18px;color:var(--t-ter);line-height:1.6">
+          上月结余 灵石 +96,200 ｜ 灵气 +28,400<br>另有 2 处司职待指派，影响产出效率
+        </div>
+      </div>
+
+      <div class="abs card" style="left:552px;top:628px;width:492px;height:1058px;padding:20px">
+        <div class="col-head">
+          <span class="cn">弟子请示</span>
+          <span class="btn-ghost" style="width:150px;height:56px;font-size:19px">传讯录 ›</span>
+        </div>
+        <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px">
+          <div class="row wrow" style="height:146px">
+            <div class="ic">📜</div>
+            <div><div class="nm">待批阅奏疏</div><div class="own">执事殿 呈</div></div>
+            <span class="go btn-gold" style="margin-left:auto">批阅</span>
+            <span class="dot-red" style="position:absolute;top:10px;right:10px">3</span>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">🏅</div>
+            <div><div class="nm">待任命司职</div><div class="own">传功殿 呈</div></div>
+            <span class="go btn-gold" style="margin-left:auto">任命</span>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">⚔</div>
+            <div><div class="nm">历练见闻请示</div><div class="own">弟子 秦无咎 · 青岚谷</div></div>
+            <span class="go btn-gold" style="margin-left:auto">裁决</span>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">🛡</div>
+            <div><div class="nm">护法请示</div><div class="own">弟子 楚砚 求护法</div></div>
+            <span class="go btn-gold" style="margin-left:auto">裁决</span>
+          </div>
+          <div class="row wrow" style="height:146px">
+            <div class="ic">🏔</div>
+            <div><div class="nm">洞府营建请示</div><div class="own">弟子 白芷 请地脉</div></div>
+            <span class="go btn-gold" style="margin-left:auto">裁决</span>
+          </div>
+        </div>
+        <div style="margin-top:18px;font-size:18px;color:var(--t-ter);line-height:1.6">
+          传讯历史上限 100 条 ｜ 最近更新 三年·秋·廿三<br>弟子力所不及之事，方请示宗主定夺
+        </div>
+      </div>
+
+      <div class="abs tabbar">
+        <div class="tab on"><div class="ic">⛩<span class="ind"></span></div><div class="k">宗门</div></div>
+        <div class="tab"><div class="ic">👥</div><div class="k">弟子</div></div>
+        <div class="tab"><div class="ic">🏛</div><div class="k">殿阁</div></div>
+        <div class="tab"><div class="ic">⚔</div><div class="k">历练</div></div>
+        <div class="tab"><div class="ic">📖</div><div class="k">纪事</div></div>
+      </div>
+
+      <div class="safe"></div>
+      <div class="thumbzone"><span>拇指热区（下 1/3）</span><div class="reach"></div></div>
+    </div></div>
+    <div class="notes">
+      <b>结构</b>：顶栏 ｜ <b>时令横幅</b> ｜ 匾额 ｜ 气象带 ｜ <b>传讯栏</b> ｜ 双栏 628–1686 ｜ Tab<br>
+      <span class="ok">✅</span> <b>左栏 = 司职产出表</b>：每行是"谁在管、产出多少、状态如何"，读出的是<b>组织在运转</b>，不是待领的菜<br>
+      <span class="ok">✅</span> <b>右栏 = 弟子请示</b>：全部对齐真实传讯类型（奏疏批阅/司职任命/历练见闻/护法/洞府营建）<br>
+      <span class="ok">✅</span> 末行「传功殿 · 司职空缺 → 指派」把"管理者的活"具象化（比一键收取有决策感）<br>
+      <span class="bad">⚠</span> 双栏各 492px，行高 146px 已是可读下限；司职/请示都需 TopN 截断＋折叠
+    </div>
+  </div>
+
+  <!-- ==================== C ==================== -->
+  <div class="slot dim">
+    <div class="slot-head">
+      <span class="tag">C</span><span class="nm">混合 · A 骨架 + B 效率</span>
+      <span class="verdict no">✗ 不采用</span>
+      <span class="sub">承袭 B 的双栏（司职重复 + 密度超限）；A 已含传讯栏，C 无净增量</span>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="sky"><svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="760" cy="250" r="90" fill="#E8CE8A" opacity="0.10"/>
+        <path d="M0 820 L180 670 L330 780 L500 620 L690 800 L870 700 L1080 820 L1080 1920 L0 1920 Z" fill="#13252B" opacity="0.95"/>
+        <path d="M0 1000 L220 860 L420 990 L620 840 L840 1010 L1080 900 L1080 1920 L0 1920 Z" fill="#0C181D"/>
+      </svg></div>
+      <div class="veil"></div>
+
+      <div class="abs topbar">
+        <div class="avatar">玄</div>
+        <div class="namebox">
+          <div class="n">太玄宗<span class="lv">门派·三级</span></div>
+          <div class="m">太玄历 三年·秋　·　云海封山</div>
+        </div>
+        <div class="res">
+          <div class="slot2"><div class="k">灵石</div><div class="v">12,480</div></div>
+          <div class="slot2"><div class="k">灵植</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">香火</div><div class="v">—</div></div>
+          <div class="slot2"><div class="k">声望</div><div class="v">320</div></div>
+        </div>
+        <div class="msg">✉<span class="dot-red">3</span></div>
+      </div>
+
+      <div class="abs actbanner" style="top:168px;height:92px">
+        <span class="lbl">大典盛事</span>
+        <span class="nm">宗门大比</span>
+        <span class="cd">剩余 <b>2 日 12 时</b>　·　另有 3 项时令</span>
+        <span class="go btn-gold">前往 ›</span>
+      </div>
+
+      <div class="abs plaque" style="top:284px;height:92px">
+        <div class="t1">太玄</div><div class="t2">T A I X U A N</div>
+      </div>
+      <div class="abs weather" style="top:394px;height:68px">
+        <span class="tag">气象</span>
+        <div class="ico"></div>
+        <div class="tx">云海之下灵脉微潮 —— 宜闭关参悟，或遣弟子下山历练。</div>
+      </div>
+
+      <div class="abs wire hot" style="top:482px;height:92px">
+        <span class="tt1">弟子传讯</span>
+        <span class="cnt">3</span>
+        <div class="line">
+          <div class="from">丹堂 · 林清霜</div>
+          <div class="say">炉温失稳，火候难持 —— 请宗主定夺开炉时序…</div>
+        </div>
+        <span class="go btn-gold">批复 ›</span>
+      </div>
+
+      <div class="abs sec-title" style="left:36px;top:596px;width:1008px">
+        <span class="cn">宗门运转</span><span class="en">司职弟子主理</span><span class="ln"></span>
+      </div>
+      <div class="abs" style="left:36px;top:640px;display:flex;gap:12px">
+        <div class="card snap" style="height:200px">
+          <div class="k">门中弟子</div><div class="v">58<small>名</small></div>
+          <div class="cap">在册 56 · 游历 2</div>
+        </div>
+        <div class="card snap" style="height:200px">
+          <div class="k">本月产</div><div class="v">+12,400</div>
+          <div class="cap"><b>丹堂 主理</b> · 自动归库</div>
+        </div>
+        <div class="card snap" style="height:200px">
+          <div class="bdg dot-red" style="position:absolute;top:10px;right:12px">7</div>
+          <div class="k">待宗主裁决</div><div class="v">7<small>件</small></div>
+          <div class="cap">点进聚合处理</div>
+        </div>
+        <div class="card snap" style="height:200px">
+          <div class="k">宗门气运</div><div class="v">82<small>/100</small></div>
+          <div class="bar" style="width:168px"><i style="width:82%"></i></div>
+        </div>
+      </div>
+
+      <div class="abs sec-title" style="left:36px;top:872px;width:1008px">
+        <span class="cn">司职与请示</span><span class="en">各取 Top3 · 可展开</span><span class="ln"></span>
+      </div>
+      <div class="abs card" style="left:36px;top:920px;width:492px;height:552px;padding:6px 16px 14px">
+        <div class="col-head" style="height:62px">
+          <span class="cn" style="font-size:21px">司职产出</span>
+          <span class="btn-ghost" style="width:124px;height:46px;font-size:17px">全部 ›</span>
+        </div>
+        <div class="row wrow" style="height:132px"><div class="ic" style="width:54px;height:54px;font-size:23px">🏮</div>
+          <div><div class="nm" style="font-size:21px">丹堂</div><div class="own">林清霜</div></div>
+          <div style="margin-left:auto;text-align:right"><div class="vl" style="font-size:22px">+4,200</div><div class="st">归库</div></div></div>
+        <div class="row wrow" style="height:132px;margin-top:9px"><div class="ic" style="width:54px;height:54px;font-size:23px">🌿</div>
+          <div><div class="nm" style="font-size:21px">灵田</div><div class="own">云 舒</div></div>
+          <div style="margin-left:auto;text-align:right"><div class="vl" style="font-size:22px">+12 株</div><div class="st">长势佳</div></div></div>
+        <div class="row wrow empty" style="height:132px;margin-top:9px"><div class="ic" style="width:54px;height:54px;font-size:23px">🎓</div>
+          <div><div class="nm" style="font-size:21px">传功殿</div><div class="own" style="color:var(--t-ter)">空缺</div></div>
+          <span class="go btn-gold" style="margin-left:auto;height:48px">指派</span></div>
+      </div>
+      <div class="abs card" style="left:552px;top:920px;width:492px;height:552px;padding:6px 16px 14px">
+        <div class="col-head" style="height:62px">
+          <span class="cn" style="font-size:21px">弟子请示</span>
+          <span class="btn-ghost" style="width:124px;height:46px;font-size:17px">传讯录 ›</span>
+        </div>
+        <div class="row wrow" style="height:132px"><div class="ic" style="width:54px;height:54px;font-size:23px">📜</div>
+          <div><div class="nm" style="font-size:21px">待批阅</div><div class="own">执事殿</div></div>
+          <span class="go btn-gold" style="margin-left:auto;height:48px">批阅</span></div>
+        <div class="row wrow" style="height:132px;margin-top:9px"><div class="ic" style="width:54px;height:54px;font-size:23px">⚔</div>
+          <div><div class="nm" style="font-size:21px">历练见闻</div><div class="own">秦无咎</div></div>
+          <span class="go btn-gold" style="margin-left:auto;height:48px">裁决</span></div>
+        <div class="row wrow" style="height:132px;margin-top:9px"><div class="ic" style="width:54px;height:54px;font-size:23px">🛡</div>
+          <div><div class="nm" style="font-size:21px">护法请示</div><div class="own">楚 砚</div></div>
+          <span class="go btn-gold" style="margin-left:auto;height:48px">裁决</span></div>
+      </div>
+
+      <div class="abs" style="left:36px;top:1496px;display:flex;gap:14px">
+        <div class="qitem" style="width:186px;height:158px"><div class="ic" style="width:54px;height:54px;font-size:25px">🗺</div><div class="k">天下</div></div>
+        <div class="qitem" style="width:186px;height:158px"><div class="ic" style="width:54px;height:54px;font-size:25px">📨</div><div class="k">灵讯</div>
+          <span class="dot-red" style="position:absolute;top:6px;right:6px">3</span></div>
+        <div class="qitem" style="width:186px;height:158px;border-color:var(--mat-edge-light)"><div class="ic" style="width:54px;height:54px;font-size:25px">🎏</div><div class="k">时令</div></div>
+        <div class="qitem" style="width:186px;height:158px"><div class="ic" style="width:54px;height:54px;font-size:25px">🏮</div><div class="k">坊市</div></div>
+        <div class="qitem" style="width:186px;height:158px"><div class="ic" style="width:54px;height:54px;font-size:25px">⋯</div><div class="k">更多</div></div>
+      </div>
+
+      <div class="abs tabbar">
+        <div class="tab on"><div class="ic">⛩<span class="ind"></span></div><div class="k">宗门</div></div>
+        <div class="tab"><div class="ic">👥</div><div class="k">弟子</div></div>
+        <div class="tab"><div class="ic">🏛</div><div class="k">殿阁</div></div>
+        <div class="tab"><div class="ic">⚔</div><div class="k">历练</div></div>
+        <div class="tab"><div class="ic">📖</div><div class="k">纪事</div></div>
+      </div>
+
+      <div class="safe"></div>
+      <div class="thumbzone"><span>拇指热区（下 1/3）</span><div class="reach"></div></div>
+    </div></div>
+    <div class="notes">
+      <b>结构</b>：顶栏 ｜ <b>时令横幅</b> ｜ 匾额 ｜ 气象带 ｜ <b>传讯栏</b> ｜ 快照 640–840 ｜ 司职与请示双栏 920–1472 ｜ 快捷条 1496–1654 ｜ Tab<br>
+      <span class="ok">✅</span> 一屏把"管理者三件事"给全：<b>看运转（快照）→ 管司职（左栏）→ 裁决请示（右栏）</b>，全程零手动收取<br>
+      <span class="ok">✅</span> 双栏各只 3 行 TopN（可展开），把"后期繁杂"风险提前摁住；时令/传讯都有独立固定位，不被折叠<br>
+      <span class="ok">✅</span> 招牌 4 入口（历练/日供/坊市/天下）＋灵讯＋时令落拇指热区<br>
+      <span class="bad">⚠</span> 落地工作量最大：需为"司职产出视图 / 请示聚合 / 时令横幅取数"各写一处只读适配（首页仍只读 Game + 抛信号）
+    </div>
+  </div>
+
+</div>
+
+<div class="tokwrap">
+  <h2>配色与尺寸 Token 对照（全部来自 ui_theme.gd）</h2>
+  <table>
+    <tr><th>用途</th><th>Token 名</th><th>色值</th><th>说明</th></tr>
+    <tr><td>页面底</td><td>COLOR_BG_BASE</td><td><span class="sw" style="background:#1B272B"></span>#1B272B</td><td>暗青黛</td></tr>
+    <tr><td>顶栏 / 浮层底</td><td>MAT_BASE_TOP / BOTTOM</td><td><span class="sw" style="background:linear-gradient(180deg,#22333A,#162024)"></span>#22333A → #162024</td><td>TOPBAR_H = 156</td></tr>
+    <tr><td>卡片底</td><td>MAT_CARD_TOP / BOTTOM</td><td><span class="sw" style="background:linear-gradient(180deg,#2B4049,#1F2B31)"></span>#2B4049 → #1F2B31</td><td>RADIUS_PANEL = 12</td></tr>
+    <tr><td>列表行 / 工作行</td><td>MAT_ROW_TOP / BOTTOM</td><td><span class="sw" style="background:linear-gradient(180deg,#273942,#1C262C)"></span>#273942 → #1C262C</td><td>9-patch 行底</td></tr>
+    <tr><td>暗金描边</td><td>MAT_EDGE_DARK / LIGHT</td><td><span class="sw" style="background:#6E5726"></span>#6E5726 / <span class="sw" style="background:#E8CE8A"></span>#E8CE8A</td><td>1–2px；时令横幅用亮金</td></tr>
+    <tr><td>主按钮 / 金渐变</td><td>MAT_GOLD_TOP / BOTTOM / HI</td><td><span class="sw" style="background:linear-gradient(180deg,#C9A656,#8C6E2E)"></span>#C9A656 → #8C6E2E</td><td>RADIUS_BUTTON = 6</td></tr>
+    <tr><td>一级文字</td><td>C01_TEXT_PRIMARY</td><td><span class="sw" style="background:#F2F5F3"></span>#F2F5F3</td><td>FONT_H2 = 33</td></tr>
+    <tr><td>金色数值</td><td>C01_TEXT_GOLD</td><td><span class="sw" style="background:#D6B06A"></span>#D6B06A</td><td>大数值 36px</td></tr>
+    <tr><td>二级 / 三级文字</td><td>C01_TEXT_SECONDARY / TERTIARY</td><td><span class="sw" style="background:#CFC6B2"></span>#CFC6B2 / <span class="sw" style="background:#9FB3B0"></span>#9FB3B0</td><td>FONT_BODY 27 / AUX 21</td></tr>
+    <tr><td>青绿（弟子/主理人）</td><td>C01_TEXT_JADE</td><td><span class="sw" style="background:#6BC4B6"></span>#6BC4B6</td><td>司职主理弟子署名色</td></tr>
+    <tr><td>底部 Tab 栏</td><td>C01_TAB_BAR_BG / ACTIVE / IDLE</td><td><span class="sw" style="background:#162024"></span>rgba(22,32,36,.94)</td><td>Tab 栏 h = 200</td></tr>
+    <tr><td>传入占位图标</td><td>art/icons/entry/entry_*.png</td><td colspan="2">时令 entry_activity_36 ｜ 灵讯 entry_feifuchuanxin_36 ｜ 天下 entry_tianxia_36 ｜ 更多 entry_more_36</td></tr>
+  </table>
+</div>
+
+<script>
+  var btnThumb=document.getElementById('btnThumb'),btnZoom=document.getElementById('btnZoom');
+  var body=document.body,screens=document.querySelectorAll('.screen'),phones=document.querySelectorAll('.phone');
+  var zoomed=false;
+  btnThumb.addEventListener('click',function(){
+    body.classList.toggle('show-thumb');
+    btnThumb.classList.toggle('on',body.classList.contains('show-thumb'));
+  });
+  btnZoom.addEventListener('click',function(){
+    zoomed=!zoomed;
+    var s=zoomed?1:0.4,w=zoomed?1080:432,h=zoomed?1920:768;
+    for(var i=0;i<screens.length;i++){screens[i].style.transform='scale('+s+')';}
+    for(var j=0;j<phones.length;j++){phones[j].style.width=w+'px';phones[j].style.height=h+'px';}
+    btnZoom.classList.toggle('on',zoomed);
+    btnZoom.textContent=zoomed?'缩小回 40%':'放大到 100%';
+  });
+</script>
+</body>
+</html>
