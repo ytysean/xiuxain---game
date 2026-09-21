@@ -441,9 +441,13 @@ func _生成柔点纹理() -> Texture2D:
 	var 纹理 = ImageTexture.create_from_image(图)
 	return 纹理
 
-func _生成炉火渐变() -> Gradient:
+func _生成炉火渐变() -> GradientTexture1D:
+	# ★ color_ramp 收 Texture2D，Gradient 直接赋会 Parse Error ⇒ 包一层 GradientTexture1D
 	var g = Gradient.new()
 	g.add_point(0.0, Color(1.0, 0.85, 0.40, 1.0))
 	g.add_point(0.5, Color(1.0, 0.55, 0.18, 0.90))
 	g.add_point(1.0, Color(0.90, 0.25, 0.08, 0.0))
-	return g
+	var gt = GradientTexture1D.new()
+	gt.gradient = g
+	gt.width = 128
+	return gt

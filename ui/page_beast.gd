@@ -847,7 +847,6 @@ func _build_灵气() -> void:
 	粒子.lifetime = 4.0
 	粒子.emitting = true
 	粒子.z_index = -1
-	粒子.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	粒子.position = Vector2(240, 854)
 	var 材: ParticleProcessMaterial = ParticleProcessMaterial.new()
 	材.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX

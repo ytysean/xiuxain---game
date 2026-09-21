@@ -24,7 +24,6 @@ const 可见基础槽数: int = 24
 
 # Ardot 03 屏精确色值（按画布 60:1 节点取色）
 const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)       # 背景渐变起点 #0B161A
-const C_BG_BOT: Color = UITheme.获取面板底色()       # 背景渐变终点 #0F2229
 const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)  # 60:2 顶部栏底
 const C_CATBAR_BG: Color = Color(0.086, 0.125, 0.141)    # 60:11 分类栏底
 const C_CELL_BG: Color = Color(0.122, 0.169, 0.192)       # 60:20 格子底 #0D1A20
@@ -40,7 +39,6 @@ const C_TIER_PILL_STROKE: Color = Color(0.839, 0.694, 0.416, 0.80)
 const C_EQUIP_BTN_BG1: Color = Color(0.910, 0.773, 0.447)   # 60:59 装备按钮渐变亮
 const C_EQUIP_BTN_BG2: Color = Color(0.839, 0.694, 0.416)   # 60:59 装备按钮渐变暗
 const C_EQUIP_BTN_TEXT: Color = Color(0.086, 0.157, 0.173)  # 60:60 装备文字深色
-const C_SELL_BTN_BG: Color = UITheme.获取面板底色()     # 60:61 出售按钮底
 
 var _built: bool = false
 var _当前分类: String = "全部"
@@ -382,7 +380,7 @@ func _build_actions(parent: Control) -> void:
 	UITheme.apply_body_font_sized(_出售按钮, _fs(16))
 	_出售按钮.add_theme_color_override("font_color", UITheme.COLOR_TEXT_GOLD)
 	var sbs := StyleBoxFlat.new()
-	sbs.bg_color = C_SELL_BTN_BG
+	sbs.bg_color = UITheme.获取面板底色()   # ★ 原 const 走 token 会 Parse Error（const 不支持函数调用），改就地取 token
 	sbs.border_color = UITheme.COLOR_TEXT_GOLD
 	sbs.set_corner_radius_all(_rc(23))
 	sbs.set_border_width_all(_bw(1))

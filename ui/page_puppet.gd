@@ -6,7 +6,6 @@ extends Control
 signal 返回主页
 
 const C_BG_TOP: Color = Color(0.106, 0.153, 0.169)
-const C_BG_BOT: Color = UITheme.获取面板底色()
 const C_TOPBAR_BG: Color = Color(0.106, 0.153, 0.169, 0.90)
 const C_TAB_BG: Color = Color(0.086, 0.125, 0.141)
 const C_TAB_ACTIVE: Color = Color(0.910, 0.773, 0.447, 0.3)
