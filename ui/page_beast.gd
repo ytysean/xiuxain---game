@@ -865,7 +865,7 @@ func _build_灵气() -> void:
 			var d: float = Vector2(float(x) - 7.5, float(y) - 7.5).length()
 			图.set_pixel(x, y, Color(1.0, 1.0, 1.0, clampf(1.0 - d / 7.5, 0.0, 1.0)))
 	var 纹理: ImageTexture = ImageTexture.create_from_image(图)
-	材.particle_texture = 纹理
+	粒子.texture = 纹理   # ★ ParticleProcessMaterial 无 particle_texture；纹理属 GPUParticles2D
 	粒子.process_material = 材
 	add_child(粒子)
 
