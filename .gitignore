@@ -48,3 +48,13 @@ accept_font_pilot*
 
 # 备份文件的时间戳/标签后缀变体（上面的 *.bak 只覆盖了后缀恰好为 .bak 的）
 *.bak_*
+
+# 美术资源（本地保留、不进版本库；历史已在 filter-branch 中剔除，远端的美术走本地/备份同步）
+# 说明：art/ 含全部立绘/图标/纹理（4900+ 文件，数 GB），icon/ 为旧废弃图标根，美术资源/ 为 UI mockups 参考图
+art/
+icon/
+美术资源/
+验收图/
+generated-images/
+.scratch_backup/
+backup_scripts/
